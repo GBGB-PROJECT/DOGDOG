@@ -1,0 +1,82 @@
+# =================================================================
+# [Essential] 프로젝트 핵심 제외 대상
+# =================================================================
+# 가상환경 (용량이 크고 환경마다 다르므로 제외)
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# 환경변수 (보안을 위해 API 키, DB 비번 등은 절대 올리지 않음)
+.env
+local_settings.py
+
+# =================================================================
+# [Python] 파이썬 실행 및 빌드 관련
+# =================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =================================================================
+# [IDE & OS] 개발 도구 및 운영체제 설정
+# =================================================================
+# VS Code
+.vscode/
+
+# PyCharm / IntelliJ
+.idea/
+
+# OS 관련 임시 파일
+.DS_Store
+Thumbs.db
+
+# =================================================================
+# [Tools] 기타 도구 (FastAPI, Testing, etc.)
+# =================================================================
+# 테스트 및 커버리지
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# 로그 및 데이터베이스
+*.log
+db.sqlite3
+db.sqlite3-journal
+
+# 캐시 및 설정
+.mypy_cache/
+.ruff_cache/
+.pytype/
+pyrightconfig.json

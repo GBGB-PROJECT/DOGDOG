@@ -80,3 +80,16 @@ db.sqlite3-journal
 .ruff_cache/
 .pytype/
 pyrightconfig.json
+
+# 하네스 엔지니어링 폴더 제외
+.agents/
+output/
+
+# 에이전트가 실시간으로 업데이트하는 로그성 문서만 제외
+docs/tasks.md
+docs/todo.md
+docs/issues.md
+docs/changelog.md
+
+# 또는 특정 패턴의 파일만 제외 (예: 임시 파일)
+docs/*.tmp

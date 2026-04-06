@@ -2,14 +2,14 @@
 
 # 환경설정
 # 1. 저장소 복제 (Clone the repository)
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/GBGB-PROJECT/DOGDOG.git
 cd your-repo-name
 
 # 2. 파이썬 가상환경 생성 및 활성화 (Virtual Environment)
 python -m venv venv
 # Windows:
 venv\Scripts\activate
-# Mac/Linux:
+# Mac:
 source venv/bin/activate
 
 # 3. 필수 라이브러리 설치 (Install dependencies)

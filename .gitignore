@@ -85,11 +85,5 @@ pyrightconfig.json
 .agents/
 output/
 
-# 에이전트가 실시간으로 업데이트하는 로그성 문서만 제외
-docs/tasks.md
-docs/todo.md
-docs/issues.md
-docs/changelog.md
-
-# 또는 특정 패턴의 파일만 제외 (예: 임시 파일)
-docs/*.tmp
+# 에이전트가 업데이트하는 문서 제외
+docs/*.md

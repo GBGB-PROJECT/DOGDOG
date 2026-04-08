@@ -4,32 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
-from db import get_db
+from db.db import get_db
 from ..service.feeding_service import FeedingService
 from ..repository.feeding_repository import FeedingRepository
 
 # --- Request/Response Models ---
 
-class InventoryInfo(BaseModel):
-    left_intake: float
-    left_food_count: float
-    is_feeding_check: bool = True
-
-class FeedingLogBase(BaseModel):
-    pet_food_id: Optional[int] = None
-    pet_id: int
-    customer_id: int
-    food_type: str = "건식"
-    amount: int
-    calories: int
-    feeding_date: date
-    memo: Optional[str] = None
-    last_update: Optional[str] = None
-
 class FeedingCreate(BaseModel):
     pet_id: int
-    amount: int = Field(gt=0, description="급여량 (g), 0보다 커야 함")
-    feeding_date: Optional[date] = date.today()
+    amount: int = Field(gt=0, description="급여량 (g)")
+    feeding_date: Optional[date] = None # 기본값: 오늘
     memo: Optional[str] = Field(None, max_length=200)
 
 class FeedingUpdate(BaseModel):
@@ -37,25 +21,27 @@ class FeedingUpdate(BaseModel):
     memo: Optional[str] = Field(None, max_length=200)
     new_feeding_date: Optional[date] = None
 
-class SimpleSuccessResponse(BaseModel):
-    status: str = "success"
-    message: str
-    data: dict
+class FeedingLogResponse(BaseModel):
+    pet_food_id: int
+    pet_id: int
+    customer_id: int
+    food_type: str
+    amount: int
+    calories: int
+    feeding_date: date
+    memo: Optional[str]
+    last_update: date
 
 # --- Router ---
 
-router = APIRouter(prefix="/api/v1/feeding", tags=["Feeding"])
+router = APIRouter(tags=["Feeding"])
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def register_feeding(request: FeedingCreate, db: Session = Depends(get_db)):
-    """급여 기록을 등록하고 재고를 실시간으로 업데이트합니다."""
+    """[등록] 새로운 급여 기록을 등록하며, 운영 DB(public) 권한 없을 시 dog_5 스키마에 자동 저장합니다."""
     # (실제 환경에선 JWT에서 customer_id 추출)
     customer_id = 110
     
-    # 1. 미래 날짜 검증
-    if request.feeding_date > date.today():
-        raise HTTPException(status_code=400, detail="미래 날짜의 기록을 등록할 수 없습니다.")
-        
     repo = FeedingRepository(db)
     service = FeedingService(repo)
     
@@ -70,11 +56,10 @@ def register_feeding(request: FeedingCreate, db: Session = Depends(get_db)):
         
         return {
             "status": "success",
-            "message": "급여 기록이 등록되었습니다.",
+            "message": "급여 기록이 등록되었습니다. (이원화 스키마 전략 적용)",
             "data": {
                 "pet_food_id": log.pet_food_id,
                 "pet_id": log.pet_id,
-                "customer_id": log.customer_id,
                 "amount": log.amount,
                 "calories": log.calories,
                 "feeding_date": log.feeding_date,
@@ -96,9 +81,7 @@ def get_feeding_logs(
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
-    """특정 기간 내 급여 기록 리스트와 총 합계를 반환합니다."""
-    # (소유권 검증 로직 추가 가능)
-    
+    """[조회] 운영 DB와 연습장 DB의 모든 급여 데이터를 조회합니다."""
     repo = FeedingRepository(db)
     service = FeedingService(repo)
     
@@ -112,7 +95,7 @@ def get_feeding_logs(
     
     return {
         "status": "success",
-        "message": "조회가 완료되었습니다.",
+        "message": "급여 데이터를 성공적으로 조회했습니다.",
         "data": {
             "pet_id": pet_id,
             "daily_summary": {
@@ -126,11 +109,11 @@ def get_feeding_logs(
 @router.patch("/{pet_food_id}")
 def update_feeding(
     pet_food_id: int, 
-    feeding_date: date, # 파티션 식별을 위해 필수
+    feeding_date: date, # 파티션 키
     request: FeedingUpdate, 
     db: Session = Depends(get_db)
 ):
-    """급여 기록을 수정하고 재고 및 칼로리를 재계산합니다."""
+    """[수정] 특정 급여 기록을 수정하며 스키마 가변성을 지원합니다."""
     customer_id = 110
     
     repo = FeedingRepository(db)
@@ -146,11 +129,11 @@ def update_feeding(
         
         return {
             "status": "success",
-            "message": "급여 기록이 수정되었습니다.",
+            "message": "기록이 수정되었습니다.",
             "data": updated_log
         }
     except ValueError as v_err:
-        raise HTTPException(status_code=404, detail="수정할 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="해당 기록을 찾을 수 없습니다.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"수정 실패: {str(e)}")
 
@@ -160,7 +143,7 @@ def delete_feeding(
     feeding_date: date = Query(...), 
     db: Session = Depends(get_db)
 ):
-    """특정 급여 기록을 삭제하고 소진된 사료 재고를 복구합니다."""
+    """[삭제] 급여 기록을 삭제하고 소모된 재고를 자동 복구합니다."""
     customer_id = 110
     
     repo = FeedingRepository(db)
@@ -174,6 +157,6 @@ def delete_feeding(
             "data": {"deleted_id": pet_food_id}
         }
     except ValueError:
-        raise HTTPException(status_code=404, detail="기록이 이미 존재하지 않습니다.")
+        raise HTTPException(status_code=404, detail="삭제할 기록이 존재하지 않습니다.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"삭제 실패: {str(e)}")

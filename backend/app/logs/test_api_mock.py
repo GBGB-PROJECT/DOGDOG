@@ -10,8 +10,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 # 2. 프로젝트 로직 임포트 (절대 경로 스타일)
-from domains.logs.api.feeding_api import router
-from db import get_db
+from app.logs.api.feeding_api import router
+from db.db import get_db
 
 # 
 

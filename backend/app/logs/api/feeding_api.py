@@ -3,14 +3,16 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
+import logging
 
 from db.db import get_db
 from ..service.feeding_service import FeedingService
 from ..repository.feeding_repository import FeedingRepository
 
+logger = logging.getLogger(__name__)
+
+
 # --- Request/Response Models ---
-
-
 class FeedingCreate(BaseModel):
     pet_id: int
     amount: int = Field(gt=0, description="급여량(g)은 0보다 커야 합니다.")
@@ -19,39 +21,35 @@ class FeedingCreate(BaseModel):
 
 
 class FeedingUpdate(BaseModel):
-    amount: Optional[int] = Field(None, gt=0)  # gt: 0보다 크게
+    amount: Optional[int] = Field(None, gt=0)
     memo: Optional[str] = Field(None, max_length=200)
     new_feeding_date: Optional[date] = None
 
 
 # --- Router ---
-
 router = APIRouter(tags=["Feeding"])
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def register_feeding(request: FeedingCreate, db: Session = Depends(get_db)):
     """[등록] 새로운 급여 기록을 등록하고 사료 재고를 업데이트합니다."""
-    customer_id = 1  # TODO: JWT에서 추출 예정 임시 테스터 id
+    customer_id = 1
 
     repo = FeedingRepository(db)
     service = FeedingService(repo)
 
-    # 1. 소유권 확인
     if not repo.check_pet_ownership(customer_id, request.pet_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"해당 반려동물(ID:{request.pet_id})에 대한 접근 권한이 없습니다.",
         )
 
-    # 2. 사료 등록 여부 확인 (데이터 무결성 검증)
     if not repo.check_active_feeding_exists(request.pet_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="등록된 사료 정보가 없습니다. 먼저 급여 사료를 설정해주세요.",
         )
 
-    # 3. 비즈니스 로직 실행
     try:
         log, inven = service.register_feeding(
             customer_id=customer_id,
@@ -80,8 +78,10 @@ def register_feeding(request: FeedingCreate, db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
+        logger.error(f"급여 기록 등록 중 서버 오류 발생: {str(e)}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
         )
 
 
@@ -104,9 +104,16 @@ def get_feeding_logs(
         )
 
     service = FeedingService(repo)
-    result = service.get_feeding_logs(pet_id, start_date, end_date, limit, offset)
 
-    return {"status": "success", "data": result}
+    try:
+        result = service.get_feeding_logs(pet_id, start_date, end_date, limit, offset)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"급여 기록 조회 중 서버 오류 발생: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+        )
 
 
 @router.patch("/{pet_food_id}")
@@ -136,10 +143,21 @@ def update_feeding(
             "data": updated_log,
         }
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        error_msg = str(e)
+        if error_msg == "요청하신 급여 기록을 찾을 수 없습니다.":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="해당 급여 기록을 찾을 수 없습니다.",
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
+            )
     except Exception as e:
+        logger.error(f"급여 기록 수정 중 서버 오류 발생: {str(e)}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
         )
 
 
@@ -156,8 +174,19 @@ def delete_feeding(
         service.delete_feeding(customer_id, pet_food_id, feeding_date)
         return {"status": "success", "message": "삭제 및 재고 복구가 완료되었습니다."}
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        error_msg = str(e)
+        if error_msg == "요청하신 급여 기록을 찾을 수 없습니다.":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="해당 급여 기록을 찾을 수 없습니다.",
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
+            )
     except Exception as e:
+        logger.error(f"급여 기록 삭제 중 서버 오류 발생: {str(e)}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
         )

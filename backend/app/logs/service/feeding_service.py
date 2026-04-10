@@ -138,7 +138,7 @@ class FeedingService:
         """[수정] 특정 급여 기록을 수정하고 재고 및 파티션을 관리합니다."""
         log = self.repo.get_log_by_id_and_date(pet_food_id, old_date)
         if not log:
-            raise ValueError("ERR_NOT_FOUND")
+            raise ValueError("요청하신 급여 기록을 찾을 수 없습니다.")
 
         amount_diff = 0
         if "amount" in new_data:
@@ -200,7 +200,7 @@ class FeedingService:
         """[삭제] 급여 기록을 삭제하고 소모된 재고를 복구합니다."""
         log = self.repo.get_log_by_id_and_date(pet_food_id, feeding_date)
         if not log:
-            raise ValueError("ERR_NOT_FOUND")
+            raise ValueError("요청하신 급여 기록을 찾을 수 없습니다.")
 
         # 재고 원복
         inven = self._update_inventory_logic(log.pet_id, -log.amount, count_diff=-1)

@@ -134,13 +134,22 @@ def update_feeding(
             pet_food_id=pet_food_id,
             old_date=feeding_date,
             new_data=request.model_dump(exclude_unset=True)
-            if hasattr(request, "model_dump")
-            else request.dict(exclude_unset=True),
+            if hasattr(request, "model_dump")  # pydantic 버젼 이슈 해결
+            else request.dict(exclude_unset=True),  # 세팅된 데이터만 넘김
         )
         return {
             "status": "success",
-            "message": "기록이 수정되었습니다.",
-            "data": updated_log,
+            "message": "급여 기록이 수정되었습니다.",
+            "data": {
+                "pet_food_id": updated_log.pet_food_id,
+                "customer_id": updated_log.customer_id,
+                "food_type": updated_log.food_type,
+                "amount": updated_log.amount,
+                "calories": updated_log.calories,
+                "feeding_date": updated_log.feeding_date,
+                "memo": updated_log.memo,
+                "last_update": updated_log.last_update,
+            },
         }
     except ValueError as e:
         error_msg = str(e)

@@ -76,10 +76,21 @@ class FeedingService:
                 f"사료 잔여량보다 많은 양은 입력 불가합니다. (현재 남은 양: {inventory.left_intake}g)"
             )
 
-    def _validate_date(self, feeding_date: date):
-        """급여 날짜가 미래인지 검증합니다."""
+    def _validate_date(self, pet_id: int, feeding_date: date):
+        """급여 날짜가 미래인지, 또는 사료 급여 시작일보다 과거인지 검증합니다."""
+        # 1. 미래 날짜 체크
         if feeding_date > date.today():
-            raise ValueError(f"미래 날짜({feeding_date})로 급여 기록을 입력할 수 없습니다.")
+            raise ValueError(
+                f"미래 날짜({feeding_date})로 급여 기록을 입력할 수 없습니다."
+            )
+
+        # 2. 사료 급여 시작일 이전 날짜인지 체크
+        inventory = self.repo.get_inventory(pet_id)
+        if inventory and inventory.feeding_start:
+            if feeding_date < inventory.feeding_start:
+                raise ValueError(
+                    f"사료 급여 시작일({inventory.feeding_start}) 이전 날짜로는 기록을 추가하거나 수정할 수 없습니다."
+                )
 
     # 급여 기록 등록
     def register_feeding(
@@ -92,8 +103,8 @@ class FeedingService:
         if not feeding_date:
             feeding_date = date.today()  # 디폴트: 오늘
 
-        # 미래 날짜 체크 추가
-        self._validate_date(feeding_date)
+        # 날짜 검증: 미래 날짜 방지 + 시작일 이전 과거 방지
+        self._validate_date(pet_id, feeding_date)
 
         # 급여 중 사료 잔여량 체크 추가
         self._validate_stock(pet_id, amount)
@@ -169,8 +180,8 @@ class FeedingService:
 
         # 날짜(Partition Key) 변경 시 삭제 후 재삽입 (Delete -> Insert)
         if "new_feeding_date" in new_data and new_data["new_feeding_date"] != old_date:
-            # 미래 날짜 체크 추가 (수정 시)
-            self._validate_date(new_data["new_feeding_date"])
+            # 날짜 검증: 미래 날짜 방지 + 시작일 이전 과거 방지
+            self._validate_date(log.pet_id, new_data["new_feeding_date"])
 
             # PK 변경을 위한 D&I 처리
             new_log_data = {

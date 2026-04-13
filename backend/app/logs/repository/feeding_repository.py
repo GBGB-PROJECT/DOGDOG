@@ -1,11 +1,12 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import text
+from sqlalchemy import text, func
 from db.models import (
     CompanionButler,
     CompanionCustomerFood,
     CompanionPetProductFeeding,
     CompanionPetFood,
     OpdProduct,
+    CompanionFeedingGuide,
 )
 
 
@@ -49,6 +50,32 @@ class FeedingRepository:
             .filter_by(pet_id=pet_id, is_feeding_check=True)
             .first()
         )
+
+    def get_daily_stats(self, pet_id: int, target_date):
+        """특정 날짜의 급여량(amount) 합계와 칼로리(calories) 합계를 조회합니다."""
+        result = (
+            self.db.query(
+                func.sum(CompanionPetFood.amount).label("total_amount"),
+                func.sum(CompanionPetFood.calories).label("total_calories"),
+            )
+            .filter(
+                CompanionPetFood.pet_id == pet_id,
+                CompanionPetFood.feeding_date == target_date,
+            )
+            .first()
+        )
+        return {"total_amount": result.total_amount or 0, "total_calories": result.total_calories or 0}
+
+    def get_target_calories(self, pet_id: int):
+        """가장 최신의 추천 섭취량(guide_intake)을 조회합니다."""
+        guide = (
+            self.db.query(CompanionFeedingGuide)
+            .filter(CompanionFeedingGuide.pet_id == pet_id)
+            .order_by(CompanionFeedingGuide.guide_date.desc())
+            .first()
+        )
+        # guide_intake가 없으면 0을 반환. (칼로리 산출은 사료 g당 칼로리와 곱해야 함)
+        return guide.guide_intake if guide and guide.guide_intake else 0
 
     def add_log(self, log: CompanionPetFood):
         self.db.add(log)

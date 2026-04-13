@@ -209,3 +209,71 @@ class FeedingService:
         self.repo.commit()
 
         return True, inven
+
+    def get_main_dashboard_data(self, pet_id: int, target_date: date):
+        """메인 대시보드 화면을 위한 일일 급여 요약 정보를 생성하여 반환합니다."""
+        
+        # 1. 일일 급여 통계 가져오기
+        daily_stats = self.repo.get_daily_stats(pet_id, target_date)
+        current_kcal = daily_stats.get("total_calories", 0)
+        current_amount = daily_stats.get("total_amount", 0)
+
+        # 2. 목표 섭취량 계산
+        guide_intake = self.repo.get_target_calories(pet_id)
+        
+        # 사료 1g당 칼로리가 필요하므로 active feeding 정보를 조회
+        try:
+            # _get_feeding_info를 이용해 1g당 칼로리 조회시도 (amount=0일시 0반환)
+            # 그냥 get_active_feeding_info를 활용하는 편이 더 직관적임
+            info = self.repo.get_active_feeding_info(pet_id)
+            cal_per_gram = float(info.one_gram_calories) if info and info.one_gram_calories else 0
+        except ValueError:
+            cal_per_gram = 0
+
+        target_kcal = int(guide_intake * cal_per_gram)
+        
+        # 목표 섭취 칼로리 달성률 (DivisionByZero 방지)
+        progress_rate = 0
+        if target_kcal > 0:
+            progress_rate = round((current_kcal / target_kcal) * 100)
+
+        feeding_stats = {
+            "current_kcal": current_kcal,
+            "target_kcal": target_kcal,
+            "current_amount": current_amount,
+            "target_amount": guide_intake,
+            "progress_rate": progress_rate
+        }
+
+        # 3. 사료 재고율 현황 가져오기
+        food_inventory = {
+            "left_percent": 0,
+            "left_intake": 0,
+            "total_weight": 0,
+            "left_food_count": 0
+        }
+        
+        inventory = self.repo.get_inventory(pet_id)
+        if inventory:
+            left_intake = inventory.left_intake if inventory.left_intake is not None else 0
+            total_weight = inventory.total_weight if inventory.total_weight else 0
+            
+            # left_food_count가 모델 속성으로 존재할 경우 가져옵니다 (데이터베이스의 소수점 반영)
+            left_food_count = inventory.left_food_count if hasattr(inventory, 'left_food_count') and inventory.left_food_count is not None else 0
+            
+            left_percent = 0
+            if total_weight > 0:
+                left_percent = round((left_intake / total_weight) * 100)
+                
+            food_inventory = {
+                "left_percent": left_percent,
+                "left_intake": float(left_intake) if left_intake else 0, # frontend 편의상 float 형 변환
+                "total_weight": float(total_weight) if total_weight else 0,
+                "left_food_count": float(left_food_count) if left_food_count else 0
+            }
+
+        return {
+            "query_date": target_date.strftime("%Y-%m-%d"),
+            "feeding_stats": feeding_stats,
+            "food_inventory": food_inventory
+        }

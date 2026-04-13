@@ -13,7 +13,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 # SQLAlchemy 엔진 생성
 # PostgreSQL 연결 시 커넥션 풀 및 기본 검색 경로(public -> dog_5 순서)를 설정합니다.
 engine = create_engine(
-    DATABASE_URL, connect_args={"options": "-csearch_path=public,dog_5"}
+    DATABASE_URL,
+    # connect_args={"options": "-csearch_path=public,dog_5"},
+    echo=True,
 )
 
 # 세션 생성기 설정

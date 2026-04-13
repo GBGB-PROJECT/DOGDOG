@@ -13,20 +13,6 @@ class FeedingRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def check_pet_ownership(
-        self, customer_id: int, pet_id: int
-    ) -> bool:  # 고객-집사 일치 확인
-        """해당 고객이 해당 반려동물의 집사(Butler)인지 확인합니다."""
-        return (
-            self.db.query(CompanionButler)
-            .filter(
-                CompanionButler.customer_id == customer_id,
-                CompanionButler.pet_id == pet_id,
-                CompanionButler.active,
-            )
-            .first()
-            is not None
-        )
 
     def check_active_feeding_exists(
         self, pet_id: int

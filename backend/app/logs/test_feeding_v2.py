@@ -32,7 +32,8 @@ class TestFeedingV2(unittest.TestCase):
             total_weight=5000,
             total_intake=1000,
             food_count=10,
-            left_intake=4000
+            left_intake=4000,
+            feeding_start=date(2025, 1, 1)
         )
         
         # 기본 급여 정보 Mock (칼로리, 제품 정보 포함)

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 import logging
 
 from db.db import get_db
+from dependencies import check_pet_owner
 from ..service.feeding_service import FeedingService
 from ..repository.feeding_repository import FeedingRepository
 
@@ -38,7 +39,7 @@ def register_feeding(request: FeedingCreate, db: Session = Depends(get_db)):
     repo = FeedingRepository(db)
     service = FeedingService(repo)
 
-    if not repo.check_pet_ownership(customer_id, request.pet_id):
+    if not check_pet_owner(db, request.pet_id, customer_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"해당 반려동물(ID:{request.pet_id})에 대한 접근 권한이 없습니다.",
@@ -98,7 +99,7 @@ def get_feeding_logs(
     customer_id = 1
     repo = FeedingRepository(db)
 
-    if not repo.check_pet_ownership(customer_id, pet_id):
+    if not check_pet_owner(db, pet_id, customer_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다."
         )

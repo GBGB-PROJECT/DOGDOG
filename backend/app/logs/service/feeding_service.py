@@ -60,36 +60,27 @@ class FeedingService:
 
         return inventory
 
-    # 사료 잔여량 체크 로직
-    def _validate_stock(self, pet_id: int, required_amount: int):
-        """현재 잔여량이 필요한 양보다 충분한지 검증합니다."""
-        inventory = self.repo.get_inventory(pet_id)
-        if not inventory:
-            return  # 재고 레코드가 없으면 체크를 건너뜁니다.
-
-        # left_intake
-        if (
-            inventory.left_intake is not None
-            and inventory.left_intake < required_amount
-        ):
-            raise ValueError(
-                f"사료 잔여량보다 많은 양은 입력 불가합니다. (현재 남은 양: {inventory.left_intake}g)"
-            )
-
-    def _validate_date(self, pet_id: int, feeding_date: date):
-        """급여 날짜가 미래인지, 또는 사료 급여 시작일보다 과거인지 검증합니다."""
-        # 1. 미래 날짜 체크
+    def _validate_feeding_input(self, pet_id: int, amount: int, feeding_date: date):
+        """급여 입력 데이터 무결성 검증 (재고, 미래 날짜, 과거 시작일)"""
+        # 1. 날짜 검증 (미래 날짜 방지)
         if feeding_date > date.today():
             raise ValueError(
                 f"미래 날짜({feeding_date})로 급여 기록을 입력할 수 없습니다."
             )
 
-        # 2. 사료 급여 시작일 이전 날짜인지 체크
+        # 2. 재고 및 사료 정보 기반 검증
         inventory = self.repo.get_inventory(pet_id)
-        if inventory and inventory.feeding_start:
-            if feeding_date < inventory.feeding_start:
+        if inventory:
+            # 시작일 이전 날짜인지 검증
+            if inventory.feeding_start and feeding_date < inventory.feeding_start:
                 raise ValueError(
                     f"사료 급여 시작일({inventory.feeding_start}) 이전 날짜로는 기록을 추가하거나 수정할 수 없습니다."
+                )
+            
+            # 잔여량보다 급여량이 많은지 검증
+            if inventory.left_intake is not None and inventory.left_intake < amount:
+                raise ValueError(
+                    f"사료 잔여량보다 많은 양은 입력 불가합니다. (현재 남은 양: {inventory.left_intake}g)"
                 )
 
     # 급여 기록 등록
@@ -103,11 +94,8 @@ class FeedingService:
         if not feeding_date:
             feeding_date = date.today()  # 디폴트: 오늘
 
-        # 날짜 검증: 미래 날짜 방지 + 시작일 이전 과거 방지
-        self._validate_date(pet_id, feeding_date)
-
-        # 급여 중 사료 잔여량 체크 추가
-        self._validate_stock(pet_id, amount)
+        # 급여 데이터 검증: 날짜, 재고
+        self._validate_feeding_input(pet_id, amount, feeding_date)
 
         cal, f_type = self._get_feeding_info(pet_id, amount)
         inven = self._update_inventory_logic(pet_id, amount, count_diff=1)
@@ -155,9 +143,9 @@ class FeedingService:
         if "amount" in new_data:
             amount_diff = new_data["amount"] - log.amount
 
-            # 수정되는 양이 잔여량보다 많은지 체크
+            # 수정되는 양이 잔여량보다 많은지 체크 (양수일 때만 잔여량이 깎임)
             if amount_diff > 0:
-                self._validate_stock(log.pet_id, amount_diff)
+                self._validate_feeding_input(log.pet_id, amount_diff, old_date)
             # 이전 기록의 1g당 칼로리 역산 (0으로 나누기 방지 포함)
             if log.amount > 0:
                 old_cal_per_gram = log.calories / log.amount
@@ -181,7 +169,9 @@ class FeedingService:
         # 날짜(Partition Key) 변경 시 삭제 후 재삽입 (Delete -> Insert)
         if "new_feeding_date" in new_data and new_data["new_feeding_date"] != old_date:
             # 날짜 검증: 미래 날짜 방지 + 시작일 이전 과거 방지
-            self._validate_date(log.pet_id, new_data["new_feeding_date"])
+            # 양이 변경되었다면 이미 _validate_feeding_input 에서 날짜 검사를 했을 수 있지만,
+            # 날짜 자체가 바뀌었으므로 바뀐 날짜에 대해 다시 검증(amount=0으로 두어 재고 검증은 스킵)
+            self._validate_feeding_input(log.pet_id, 0, new_data["new_feeding_date"])
 
             # PK 변경을 위한 D&I 처리
             new_log_data = {

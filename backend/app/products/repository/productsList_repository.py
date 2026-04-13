@@ -1,12 +1,12 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from database.models import OpdProductDetail
+from db.models import OpdProductDetail
 
 def get_product_list(db: Session, keyword: str | None = None):
     query = (
-        select(OpdProductDetail.product_detail_id, 
-                OpdProductDetail.product_name, 
+        select(OpdProductDetail.product_detail_id.label("product_detail_id"), 
+                OpdProductDetail.product_name.label("product_name"), 
                 )
         # .options(joinedload(Product.product_detail))
         # .join(Product_Detail, Product.product_detail_id == Product_Detail.product_detail_id)

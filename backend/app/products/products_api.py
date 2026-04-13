@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from database.db import get_db
-from backend.app.domains.products.repository.productsList_repository import get_product_list
-from backend.app.domains.products.repository.productsWeight_repository import get_product_weight
+from db.db import get_db
+from backend.app.products.repository.productsList_repository import get_product_list
+from backend.app.products.repository.productsWeight_repository import get_product_weight
 
 router = APIRouter(tags=["products"])
 

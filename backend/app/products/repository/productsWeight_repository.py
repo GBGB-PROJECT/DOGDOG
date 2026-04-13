@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from database.models import OpdProduct
+from db.models import OpdProduct
 
 def get_product_weight(db: Session, product_detail_id: int):
     query = (

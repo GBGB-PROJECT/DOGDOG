@@ -10,6 +10,7 @@ def get_product_weight(db: Session, product_detail_id: int):
                 OpdProduct.active
                 )
         .where(OpdProduct.active == True, OpdProduct.product_detail_id == product_detail_id)
+        .order_by(OpdProduct.weight)
     )
 
     result = db.execute(query)

@@ -1,5 +1,5 @@
 # ==========================================
-# 🖥️ BACKEND (FastAPI & Database)
+# BACKEND (FastAPI & Database)
 # ==========================================
 fastapi==0.135.2
 uvicorn==0.42.0
@@ -21,7 +21,7 @@ websockets==16.0
 uvloop==0.22.1
 
 # ==========================================
-# 📱 FRONTEND (Flet App)
+# FRONTEND (Flet App)
 # ==========================================
 flet==0.81.0
 flet-charts==0.81.0
@@ -30,14 +30,14 @@ oauthlib==3.3.1
 repath==0.9.0
 
 # ==========================================
-# 📊 DATA & EXCEL PROCESSING
+# DATA & EXCEL PROCESSING
 # ==========================================
 pandas==2.2.2
 numpy==2.4.4
 openpyxl==3.1.5
 
 # ==========================================
-# 🛠️ UTILS & DEVELOPMENT
+# UTILS & DEVELOPMENT
 # ==========================================
 pytest==9.0.2
 msgpack==1.1.2

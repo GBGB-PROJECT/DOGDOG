@@ -1,7 +1,7 @@
 from datetime import date
 from sqlalchemy.orm import Session
 
-from backend.app.domains.pets.repository.petFood_repository import (
+from backend.app.pets.repository.petFood_repository import (
     get_active_pet_food,
     deactivate_pet_food,
     insert_customer_food,
@@ -9,7 +9,7 @@ from backend.app.domains.pets.repository.petFood_repository import (
     end_pet_food
 )
 
-from backend.dependency.dependencies import get_pet_by_id, check_pet_owner, get_product_by_id
+from backend.dependencies import get_pet_by_id, check_pet_owner, get_product_by_id
 
 def create_pet_food(
     db: Session,

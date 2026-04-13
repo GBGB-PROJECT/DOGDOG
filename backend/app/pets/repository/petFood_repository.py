@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from database.models import CompanionCustomerFood, CompanionPetProductFeeding
+from db.models import CompanionCustomerFood, CompanionPetProductFeeding
 
 from datetime import date
 

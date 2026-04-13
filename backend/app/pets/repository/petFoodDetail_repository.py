@@ -1,10 +1,10 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from database.models import CompanionPet, CompanionCustomerFood, CompanionPetProductFeeding, OpdProduct, OpdProductDetail
+from db.models import CompanionPet, CompanionCustomerFood, CompanionPetProductFeeding, OpdProduct, OpdProductDetail
 
 from sqlalchemy.orm import Session
-from backend.dependency.dependencies import get_pet_by_id
+from backend.dependencies import get_pet_by_id
 
 def get_current_pet_food_detail(db: Session, pet_id: int):
     # pet 존재 확인

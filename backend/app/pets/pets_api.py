@@ -3,10 +3,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
-from database.db import get_db
-from backend.app.domains.pets.repository.petFood_repository import end_pet_food
-from backend.app.domains.pets.petFood_service import create_pet_food
-from backend.app.domains.pets.repository.petFoodDetail_repository import get_current_pet_food_detail, get_pet_by_id
+from db.db import get_db
+from backend.app.pets.repository.petFood_repository import end_pet_food
+from backend.app.pets.petFood_service import create_pet_food
+from backend.app.pets.repository.petFoodDetail_repository import get_current_pet_food_detail, get_pet_by_id
 # from backend.app.core.auth import get_current_customer_id  # 가정: 토큰에서 customer_id 추출
 from datetime import date, timedelta
 

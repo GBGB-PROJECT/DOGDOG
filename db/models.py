@@ -216,6 +216,7 @@ class CompanionPetLogBoolean(Base):
     )
     category = Column(String(18), nullable=False, index=True)
     is_status = Column(Boolean, nullable=False, server_default=text("true"))
+    active = Column(Boolean, default=True, server_default=text("true"))
     memo = Column(Text)
     log_date = Column(
         DateTime, primary_key=True, nullable=False, server_default=text("now()")
@@ -244,6 +245,7 @@ class CompanionPetLogNumeric(Base):
     )
     category = Column(String(18), nullable=False, index=True)
     log_status = Column(Numeric(5, 2))
+    active = Column(Boolean, default=True, server_default=text("true"))
     memo = Column(Text)
     log_date = Column(
         DateTime, primary_key=True, nullable=False, server_default=text("now()")
@@ -328,6 +330,7 @@ class CompanionPetFood(Base):
     food_type = Column(String(30), index=True)
     amount = Column(SmallInteger)
     calories = Column(SmallInteger)
+    active = Column(Boolean, default=True, server_default=text("true"))
     memo = Column(Text)
     feeding_date = Column(
         Date, primary_key=True, nullable=False, server_default=text("current_date")

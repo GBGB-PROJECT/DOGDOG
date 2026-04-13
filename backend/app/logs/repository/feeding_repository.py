@@ -61,6 +61,7 @@ class FeedingRepository:
             .filter(
                 CompanionPetFood.pet_id == pet_id,
                 CompanionPetFood.feeding_date == target_date,
+                CompanionPetFood.active == True,
             )
             .first()
         )
@@ -81,13 +82,13 @@ class FeedingRepository:
         self.db.add(log)
 
     def delete_log(self, log: CompanionPetFood):
-        self.db.delete(log)
+        log.active = False
 
     def get_log_by_id_and_date(self, pet_food_id: int, feeding_date):
         """파티션 키(날짜)와 ID를 조합하여 정확한 단건 식별"""
         return (
             self.db.query(CompanionPetFood)
-            .filter_by(pet_food_id=pet_food_id, feeding_date=feeding_date)
+            .filter_by(pet_food_id=pet_food_id, feeding_date=feeding_date, active=True)
             .first()
         )
 
@@ -95,7 +96,7 @@ class FeedingRepository:
         self, pet_id: int, start_date=None, end_date=None, limit=20, offset=0
     ):
         """복합 검색 조건으로 급여 히스토리 조회"""
-        query = self.db.query(CompanionPetFood).filter_by(pet_id=pet_id)
+        query = self.db.query(CompanionPetFood).filter_by(pet_id=pet_id, active=True)
         if start_date:
             query = query.filter(CompanionPetFood.feeding_date >= start_date)
         if end_date:

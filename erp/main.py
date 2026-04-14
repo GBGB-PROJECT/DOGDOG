@@ -6,6 +6,9 @@ from domain.erp_homeframe import ErpFrame
 
 def main(page: ft.Page):
     page.title = "개밥개밥푸드 ERP"
+    page.window_resizable = False
+    page.width = 1280
+    page.height = 800
     page.padding = 0
     page.bgcolor = ft.Colors.WHITE
     

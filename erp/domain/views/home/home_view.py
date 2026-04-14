@@ -1,14 +1,10 @@
 import flet as ft
-
-
 from components import common as cm
-PAGE_BG = "#FFFFFF"
-
 
 def erp_home_view():
     return ft.Container(
         expand=True,
-        bgcolor=PAGE_BG,
+        bgcolor=cm.cPAGE_BG,
         padding=20,
         content=ft.Column(
             spacing=20,
@@ -18,7 +14,7 @@ def erp_home_view():
                     "매출 하이라이트",
                     size=20,
                     weight=ft.FontWeight.W_700,
-                    color="#2B2F36",
+                    color=cm.TEXT_PRIMARY,
                 ),
                 ft.Row(
                     spacing=16,
@@ -47,7 +43,7 @@ def erp_home_view():
                     "생산/재고 하이라이트",
                     size=20,
                     weight=ft.FontWeight.W_700,
-                    color="#2B2F36",
+                    color=cm.TEXT_PRIMARY,
                 ),
                 ft.Row(
                     spacing=16,

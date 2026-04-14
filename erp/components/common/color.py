@@ -2,7 +2,8 @@
 '''로그인 페이지, 시그니처 색깔'''
 MAIN_COLOR = "#004080"
 ACTIVE_COLOR = "#22C7E8"
-PAGE_BG = "#F2F2F2"
+PAGE_BG = "#FFFFFF"
+
 
 '''텍스트에 사용하는 색깔'''
 BOX_BG = "#F5F5F5"      

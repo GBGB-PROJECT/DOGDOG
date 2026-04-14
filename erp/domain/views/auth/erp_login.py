@@ -22,12 +22,13 @@ from erp.components import common as cm
 """
 class ErpLoginView(ft.Container):
   ## 1-1. 초기 설정(flet 최초 설정과 동일하다.)
-  def __init__(self, page:ft.Page):
+  def __init__(self, page:ft.Page, on_login_success):
     super().__init__()
     # 클래스에 대한 설정
     self.main_page= page
     self.expand = True # 화면에 꽉 차게 배치(화면에 ErpLoginView를 꽉 차게 배치)
     self.alignment=ft.Alignment.CENTER # 화면 중앙에 배치
+    self.on_login_success = on_login_success
 
     ## 입력창을 선언함
     self.id_input = cm.custom_textfield('사번', "GB0001") # label값, placeholder값
@@ -44,6 +45,7 @@ class ErpLoginView(ft.Container):
     "password": self.password_input.controls[1].value
     })
     print(login_data)
+    self.on_login_success() # 테스트용 일단 조건엾이 화면 전환
   
   ## 1-3. 컴포넌트 조립 ===================
   def build_login_erp(self):
@@ -82,6 +84,6 @@ def main(page: ft.Page):
     page.add(login_view)
 
 
-## 테스트용 실행(이후에는 연결고리를 만들 것)
-if __name__ == "__main__": 
-  ft.app(target=main, assets_dir="assets")
+# ## 테스트용 실행(이후에는 연결고리를 만들 것)
+# if __name__ == "__main__": 
+#   ft.app(target=main, assets_dir="assets")

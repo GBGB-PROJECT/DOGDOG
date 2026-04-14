@@ -1,9 +1,10 @@
 """frame과 연결되어 frame의 내용물을 채우는 파일"""
 import flet as ft
+from domain.views.home import home_view
 
 # erp_homecontent.view,     
 MENU_ITEMS = {
-    "홈": lambda: ft.Container(content=ft.Text("홈 준비 중")),  
+    "홈": home_view.erp_home_view,  
     "매출관리": lambda: ft.Container(content=ft.Text("매출관리 준비 중")), 
     "원가관리": lambda: ft.Container(content=ft.Text("원가관리 준비 중")),
     "구매관리": lambda: ft.Container(content=ft.Text("구매관리 준비 중")),

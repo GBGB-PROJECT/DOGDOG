@@ -2,19 +2,18 @@ import flet as ft
 import flet_charts as fch
 
 
-CARD_BG = "#F5F5F5"
+CARD_BG = "#FFFFFF"
 TEXT_PRIMARY = "#2B2F36"
 TEXT_SECONDARY = "#6B7280"
 TEXT_TERTIARY = "#9CA3AF"
 
 CHART_LINE_COLOR = "#0B4F8A"
 CHART_POINT_COLOR = "#0EA5E9"
-CHART_GRID_COLOR = "#E5E7EB"
-BAR_COLOR = "#BFDBFE"  # ☑️ 추가: 막대 그래프 색상
+CHART_GRID_COLOR = "#88C2CF"
+BAR_COLOR = "#AFAFAF"  # ☑️ 추가: 막대 그래프 색상
 
 CHART_HEIGHT = 240
-CHART_MAX_Y = 80  # ☑️ 수정: 데이터 값(20~80)에 맞게 Y축 최대값을 80으로 변경
-
+CHART_MAX_Y = 85  # 🟥 수정: 80보다 조금 크게 잡아서 80k 그리드 라인이 내부에 보이게 함
 
 def build_sales_linechart():
     selected_metric = {"value": "1개월"}
@@ -236,7 +235,7 @@ def build_sales_linechart():
                     content=ft.Container(
                         width=18,  # ☑️ 추가: 막대 너비
                         height=bar_height,
-                        border_radius=6,  # ☑️ 추가: 막대 모서리 둥글게
+                        border_radius=0,  # ☑️ 추가: 막대 모서리 둥글게
                         bgcolor=BAR_COLOR,
                     ),
                 )
@@ -317,18 +316,28 @@ def build_sales_linechart():
         return ft.Stack(  # ☑️ 추가: 막대 그래프 뒤 + 직선 그래프 앞
             expand=True,
             controls=[
-                bar_layer,
                 line_layer,
+                bar_layer,
             ],
         )
 
     def refresh_metric_selector():
         metric_selector_container.content = ft.Row(
-            spacing=10,
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,  # 🟥 수정: 좌우 분리
             controls=[
-                build_metric_label("1주일"),
-                build_metric_label("1개월"),
-                build_metric_label("1년"),
+                ft.Row(  # 🟥 추가: 왼쪽 → 필터 묶음
+                    spacing=10,
+                    controls=[
+                        build_metric_label("1주일"),
+                        build_metric_label("1개월"),
+                        build_metric_label("1년"),
+                    ],
+                ),
+                ft.IconButton(  # 🟥 추가: 오른쪽 → + 버튼
+                    icon=ft.Icons.ADD,
+                    icon_size=26,
+                    icon_color=TEXT_PRIMARY,
+                ),
             ],
         )
 
@@ -349,6 +358,7 @@ def build_sales_linechart():
         height=340,
         bgcolor=CARD_BG,
         border_radius=16,
+        border=ft.border.all(1, "#E0E1E2"),  # 🟥 추가: 카드 전체 테두리
         padding=20,
         content=ft.Column(
             expand=True,

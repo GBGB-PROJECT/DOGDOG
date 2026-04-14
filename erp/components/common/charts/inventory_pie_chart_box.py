@@ -2,7 +2,7 @@ import flet as ft
 import flet_charts as fch
 
 
-CARD_BG = "#F5F5F5"
+CARD_BG = "#FFFFFF"
 TEXT_PRIMARY = "#2B2F36"
 TEXT_SECONDARY = "#6B7280"
 TEXT_MUTED = "#9CA3AF"
@@ -52,6 +52,7 @@ def build_inventory_pie_chart_box():
         height=300,
         bgcolor=CARD_BG,
         border_radius=16,
+        border=ft.border.all(1, "#E0E1E2"),  # 🟥 추가: 카드 전체 테두리
         padding=20,
         content=ft.Column(
             spacing=20,

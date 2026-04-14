@@ -10,6 +10,7 @@ TEXT_TERTIARY = "#9CA3AF"
 CHART_LINE_COLOR = "#0B4F8A"
 CHART_POINT_COLOR = "#0EA5E9"
 CHART_GRID_COLOR = "#E5E7EB"
+BAR_COLOR = "#BFDBFE"  # ☑️ 추가: 막대 그래프 색상
 
 CHART_HEIGHT = 240
 CHART_MAX_Y = 80  # ☑️ 수정: 데이터 값(20~80)에 맞게 Y축 최대값을 80으로 변경
@@ -19,30 +20,30 @@ def build_sales_linechart():
     selected_metric = {"value": "1개월"}
 
     chart_data_map = {
-        "1주일": [
-            ("4/1", 20),
-            ("4/2", 40),
-            ("4/3", 20),
-            ("4/4", 80),
-            ("4/5", 50),
-            ("4/6", 60),
-            ("4/7", 20),
+        "1주일": [  # ☑️ 수정: (라벨, 선 그래프 값, 막대 그래프 값) 구조로 확장
+            ("4/1", 20, 15),
+            ("4/2", 40, 30),
+            ("4/3", 20, 18),
+            ("4/4", 80, 65),
+            ("4/5", 50, 38),
+            ("4/6", 60, 52),
+            ("4/7", 20, 16),
         ],
-        "1개월": [
-            ("1월", 20),
-            ("2월", 40),
-            ("3월", 20),
-            ("4월", 80),
-            ("5월", 50),
-            ("6월", 70),
-            ("7월", 20),
+        "1개월": [  # ☑️ 수정: (라벨, 선 그래프 값, 막대 그래프 값) 구조로 확장
+            ("1월", 20, 18),
+            ("2월", 40, 32),
+            ("3월", 20, 15),
+            ("4월", 80, 68),
+            ("5월", 50, 42),
+            ("6월", 70, 58),
+            ("7월", 20, 17),
         ],
-        "1년": [
-            ("2021", 20),
-            ("2023", 40),
-            ("2024", 20),
-            ("2025", 80),
-            ("2026", 50),
+        "1년": [  # ☑️ 수정: (라벨, 선 그래프 값, 막대 그래프 값) 구조로 확장
+            ("2021", 20, 18),
+            ("2023", 40, 35),
+            ("2024", 20, 16),
+            ("2025", 80, 70),
+            ("2026", 50, 44),
         ],
     }
 
@@ -89,7 +90,7 @@ def build_sales_linechart():
 
         x_step = 2  # ☑️ 추가: X축 간격 확장 (연도 잘림 방지 핵심)
 
-        for i, (label_text, value) in enumerate(chart_data):
+        for i, (label_text, value, _bar_value) in enumerate(chart_data):  # ☑️ 수정: 막대값까지 받되 선 그래프는 value만 사용
             x_value = i * x_step  # ☑️ 수정: 간격 확장 적용
 
             points.append(
@@ -173,6 +174,153 @@ def build_sales_linechart():
             ],
         )
 
+    def build_combo_chart():  # ☑️ 추가: 막대 그래프 + 직선 그래프를 함께 보여주는 콤보 차트
+        chart_data = get_current_chart_data()
+
+        if not chart_data:
+            return ft.Container(
+                expand=True,
+                height=CHART_HEIGHT,
+                alignment=ft.Alignment(0, 0),
+                content=ft.Text(
+                    "기록이 없습니다.",
+                    color=TEXT_PRIMARY,
+                    size=16,
+                    weight=ft.FontWeight.W_500,
+                ),
+            )
+
+        line_points = []  # ☑️ 추가: 선 그래프 포인트
+        bottom_labels = []  # ☑️ 추가: 하단 라벨
+        bar_stack_controls = []  # ☑️ 수정: Row 대신 Stack 배치용 컨트롤
+
+        x_step = 2  # ☑️ 추가: 기존 선 그래프와 동일한 X축 간격 유지
+        max_bar_height = 180  # ☑️ 추가: 막대 최대 높이
+        chart_bottom_space = 36  # ☑️ 추가: 하단 라벨 공간 확보
+
+        total_points = len(chart_data)  # ☑️ 추가: 정렬 계산용 전체 점 개수
+
+        for i, (label_text, line_value, bar_value) in enumerate(chart_data):  # ☑️ 추가: 선값/막대값 분리
+            x_value = i * x_step  # ☑️ 추가: X축 좌표 계산
+
+            line_points.append(
+                fch.LineChartDataPoint(
+                    x_value,
+                    line_value,
+                    point=True,
+                )
+            )
+
+            bottom_labels.append(
+                fch.ChartAxisLabel(
+                    value=x_value,
+                    label=ft.Text(
+                        label_text,
+                        size=12,
+                        color=TEXT_TERTIARY,
+                        weight=ft.FontWeight.W_500,
+                    ),
+                )
+            )
+
+            bar_height = (bar_value / CHART_MAX_Y) * max_bar_height  # ☑️ 추가: 값에 따라 막대 높이 계산
+
+            if total_points == 1:
+                x_align = 0
+            else:
+                x_align = -1 + (2 * i / (total_points - 1))  # ☑️ 추가: 점과 동일한 비율 위치 계산
+
+            bar_stack_controls.append(
+                ft.Container(
+                    alignment=ft.Alignment(x_align, 1),  # ☑️ 수정: 각 점 위치와 동일한 x축 정렬
+                    content=ft.Container(
+                        width=18,  # ☑️ 추가: 막대 너비
+                        height=bar_height,
+                        border_radius=6,  # ☑️ 추가: 막대 모서리 둥글게
+                        bgcolor=BAR_COLOR,
+                    ),
+                )
+            )
+
+        bar_layer = ft.Container(  # ☑️ 수정: Row 배치 제거, Stack 기반으로 점 위치와 정렬
+            expand=True,
+            height=CHART_HEIGHT,
+            padding=ft.padding.only(left=42, right=0, top=20, bottom=chart_bottom_space),
+            content=ft.Stack(
+                expand=True,
+                controls=bar_stack_controls,
+            ),
+        )
+
+        line_layer = fch.LineChart(  # ☑️ 추가: 기존 선 그래프 레이어
+            expand=True,
+            height=CHART_HEIGHT,
+            min_x=0,
+            max_x=(len(chart_data) - 1) * x_step,
+            min_y=0,
+            max_y=CHART_MAX_Y,
+            interactive=True,
+            border=ft.border.all(0, ft.Colors.TRANSPARENT),
+
+            left_axis=fch.ChartAxis(
+                labels=[
+                    fch.ChartAxisLabel(
+                        value=20,
+                        label=ft.Text("20k", size=12, color=TEXT_TERTIARY),
+                    ),
+                    fch.ChartAxisLabel(
+                        value=40,
+                        label=ft.Text("40k", size=12, color=TEXT_TERTIARY),
+                    ),
+                    fch.ChartAxisLabel(
+                        value=60,
+                        label=ft.Text("60k", size=12, color=TEXT_TERTIARY),
+                    ),
+                    fch.ChartAxisLabel(
+                        value=80,
+                        label=ft.Text("80k", size=12, color=TEXT_TERTIARY),
+                    ),
+                ],
+                label_size=42,
+            ),
+
+            bottom_axis=fch.ChartAxis(
+                labels=bottom_labels,
+                label_size=36,
+            ),
+
+            horizontal_grid_lines=fch.ChartGridLines(
+                interval=20,
+                color=CHART_GRID_COLOR,
+                width=1,
+            ),
+
+            vertical_grid_lines=fch.ChartGridLines(
+                interval=x_step,
+                color=ft.Colors.TRANSPARENT,
+                width=0,
+            ),
+
+            data_series=[
+                fch.LineChartData(
+                    points=line_points,
+                    stroke_width=3,
+                    color=CHART_LINE_COLOR,
+                    curved=False,
+                    rounded_stroke_cap=True,
+                    point=True,
+                ),
+            ],
+        )
+
+        return ft.Stack(  # ☑️ 추가: 막대 그래프 뒤 + 직선 그래프 앞
+            expand=True,
+            controls=[
+                bar_layer,
+                line_layer,
+            ],
+        )
+
     def refresh_metric_selector():
         metric_selector_container.content = ft.Row(
             spacing=10,
@@ -184,7 +332,7 @@ def build_sales_linechart():
         )
 
     def refresh_chart():
-        chart_container.content = build_line_chart()
+        chart_container.content = build_combo_chart()  # ☑️ 수정: 직선 차트 대신 막대+직선 콤보 차트로 변경
 
     def change_metric(metric: str, e: ft.ControlEvent):
         selected_metric["value"] = metric

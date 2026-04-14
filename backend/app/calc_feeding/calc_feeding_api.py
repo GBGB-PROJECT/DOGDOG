@@ -4,18 +4,65 @@ from sqlalchemy.orm import Session
 
 from db.db import get_db
 from backend.app.calc_feeding.guideIntake_repository import get_guide_intake, get_feeding_count
+from backend.dependencies import get_pet_by_id, check_pet_owner
 
 router = APIRouter(tags=["calc_feeding"])
 
 @router.get("/pets/{pet_id}/cal_feeding/guide")
 def read_guide_intake(
         pet_id: int,
+        customer_id: int,
         db: Session = Depends(get_db)
     ):
     try:
+        # 유효하지 않은 반려견id인 경우
+        if pet_id <= 0:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error_code": "INVALID_PET_ID",
+                    "message": "유효한 반려견 ID가 필요합니다."
+                }
+            )
+        
+        # 존재하지 않는 반려견일때
+        pet = get_pet_by_id(db=db, pet_id=pet_id)
+        if pet is None:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "error_code": "PET_NOT_FOUND",
+                    "message": "존재하지 않는 반려견입니다."
+                }
+            )
+        
+        # 해다 반려견 권한 확인
+        has_access = check_pet_owner(db=db, pet_id=pet_id, customer_id=customer_id)
+        if not has_access:
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "success": False,
+                    "error_code": "FORBIDDEN_PET_ACCESS",
+                    "message": "해당 반려견에 대한 권한이 없습니다."
+                }
+            )
+
         # 추천 테이블 조회
         guide = get_guide_intake(db=db, pet_id=pet_id)
-        # pet_id, base_intake, guide_intake, guide_date
+
+        # 권장급여량이 없는 경우
+        if guide is None:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "error_code": "FEEDING_RECOMMENDATION_NOT_FOUND",
+                    "message": "저장된 권장 급여량 정보가 없습니다."
+                }
+            )
 
         # 하루 먹이는 횟수(feeding_count)
         feeding_count = get_feeding_count(db=db, pet_id=pet_id)
@@ -48,7 +95,7 @@ def read_guide_intake(
             status_code=500,
             content={
                 "success": False,
-                "error_code": "PRODUCT_LIST_READ_FAILED",
+                "error_code": "GUIDE_INTAKE_READ_FAILED",
                 "message": "권장 급여량 조회에 실패했습니다."
             }
         )

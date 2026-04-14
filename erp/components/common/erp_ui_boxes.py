@@ -1,11 +1,5 @@
+from ..common import color as c
 import flet as ft
-
-
-# ============================================================
-# ✅ ERP 공통 컬러
-# ============================================================
-
-
 
 # ============================================================
 # ✅ ERP 3줄 정보 카드
@@ -17,7 +11,7 @@ def erp_info_box(title, main, sub):
     return ft.Container(
         width=220,  # 🔥 추가 (핵심)
         height=100,
-        bgcolor=BOX_BG,
+        bgcolor=c.BOX_BG,
         border_radius=16,
         padding=ft.padding.symmetric(horizontal=16, vertical=12),
 
@@ -28,7 +22,7 @@ def erp_info_box(title, main, sub):
                 ft.Text(
                     value=title,
                     size=12,
-                    color=TEXT_MUTED,
+                    color=c.TEXT_MUTED,
                     weight=ft.FontWeight.W_500,
                 ),
 
@@ -36,7 +30,7 @@ def erp_info_box(title, main, sub):
                 ft.Text(
                     value=main,
                     size=20,
-                    color=TEXT_PRIMARY,
+                    color=c.TEXT_PRIMARY,
                     weight=ft.FontWeight.W_700,
                 ),
 
@@ -44,7 +38,7 @@ def erp_info_box(title, main, sub):
                 ft.Text(
                     value=sub,
                     size=12,
-                    color=TEXT_SECONDARY,
+                    color=c.TEXT_SECONDARY,
                     weight=ft.FontWeight.W_500,
                 ),
             ],

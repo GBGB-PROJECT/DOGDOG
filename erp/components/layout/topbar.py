@@ -1,15 +1,10 @@
 import flet as ft
-
-
-TOPBAR_BG = "#004C8C"
-TEXT_COLOR = ft.Colors.WHITE
-SUBTEXT_COLOR = "#9CC3DF"
-
+from ..common import color as c
 
 def build_erp_topbar():
     return ft.Container(
         height=68,
-        bgcolor=TOPBAR_BG,
+        bgcolor=c.MAIN_COLOR,
         padding=ft.padding.symmetric(horizontal=24),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.END,
@@ -17,7 +12,7 @@ def build_erp_topbar():
             controls=[
                 ft.Icon(
                     ft.Icons.NOTIFICATIONS_NONE,
-                    color=TEXT_COLOR,
+                    color=ft.Colors.WHITE,
                     size=20,
                 ),
                 ft.Container(width=24),
@@ -26,7 +21,7 @@ def build_erp_topbar():
                     bgcolor="#CDA25A",
                     content=ft.Text(
                         value="나",
-                        color=TEXT_COLOR,
+                        color=ft.Colors.WHITE,
                         size=12,
                     ),
                 ),
@@ -38,13 +33,13 @@ def build_erp_topbar():
                     controls=[
                         ft.Text(
                             value="나팀장",
-                            color=TEXT_COLOR,
+                            color=ft.Colors.WHITE,
                             size=13,
                             weight=ft.FontWeight.W_700,
                         ),
                         ft.Text(
                             value="lmlmjang@gmail.com",
-                            color=SUBTEXT_COLOR,
+                            color=c.SUBTEXT_COLOR,
                             size=10,
                         ),
                     ],
@@ -52,7 +47,7 @@ def build_erp_topbar():
                 ft.Container(width=8),
                 ft.Icon(
                     ft.Icons.KEYBOARD_ARROW_DOWN,
-                    color=TEXT_COLOR,
+                    color=ft.Colors.WHITE,
                     size=18,
                 ),
             ],

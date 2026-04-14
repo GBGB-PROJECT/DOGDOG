@@ -19,6 +19,7 @@ TEXT_SECONDARY = "#6B7280"
 
 '''side/top_bar'''
 DIVIDER_COLOR = "#2A679B"
+SUBTEXT_COLOR = "#9CC3DF"
 
 '''inventory_pie_chart'''
 CARD_BG = "#F5F5F5"

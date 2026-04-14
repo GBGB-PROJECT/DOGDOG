@@ -49,7 +49,7 @@ def _legend_item(color: str, label: str, percent: str):
 def build_inventory_pie_chart_box():
     return ft.Container(
         width=480,  # ☑️ 수정: 기존 440 -> 480 / 카드 전체 조금 더 확대
-        height=270,  # ☑️ 수정: 기존 250 -> 270 / 카드 높이도 확대
+        height=320,  # ☑️ 수정: 기존 250 -> 270 / 카드 높이도 확대
         bgcolor=CARD_BG,
         border_radius=16,
         border=ft.border.all(1, "#E0E1E2"),

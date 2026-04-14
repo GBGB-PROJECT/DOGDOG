@@ -9,7 +9,7 @@ import flet as ft
 # ============================================================
 def erp_info_box(title, main, sub):
     return ft.Container(
-        width=220,  # 🔥 추가 (핵심)
+        width=240,  # 🔥 추가 (핵심)
         height=100,
         bgcolor=c.BOX_BG,
         border_radius=16,

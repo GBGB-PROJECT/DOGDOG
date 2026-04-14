@@ -17,7 +17,8 @@ def erp_home_view():
                     color=cm.TEXT_PRIMARY,
                 ),
                 ft.Row(
-                    spacing=16,
+                    expand=True,
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
                         cm.erp_info_box("총 매출", "3,000,000만원", "2026년 누계 실적"),
                         cm.erp_info_box("연간 목표대비 달성", "30%", "연간 목표:"),

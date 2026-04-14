@@ -6,11 +6,12 @@ from domain.erp_homeframe import ErpFrame
 
 def main(page: ft.Page):
     page.title = "개밥개밥푸드 ERP"
-    page.window_resizable = False
-    page.width = 1280
-    page.height = 800
+    page.window.resizable = False 
+    page.window_width = 1600
+    page.window_height = 800
     page.padding = 0
     page.bgcolor = ft.Colors.WHITE
+    page.update()
     
     # 우리가 멋지게 만들어둔 프레임(뼈대)을 불러와서 화면에 딱 얹어줍니다.
     app_frame = ErpFrame(page)

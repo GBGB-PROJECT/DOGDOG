@@ -15,7 +15,7 @@ def _vertical_progress(value: float):
         width=28,
         height=150,
         alignment=ft.Alignment(0, 0),
-        content=ft.RotatedBox( 
+        content=ft.RotatedBox(
             quarter_turns=3,
             content=ft.ProgressBar(
                 width=140,
@@ -30,11 +30,11 @@ def _vertical_progress(value: float):
 
 
 def _mini_progress_panel(title: str, values: list[float]):
-    bars = [_vertical_progress(v) for v in values[:8]]
+    bars = [_vertical_progress(v) for v in values[:5]]  # ☑️ 수정: 기존 6개 -> 5개로 축소
 
-    y_labels = ft.Column(  # 🟠 추가: Y축 라벨 (1k ~ 5k)
+    y_labels = ft.Column(
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-        height=150,  # 🟠 progress bar 높이와 맞춤
+        height=150,
         controls=[
             ft.Text("5k", size=11, color=TEXT_SECONDARY),
             ft.Text("4k", size=11, color=TEXT_SECONDARY),
@@ -47,13 +47,13 @@ def _mini_progress_panel(title: str, values: list[float]):
     return ft.Container(
         expand=True,
         height=220,
-        bgcolor=INNER_BG,  # ✅ 내부 상자 배경만 있고 테두리는 없음
+        bgcolor=INNER_BG,
         border_radius=14,
         padding=16,
         content=ft.Column(
             spacing=12,
             controls=[
-                ft.Row(  # ☑️ 수정: 제목 Text 단독 -> 우측 배지 포함 Row
+                ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
@@ -63,11 +63,11 @@ def _mini_progress_panel(title: str, values: list[float]):
                             weight=ft.FontWeight.W_700,
                             color=TEXT_PRIMARY,
                         ),
-                        ft.Container(  # ☑️ 추가: 제목 극우측의 작은 상태 박스
+                        ft.Container(
                             height=30,
                             padding=ft.padding.symmetric(horizontal=10),
                             border_radius=8,
-                            bgcolor="#99F6E4",  # ☑️ 밝은 청록색
+                            bgcolor="#99F6E4",
                             alignment=ft.Alignment(0, 0),
                             content=ft.Text(
                                 "+12%",
@@ -78,17 +78,16 @@ def _mini_progress_panel(title: str, values: list[float]):
                         ),
                     ],
                 ),
-
-                ft.Row(  # 🟠 수정: bars만 있던 구조 → Y축 + bars 구조로 확장
+                ft.Row(
                     alignment=ft.MainAxisAlignment.START,
                     vertical_alignment=ft.CrossAxisAlignment.END,
                     spacing=10,
                     controls=[
-                        y_labels,  # 🟠 추가: 왼쪽 Y축
+                        y_labels,
                         ft.Row(
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             vertical_alignment=ft.CrossAxisAlignment.END,
-                            expand=True,  # 🟠 추가: bars 영역 확장
+                            expand=True,
                             controls=bars,
                         ),
                     ],
@@ -99,19 +98,18 @@ def _mini_progress_panel(title: str, values: list[float]):
 
 
 def build_production_status_box():
-    left_values = [0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20]
-    right_values = [0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20]
+    left_values = [0.20, 0.20, 0.20, 0.20, 0.20]  # ☑️ 수정: 기존 6개 -> 5개
+    right_values = [0.20, 0.20, 0.20, 0.20, 0.20]  # ☑️ 수정: 기존 6개 -> 5개
 
     return ft.Container(
         expand=True,
         bgcolor=CARD_BG,
         border_radius=16,
-        border=ft.border.all(1, "#E0E1E2"),  # 🟥 추가: 카드 전체 테두리
+        border=ft.border.all(1, "#E0E1E2"),
         padding=20,
         content=ft.Column(
             spacing=20,
             controls=[
-                # 상단 제목줄
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -129,8 +127,6 @@ def build_production_status_box():
                         ),
                     ],
                 ),
-
-                # 내부 좌우 박스 2개
                 ft.Row(
                     spacing=16,
                     controls=[

@@ -192,13 +192,17 @@ def build_sales_linechart():
 
         line_points = []  # ☑️ 추가: 선 그래프 포인트
         bottom_labels = []  # ☑️ 추가: 하단 라벨
-        bar_stack_controls = []  # ☑️ 수정: Row 대신 Stack 배치용 컨트롤
+        bar_row_controls = []  # ☑️ 수정: Stack 정렬 대신 동일 간격 Row 슬롯 방식으로 변경
 
         x_step = 2  # ☑️ 추가: 기존 선 그래프와 동일한 X축 간격 유지
         max_bar_height = 180  # ☑️ 추가: 막대 최대 높이
         chart_bottom_space = 36  # ☑️ 추가: 하단 라벨 공간 확보
+        left_axis_space = 42  # ☑️ 추가: left_axis label_size와 동일하게 맞춤
 
-        total_points = len(chart_data)  # ☑️ 추가: 정렬 계산용 전체 점 개수
+        # ☑️ 추가: 선 그래프의 시작/끝을 반 칸씩 안쪽으로 넣어서
+        #          막대 Row 슬롯의 중심점과 정확히 일치시키기 위한 범위
+        min_x = -(x_step / 2)
+        max_x = ((len(chart_data) - 1) * x_step) + (x_step / 2)
 
         for i, (label_text, line_value, bar_value) in enumerate(chart_data):  # ☑️ 추가: 선값/막대값 분리
             x_value = i * x_step  # ☑️ 추가: X축 좌표 계산
@@ -225,14 +229,10 @@ def build_sales_linechart():
 
             bar_height = (bar_value / CHART_MAX_Y) * max_bar_height  # ☑️ 추가: 값에 따라 막대 높이 계산
 
-            if total_points == 1:
-                x_align = 0
-            else:
-                x_align = -1 + (2 * i / (total_points - 1))  # ☑️ 추가: 점과 동일한 비율 위치 계산
-
-            bar_stack_controls.append(
+            bar_row_controls.append(
                 ft.Container(
-                    alignment=ft.Alignment(x_align, 1),  # ☑️ 수정: 각 점 위치와 동일한 x축 정렬
+                    expand=True,  # ☑️ 추가: 각 데이터 포인트마다 동일 슬롯 확보
+                    alignment=ft.Alignment(0, 1),  # ☑️ 추가: 슬롯 중앙 하단 정렬
                     content=ft.Container(
                         width=18,  # ☑️ 추가: 막대 너비
                         height=bar_height,
@@ -242,21 +242,22 @@ def build_sales_linechart():
                 )
             )
 
-        bar_layer = ft.Container(  # ☑️ 수정: Row 배치 제거, Stack 기반으로 점 위치와 정렬
+        bar_layer = ft.Container(  # ☑️ 수정: 선 그래프 포인트 간격과 동일한 슬롯 구조로 막대 배치
             expand=True,
             height=CHART_HEIGHT,
-            padding=ft.padding.only(left=42, right=0, top=20, bottom=chart_bottom_space),
-            content=ft.Stack(
+            padding=ft.padding.only(left=left_axis_space, right=0, top=20, bottom=chart_bottom_space),
+            content=ft.Row(
                 expand=True,
-                controls=bar_stack_controls,
+                spacing=0,
+                controls=bar_row_controls,
             ),
         )
 
         line_layer = fch.LineChart(  # ☑️ 추가: 기존 선 그래프 레이어
             expand=True,
             height=CHART_HEIGHT,
-            min_x=0,
-            max_x=(len(chart_data) - 1) * x_step,
+            min_x=min_x,  # ☑️ 수정: 좌우 반 칸 여백 추가
+            max_x=max_x,  # ☑️ 수정: 좌우 반 칸 여백 추가
             min_y=0,
             max_y=CHART_MAX_Y,
             interactive=True,

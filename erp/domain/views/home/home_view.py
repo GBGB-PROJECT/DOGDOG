@@ -4,7 +4,7 @@ from components import common as cm
 def erp_home_view():
     return ft.Container(
         expand=True,
-        bgcolor=cm.cPAGE_BG,
+        bgcolor=cm.PAGE_BG,
         padding=20,
         content=ft.Column(
             spacing=20,

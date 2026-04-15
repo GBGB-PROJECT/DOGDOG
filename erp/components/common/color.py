@@ -3,7 +3,6 @@ MAIN_COLOR = "#004080"
 ACTIVE_COLOR = "#22C7E8"
 PAGE_BG = "#FFFFFF"
 
-
 '''텍스트에 사용하는 색깔'''
 BOX_BG = "#F5F5F5"      
 TEXT_PRIMARY = "#2B2F36"

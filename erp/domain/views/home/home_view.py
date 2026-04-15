@@ -1,5 +1,6 @@
 import flet as ft
 from components import common as cm
+from components.common.input_data.erp_home_view_input as e
 
 def erp_home_view():
     return ft.Container(
@@ -20,7 +21,7 @@ def erp_home_view():
                     expand=True,
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        cm.erp_info_box("총 매출", "3,000,000만원", "2026년 누계 실적"),
+                        cm.erp_info_box(f"총 매출", "{e.total_sale}원", "2026년 누계 실적"),
                         cm.erp_info_box("연간 목표대비 달성", "30%", "연간 목표:"),
                         cm.erp_info_box("전년대비 성장", "30%", ""),
                         cm.erp_info_box("총 판매량수", "98,400", "2026년 누적 판매량수"),

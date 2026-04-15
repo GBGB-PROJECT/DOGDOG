@@ -1,10 +1,8 @@
-from components.common import color as c
-from components.common import content_move as hcm
+from components import common as com
 import flet as ft
 
 # ☑️ 추가: 폭 설정
 BASE_SIDEBAR_WIDTH = 220
-
 
 # ☑️ 수정: 기존 함수 확장
 def _menu_item(
@@ -12,7 +10,7 @@ def _menu_item(
     selected_menu: str,
     on_menu_click,
     text_color: str = ft.Colors.WHITE,
-    active_color: str = c.ACTIVE_COLOR,
+    active_color: str = com.ACTIVE_COLOR,
     left_padding: int = 22,
     active_bgcolor: str | None = None,
     selected_weight: ft.FontWeight = ft.FontWeight.W_600,
@@ -35,11 +33,10 @@ def _menu_item(
         ),
     )
 
-
 # ☑️ 추가: 기본 파란 로고 영역
 def _sidebar_brand_header():
     return ft.Container(
-        bgcolor=c.MAIN_COLOR,
+        bgcolor=com.MAIN_COLOR,
         padding=ft.padding.only(top=18, bottom=18),
         content=ft.Container(
             padding=ft.padding.only(left=22),
@@ -52,7 +49,6 @@ def _sidebar_brand_header():
         ),
     )
 
-
 # ☑️ 추가: 확장 패널 헤더
 def _section_header(title: str, on_menu_click):
     return ft.Container(
@@ -63,7 +59,7 @@ def _section_header(title: str, on_menu_click):
             controls=[
                 ft.IconButton(
                     icon=ft.Icons.ARROW_BACK_IOS_NEW,
-                    icon_color=c.EXPANDED_TEXT_COLOR,
+                    icon_color=com.EXPANDED_TEXT_COLOR,
                     icon_size=18,
                     style=ft.ButtonStyle(
                         padding=0,
@@ -75,25 +71,24 @@ def _section_header(title: str, on_menu_click):
                     value=title,
                     size=22,
                     weight=ft.FontWeight.BOLD,
-                    color=c.EXPANDED_TEXT_COLOR,
+                    color=com.EXPANDED_TEXT_COLOR,
                 ),
             ],
         ),
     )
 
-
 # ☑️ 추가: 확장형 공통 렌더
 def _build_expanded_sidebar(header_control, menu_controls):
     return ft.Container(
         width=BASE_SIDEBAR_WIDTH,
-        bgcolor=c.MAIN_COLOR,
+        bgcolor=com.MAIN_COLOR,
         content=ft.Column(
             spacing=0,
             controls=[
                 _sidebar_brand_header(),
                 ft.Container(
                     expand=True,
-                    bgcolor=c.EXPANDED_PANEL_BG,
+                    bgcolor=com.EXPANDED_PANEL_BG,
                     padding=ft.padding.only(top=18, bottom=20),
                     content=ft.Column(
                         spacing=4,
@@ -108,7 +103,6 @@ def _build_expanded_sidebar(header_control, menu_controls):
         ),
     )
 
-
 # ☑️ 추가: 확장 메뉴 공통 생성
 def _build_expanded_menu_controls(items, selected_menu, on_menu_click):
     return [
@@ -116,44 +110,43 @@ def _build_expanded_menu_controls(items, selected_menu, on_menu_click):
             text=item,
             selected_menu=selected_menu,
             on_menu_click=on_menu_click,
-            text_color=c.EXPANDED_TEXT_COLOR,
-            active_color=c.PAGE_BG,
-            active_bgcolor=c.EXPANDED_ACTIVE_BG,
+            text_color=com.EXPANDED_TEXT_COLOR,
+            active_color=com.PAGE_BG,
+            active_bgcolor=com.EXPANDED_ACTIVE_BG,
         )
         for item in items
     ]
 
-
 def build_erp_sidebar(selected_menu: str, on_menu_click):
     # ☑️ 추가: 재고관리 확장형
-    if selected_menu in hcm.INVENTORY_ALL_ITEMS:
-        is_product_open = selected_menu in ["상품 재고 관리"] + hcm.INVENTORY_PRODUCT_ITEMS
+    if selected_menu in com.INVENTORY_ALL_ITEMS:
+        is_product_open = selected_menu in ["상품 재고 관리"] + com.INVENTORY_PRODUCT_ITEMS
 
         inventory_controls = [
             _menu_item(
                 text="창고관리",
                 selected_menu=selected_menu,
                 on_menu_click=on_menu_click,
-                text_color=c.EXPANDED_TEXT_COLOR,
-                active_color=c.PAGE_BG,
-                active_bgcolor=c.EXPANDED_ACTIVE_BG,
+                text_color=com.EXPANDED_TEXT_COLOR,
+                active_color=com.PAGE_BG,
+                active_bgcolor=com.EXPANDED_ACTIVE_BG,
             ),
             _menu_item(
                 text="원자재 재고 관리",
                 selected_menu=selected_menu,
                 on_menu_click=on_menu_click,
-                text_color=c.EXPANDED_TEXT_COLOR,
-                active_color=c.PAGE_BG,
-                active_bgcolor=c.EXPANDED_ACTIVE_BG,
+                text_color=com.EXPANDED_TEXT_COLOR,
+                active_color=com.PAGE_BG,
+                active_bgcolor=com.EXPANDED_ACTIVE_BG,
             ),
             _menu_item(
                 text="상품 재고 관리",
                 selected_menu=selected_menu,
                 on_menu_click=on_menu_click,
-                text_color=c.EXPANDED_TEXT_COLOR,
-                active_color=c.PAGE_BG,
-                active_bgcolor=c.EXPANDED_ACTIVE_BG,
-                is_forced_selected=selected_menu in hcm.INVENTORY_PRODUCT_ITEMS,
+                text_color=com.EXPANDED_TEXT_COLOR,
+                active_color=com.PAGE_BG,
+                active_bgcolor=com.EXPANDED_ACTIVE_BG,
+                is_forced_selected=selected_menu in com.INVENTORY_PRODUCT_ITEMS,
             ),
         ]
 
@@ -164,13 +157,13 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
                         text=item,
                         selected_menu=selected_menu,
                         on_menu_click=on_menu_click,
-                        text_color=c.EXPANDED_TEXT_COLOR,
-                        active_color=c.EXPANDED_ACTIVE_BG,
+                        text_color=com.EXPANDED_TEXT_COLOR,
+                        active_color=com.EXPANDED_ACTIVE_BG,
                         active_bgcolor=None,
                         selected_weight=ft.FontWeight.BOLD,
                         left_padding=40,
                     )
-                    for item in hcm.INVENTORY_PRODUCT_ITEMS
+                    for item in com.INVENTORY_PRODUCT_ITEMS
                 ]
             )
 
@@ -179,9 +172,9 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
                 text="상품 부자재 관리",
                 selected_menu=selected_menu,
                 on_menu_click=on_menu_click,
-                text_color=c.EXPANDED_TEXT_COLOR,
-                active_color=c.PAGE_BG,
-                active_bgcolor=c.EXPANDED_ACTIVE_BG,
+                text_color=com.EXPANDED_TEXT_COLOR,
+                active_color=com.PAGE_BG,
+                active_bgcolor=com.EXPANDED_ACTIVE_BG,
             )
         )
 
@@ -191,9 +184,9 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         )
 
     # ☑️ 추가: 상품관리 확장형
-    if selected_menu in hcm.MERCHANDISE_ALL_ITEMS:
+    if selected_menu in com.MERCHANDISE_ALL_ITEMS:
         merchandise_controls = _build_expanded_menu_controls(
-            hcm.MERCHANDISE_MAIN_ITEMS,
+            com.MERCHANDISE_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
         )
@@ -204,9 +197,9 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         )
 
     # ☑️ 추가: 생산관리 확장형
-    if selected_menu in hcm.PRODUCTION_ALL_ITEMS:
+    if selected_menu in com.PRODUCTION_ALL_ITEMS:
         production_controls = _build_expanded_menu_controls(
-            hcm.PRODUCTION_MAIN_ITEMS,
+            com.PRODUCTION_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
         )
@@ -222,12 +215,12 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             selected_menu=selected_menu, 
             on_menu_click=on_menu_click,
         )
-        for item in hcm.MENU_ITEMS
+        for item in com.MENU_ITEMS
     ]
 
     return ft.Container(
         width=220,
-        bgcolor=c.MAIN_COLOR,
+        bgcolor=com.MAIN_COLOR,
         padding=ft.padding.only(top=18, bottom=20),
         content=ft.Column(
             spacing=4,

@@ -1,6 +1,6 @@
 import flet as ft
 from components import common as cm
-from components.common.input_data.erp_home_view_input as e
+import components.common.input_data.erp_home_view_input as e
 
 def erp_home_view():
     return ft.Container(

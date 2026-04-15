@@ -1,5 +1,3 @@
-
-
 '''로그인 페이지, 시그니처 색깔'''
 MAIN_COLOR = "#004080"
 ACTIVE_COLOR = "#22C7E8"
@@ -22,6 +20,9 @@ TEXT_SECONDARY = "#6B7280"
 '''side/top_bar'''
 DIVIDER_COLOR = "#2A679B"
 SUBTEXT_COLOR = "#9CC3DF"
+EXPANDED_PANEL_BG = "#E9EAF2"
+EXPANDED_TEXT_COLOR = "#111111"
+EXPANDED_ACTIVE_BG = "#004C8C"
 
 '''inventory_pie_chart'''
 CARD_BG = "#F5F5F5"

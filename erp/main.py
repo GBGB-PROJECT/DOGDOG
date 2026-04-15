@@ -31,7 +31,7 @@ if __name__ == "__main__":
     if os.getenv("FLET_NO_BROWSER"):
         webbrowser.open = lambda *args, **kwargs: None
 
-    ft.run(
+    ft.app(
         main,
         assets_dir="components/assets",
         view=ft.AppView.WEB_BROWSER,

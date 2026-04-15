@@ -30,7 +30,7 @@ def _vertical_progress(value: float):
 
 
 def _mini_progress_panel(title: str, values: list[float]):
-    bars = [_vertical_progress(v) for v in values[:5]]  # ☑️ 수정: 기존 6개 -> 5개로 축소
+    bars = [_vertical_progress(v) for v in values[:7]]  # ☑️ 
 
     y_labels = ft.Column(
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -98,8 +98,8 @@ def _mini_progress_panel(title: str, values: list[float]):
 
 
 def build_production_status_box():
-    left_values = [0.20, 0.20, 0.20, 0.20, 0.20]  # ☑️ 수정: 기존 6개 -> 5개
-    right_values = [0.20, 0.20, 0.20, 0.20, 0.20]  # ☑️ 수정: 기존 6개 -> 5개
+    left_values = [0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20]  # ☑️ 
+    right_values = [0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20]  # ☑️ 
 
     return ft.Container(
         expand=True,

@@ -20,10 +20,6 @@ def main(page: ft.Page):
     page.clean()
     page.add(ErpFrame(page))
 
-
-
-  
-  # 우리가 멋지게 만들어둔 프레임(뼈대)을 불러와서 화면에 딱 얹어줍니다.
   app_login = ErpLoginView(page,on_login_success=on_login_success)
   page.add(app_login)
 

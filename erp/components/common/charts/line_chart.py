@@ -1,16 +1,6 @@
+from components import common as cm
 import flet as ft
 import flet_charts as fch
-
-
-CARD_BG = "#FFFFFF"
-TEXT_PRIMARY = "#2B2F36"
-TEXT_SECONDARY = "#6B7280"
-TEXT_TERTIARY = "#9CA3AF"
-
-CHART_LINE_COLOR = "#0B4F8A"
-CHART_POINT_COLOR = "#0EA5E9"
-CHART_GRID_COLOR = "#88C2CF"
-BAR_COLOR = "#AFAFAF"  # ☑️ 추가: 막대 그래프 색상
 
 CHART_HEIGHT = 240
 CHART_MAX_Y = 85  # 🟥 수정: 80보다 조금 크게 잡아서 80k 그리드 라인이 내부에 보이게 함
@@ -63,7 +53,7 @@ def build_sales_linechart():
             content=ft.Text(
                 f"• {text}",
                 size=13,
-                color=TEXT_PRIMARY if is_selected else TEXT_SECONDARY,
+                color=cm.TEXT_PRIMARY if is_selected else cm.TEXT_SECONDARY,
                 weight=ft.FontWeight.W_600,
             ),
         )
@@ -78,7 +68,7 @@ def build_sales_linechart():
                 alignment=ft.Alignment(0, 0),
                 content=ft.Text(
                     "기록이 없습니다.",
-                    color=TEXT_PRIMARY,
+                    color=cm.TEXT_PRIMARY,
                     size=16,
                     weight=ft.FontWeight.W_500,
                 ),
@@ -106,7 +96,7 @@ def build_sales_linechart():
                     label=ft.Text(
                         label_text,
                         size=12,
-                        color=TEXT_TERTIARY,
+                        color=cm.TEXT_TERTIARY,
                         weight=ft.FontWeight.W_500,
                     ),
                 )
@@ -126,19 +116,19 @@ def build_sales_linechart():
                 labels=[  # ☑️ 추가: 좌측 Y축 라벨
                     fch.ChartAxisLabel(
                         value=20,
-                        label=ft.Text("20k", size=12, color=TEXT_TERTIARY),
+                        label=ft.Text("20k", size=12, color=cm.TEXT_TERTIARY),
                     ),
                     fch.ChartAxisLabel(
                         value=40,
-                        label=ft.Text("40k", size=12, color=TEXT_TERTIARY),
+                        label=ft.Text("40k", size=12, color=cm.TEXT_TERTIARY),
                     ),
                     fch.ChartAxisLabel(
                         value=60,
-                        label=ft.Text("60k", size=12, color=TEXT_TERTIARY),
+                        label=ft.Text("60k", size=12, color=cm.TEXT_TERTIARY),
                     ),
                     fch.ChartAxisLabel(
                         value=80,
-                        label=ft.Text("80k", size=12, color=TEXT_TERTIARY),
+                        label=ft.Text("80k", size=12, color=cm.TEXT_TERTIARY),
                     ),
                 ],
                 label_size=42,  # ☑️ 수정: 좌측 공간 확보
@@ -151,7 +141,7 @@ def build_sales_linechart():
 
             horizontal_grid_lines=fch.ChartGridLines(
                 interval=20,  # ☑️ 수정: 20단위 맞춤
-                color=CHART_GRID_COLOR,
+                color=cm.CHART_GRID_COLOR,
                 width=1,
             ),
 
@@ -165,7 +155,7 @@ def build_sales_linechart():
                 fch.LineChartData(
                     points=points,  # ☑️ 수정: 하나만 사용
                     stroke_width=3,
-                    color=CHART_LINE_COLOR,
+                    color=cm.CHART_LINE_COLOR,
                     curved=False,  # ☑️ 수정: 직선 차트
                     rounded_stroke_cap=True,
                     point=True,  # ☑️ 추가: 전체 점 표시
@@ -183,7 +173,7 @@ def build_sales_linechart():
                 alignment=ft.Alignment(0, 0),
                 content=ft.Text(
                     "기록이 없습니다.",
-                    color=TEXT_PRIMARY,
+                    color=cm.TEXT_PRIMARY,
                     size=16,
                     weight=ft.FontWeight.W_500,
                 ),
@@ -220,7 +210,7 @@ def build_sales_linechart():
                     label=ft.Text(
                         label_text,
                         size=12,
-                        color=TEXT_TERTIARY,
+                        color=cm.TEXT_TERTIARY,
                         weight=ft.FontWeight.W_500,
                     ),
                 )
@@ -236,7 +226,7 @@ def build_sales_linechart():
                         width=18,  # ☑️ 추가: 막대 너비
                         height=bar_height,
                         border_radius=0,  # ☑️ 추가: 막대 모서리 둥글게
-                        bgcolor=BAR_COLOR,
+                        bgcolor=cm.BAR_COLOR,
                     ),
                 )
             )
@@ -266,19 +256,19 @@ def build_sales_linechart():
                 labels=[
                     fch.ChartAxisLabel(
                         value=20,
-                        label=ft.Text("20k", size=12, color=TEXT_TERTIARY),
+                        label=ft.Text("20k", size=12, color=cm.TEXT_TERTIARY),
                     ),
                     fch.ChartAxisLabel(
                         value=40,
-                        label=ft.Text("40k", size=12, color=TEXT_TERTIARY),
+                        label=ft.Text("40k", size=12, color=cm.TEXT_TERTIARY),
                     ),
                     fch.ChartAxisLabel(
                         value=60,
-                        label=ft.Text("60k", size=12, color=TEXT_TERTIARY),
+                        label=ft.Text("60k", size=12, color=cm.TEXT_TERTIARY),
                     ),
                     fch.ChartAxisLabel(
                         value=80,
-                        label=ft.Text("80k", size=12, color=TEXT_TERTIARY),
+                        label=ft.Text("80k", size=12, color=cm.TEXT_TERTIARY),
                     ),
                 ],
                 label_size=42,
@@ -291,7 +281,7 @@ def build_sales_linechart():
 
             horizontal_grid_lines=fch.ChartGridLines(
                 interval=20,
-                color=CHART_GRID_COLOR,
+                color=cm.CHART_GRID_COLOR,
                 width=1,
             ),
 
@@ -305,7 +295,7 @@ def build_sales_linechart():
                 fch.LineChartData(
                     points=line_points,
                     stroke_width=3,
-                    color=CHART_LINE_COLOR,
+                    color=cm.CHART_LINE_COLOR,
                     curved=False,
                     rounded_stroke_cap=True,
                     point=True,
@@ -336,7 +326,7 @@ def build_sales_linechart():
                 ft.IconButton(  # 🟥 추가: 오른쪽 → + 버튼
                     icon=ft.Icons.ADD,
                     icon_size=26,
-                    icon_color=TEXT_PRIMARY,
+                    icon_color=cm.TEXT_PRIMARY,
                 ),
             ],
         )
@@ -356,7 +346,7 @@ def build_sales_linechart():
     return ft.Container(
         expand=True,
         height=340,
-        bgcolor=CARD_BG,
+        bgcolor=cm.CARD_BG,
         border_radius=16,
         border=ft.border.all(1, "#E0E1E2"),  # 🟥 추가: 카드 전체 테두리
         padding=20,
@@ -372,7 +362,7 @@ def build_sales_linechart():
                             "매출 추이",
                             size=18,
                             weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
+                            color=cm.TEXT_PRIMARY,
                         ),
                         metric_selector_container,
                     ],

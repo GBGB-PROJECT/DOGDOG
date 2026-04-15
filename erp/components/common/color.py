@@ -16,14 +16,14 @@ VALUE_COLOR = "#0B4F8A"
 TEXT_PRIMARY = "#2B2F36"
 TEXT_SECONDARY = "#6B7280"
 
-'''side/top_bar'''
+'''side/top_bar에서 사용하는 색깔'''
 DIVIDER_COLOR = "#2A679B"
 SUBTEXT_COLOR = "#9CC3DF"
 EXPANDED_PANEL_BG = "#E9EAF2"
 EXPANDED_TEXT_COLOR = "#111111"
 EXPANDED_ACTIVE_BG = "#004C8C"
 
-'''inventory_pie_chart'''
+'''재고 비중 원 차트용 색깔'''
 CARD_BG = "#F5F5F5"
 TEXT_PRIMARY = "#2B2F36"
 TEXT_SECONDARY = "#6B7280"
@@ -42,9 +42,10 @@ TEXT_TERTIARY = "#9CA3AF"
 CHART_LINE_COLOR = "#0B4F8A"
 CHART_POINT_COLOR = "#0EA5E9"
 CHART_GRID_COLOR = "#E5E7EB"
+BAR_COLOR = "#AFAFAF"
 
 CHART_HEIGHT = 240
 CHART_MAX_Y = 80  # ☑️ 수정: 데이터 값(20~80)에 맞게 Y축 최대값을 80으로 변경
 
-'''registration_popup'''
+'''registration_popup(팝업창에서 사용하는 색깔)'''
 INCORRECT_POPUPCOLOR = "#b51919"

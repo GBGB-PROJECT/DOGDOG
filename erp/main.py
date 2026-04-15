@@ -26,4 +26,4 @@ def main(page: ft.Page):
   page.add(app_login)
 
 if __name__ == "__main__":
-    ft.app(target=main, assests_dir="components/assests")
+    ft.app(target=main, assests_dir="components/assets")

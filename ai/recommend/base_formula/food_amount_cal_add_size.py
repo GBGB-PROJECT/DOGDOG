@@ -62,26 +62,26 @@ def cal_RER(weight: float) -> float:
 
 # 비만 강아지 보정(BCS 6 ~ 9)
 #ver1
-def get_high_weight_factor(BCS):
-    if BCS == 6:
-        return 0.9, 1.1
-    elif BCS == 7:
-        return 0.8, 1.2
-    elif BCS == 8:
-        return 0.77, 1.3
-    elif BCS == 9:
-        return 0.74, 1.4
-
-#ver2
 # def get_high_weight_factor(BCS):
 #     if BCS == 6:
-#         return 0.6, 1.1
+#         return 0.9, 1.1
 #     elif BCS == 7:
-#         return 0.5, 1.2
+#         return 0.8, 1.2
 #     elif BCS == 8:
-#         return 0.47, 1.3
+#         return 0.77, 1.3
 #     elif BCS == 9:
-#         return 0.44, 1.4
+#         return 0.74, 1.4
+
+#ver2
+def get_high_weight_factor(BCS):
+    if BCS == 6:
+        return 0.6, 1.1
+    elif BCS == 7:
+        return 0.5, 1.2
+    elif BCS == 8:
+        return 0.47, 1.3
+    elif BCS == 9:
+        return 0.44, 1.4
 
 # ------------------------------- 진짜 계산 -------------------------------
 # 하루 권장 급여량 계산 ***
@@ -108,7 +108,10 @@ def calculate_base_g(
         goal_weight = weight / w_factor
         print(f'목표 몸무게는 {goal_weight:.2f}kg 입니다.')
 
+    base_g = DER / food_kcal
+
     print(f'일일 칼로리는 {DER:.2f}kcal 입니다.')
     print(f'하루 권장 급여량은 {base_g:.2f}g 입니다.')
 
     return base_g, goal_weight
+    

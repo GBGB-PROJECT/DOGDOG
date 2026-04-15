@@ -144,8 +144,8 @@ if 6 <= BCS <= 9:
     print(f'목표 몸무게는 {goal_weight:.2f}kg 입니다.')
 
 
-result = DER / food_kcal
+base_g = DER / food_kcal
 
 print(f'기초대사량은 {RER:.2f}kcal 입니다.')
 print(f'일일 칼로리는 {DER:.2f}kcal 입니다.')
-print(f'하루 권장 급여량은 {result:.2f}g 입니다.')
+print(f'하루 권장 급여량은 {base_g:.2f}g 입니다.')

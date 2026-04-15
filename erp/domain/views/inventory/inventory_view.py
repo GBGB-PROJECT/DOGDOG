@@ -7,10 +7,20 @@ def erp_inventory_view():
         expand=True,
         bgcolor=cm.PAGE_BG,
         padding=20,
-        content=ft.Text(
-            value="재고관리 화면",
-            size=22,
-            color="#444444",
-            weight=ft.FontWeight.W_700,
+        content=ft.Column(
+            spacing=20,
+            controls=[
+                ft.Text(
+                    value="재고관리",
+                    size=24,
+                    color="#222222",
+                    weight=ft.FontWeight.W_700,
+                ),
+                ft.Text(
+                    value="재고관리 메인 화면",
+                    size=16,
+                    color="#666666",
+                ),
+            ],
         ),
     )

@@ -46,6 +46,7 @@ class TestFeedingV2(unittest.TestCase):
         # 리포지토리 메서드 연결
         self.repo.get_inventory = MagicMock(return_value=self.mock_inventory)
         self.repo.get_active_feeding_info = MagicMock(return_value=self.mock_info)
+        self.repo.get_feeding_start = MagicMock(return_value=self.mock_inventory.feeding_start)
         self.repo.check_pet_ownership = MagicMock(return_value=True)
         self.repo.check_active_feeding_exists = MagicMock(return_value=True)
 

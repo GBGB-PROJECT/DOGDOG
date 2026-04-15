@@ -38,6 +38,25 @@ class FeedingRepository:
             .first()
         )
 
+    def get_feeding_start(self, pet_id: int):
+        """현재 사료의 급여 시작일을 조회합니다. (비관적 락 미적용)
+
+        수정/삭제 시 날짜 기반 재고 보정 여부를 판단하기 위한
+        경량 조회 메서드입니다.
+
+        Args:
+            pet_id: 대상 반려견 ID
+
+        Returns:
+            feeding_start (date) 또는 None
+        """
+        result = (
+            self.db.query(CompanionCustomerFood.feeding_start)
+            .filter_by(pet_id=pet_id)
+            .first()
+        )
+        return result.feeding_start if result else None
+
     def get_food_gauge_data(self, pet_id: int):
         """사료 잔여량 게이지 데이터를 조회합니다.
 

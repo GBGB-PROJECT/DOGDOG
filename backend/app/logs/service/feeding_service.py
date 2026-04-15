@@ -134,17 +134,28 @@ class FeedingService:
     def update_feeding(
         self, customer_id: int, pet_food_id: int, old_date, new_data: dict
     ):
-        """[수정] 특정 급여 기록을 수정하고 재고 및 파티션을 관리합니다."""
+        """[수정] 특정 급여 기록을 수정하고 재고 및 파티션을 관리합니다.
+
+        날짜 기반 재고 보정 로직:
+        - feeding_date >= feeding_start → 현재 사료 기간이므로 재고 보정 수행
+        - feeding_date < feeding_start  → 과거 사료 기간이므로 로그만 수정
+        """
         log = self.repo.get_log_by_id_and_date(pet_food_id, old_date)
         if not log:
             raise ValueError("요청하신 급여 기록을 찾을 수 없습니다.")
+
+        # 날짜 기반 재고 보정 여부 판단
+        feeding_start = self.repo.get_feeding_start(log.pet_id)
+        is_current_period = True
+        if feeding_start:
+            is_current_period = old_date >= feeding_start
 
         amount_diff = 0
         if "amount" in new_data:
             amount_diff = new_data["amount"] - log.amount
 
-            # 수정되는 양이 잔여량보다 많은지 체크 (양수일 때만 잔여량이 깎임)
-            if amount_diff > 0:
+            # 현재 사료 기간의 기록만 재고 검증 수행
+            if is_current_period and amount_diff > 0:
                 self._validate_feeding_input(log.pet_id, amount_diff, old_date)
             # 이전 기록의 1g당 칼로리 역산 (0으로 나누기 방지 포함)
             if log.amount > 0:
@@ -164,14 +175,24 @@ class FeedingService:
         if "memo" in new_data:
             log.memo = new_data["memo"]
 
-        inven = self._update_inventory_logic(log.pet_id, amount_diff)
+        # 현재 사료 기간의 기록만 재고에 반영
+        inven = None
+        if is_current_period:
+            inven = self._update_inventory_logic(log.pet_id, amount_diff)
 
         # 날짜(Partition Key) 변경 시 삭제 후 재삽입 (Delete -> Insert)
         if "new_feeding_date" in new_data and new_data["new_feeding_date"] != old_date:
-            # 날짜 검증: 미래 날짜 방지 + 시작일 이전 과거 방지
-            # 양이 변경되었다면 이미 _validate_feeding_input 에서 날짜 검사를 했을 수 있지만,
-            # 날짜 자체가 바뀌었으므로 바뀐 날짜에 대해 다시 검증(amount=0으로 두어 재고 검증은 스킵)
-            self._validate_feeding_input(log.pet_id, 0, new_data["new_feeding_date"])
+            new_date = new_data["new_feeding_date"]
+
+            # 미래 날짜는 항상 차단
+            if new_date > date.today():
+                raise ValueError(
+                    f"미래 날짜({new_date})로 급여 기록을 수정할 수 없습니다."
+                )
+
+            # 현재 사료 기간이면 시작일 이전 이동 방지 등 기존 검증 유지
+            if is_current_period:
+                self._validate_feeding_input(log.pet_id, 0, new_date)
 
             # PK 변경을 위한 D&I 처리
             new_log_data = {
@@ -180,7 +201,7 @@ class FeedingService:
                 "amount": log.amount,
                 "calories": log.calories,
                 "memo": log.memo,
-                "feeding_date": new_data["new_feeding_date"],
+                "feeding_date": new_date,
                 "food_type": log.food_type,
             }
             self.repo.delete_log(log)
@@ -197,14 +218,28 @@ class FeedingService:
     # 급여기록 삭제 및 소모 잔여량 복구
     def delete_feeding(
         self, customer_id: int, pet_food_id: int, feeding_date
-    ):  # 권한 이슈로 테스트 미진행
-        """[삭제] 급여 기록을 삭제하고 소모된 재고를 복구합니다."""
+    ):
+        """[삭제] 급여 기록을 삭제하고 소모된 재고를 복구합니다.
+
+        날짜 기반 재고 보정 로직:
+        - feeding_date >= feeding_start → 현재 사료 기간이므로 재고 복구 수행
+        - feeding_date < feeding_start  → 과거 사료 기간이므로 로그만 삭제
+        """
         log = self.repo.get_log_by_id_and_date(pet_food_id, feeding_date)
         if not log:
             raise ValueError("요청하신 급여 기록을 찾을 수 없습니다.")
 
-        # 재고 원복
-        inven = self._update_inventory_logic(log.pet_id, -log.amount, count_diff=-1)
+        # 날짜 기반 재고 복구 여부 판단
+        feeding_start = self.repo.get_feeding_start(log.pet_id)
+        is_current_period = True
+        if feeding_start:
+            is_current_period = feeding_date >= feeding_start
+
+        # 현재 사료 기간의 기록만 재고 원복
+        inven = None
+        if is_current_period:
+            inven = self._update_inventory_logic(log.pet_id, -log.amount, count_diff=-1)
+
         self.repo.delete_log(log)
         self.repo.commit()
 

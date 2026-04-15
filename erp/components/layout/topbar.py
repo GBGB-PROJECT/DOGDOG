@@ -16,13 +16,15 @@ def build_erp_topbar():
                     size=20,
                 ),
                 ft.Container(width=24),
-                ft.CircleAvatar(
-                    radius=16,
-                    bgcolor="#CDA25A",
-                    content=ft.Text(
-                        value="나",
-                        color=ft.Colors.WHITE,
-                        size=12,
+                # 🔥🔥🔥 [기존 CircleAvatar → 이미지로 교체]
+                ft.Container(
+                    width=32,   # 🔥 기존 radius=16 → 지름 32로 맞춤
+                    height=32,
+                    border_radius=16,
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                    content=ft.Image(
+                        src="leader.png",
+                        fit=ft.BoxFit.COVER,
                     ),
                 ),
                 ft.Container(width=10),

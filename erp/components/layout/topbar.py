@@ -16,7 +16,7 @@ def build_erp_topbar():
                     size=20,
                 ),
                 ft.Container(width=24),
-                # 🔥🔥🔥 [기존 CircleAvatar → 이미지로 교체]
+                # 🔥🔥🔥
                 ft.Container(
                     width=32,   # 🔥 기존 radius=16 → 지름 32로 맞춤
                     height=32,

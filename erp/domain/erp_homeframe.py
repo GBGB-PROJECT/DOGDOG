@@ -21,7 +21,7 @@ class ErpFrame(ft.Container):
         # [A] 알맹이가 들어갈 빈 공간(도화지)을 미리 준비합니다.
         # 초기값으로 '홈' 화면을 띄웁니다.
         self.content_area = ft.Container(
-            expand=True, 
+            expand=True,
             content=cm.MENU_ITEMS["홈"]()
         )
 

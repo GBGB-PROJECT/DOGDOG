@@ -245,32 +245,36 @@ class FeedingService:
             "progress_rate": progress_rate
         }
 
-        # 3. 사료 재고율 현황 가져오기
+        # 3. 사료 재고율 현황 가져오기 (product.weight 기반 게이지)
+        gauge_data = self.repo.get_food_gauge_data(pet_id)
+
+        if not gauge_data:
+            raise ValueError(
+                f"반려동물(ID:{pet_id})의 사료 재고 또는 급여 중인 제품 정보를 찾을 수 없습니다."
+            )
+
+        customer_food, product = gauge_data
+
+        # product.weight(제품 총 중량)를 게이지 총량 기준으로 사용
+        product_weight = product.weight if product and product.weight else 0
+        left_intake = customer_food.left_intake if customer_food.left_intake is not None else 0
+        left_food_count = (
+            customer_food.left_food_count
+            if hasattr(customer_food, "left_food_count") and customer_food.left_food_count is not None
+            else 0
+        )
+
+        # 퍼센트 계산 (ZeroDivisionError 방지)
+        left_percent = 0
+        if product_weight and product_weight > 0:
+            left_percent = round((left_intake / product_weight) * 100)
+
         food_inventory = {
-            "left_percent": 0,
-            "left_intake": 0,
-            "total_weight": 0,
-            "left_food_count": 0
+            "left_percent": left_percent,
+            "left_intake": float(left_intake) if left_intake else 0,
+            "total_weight": float(product_weight) if product_weight else 0,
+            "left_food_count": float(left_food_count) if left_food_count else 0,
         }
-        
-        inventory = self.repo.get_inventory(pet_id)
-        if inventory:
-            left_intake = inventory.left_intake if inventory.left_intake is not None else 0
-            total_weight = inventory.total_weight if inventory.total_weight else 0
-            
-            # left_food_count가 모델 속성으로 존재할 경우 가져옵니다 (데이터베이스의 소수점 반영)
-            left_food_count = inventory.left_food_count if hasattr(inventory, 'left_food_count') and inventory.left_food_count is not None else 0
-            
-            left_percent = 0
-            if total_weight > 0:
-                left_percent = round((left_intake / total_weight) * 100)
-                
-            food_inventory = {
-                "left_percent": left_percent,
-                "left_intake": float(left_intake) if left_intake else 0, # frontend 편의상 float 형 변환
-                "total_weight": float(total_weight) if total_weight else 0,
-                "left_food_count": float(left_food_count) if left_food_count else 0
-            }
 
         return {
             "query_date": target_date.strftime("%Y-%m-%d"),

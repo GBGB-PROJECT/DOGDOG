@@ -143,6 +143,16 @@ def get_daily_dashboard_summary(
         # 데이터 조립 및 반환
         result = service.get_main_dashboard_data(pet_id, query_date)
         return {"status": "success", "data": result}
+    except ValueError as e:
+        error_msg = str(e)
+        if "찾을 수 없습니다" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=error_msg,
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
+        )
     except Exception as e:
         logger.error(f"메인 대시보드 요약 조회 중 서버 오류 발생: {str(e)}", exc_info=True)
         raise HTTPException(

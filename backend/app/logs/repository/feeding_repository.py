@@ -38,6 +38,36 @@ class FeedingRepository:
             .first()
         )
 
+    def get_food_gauge_data(self, pet_id: int):
+        """사료 잔여량 게이지 데이터를 조회합니다.
+
+        customer_food → pet_product_feeding → product 3-way JOIN을 통해
+        product.weight(제품 총 중량)와 customer_food.left_intake(잔여량)을 반환합니다.
+
+        Args:
+            pet_id: 대상 반려견 ID
+
+        Returns:
+            (CompanionCustomerFood, OpdProduct) 튜플 또는 None
+        """
+        result = (
+            self.db.query(CompanionCustomerFood, OpdProduct)
+            .join(
+                CompanionPetProductFeeding,
+                CompanionCustomerFood.pet_id == CompanionPetProductFeeding.pet_id,
+            )
+            .join(
+                OpdProduct,
+                CompanionPetProductFeeding.product_id == OpdProduct.product_id,
+            )
+            .filter(
+                CompanionCustomerFood.pet_id == pet_id,
+                CompanionPetProductFeeding.is_feeding_check == True,
+            )
+            .first()
+        )
+        return result
+
     def get_active_feeding_info(self, pet_id: int):  # 급여중 사료 정보 조회(cal, type)
         """현재 활성화된 사료의 영양 및 타입 정보를 조회합니다."""
         return (

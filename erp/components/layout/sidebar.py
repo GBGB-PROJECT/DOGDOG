@@ -311,7 +311,6 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
                         color=ft.Colors.WHITE,
                     ),
                 ),
-                # ft.Divider(height=1, color=DIVIDER_COLOR),
                 ft.Container(height=8),
                 *menu_controls,
             ],

@@ -11,167 +11,255 @@ BAR_PRIMARY = "#0B4F8A"
 BAR_SECONDARY = "#AFAFAF"
 
 CHART_MAX_Y = 100
-CHART_HEIGHT = 220
+
+# ☑️ 전체 차트 높이/플롯 높이 분리
+PLOT_HEIGHT = 300          # 실제 막대와 그리드가 그려지는 높이
+BOTTOM_LABEL_AREA = 34     # 하단 월 라벨 영역 높이
+CHART_HEIGHT = PLOT_HEIGHT + BOTTOM_LABEL_AREA
 
 
 def build_inventory_twin_chart():
-
     chart_data = [
-        ("1월", 45, 36),
-        ("2월", 58, 49),
-        ("3월", 42, 34),
-        ("4월", 76, 63),
-        ("5월", 61, 48),
-        ("6월", 70, 54),
-        ("7월", 52, 43),
+        ("1월", 20, 35),
+        ("2월", 43, 50),
+        ("3월", 13, 35),
+        ("4월", 40, 65),
+        ("5월", 58, 75),
+        ("6월", 35, 55),
     ]
+
+    # ☑️ 수정: 0은 따로 그릴 거라서 여기서는 제외
+    y_axis_labels = ["100k", "80k", "60k", "40k", "20k"]
+    y_step = PLOT_HEIGHT / 5
 
     # ☑️ Y축
     def build_y_axis():
-        y_labels = [100, 80, 60, 40, 20, 0]
+        return ft.Container(
+            width=58,
+            height=CHART_HEIGHT,
+            padding=ft.padding.only(right=10),
+            content=ft.Column(
+                spacing=0,
+                controls=[
+                    ft.Container(
+                        height=y_step,
+                        alignment=ft.Alignment(1, -1),
+                        content=ft.Text(
+                            value=label,
+                            size=12,
+                            color=TEXT_SECONDARY,
+                            weight=ft.FontWeight.W_600,
+                        ),
+                    )
+                    for label in y_axis_labels
+                ] + [
+                    # ☑️ 수정: 0은 바닥선 기준에 한 번만 출력
+                    ft.Container(
+                        height=BOTTOM_LABEL_AREA,
+                        alignment=ft.Alignment(1, -1),
+                        content=ft.Text(
+                            value="0",
+                            size=12,
+                            color=TEXT_SECONDARY,
+                            weight=ft.FontWeight.W_600,
+                        ),
+                    )
+                ],
+            ),
+        )
+
+    # ☑️ 막대 1쌍
+    def build_bar_pair(label, v1, v2):
+        h1 = max((v1 / CHART_MAX_Y) * PLOT_HEIGHT, 4)
+        h2 = max((v2 / CHART_MAX_Y) * PLOT_HEIGHT, 4)
 
         return ft.Container(
-            width=42,
-            height=CHART_HEIGHT,
+            expand=True,
             content=ft.Column(
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                horizontal_alignment=ft.CrossAxisAlignment.END,
+                spacing=0,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    ft.Text(str(v), size=12, color=TEXT_TERTIARY)
-                    for v in y_labels
+                    ft.Container(
+                        height=PLOT_HEIGHT,
+                        alignment=ft.Alignment(0, 1),
+                        content=ft.Row(
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            vertical_alignment=ft.CrossAxisAlignment.END,
+                            spacing=14,
+                            controls=[
+                                ft.Container(
+                                    width=34,
+                                    height=h1,
+                                    bgcolor=BAR_PRIMARY,
+                                    border_radius=ft.border_radius.only(
+                                        top_left=3,
+                                        top_right=3,
+                                    ),
+                                ),
+                                ft.Container(
+                                    width=34,
+                                    height=h2,
+                                    bgcolor=BAR_SECONDARY,
+                                    border_radius=ft.border_radius.only(
+                                        top_left=3,
+                                        top_right=3,
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ),
+                    ft.Container(
+                        height=BOTTOM_LABEL_AREA,
+                        alignment=ft.Alignment(0, 0),
+                        content=ft.Text(
+                            value=label,
+                            size=12,
+                            color=TEXT_SECONDARY,
+                            weight=ft.FontWeight.W_600,
+                        ),
+                    ),
                 ],
             ),
         )
 
     # ☑️ 차트 영역
     def build_chart_area():
+        grid_controls = []
 
-        max_bar_height = 150
-
-        bar_groups = []
-
-        for label, v1, v2 in chart_data:
-
-            h1 = (v1 / CHART_MAX_Y) * max_bar_height
-            h2 = (v2 / CHART_MAX_Y) * max_bar_height
-
-            bar_groups.append(
+        # ☑️ 수정: 100,80,60,40,20 라인
+        for _ in range(5):
+            grid_controls.append(
                 ft.Container(
-                    expand=1,
-                    alignment=ft.Alignment(0, 1),
-                    content=ft.Column(
-                        spacing=6,
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        alignment=ft.MainAxisAlignment.END,
-                        controls=[
-                            ft.Row(
-                                alignment=ft.MainAxisAlignment.CENTER,
-                                vertical_alignment=ft.CrossAxisAlignment.END,
-                                spacing=6,
-                                controls=[
-                                    ft.Container(
-                                        width=14,
-                                        height=h1,
-                                        bgcolor=BAR_PRIMARY,
-                                        border_radius=ft.border_radius.only(
-                                            top_left=4,
-                                            top_right=4,
-                                        ),
-                                    ),
-                                    ft.Container(
-                                        width=14,
-                                        height=h2,
-                                        bgcolor=BAR_SECONDARY,
-                                        border_radius=ft.border_radius.only(
-                                            top_left=4,
-                                            top_right=4,
-                                        ),
-                                    ),
-                                ],
-                            ),
-                            ft.Text(
-                                label,
-                                size=12,
-                                color=TEXT_TERTIARY,
-                            ),
-                        ],
+                    height=y_step,
+                    border=ft.border.only(
+                        top=ft.BorderSide(1, CHART_GRID_COLOR)
                     ),
                 )
             )
 
-        # 그리드
-        grid = ft.Column(
-            expand=True,
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            controls=[
-                ft.Divider(height=1, color=CHART_GRID_COLOR)
-                for _ in range(5)
-            ] + [ft.Container()],
+        # ☑️ 수정: 0 기준선
+        grid_controls.append(
+            ft.Container(
+                height=0,
+                border=ft.border.only(
+                    top=ft.BorderSide(1, CHART_GRID_COLOR)
+                ),
+            )
         )
 
-        return ft.Stack(
-            height=CHART_HEIGHT,
-            expand=True,
+        grid = ft.Column(
+            spacing=0,
             controls=[
-                grid,
                 ft.Container(
-                    padding=ft.padding.only(top=16),
-                    content=ft.Row(
-                        expand=True,
+                    height=PLOT_HEIGHT,
+                    content=ft.Column(
                         spacing=0,
-                        vertical_alignment=ft.CrossAxisAlignment.END,
-                        controls=bar_groups,
+                        controls=grid_controls,
                     ),
                 ),
+                ft.Container(height=BOTTOM_LABEL_AREA),
             ],
+        )
+
+        bars = ft.Container(
+            height=CHART_HEIGHT,
+            padding=ft.padding.only(left=10, right=14),
+            content=ft.Row(
+                expand=True,
+                spacing=30,
+                vertical_alignment=ft.CrossAxisAlignment.END,
+                controls=[
+                    build_bar_pair(label, v1, v2)
+                    for label, v1, v2 in chart_data
+                ],
+            ),
+        )
+
+        return ft.Container(
+            expand=True,
+            height=CHART_HEIGHT,
+            content=ft.Stack(
+                controls=[
+                    grid,
+                    bars,
+                ],
+            ),
         )
 
     # ☑️ 범례
     def build_legend():
         return ft.Row(
-            spacing=16,
+            spacing=18,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Row(
                     spacing=6,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Container(width=10, height=10, bgcolor=BAR_PRIMARY),
-                        ft.Text("입고", size=12),
+                        ft.Container(
+                            width=10,
+                            height=10,
+                            bgcolor=BAR_PRIMARY,
+                            border_radius=2,
+                        ),
+                        ft.Text(
+                            value="입고",
+                            size=12,
+                            color=TEXT_SECONDARY,
+                        ),
                     ],
                 ),
                 ft.Row(
                     spacing=6,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Container(width=10, height=10, bgcolor=BAR_SECONDARY),
-                        ft.Text("출고", size=12),
+                        ft.Container(
+                            width=10,
+                            height=10,
+                            bgcolor=BAR_SECONDARY,
+                            border_radius=2,
+                        ),
+                        ft.Text(
+                            value="출고",
+                            size=12,
+                            color=TEXT_SECONDARY,
+                        ),
                     ],
                 ),
-                ft.Row(
-                    spacing=6,
-                    controls=[
-                        ft.Text("단위: 천원", size=12),
-                    ],
+                ft.Text(
+                    value="단위: 천원",
+                    size=12,
+                    color=TEXT_SECONDARY,
                 ),
             ],
         )
 
     return ft.Container(
-        height=320,
+        height=440,
         bgcolor=CARD_BG,
-        border_radius=16,
+        border_radius=20,
         border=ft.border.all(1, "#E0E1E2"),
-        padding=20,
+        padding=ft.padding.only(left=24, right=24, top=22, bottom=20),
         content=ft.Column(
-            spacing=16,
+            expand=True,
+            spacing=18,
             controls=[
-                ft.Text(
-                    "입출고 현황",
-                    size=18,
-                    weight=ft.FontWeight.W_700,
-                    color=TEXT_PRIMARY,
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text(
+                            "입출고 현황",
+                            size=18,
+                            weight=ft.FontWeight.W_700,
+                            color=TEXT_PRIMARY,
+                        ),
+                        build_legend(),
+                    ],
                 ),
-                build_legend(),
                 ft.Row(
                     expand=True,
+                    spacing=0,
                     controls=[
                         build_y_axis(),
                         build_chart_area(),

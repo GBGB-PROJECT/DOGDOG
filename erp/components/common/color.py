@@ -1,4 +1,5 @@
 
+
 '''로그인 페이지, 시그니처 색깔'''
 MAIN_COLOR = "#004080"
 ACTIVE_COLOR = "#22C7E8"
@@ -44,3 +45,6 @@ CHART_GRID_COLOR = "#E5E7EB"
 
 CHART_HEIGHT = 240
 CHART_MAX_Y = 80  # ☑️ 수정: 데이터 값(20~80)에 맞게 Y축 최대값을 80으로 변경
+
+'''registration_popup'''
+INCORRECT_POPUPCOLOR = "#b51919"

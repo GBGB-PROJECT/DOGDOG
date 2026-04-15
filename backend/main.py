@@ -17,11 +17,12 @@ if current_dir not in sys.path:
 
 # 이제 db.db와 app.logs...를 정상적으로 임포트할 수 있습니다.
 from app.logs.api.feeding_api import router as feeding_router
+from app.logs.api.poop_api import router as poop_router
 
 app = FastAPI(
     title="DOGDOG API",
     description="반려견 급여 및 사료 관리 서비스를 위한 API",
-    version="1.0.0"
+    version="1.3.0"
 )
 
 # CORS 설정 (모든 허용)
@@ -35,6 +36,7 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(feeding_router, prefix="/api/v1/feeding")
+app.include_router(poop_router, prefix="/api/v1/logs/poop")
 
 @app.get("/")
 def read_root():

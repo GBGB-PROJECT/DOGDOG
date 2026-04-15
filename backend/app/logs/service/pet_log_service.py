@@ -1,0 +1,152 @@
+from datetime import datetime
+from decimal import Decimal
+
+from db.models import CompanionPetLogNumeric
+
+
+class PetLogService:
+    """배변 기록 비즈니스 로직을 담당합니다."""
+
+    def __init__(self, repository):
+        self.repo = repository
+
+    def _validate_log_date(self, log_date: datetime):
+        """미래 시간 입력을 차단합니다.
+
+        Args:
+            log_date: 검증 대상 일시
+
+        Raises:
+            ValueError: 미래 시간인 경우
+        """
+        if log_date.replace(tzinfo=None) > datetime.now():
+            raise ValueError(
+                f"미래 시간({log_date.strftime('%Y-%m-%d %H:%M:%S')})으로 "
+                f"기록을 등록할 수 없습니다."
+            )
+
+    def _validate_log_status(self, log_status: float):
+        """배변 점수 범위를 검증합니다 (1.0 ~ 7.0).
+
+        Args:
+            log_status: 배변 점수
+
+        Raises:
+            ValueError: 범위를 벗어난 경우
+        """
+        if not (1.0 <= float(log_status) <= 7.0):
+            raise ValueError(
+                f"배변 점수는 1.0~7.0 사이여야 합니다. (입력값: {log_status})"
+            )
+
+    def register_poop_log(
+        self,
+        customer_id: int,
+        pet_id: int,
+        log_status: float,
+        log_date: datetime,
+        memo: str = None,
+    ) -> tuple:
+        """배변 기록을 등록합니다.
+
+        Args:
+            customer_id: 보호자 ID
+            pet_id: 대상 반려견 ID
+            log_status: 배변 점수 (1.0~7.0)
+            log_date: 실제 발생 일시
+            memo: 메모 (선택)
+
+        Returns:
+            (CompanionPetLogNumeric, is_duplicate: bool) 튜플
+        """
+        self._validate_log_date(log_date)
+        self._validate_log_status(log_status)
+
+        # 중복 체크 (경고용, 비차단)
+        is_duplicate = self.repo.check_duplicate(pet_id, log_date)
+
+        log = CompanionPetLogNumeric(
+            pet_id=pet_id,
+            customer_id=customer_id,
+            category="poop",
+            log_status=Decimal(str(log_status)),
+            log_date=log_date,
+            memo=memo,
+        )
+        self.repo.add_log(log)
+        self.repo.commit()
+        self.repo.refresh(log)
+
+        return log, is_duplicate
+
+    def get_poop_log(self, pet_log_numeric_id: int):
+        """배변 기록을 단건 조회합니다.
+
+        Args:
+            pet_log_numeric_id: 배변 로그 PK
+
+        Returns:
+            CompanionPetLogNumeric 또는 None
+        """
+        return self.repo.get_log_by_id(pet_log_numeric_id)
+
+    def update_poop_log(
+        self,
+        pet_log_numeric_id: int,
+        update_data: dict,
+    ) -> CompanionPetLogNumeric:
+        """배변 기록을 수정합니다. (log_status, log_date, memo만 수정 가능)
+
+        Args:
+            pet_log_numeric_id: 대상 로그 PK
+            update_data: 수정할 필드-값 딕셔너리
+
+        Returns:
+            수정된 CompanionPetLogNumeric 객체
+
+        Raises:
+            ValueError: 로그를 찾을 수 없거나, 입력값이 유효하지 않은 경우
+        """
+        log = self.repo.get_log_by_id(pet_log_numeric_id)
+        if not log:
+            raise ValueError("요청하신 배변 기록을 찾을 수 없습니다.")
+
+        if "log_status" in update_data:
+            self._validate_log_status(update_data["log_status"])
+            log.log_status = Decimal(str(update_data["log_status"]))
+
+        if "log_date" in update_data:
+            self._validate_log_date(update_data["log_date"])
+            log.log_date = update_data["log_date"]
+
+        if "memo" in update_data:
+            log.memo = update_data["memo"]
+
+        # last_update 수동 갱신 (모델에 onupdate 미설정)
+        log.last_update = datetime.now()
+
+        self.repo.commit()
+        self.repo.refresh(log)
+
+        return log
+
+    def delete_poop_log(self, pet_log_numeric_id: int) -> bool:
+        """배변 기록을 논리 삭제(Soft Delete)합니다.
+
+        Args:
+            pet_log_numeric_id: 대상 로그 PK
+
+        Returns:
+            삭제 성공 여부
+
+        Raises:
+            ValueError: 로그를 찾을 수 없는 경우
+        """
+        log = self.repo.get_log_by_id(pet_log_numeric_id)
+        if not log:
+            raise ValueError("요청하신 배변 기록을 찾을 수 없습니다.")
+
+        self.repo.delete_log(log)
+        self.repo.commit()
+
+        return True

@@ -3,7 +3,7 @@ from components import layout as ly
 from components import common as cm
 
 # ☑️ 추가: 협업 파일 그대로 사용 (menu → view 연결용)
-from components.common import home_content_move as hcm
+from components.common import content_move as hcm
 
 
 # 1. 클래스로 정의하여 '독립적인 기계'처럼 만듭니다.

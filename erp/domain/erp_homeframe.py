@@ -8,6 +8,8 @@ class ErpFrame(ft.Container):
         super().__init__()
         self.main_page = page
         self.expand = True
+
+        self.selected_menu = "홈"  # 🔥🔥
         
         # [A] 알맹이가 들어갈 빈 공간(도화지)을 미리 준비합니다.
         # 초기값으로 '홈' 화면을 띄웁니다.
@@ -18,8 +20,22 @@ class ErpFrame(ft.Container):
 
         # [B] 메뉴 클릭 시 알맹이를 갈아 끼우는 함수
         def on_menu_click(menu_name: str):
+
+            # 🔥 선택된 메뉴 상태 업데이트 🔥
+            self.selected_menu = menu_name
+
+            # 🔥 사이드바 다시 생성 (선택 색 반영) 🔥
+            self.content.controls[0] = ly.build_erp_sidebar(
+                selected_menu=self.selected_menu,
+                on_menu_click=on_menu_click,
+            )
+
+            # 🔥 화면 다시 그리기 (이거 안 하면 변화 안 보임) 🔥
+            self.update()
+
             # 1. 새로운 화면 가져오기
             new_content = cm.MENU_ITEMS.get(menu_name, lambda: ft.Text("화면을 찾을 수 없습니다"))()
+
             # 2. 도화지의 내용물 교체
             self.content_area.content = new_content
             # 3. ★중요: 페이지에게 "바뀌었으니 다시 그려!"라고 말하기
@@ -30,7 +46,7 @@ class ErpFrame(ft.Container):
             spacing=0,
             controls=[
                 # 왼쪽 사이드바
-                ly.build_erp_sidebar(selected_menu="홈",on_menu_click=on_menu_click),
+                ly.build_erp_sidebar(selected_menu=self.selected_menu, on_menu_click=on_menu_click),
                 
                 # 오른쪽 전체 영역 (상단바 + 알맹이)
                 ft.Column(

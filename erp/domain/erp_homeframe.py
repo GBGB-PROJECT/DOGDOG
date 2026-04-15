@@ -2,6 +2,10 @@ import flet as ft
 from components import layout as ly
 from components import common as cm
 
+# ☑️ 추가: 협업 파일 그대로 사용 (menu → view 연결용)
+from components.common import home_content_move as hcm
+
+
 # 1. 클래스로 정의하여 '독립적인 기계'처럼 만듭니다.
 class ErpFrame(ft.Container):
     def __init__(self, page: ft.Page):
@@ -11,6 +15,9 @@ class ErpFrame(ft.Container):
 
         self.selected_menu = "홈"  # 🔥🔥
         
+        # ☑️ 추가: 사이드바 영역을 따로 관리 (index 접근 제거)
+        self.sidebar_area = ft.Container()
+
         # [A] 알맹이가 들어갈 빈 공간(도화지)을 미리 준비합니다.
         # 초기값으로 '홈' 화면을 띄웁니다.
         self.content_area = ft.Container(
@@ -24,29 +31,37 @@ class ErpFrame(ft.Container):
             # 🔥 선택된 메뉴 상태 업데이트 🔥
             self.selected_menu = menu_name
 
-            # 🔥 사이드바 다시 생성 (선택 색 반영) 🔥
-            self.content.controls[0] = ly.build_erp_sidebar(
+            # ☑️ 추가: sidebar를 안전하게 갱신 (index 접근 제거)
+            self.sidebar_area.content = ly.build_erp_sidebar(
                 selected_menu=self.selected_menu,
                 on_menu_click=on_menu_click,
             )
 
-            # 🔥 화면 다시 그리기 (이거 안 하면 변화 안 보임) 🔥
-            self.update()
-
-            # 1. 새로운 화면 가져오기
-            new_content = cm.MENU_ITEMS.get(menu_name, lambda: ft.Text("화면을 찾을 수 없습니다"))()
+            # ☑️ 수정: 협업 파일 기준으로 view 가져오기
+            new_content = hcm.MENU_ITEMS.get(
+                menu_name,
+                lambda: ft.Text("화면을 찾을 수 없습니다")
+            )()
 
             # 2. 도화지의 내용물 교체
             self.content_area.content = new_content
-            # 3. ★중요: 페이지에게 "바뀌었으니 다시 그려!"라고 말하기
+
+            # ☑️ 수정: update 위치를 맨 마지막으로 이동 (중요)
+            self.update()
+
+        # ☑️ 추가: 초기 사이드바 세팅
+        self.sidebar_area.content = ly.build_erp_sidebar(
+            selected_menu=self.selected_menu,
+            on_menu_click=on_menu_click,
+        )
 
         # [C] 전체 레이아웃 조립 (사이드바 + (상단바 + 도화지))
         self.content = ft.Row(
             expand=True,
             spacing=0,
             controls=[
-                # 왼쪽 사이드바
-                ly.build_erp_sidebar(selected_menu=self.selected_menu, on_menu_click=on_menu_click),
+                # 🔥 수정: 기존 direct 호출 → sidebar_area로 교체
+                self.sidebar_area,
                 
                 # 오른쪽 전체 영역 (상단바 + 알맹이)
                 ft.Column(

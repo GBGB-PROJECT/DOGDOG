@@ -1,4 +1,6 @@
 import flet as ft
+import os
+import webbrowser
 
 # 파이썬이 여기서부터 출발하므로, erp. 으로 시작하는 경로를 완벽하게 이해합니다!
 from domain.erp_homeframe import ErpFrame 
@@ -26,4 +28,12 @@ def main(page: ft.Page):
   page.add(app_login)
 
 if __name__ == "__main__":
-    ft.app(target=main, assests_dir="components/assests")
+    if os.getenv("FLET_NO_BROWSER"):
+        webbrowser.open = lambda *args, **kwargs: None
+
+    ft.run(
+        main,
+        assets_dir="components/assets",
+        view=ft.AppView.WEB_BROWSER,
+        port=34636,
+    )

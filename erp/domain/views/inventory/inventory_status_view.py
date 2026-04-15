@@ -1,5 +1,6 @@
 import flet as ft
 from components import common as cm
+from components.common.charts.twin_chart import build_inventory_twin_chart
 
 
 def erp_inventory_status_view():
@@ -42,7 +43,7 @@ def erp_inventory_status_view():
                 # ☑️ 🔥 여기 핵심 (가로 2칸)
             ft.Row(
                 spacing=16,
-                expand=True,
+                # expand=True,
                 controls=[
 
                     # 박스 1
@@ -68,6 +69,7 @@ def erp_inventory_status_view():
                     ),
                 ],
             ),
+            build_inventory_twin_chart(),
         ],
     ),
 )

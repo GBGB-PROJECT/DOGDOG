@@ -168,7 +168,6 @@ def _build_expanded_sidebar(header_control, menu_controls):
                         spacing=4,
                         controls=[
                             header_control,
-                            # ft.Divider(height=1, color=DIVIDER_COLOR),
                             ft.Container(height=8),
                             *menu_controls,
                         ],

@@ -18,8 +18,14 @@ def get_home_view_data():
     raw_monthly_goal = 3500000
     raw_weekly_goal = 750000
 
+    ## 생산 하이라이트
+    monthly_production_qty = 354000 # 이번달 생산량
+    expected_incoming_qty = 12000 # 입고 예정
+    current_total_inventory = 53000 # 현재 총 재고량
+    monthly_avg_sales_qty = 13500 # 월 평균 판매량
+
     # [PROCESSING] View가 바로 출력할 수 있게 가공
-    processed_data = {
+    sales_processed_data = {
         # 매출 하이라이트 (hd용)
         "total_sale": f"{raw_total_sales:,}",
         "last_year_growth": f"{raw_yoy_growth}",
@@ -35,5 +41,11 @@ def get_home_view_data():
         "week_rate_text": f"{raw_weekly_rate * 100}",
         "week_goal": f"{raw_weekly_goal // 10000:,}",
     }
-    return processed_data
 
+    inventory_processed_data = {
+        "monthly_production_qty": f"{monthly_production_qty:,}",
+        "expected_incoming_qty": f"{expected_incoming_qty:,}",
+        "current_total_inventory": f"{current_total_inventory:,}",
+        "monthly_avg_sales_qty": f"{monthly_avg_sales_qty:,}"
+    }
+    return sales_processed_data, inventory_processed_data

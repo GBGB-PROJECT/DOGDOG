@@ -4,17 +4,21 @@ from pydantic import EmailStr
 
 from db.db import get_db
 
-from backend.app.users.id_repository import get_customer_by_id, get_pet_id  # 가정: 토큰에서 customer_id 추출
+from app.users.id_repository import (
+    get_customer_by_id,
+    get_pet_id,
+)  # 가정: 토큰에서 customer_id 추출
 
 router = APIRouter(tags=["users"])
+
 
 @router.get("/users/id")
 def read_my_id_info(
     email: EmailStr = Query(
-            default=None,
-            # max_length=50,
-            description="이메일"
-        ),
+        default=None,
+        # max_length=50,
+        description="이메일",
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -30,8 +34,8 @@ def read_my_id_info(
                 detail={
                     "success": False,
                     "error_code": "CUSTOMER_NOT_FOUND",
-                    "message": "존재하지 않는 사용자입니다."
-                }
+                    "message": "존재하지 않는 사용자입니다.",
+                },
             )
 
         # 2. pet 조회
@@ -42,10 +46,7 @@ def read_my_id_info(
         return {
             "success": True,
             "message": "ID 정보를 조회했습니다.",
-            "data": {
-                "customer_id": customer_id,
-                "pets": pets
-            }
+            "data": {"customer_id": customer_id, "pets": pets},
         }
 
     except HTTPException:
@@ -59,6 +60,6 @@ def read_my_id_info(
             detail={
                 "success": False,
                 "error_code": "ID_READ_FAILED",
-                "message": "ID 정보 조회에 실패했습니다."
-            }
+                "message": "ID 정보 조회에 실패했습니다.",
+            },
         )

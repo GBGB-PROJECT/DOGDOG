@@ -3,9 +3,6 @@ import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.users.users_api import router as users_router
-
-
 # 프로젝트 루트 디렉토리를 sys.path에 추가하여 db 패키지를 찾을 수 있게 합니다.
 # 현재 파일 위치: backend/main.py -> 부모가 프로젝트 루트
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,7 +16,8 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 # 이제 db.db와 app.logs...를 정상적으로 임포트할 수 있습니다.
-# from app.logs.api.feeding_api import router as feeding_router
+from app.users.users_api import router as users_router
+from app.auth.api.auth_api import router as auth_router
 
 app = FastAPI(
     title="DOGDOG API",
@@ -40,6 +38,7 @@ app.add_middleware(
 # app.include_router(feeding_router, prefix="/api/v1/feeding")
 # users 라우터 등록
 app.include_router(users_router, prefix="/app")
+app.include_router(auth_router)
 
 @app.get("/")
 def read_root():

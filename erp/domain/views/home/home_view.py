@@ -37,8 +37,8 @@ def erp_home_view():
                         ft.Column(
                             spacing=16,
                             controls=[
-                                cm.gauge_chart(data.get('month_rate',0), f"월간 목표 : {data.get('month_goal',0)}만 원"),
-                                cm.gauge_chart(data.get('week_rate',0), f"주간 목표 : {data.get('week_goal',0)}만 원"),
+                                cm.gauge_chart(float(data.get('month_rate_text', 0)), f"월간 목표 : {data.get('month_goal', 0)}만 원"),
+                                cm.gauge_chart(float(data.get('week_rate_text', 0)), f"주간 목표 : {data.get('week_goal', 0)}만 원"),
                             ],
                         ),
                         cm.build_sales_linechart(),

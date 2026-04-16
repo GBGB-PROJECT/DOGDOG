@@ -13,8 +13,8 @@ class LogsService:
         
         merged_logs = []
 
-        # 1. 급여 기록 추가 (category 필터링: None 또는 'feeding')
-        if not category or category == "feeding":
+        # 1. 급여 기록 추가 (category 필터링: None, 'all', 또는 'feeding')
+        if not category or category == "all" or category == "feeding":
             feeding_logs = self.repo.get_feeding_logs_by_date(pet_id, target_date)
             for log in feeding_logs:
                 # pet_food는 feeding_date만 기록되므로, 
@@ -33,8 +33,8 @@ class LogsService:
                     "display_time": record_time.strftime("%H:%M"),
                 })
 
-        # 2. 기타 로깅 추가 (category: None/poop/water 등)
-        fetch_numeric = not category or category != "feeding"
+        # 2. 기타 로깅 추가 (category: None, 'all', 또는 기타 카테고리)
+        fetch_numeric = not category or category == "all" or category != "feeding"
         if fetch_numeric:
             numeric_logs = self.repo.get_numeric_logs_by_date(pet_id, target_date)
             for log in numeric_logs:

@@ -73,3 +73,16 @@ class SignupResponse(BaseModel):
     message: str
     data: SignupDataFormat
     authorization: AuthorizationFormat
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., description="이메일")
+    password: str = Field(..., description="비밀번호")
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(..., description="재발급을 위한 리프레시 토큰")

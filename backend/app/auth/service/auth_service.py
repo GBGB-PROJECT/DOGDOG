@@ -94,3 +94,103 @@ class AuthService:
             # 실패 시 전체 롤백 처리를 진행
             self.repo.rollback()
             raise e
+
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        """비밀번호 일치 여부를 확인합니다."""
+        return pwd_context.verify(plain_password, hashed_password)
+
+    def login_user(self, request) -> dict:
+        """
+        이메일과 비밀번호로 로그인하여 토큰을 발급합니다.
+        """
+        user = self.repo.get_customer_by_email(request.email)
+        if not user or not user.password:
+            raise ValueError("INVALID_CREDENTIALS")
+
+        if not self.verify_password(request.password, user.password):
+            raise ValueError("INVALID_CREDENTIALS")
+
+        customer_id = user.customer_id
+        
+        # 새로운 토큰 발급
+        access_token = self.create_access_token(subject=str(customer_id))
+        refresh_token, refresh_exp = self.create_refresh_token(subject=str(customer_id))
+
+        # Refresh 토큰 DB 저장 (해싱)
+        hashed_rt = self.hash_password(refresh_token)
+        try:
+            self.repo.update_refresh_token(
+                customer_id=customer_id, 
+                hashed_token=hashed_rt, 
+                expires_at=refresh_exp.replace(tzinfo=None)
+            )
+            self.repo.commit()
+        except Exception as e:
+            self.repo.rollback()
+            raise e
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "expires_in": JWT_ACCESS_EXPIRE_MINUTES
+        }
+
+    def refresh_user_token(self, refresh_token: str) -> dict:
+        """
+        Refresh Token을 검증하고 새로운 Access/Refresh Token을 발급합니다.
+        """
+        try:
+            payload = jwt.decode(refresh_token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            customer_id_str = payload.get("sub")
+            token_type = payload.get("type")
+            
+            if token_type != "refresh" or not customer_id_str:
+                raise ValueError("INVALID_TOKEN")
+                
+            customer_id = int(customer_id_str)
+        except getattr(jwt, 'JWTError', Exception):
+            raise ValueError("INVALID_TOKEN")
+
+        # DB 검증: 유저 확인 및 토큰 일치 여부 확인
+        user = self.repo.get_customer_by_id(customer_id)
+        if not user or not user.refresh_token:
+            raise ValueError("INVALID_TOKEN")
+
+        # 전달받은 Refresh Token과 DB의 해시된 Refresh Token 일치 확인
+        if not self.verify_password(refresh_token, user.refresh_token):
+            raise ValueError("INVALID_TOKEN")
+
+        # 검증 완료, Rotate Tokens (새로운 토큰 쌍 발급)
+        new_access_token = self.create_access_token(subject=str(customer_id))
+        new_refresh_token, new_refresh_exp = self.create_refresh_token(subject=str(customer_id))
+        new_hashed_rt = self.hash_password(new_refresh_token)
+
+        try:
+            self.repo.update_refresh_token(
+                customer_id=customer_id, 
+                hashed_token=new_hashed_rt, 
+                expires_at=new_refresh_exp.replace(tzinfo=None)
+            )
+            self.repo.commit()
+        except Exception as e:
+            self.repo.rollback()
+            raise e
+
+        return {
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+            "token_type": "bearer",
+            "expires_in": JWT_ACCESS_EXPIRE_MINUTES
+        }
+
+    def logout_user(self, customer_id: int):
+        """
+        현재 유저의 리프레시 토큰을 무효화(삭제)합니다.
+        """
+        try:
+            self.repo.clear_refresh_token(customer_id)
+            self.repo.commit()
+        except Exception as e:
+            self.repo.rollback()
+            raise e

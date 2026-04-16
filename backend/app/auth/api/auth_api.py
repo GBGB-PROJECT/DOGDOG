@@ -53,3 +53,73 @@ def email_signup(request: EmailSignupRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
         )
+
+
+from app.auth.schemas import LoginRequest, TokenResponse, RefreshRequest
+from dependencies import get_current_user_id
+
+@router.post("/login", response_model=TokenResponse)
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    """[로그인] 이메일과 비밀번호로 인증하고 토큰을 발급받습니다."""
+    repo = AuthRepository(db)
+    service = AuthService(repo)
+    
+    try:
+        token_data = service.login_user(request)
+        return TokenResponse(**token_data)
+    except ValueError as val_e:
+        if str(val_e) == "INVALID_CREDENTIALS":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="이메일 또는 비밀번호가 올바르지 않습니다.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_e))
+    except Exception as e:
+        logger.error(f"로그인 중 오류 발생: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+        )
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
+    """[토큰 갱신] 유효한 Refresh Token을 기반으로 Access/Refresh 토큰을 재발급합니다."""
+    repo = AuthRepository(db)
+    service = AuthService(repo)
+    
+    try:
+        new_token_data = service.refresh_user_token(request.refresh_token)
+        return TokenResponse(**new_token_data)
+    except ValueError as val_e:
+        if str(val_e) == "INVALID_TOKEN":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="유효하지 않거나 만료된 리프레시 토큰입니다. 다시 로그인해 주세요."
+            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_e))
+    except Exception as e:
+        logger.error(f"토큰 재발급 중 오류 발생: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+        )
+
+@router.post("/logout")
+def logout(
+    db: Session = Depends(get_db), 
+    customer_id: int = Depends(get_current_user_id)
+):
+    """[로그아웃] 현재 로그인된 유저의 Refresh Token을 무효화합니다."""
+    repo = AuthRepository(db)
+    service = AuthService(repo)
+    
+    try:
+        service.logout_user(customer_id)
+        return {"message": "Successfully logged out"}
+    except Exception as e:
+        logger.error(f"로그아웃 중 오류 발생: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+        )

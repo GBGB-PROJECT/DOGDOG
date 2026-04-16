@@ -1,5 +1,5 @@
 import flet as ft
-from components.common.registration_popup import custom_popup # 모듈 불러오기
+from erp.components.common.modals.registration_popup import custom_popup # 모듈 불러오기
 
 def main(page: ft.Page):
     page.title = "GaeBobGaeBob 시스템"

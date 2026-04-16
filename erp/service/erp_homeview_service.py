@@ -46,6 +46,6 @@ def get_home_view_data():
         "monthly_production_qty": f"{monthly_production_qty:,}",
         "expected_incoming_qty": f"{expected_incoming_qty:,}",
         "current_total_inventory": f"{current_total_inventory:,}",
-        "monthly_avg_sales_qty": f"{monthly_avg_sales_qty}"
+        "monthly_avg_sales_qty": f"{monthly_avg_sales_qty:,}"
     }
     return sales_processed_data, inventory_processed_data

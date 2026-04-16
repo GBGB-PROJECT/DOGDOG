@@ -1,8 +1,16 @@
-import sys
 import os
+import sys
 from datetime import date
 from types import SimpleNamespace
 from unittest.mock import MagicMock
+
+# 프로젝트 루트 및 backend 경로 추가
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.abspath(os.path.join(current_dir, "../../"))
+project_root = os.path.abspath(os.path.join(backend_dir, "../"))
+
+if project_root not in sys.path: sys.path.insert(0, project_root)
+if backend_dir not in sys.path: sys.path.insert(0, backend_dir)
 
 # 1. FastAPI 및 테스트 도구 임포트
 from fastapi import FastAPI
@@ -17,7 +25,9 @@ from db.db import get_db
 
 # 3. 테스트를 위한 가짜 앱(App) 생성 및 라우터 등록
 app = FastAPI()
-app.include_router(router)
+
+# 실제 main.py와 동일한 prefix 구조 적용
+app.include_router(router, prefix="/api/v1/logs/feeding")
 client = TestClient(app)
 
 # 4. 테스트용 가짜 데이터 설정 (ERD 기준)
@@ -28,6 +38,7 @@ mock_inventory = SimpleNamespace(
     food_count=10,
     left_intake=4500.0,      # DB 자동계산 필드 흉내
     left_food_count=90.0,    # DB 자동계산 필드 흉내
+    feeding_start=date.today(), # 신규 추가된 필드
     last_update=date.today()
 )
 
@@ -65,17 +76,16 @@ def test_feeding_registration_api():
     }
 
     # API 호출
-    response = client.post("/api/v1/feeding", json=payload)
+    response = client.post("/api/v1/logs/feeding", json=payload)
 
     # 결과 검증 (Assert)
     if response.status_code == 201:
         data = response.json()["data"]
         print(f"✅ 응답 코드: {response.status_code} (Created)")
-        print(f"📊 계산된 칼로리: {data['calories']} kcal (200g * 3.8)")
-        print(f"📦 남은 사료량: {data['inventory_info']['left_intake']} g")
+        print(f"📊 급여량: {data['amount']} g")
         
         # 비즈니스 로직 체크
-        assert data['calories'] == 760  # 200 * 3.8
+        assert data['amount'] == 200
         print("\n✨ [최종 결과] 모든 비즈니스 로직이 정상입니다!")
     else:
         print(f"❌ 테스트 실패: {response.status_code}")

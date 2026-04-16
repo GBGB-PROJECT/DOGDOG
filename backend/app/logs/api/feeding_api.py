@@ -28,7 +28,7 @@ class FeedingUpdate(BaseModel):
 
 
 # --- Router ---
-router = APIRouter(tags=["Feeding"])
+router = APIRouter(prefix="/api/v1/logs/feeding", tags=["Feeding Logs"])
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -117,48 +117,6 @@ def get_feeding_logs(
         )
 
 
-@router.get("/dashboard/summary/{pet_id}")
-def get_daily_dashboard_summary(
-    pet_id: int,
-    query_date: Optional[date] = Query(None, alias="date", description="조회할 날짜 (기본값: 오늘)"),
-    db: Session = Depends(get_db),
-):
-    """[조회] 메인 대시보드 구성을 위한 일일 요약 정보를 조회합니다."""
-    customer_id = 1
-    repo = FeedingRepository(db)
-
-    # 1. 소유권 검증
-    if not check_pet_owner(db, pet_id, customer_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다."
-        )
-
-    # 2. 날짜 처리 (기본값 오늘)
-    if not query_date:
-        query_date = date.today()
-
-    service = FeedingService(repo)
-    
-    try:
-        # 데이터 조립 및 반환
-        result = service.get_main_dashboard_data(pet_id, query_date)
-        return {"status": "success", "data": result}
-    except ValueError as e:
-        error_msg = str(e)
-        if "찾을 수 없습니다" in error_msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=error_msg,
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
-        )
-    except Exception as e:
-        logger.error(f"메인 대시보드 요약 조회 중 서버 오류 발생: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-        )
 
 @router.patch("/{pet_food_id}")
 def update_feeding(

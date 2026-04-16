@@ -70,7 +70,7 @@ class PoopLogResponse(BaseModel):
 
 
 # --- Router ---
-router = APIRouter(tags=["Poop Log"])
+router = APIRouter(prefix="/api/v1/logs/poop", tags=["Poop Logs"])
 
 
 @router.post("/{pet_id}", status_code=status.HTTP_201_CREATED)

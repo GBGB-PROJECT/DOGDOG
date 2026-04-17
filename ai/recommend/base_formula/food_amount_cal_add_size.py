@@ -9,16 +9,16 @@ def get_low_weight_factor(BCS):
     elif BCS == 4:
         return 1.2
 
-# adult_month
+# adult_stand_m
 # size(견종)에 따른 생애주기 구분 -> 성견 유무 구하기
 # 견종 -> size 구분
 # size -> 성견 기준 개월 도출
 
 # 계수
 # (임신/수유) > 질병->ai > 비만 > 나이(성장기, 노견)
-def get_factor(age_m, BCS, neutered, adult_month):
+def get_factor(age_m, BCS, neutered, adult_stand_m):
     # 성견 - 기준 정하기*****
-    if age_m >= adult_month:
+    if age_m >= adult_stand_m:
         #저체중
         if BCS <= 4:
             return get_low_weight_factor(BCS)
@@ -90,13 +90,13 @@ def calculate_base_g(
         age_m: int, 
         neutered: bool, 
         bcs: int, 
-        adult_month: int, 
+        adult_stand_m: int, 
         food_kcal: float
     ) -> float:
     RER = cal_RER(weight)
 
     # DER
-    w = get_factor(age_m, bcs, neutered, adult_month)
+    w = get_factor(age_m, bcs, neutered, adult_stand_m)
     DER = RER * w
 
     base_g = DER / food_kcal

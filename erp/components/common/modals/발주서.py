@@ -131,6 +131,7 @@ CONDITION_VALUE_W = DOC_WIDTH - CONDITION_LABEL_W
 # ☑️ 숫자 유틸
 # =========================================================
 def to_int(value):
+    # ⭐ 수량/단가/합계 계산 전에 문자열 숫자를 정수로 바꾸는 공통 유틸
     try:
         value = str(value).replace(",", "").strip()
         if value == "":
@@ -141,6 +142,7 @@ def to_int(value):
 
 
 def format_number(value):
+    # ⭐ 계산된 금액(공급가, 세액, 총합계)을 30,000 같은 형식으로 표시
     if value in ("", None):
         return ""
     try:
@@ -248,10 +250,13 @@ class PurchaseOrderDialog:
         # -------------------------------------------------
         # ☑️ 하단 참고사항 / 발주조건 / 합계
         # -------------------------------------------------
+        # ⭐ 품목별 계산 결과를 바탕으로 총합계를 숫자 형태로 보여주는 필드
         self.total_amount_text = build_textfield(
             text_align=ft.TextAlign.RIGHT,
             read_only=True,
         )
+
+        # ⭐ 총합계를 한글 금액으로 변환해서 보여주는 필드
         self.total_amount_krw = build_textfield(read_only=True)
 
         self.note_text = build_textfield()
@@ -260,6 +265,7 @@ class PurchaseOrderDialog:
         # -------------------------------------------------
         # ☑️ 품목 행
         # -------------------------------------------------
+        # ⭐ 발주 품목 입력 행 20개를 생성해서 문서형 입력 UI 구성
         self.item_rows = []
         for i in range(20):
             self.item_rows.append(self.build_item_row(i + 1))
@@ -267,6 +273,7 @@ class PurchaseOrderDialog:
         # -------------------------------------------------
         # ☑️ 다이얼로그
         # -------------------------------------------------
+        # ⭐ ERP 프론트 발주서 입력 모달 UI 구현
         self.dialog = ft.AlertDialog(
             modal=True,
             inset_padding=10,
@@ -281,6 +288,7 @@ class PurchaseOrderDialog:
     #     🔥 완벽한 회계식 표기보다 UI 확인용
     # =====================================================
     def number_to_korean(self, value: int) -> str:
+        # ⭐ 총합계를 '삼만삼천원' 같은 한글 금액으로 바꾸는 변환 함수
         if value == 0:
             return "영원"
 
@@ -325,15 +333,18 @@ class PurchaseOrderDialog:
         row_data = {}
 
         def on_amount_change(e=None):
+            # ⭐ 수량·단가 입력 시 공급가 및 세액 자동 계산 기능 구현
             qty = to_int(row_data["qty"].value)
             price = to_int(row_data["unit_price"].value)
 
             supply = qty * price
             tax = int(supply * 0.1)
 
+            # ⭐ 계산 결과를 읽기 전용 필드에 즉시 반영 처리
             row_data["supply_amount"].value = format_number(supply) if supply else ""
             row_data["tax_amount"].value = format_number(tax) if tax else ""
 
+            # ⭐ 품목별 금액 계산 후 총합계도 같이 다시 계산
             self.update_summary()
             self.page.update()
 
@@ -367,6 +378,7 @@ class PurchaseOrderDialog:
     # ☑️ 합계 업데이트
     # =====================================================
     def update_summary(self):
+        # ⭐ 품목별 금액 합산을 통한 총합계 자동 반영 처리
         total_supply = 0
         total_tax = 0
 
@@ -376,7 +388,10 @@ class PurchaseOrderDialog:
 
         grand_total = total_supply + total_tax
 
+        # ⭐ 총합계를 숫자 형식으로 표시
         self.total_amount_text.value = format_number(grand_total) if grand_total else ""
+
+        # ⭐ 총합계를 한글 금액으로 변환하여 표시하는 기능
         self.total_amount_krw.value = (
             self.number_to_korean(grand_total) if grand_total else ""
         )
@@ -687,6 +702,7 @@ class PurchaseOrderDialog:
     # ☑️ 저장 데이터 수집
     # =====================================================
     def collect_data(self):
+        # ⭐ 입력된 품목 행만 선별하여 데이터 구조화 및 저장 처리
         items = []
 
         for row in self.item_rows:
@@ -703,6 +719,7 @@ class PurchaseOrderDialog:
                 "delivery_deadline": row["delivery_deadline"].value,
             }
 
+            # ⭐ 값이 들어간 품목 행만 저장 대상에 포함
             has_value = any(str(v).strip() != "" for k, v in item.items() if k != "no")
             if has_value:
                 items.append(item)
@@ -735,9 +752,13 @@ class PurchaseOrderDialog:
     # ☑️ 저장 버튼
     # =====================================================
     def save_data(self, e):
+        # ⭐ 저장 전에 최신 총합계/한글 금액 상태를 다시 반영
         self.update_summary()
+
+        # ⭐ 저장 버튼 클릭 시 입력 데이터를 수집하여 구조화된 형태로 준비
         data = self.collect_data()
 
+        # ⭐ 저장 버튼 클릭 시 입력 데이터를 수집하여 콘솔에 출력되도록 처리
         print("===== 발주서 저장 데이터 =====")
         print(data)
 

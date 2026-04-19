@@ -72,6 +72,7 @@ COL_PERIOD = COL_PERIOD + (DOC_WIDTH - ITEM_TOTAL_WIDTH)
 # ☑️ 숫자 변환 유틸
 # =========================================================
 def to_int(value):
+    # ⭐ 수량/구매단가/판매가 계산 전에 문자열 숫자를 정수로 바꾸는 공통 유틸
     try:
         value = str(value).replace(",", "").strip()
         if value == "":
@@ -82,6 +83,7 @@ def to_int(value):
 
 
 def format_number(value):
+    # ⭐ 계산된 구매가계/판매가계를 10,000 같은 형식으로 표시
     if value in ("", None):
         return ""
     try:
@@ -172,6 +174,7 @@ class ProductionOrderDialog:
         # -------------------------------------------------
         # ☑️ 하단 품목 행 데이터
         # -------------------------------------------------
+        # ⭐ 생산지시서 품목 입력 행 18개를 생성해서 문서형 입력 UI 구성
         self.item_rows = []
         for i in range(18):
             self.item_rows.append(self.build_item_row(i + 1))
@@ -179,6 +182,7 @@ class ProductionOrderDialog:
         # -------------------------------------------------
         # ☑️ 다이얼로그 생성
         # -------------------------------------------------
+        # ⭐ ERP 프론트 생산지시서 입력 모달 UI 구현
         self.dialog = ft.AlertDialog(
             modal=True,
             inset_padding=10,
@@ -195,6 +199,7 @@ class ProductionOrderDialog:
         row_data = {}
 
         def on_amount_change(e=None):
+            # ⭐ 수량·구매단가·판매가 입력 시 금액 자동 계산 기능 구현
             qty = to_int(row_data["qty"].value)
             buy_price = to_int(row_data["buy_price"].value)
             sell_price = to_int(row_data["sell_price"].value)
@@ -202,6 +207,7 @@ class ProductionOrderDialog:
             buy_total = qty * buy_price
             sell_total = qty * sell_price
 
+            # ⭐ 계산 결과를 읽기 전용 필드에 즉시 반영 처리
             row_data["buy_total"].value = format_number(buy_total) if buy_total else ""
             row_data["sell_total"].value = format_number(sell_total) if sell_total else ""
             self.page.update()
@@ -456,6 +462,7 @@ class ProductionOrderDialog:
     # ☑️ 저장 데이터 수집
     # =====================================================
     def collect_data(self):
+        # ⭐ 입력된 품목 행만 선별하여 데이터 구조화 및 저장 처리
         items = []
 
         for row in self.item_rows:
@@ -473,6 +480,7 @@ class ProductionOrderDialog:
                 "period": row["period"].value,
             }
 
+            # ⭐ 값이 들어간 품목 행만 저장 대상에 포함
             has_value = any(str(v).strip() != "" for k, v in item.items() if k != "no")
             if has_value:
                 items.append(item)
@@ -495,8 +503,10 @@ class ProductionOrderDialog:
     # ☑️ 저장 버튼
     # =====================================================
     def save_data(self, e):
+        # ⭐ 저장 버튼 클릭 시 입력 데이터를 수집하여 구조화된 형태로 준비
         data = self.collect_data()
 
+        # ⭐ 저장 버튼 클릭 시 입력 데이터를 수집하여 콘솔에 출력되도록 처리
         print("===== 생산지시서 저장 데이터 =====")
         print(data)
 

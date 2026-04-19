@@ -3,9 +3,37 @@ import flet as ft
 from domain.views.home import home_view
 from domain.views.inventory import inventory_view 
 from domain.views.sales import sales_view 
+
 from domain.views.inventory import inventory_status_view
+from domain.views.inventory import inventory_product_detail_view
+
+# 👊 추가: 상품관리 화면 연결
+from domain.views.merchandise import merchandise_view
+from domain.views.merchandise import merchandise_master_view
+from domain.views.merchandise import merchandise_info_detail_view
+
+
+
 
 ## ============= 페이지 이동 (실질)
+
+# 👊 추가: 왼쪽 메인 사이드바에만 보여줄 1차 메뉴 목록
+ERP_MAIN_MENU_ITEMS = [
+    "홈",
+    "매출관리",
+    "원가관리",
+    "구매관리",
+    "상품관리",
+    "생산관리",
+    "재고관리",
+    "물류관리",
+    "고객관리",
+    "영업관리",
+    "회계관리",
+    "인사관리",
+    "시스템관리",
+]
+
 # erp_homecontent.view,     
 MENU_ITEMS = {
     "홈": home_view.erp_home_view,
@@ -13,7 +41,14 @@ MENU_ITEMS = {
     "원가관리": lambda: ft.Container(content=ft.Text("원가관리 준비 중")),
     "구매관리": sales_view.erp_sales_view,
     "상품관리": lambda: ft.Container(content=ft.Text("상품관리 준비 중")),
-    "생산관리": lambda: ft.Container(content=ft.Text("생산관리 준비 중")),
+
+    # 👊 수정: 임시 텍스트 → 실제 상품관리 메인 화면 연결
+    "상품관리": merchandise_view.erp_merchandise_view,
+
+    # 👊 추가: 상품관리 하위 메뉴 연결
+    "상품마스터정보관리": merchandise_master_view.erp_merchandise_master_view,
+
+    "상품 상세 정보 관리": merchandise_info_detail_view.erp_merchandise_info_detail_view,
 
     # ☑️ 수정: 임시 텍스트 → 실제 재고관리 메인 화면 연결
     "재고관리": inventory_view.erp_inventory_view,
@@ -27,6 +62,8 @@ MENU_ITEMS = {
 
     # ☑️ 추가: 재고관리 하위 메뉴 연결
     "재고 현황": inventory_status_view.erp_inventory_status_view,
+
+    "상품별 재고 상세": inventory_product_detail_view.erp_inventory_product_detail_view,
 }
 
 """각 side바의 제목 탭을 의미함

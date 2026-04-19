@@ -2,15 +2,16 @@ import flet as ft
 import os
 import webbrowser
 
-from field_defs import (
+# 👊 수정: modals 폴더 내부 파일들을 상대경로로 import
+from .field_defs import (
     PRODUCT_MASTER_FIELDS,
     PRODUCT_DETAIL_FIELDS,
     CUSTOMER_FIELDS,
     EMPLOYEE_FIELDS,
     CLIENT_FIELDS,
 )
-from form_inputs import build_textfield
-from validators import validate_form, show_message
+from .form_inputs import build_textfield
+from .validators import validate_form, show_message
 
 
 def build_form_row(page: ft.Page, field: dict, session_key: str):
@@ -48,6 +49,10 @@ def build_modal(
     fields: list,
     session_prefix: str,
     close_handler,
+    # =========================================================
+    # 👊 추가: 저장 성공 시 바깥으로 데이터 전달하는 콜백
+    # =========================================================
+    on_submit_success=None,
 ):
     title_text = ft.Text(
         register_title,
@@ -78,6 +83,17 @@ def build_modal(
     def submit(e):
         if not validate_form(page, fields, session_prefix):
             return
+
+        # =========================================================
+        # 👊 추가: 현재 입력값을 모아서 저장 성공 콜백으로 전달
+        # =========================================================
+        saved_data = {}
+        for field in fields:
+            key = f"{session_prefix}_{field['key']}"
+            saved_data[field["key"]] = (page.session.store.get(key) or "").strip()
+
+        if on_submit_success:
+            on_submit_success(saved_data)
 
         refresh_title()
         show_message(page, "저장이 완료되었습니다.")

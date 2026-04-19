@@ -215,7 +215,7 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             selected_menu=selected_menu, 
             on_menu_click=on_menu_click,
         )
-        for item in com.MENU_ITEMS
+        for item in com.ERP_MAIN_MENU_ITEMS
     ]
 
     return ft.Container(

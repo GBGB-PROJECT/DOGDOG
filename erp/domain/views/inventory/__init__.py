@@ -1,0 +1,3 @@
+from .inventory_view import erp_inventory_view
+from .inventory_status_view import erp_inventory_status_view
+from .inventory_product_detail_view import erp_inventory_product_detail_view

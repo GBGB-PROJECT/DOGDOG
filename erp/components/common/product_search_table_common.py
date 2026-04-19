@@ -49,6 +49,25 @@ def build_text(
         overflow=ft.TextOverflow.ELLIPSIS,
     )
 
+# =========================================================
+# 👊 추가: 중량 표시 포맷터
+# =========================================================
+# ⭐ 숫자만 들어오면 kg를 자동으로 붙여서 테이블 표시용 문자열로 변환
+# ⭐ 이미 kg / g 같은 단위가 붙어 있으면 그대로 유지
+def format_weight_display(value):
+    text = str(value or "").strip()
+    if not text:
+        return ""
+
+    lowered = text.lower()
+
+    # 🔥 이미 단위가 붙어 있으면 그대로 사용
+    if lowered.endswith("kg") or lowered.endswith("g"):
+        return text
+
+    # 🔥 숫자만 들어온 경우 기본 단위 kg 자동 부착
+    return f"{text}kg"
+
 
 # =========================================================
 # 👊 공통 이동: 날짜 표시 필드
@@ -158,7 +177,9 @@ def default_register_row_adapter(saved_data: dict, next_no: int):
         "brand": saved_data.get("brand", ""),
         "manufacturer": saved_data.get("manufacturer", ""),
         "consumer_price": saved_data.get("consumer_price", ""),
-        "spec_weight": saved_data.get("spec_weight", saved_data.get("weight", "")),
+        "spec_weight": format_weight_display(
+            saved_data.get("spec_weight", saved_data.get("weight", ""))
+        ),
         "barcode": saved_data.get("barcode", ""),
         "stock_unit": saved_data.get("stock_unit", ""),
         "sale_status": saved_data.get("sale_status", ""),

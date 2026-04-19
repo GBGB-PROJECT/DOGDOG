@@ -18,10 +18,14 @@ def build_form_row(page: ft.Page, field: dict, session_key: str):
     def on_change(e):
         page.session.store.set(session_key, e.control.value)   # 🔥 입력 즉시 session 저장
 
+    # 🔥 spec_weight 하나에만 suffix 적용
+    suffix_text = "kg" if field.get("key") == "spec_weight" else None
+
     tf = build_textfield(
         value=page.session.store.get(session_key) or "",
         on_change=on_change,
         field_type=field.get("type", "text"),
+        suffix_text=suffix_text,  # 🔥 추가
     )
 
     return ft.Row(

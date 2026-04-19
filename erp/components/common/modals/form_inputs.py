@@ -60,6 +60,7 @@ def build_textfield(
     value=None,
     on_change=None,
     field_type="text",
+    suffix_text=None,  # 🔥 추가: 필요한 필드에만 suffix 표시
 ):
     return ft.TextField(
         width=420,
@@ -73,4 +74,5 @@ def build_textfield(
         input_filter=build_input_filter(field_type),
         content_padding=ft.Padding.only(left=14, right=14),
         hint_text="YYYY-MM-DD" if field_type == "date" else None,
+        suffix=suffix_text,  # 🔥 추가
     )

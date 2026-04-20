@@ -81,7 +81,7 @@ cd DOGDOG
 
 ### 2. 파이썬 가상환경 생성 및 활성화 (Virtual Environment)
 ```bash
-python -m .venv venv
+python -m venv .venv
 ```
 #### Windows:
 ```bash

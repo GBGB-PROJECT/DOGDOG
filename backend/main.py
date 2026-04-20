@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.users.users_api import router as users_router
-
+from backend.app.pets.pets_api import router as pets_router
 
 # 프로젝트 루트 디렉토리를 sys.path에 추가하여 db 패키지를 찾을 수 있게 합니다.
 # 현재 파일 위치: backend/main.py -> 부모가 프로젝트 루트
@@ -40,6 +40,9 @@ app.add_middleware(
 # app.include_router(feeding_router, prefix="/api/v1/feeding")
 # users 라우터 등록
 app.include_router(users_router, prefix="/app")
+
+# pets 라우터 등록
+app.include_router(pets_router, prefix="/app")
 
 @app.get("/")
 def read_root():

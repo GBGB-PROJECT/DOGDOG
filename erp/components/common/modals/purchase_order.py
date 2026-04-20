@@ -1,4 +1,7 @@
+import os
 import flet as ft
+from openpyxl import Workbook
+from openpyxl.styles import Border, Side, Alignment, PatternFill, Font
 
 
 # =========================================================
@@ -86,7 +89,6 @@ INFO_RIGHT_VALUE_W = DOC_WIDTH - (
 
 # =========================================================
 # ☑️ 품목 테이블 폭
-#     마지막 납품기한 폭은 DOC_WIDTH에 맞게 자동 보정
 # =========================================================
 COL_NO = 50
 COL_LOT = 110
@@ -127,6 +129,7 @@ NOTE_VALUE_W = DOC_WIDTH - NOTE_LABEL_W
 CONDITION_LABEL_W = 120
 CONDITION_VALUE_W = DOC_WIDTH - CONDITION_LABEL_W
 
+
 # =========================================================
 # ☑️ 숫자 유틸
 # =========================================================
@@ -152,6 +155,61 @@ def format_number(value):
 
 
 # =========================================================
+# ☑️ 엑셀 스타일 공통 유틸
+# =========================================================
+def apply_range_style(
+    ws,
+    cell_range,
+    value="",
+    fill_color=None,
+    bold=False,
+    font_size=12,
+    horizontal="center",
+    vertical="center",
+):
+    thin = Side(style="thin", color="000000")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    cells = ws[cell_range]
+    for row in cells:
+        for cell in row:
+            cell.border = border
+            cell.alignment = Alignment(
+                horizontal=horizontal,
+                vertical=vertical,
+                wrap_text=True,
+            )
+            cell.font = Font(
+                bold=bold,
+                size=font_size,
+                name="맑은 고딕",
+            )
+            if fill_color:
+                cell.fill = PatternFill(
+                    fill_type="solid",
+                    fgColor=fill_color,
+                )
+
+    top_left = cells[0][0]
+    top_left.value = value
+
+
+def set_all_borders(ws, start_row, end_row, start_col, end_col):
+    thin = Side(style="thin", color="000000")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for r in range(start_row, end_row + 1):
+        for c in range(start_col, end_col + 1):
+            ws.cell(r, c).border = border
+            ws.cell(r, c).alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+                wrap_text=True,
+            )
+            ws.cell(r, c).font = Font(name="맑은 고딕", size=11)
+
+
+# =========================================================
 # ☑️ 공통 셀
 # =========================================================
 def box_label(text, width=None, height=FIELD_HEIGHT, bold=False):
@@ -160,7 +218,7 @@ def box_label(text, width=None, height=FIELD_HEIGHT, bold=False):
         height=height,
         bgcolor=HEADER_BG,
         alignment=ft.Alignment(0, 0),
-        border=ft.border.all(1, BORDER_COLOR),
+        border=ft.Border.all(1, BORDER_COLOR),
         content=ft.Text(
             text,
             size=13,
@@ -175,7 +233,7 @@ def box_input(control, width=None, height=FIELD_HEIGHT, bgcolor=WHITE):
     return ft.Container(
         width=width,
         height=height,
-        border=ft.border.all(1, BORDER_COLOR),
+        border=ft.Border.all(1, BORDER_COLOR),
         bgcolor=bgcolor,
         alignment=ft.Alignment(0, 0),
         content=control,
@@ -205,7 +263,6 @@ def build_textfield(
 
 # =========================================================
 # ☑️ 발주서 모달 클래스
-#     🔥 class명 발주서에 맞게 수정
 # =========================================================
 class PurchaseOrderDialog:
     def __init__(self, page: ft.Page):
@@ -250,13 +307,10 @@ class PurchaseOrderDialog:
         # -------------------------------------------------
         # ☑️ 하단 참고사항 / 발주조건 / 합계
         # -------------------------------------------------
-        # ⭐ 품목별 계산 결과를 바탕으로 총합계를 숫자 형태로 보여주는 필드
         self.total_amount_text = build_textfield(
             text_align=ft.TextAlign.RIGHT,
             read_only=True,
         )
-
-        # ⭐ 총합계를 한글 금액으로 변환해서 보여주는 필드
         self.total_amount_krw = build_textfield(read_only=True)
 
         self.note_text = build_textfield()
@@ -265,7 +319,6 @@ class PurchaseOrderDialog:
         # -------------------------------------------------
         # ☑️ 품목 행
         # -------------------------------------------------
-        # ⭐ 발주 품목 입력 행 20개를 생성해서 문서형 입력 UI 구성
         self.item_rows = []
         for i in range(20):
             self.item_rows.append(self.build_item_row(i + 1))
@@ -273,7 +326,6 @@ class PurchaseOrderDialog:
         # -------------------------------------------------
         # ☑️ 다이얼로그
         # -------------------------------------------------
-        # ⭐ ERP 프론트 발주서 입력 모달 UI 구현
         self.dialog = ft.AlertDialog(
             modal=True,
             inset_padding=10,
@@ -284,11 +336,9 @@ class PurchaseOrderDialog:
         )
 
     # =====================================================
-    # ☑️ 숫자를 한글 금액으로 대충 변환하는 간단 유틸
-    #     🔥 완벽한 회계식 표기보다 UI 확인용
+    # ☑️ 숫자를 한글 금액으로 간단 변환
     # =====================================================
     def number_to_korean(self, value: int) -> str:
-        # ⭐ 총합계를 '삼만삼천원' 같은 한글 금액으로 바꾸는 변환 함수
         if value == 0:
             return "영원"
 
@@ -327,24 +377,20 @@ class PurchaseOrderDialog:
 
     # =====================================================
     # ☑️ 품목 한 줄 생성
-    #     🔥 발주서 컬럼 기준으로 재구성
     # =====================================================
     def build_item_row(self, no: int):
         row_data = {}
 
         def on_amount_change(e=None):
-            # ⭐ 수량·단가 입력 시 공급가 및 세액 자동 계산 기능 구현
             qty = to_int(row_data["qty"].value)
             price = to_int(row_data["unit_price"].value)
 
             supply = qty * price
             tax = int(supply * 0.1)
 
-            # ⭐ 계산 결과를 읽기 전용 필드에 즉시 반영 처리
             row_data["supply_amount"].value = format_number(supply) if supply else ""
             row_data["tax_amount"].value = format_number(tax) if tax else ""
 
-            # ⭐ 품목별 금액 계산 후 총합계도 같이 다시 계산
             self.update_summary()
             self.page.update()
 
@@ -378,7 +424,6 @@ class PurchaseOrderDialog:
     # ☑️ 합계 업데이트
     # =====================================================
     def update_summary(self):
-        # ⭐ 품목별 금액 합산을 통한 총합계 자동 반영 처리
         total_supply = 0
         total_tax = 0
 
@@ -388,10 +433,7 @@ class PurchaseOrderDialog:
 
         grand_total = total_supply + total_tax
 
-        # ⭐ 총합계를 숫자 형식으로 표시
         self.total_amount_text.value = format_number(grand_total) if grand_total else ""
-
-        # ⭐ 총합계를 한글 금액으로 변환하여 표시하는 기능
         self.total_amount_krw.value = (
             self.number_to_korean(grand_total) if grand_total else ""
         )
@@ -408,7 +450,7 @@ class PurchaseOrderDialog:
                     ft.Container(
                         width=TITLE_LEFT_WIDTH,
                         height=TITLE_HEIGHT,
-                        border=ft.border.all(1, BORDER_COLOR),
+                        border=ft.Border.all(1, BORDER_COLOR),
                         alignment=ft.Alignment(0, 0),
                         content=ft.Text(
                             "발 주 서",
@@ -460,9 +502,6 @@ class PurchaseOrderDialog:
 
     # =====================================================
     # ☑️ 수신처 블록
-    #     구조:
-    #     [수신처][입력칸][TEL][입력칸][담당자][입력칸]
-    #                     [FAX][입력칸]
     # =====================================================
     def build_receiver_section(self):
         return ft.Container(
@@ -491,19 +530,14 @@ class PurchaseOrderDialog:
                             ),
                         ],
                     ),
-                    ft.Column(
+                    ft.Row(
                         spacing=0,
                         controls=[
-                            ft.Row(
-                                spacing=0,
-                                controls=[
-                                    box_label("담당자", width=RECEIVER_RIGHT_LABEL_W, height=RECEIVER_BLOCK_HEIGHT),
-                                    box_input(
-                                        self.receiver_person,
-                                        width=RECEIVER_RIGHT_VALUE_W,
-                                        height=RECEIVER_BLOCK_HEIGHT,
-                                    ),
-                                ],
+                            box_label("담당자", width=RECEIVER_RIGHT_LABEL_W, height=RECEIVER_BLOCK_HEIGHT),
+                            box_input(
+                                self.receiver_person,
+                                width=RECEIVER_RIGHT_VALUE_W,
+                                height=RECEIVER_BLOCK_HEIGHT,
                             ),
                         ],
                     ),
@@ -513,7 +547,6 @@ class PurchaseOrderDialog:
 
     # =====================================================
     # ☑️ 발신처 블록
-    #     이미지 기준으로 4줄 구성
     # =====================================================
     def build_sender_section(self):
         return ft.Container(
@@ -702,7 +735,6 @@ class PurchaseOrderDialog:
     # ☑️ 저장 데이터 수집
     # =====================================================
     def collect_data(self):
-        # ⭐ 입력된 품목 행만 선별하여 데이터 구조화 및 저장 처리
         items = []
 
         for row in self.item_rows:
@@ -719,12 +751,14 @@ class PurchaseOrderDialog:
                 "delivery_deadline": row["delivery_deadline"].value,
             }
 
-            # ⭐ 값이 들어간 품목 행만 저장 대상에 포함
             has_value = any(str(v).strip() != "" for k, v in item.items() if k != "no")
             if has_value:
                 items.append(item)
 
         return {
+            "approval_1": self.approval_1.value,
+            "approval_2": self.approval_2.value,
+            "approval_3": self.approval_3.value,
             "receiver_name": self.receiver_name.value,
             "receiver_tel": self.receiver_tel.value,
             "receiver_fax": self.receiver_fax.value,
@@ -749,16 +783,283 @@ class PurchaseOrderDialog:
         }
 
     # =====================================================
+    # ☑️ 엑셀 워크북 생성
+    # =====================================================
+    def build_excel_workbook(self):
+        self.update_summary()
+        data = self.collect_data()
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "발주서"
+
+        # -------------------------------------------------
+        # ☑️ 컬럼 폭 설정
+        # -------------------------------------------------
+        column_widths = {
+            "A": 8,
+            "B": 14,
+            "C": 18,
+            "D": 16,
+            "E": 10,
+            "F": 12,
+            "G": 12,
+            "H": 14,
+            "I": 12,
+            "J": 16,
+        }
+
+        for col, width in column_widths.items():
+            ws.column_dimensions[col].width = width
+
+        # -------------------------------------------------
+        # ☑️ 행 높이 설정
+        # -------------------------------------------------
+        for row_idx in range(1, 60):
+            ws.row_dimensions[row_idx].height = 26
+
+        ws.row_dimensions[1].height = 34
+        ws.row_dimensions[2].height = 34
+        ws.row_dimensions[3].height = 34
+        ws.row_dimensions[4].height = 34
+        ws.row_dimensions[18].height = 30
+        ws.row_dimensions[39].height = 32
+        ws.row_dimensions[40].height = 36
+        ws.row_dimensions[41].height = 42
+
+        # -------------------------------------------------
+        # ☑️ 머지
+        # -------------------------------------------------
+        ws.merge_cells("A1:G4")
+
+        # 오른쪽 결재란
+        ws.merge_cells("H2:H4")
+        ws.merge_cells("I2:I4")
+        ws.merge_cells("J2:J4")
+
+        # 수신처
+        ws.merge_cells("A5:A6")
+        ws.merge_cells("B5:D6")
+        ws.merge_cells("F5:F5")
+        ws.merge_cells("G5:G5")
+        ws.merge_cells("F6:F6")
+        ws.merge_cells("G6:G6")
+        ws.merge_cells("H5:H6")
+        ws.merge_cells("I5:J6")
+
+        # 발신처
+        ws.merge_cells("A7:A10")
+        ws.merge_cells("C7:J7")
+        ws.merge_cells("C8:F8")
+        ws.merge_cells("H8:J8")
+        ws.merge_cells("C9:J9")
+        ws.merge_cells("C10:F10")
+        ws.merge_cells("H10:J10")
+
+        # 발주 정보
+        ws.merge_cells("B11:E11")
+        ws.merge_cells("G11:J11")
+        ws.merge_cells("B12:E12")
+        ws.merge_cells("G12:J12")
+        ws.merge_cells("B13:E13")
+        ws.merge_cells("G13:J13")
+
+        # 하단
+        ws.merge_cells("B40:F40")
+        ws.merge_cells("G40:J40")
+        ws.merge_cells("B41:J41")
+        ws.merge_cells("B42:J42")
+
+        # -------------------------------------------------
+        # ☑️ 공통 색상
+        # -------------------------------------------------
+        header_fill = "F2F2F2"
+
+        # -------------------------------------------------
+        # ☑️ 제목 영역
+        # -------------------------------------------------
+        apply_range_style(
+            ws,
+            "A1:G4",
+            value="발 주 서",
+            bold=True,
+            font_size=24,
+        )
+
+        apply_range_style(ws, "H1:H1", value="담당", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "I1:I1", value="", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "J1:J1", value="", fill_color=header_fill, bold=True)
+
+        apply_range_style(ws, "H2:H4", value=data["approval_1"])
+        apply_range_style(ws, "I2:I4", value=data["approval_2"])
+        apply_range_style(ws, "J2:J4", value=data["approval_3"])
+
+        # -------------------------------------------------
+        # ☑️ 수신처
+        # -------------------------------------------------
+        apply_range_style(ws, "A5:A6", value="수신처", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B5:D6", value=data["receiver_name"], horizontal="left")
+
+        apply_range_style(ws, "E5:E5", value="TEL", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "F5:G5", value=data["receiver_tel"], horizontal="left")
+
+        apply_range_style(ws, "E6:E6", value="FAX", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "F6:G6", value=data["receiver_fax"], horizontal="left")
+
+        apply_range_style(ws, "H5:H6", value="담당자", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "I5:J6", value=data["receiver_person"], horizontal="left")
+
+        # -------------------------------------------------
+        # ☑️ 발신처
+        # -------------------------------------------------
+        apply_range_style(ws, "A7:A10", value="발신처", fill_color=header_fill, bold=True)
+
+        apply_range_style(ws, "B7:B7", value="사업자 등록번호", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "C7:J7", value=data["sender_business_no"], horizontal="left")
+
+        apply_range_style(ws, "B8:B8", value="상호", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "C8:F8", value=data["sender_company_name"], horizontal="left")
+        apply_range_style(ws, "G8:G8", value="대표자", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "H8:J8", value=data["sender_ceo"], horizontal="left")
+
+        apply_range_style(ws, "B9:B9", value="주소", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "C9:J9", value=data["sender_address"], horizontal="left")
+
+        apply_range_style(ws, "B10:B10", value="TEL", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "C10:F10", value=data["sender_tel"], horizontal="left")
+        apply_range_style(ws, "G10:G10", value="FAX", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "H10:J10", value=data["sender_fax"], horizontal="left")
+
+        # -------------------------------------------------
+        # ☑️ 발주 정보
+        # -------------------------------------------------
+        apply_range_style(ws, "A11:A11", value="발주일자", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B11:E11", value=data["order_date"], horizontal="left")
+        apply_range_style(ws, "F11:F11", value="납품장소", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "G11:J11", value=data["delivery_place"], horizontal="left")
+
+        apply_range_style(ws, "A12:A12", value="발주번호", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B12:E12", value=data["order_no"], horizontal="left")
+        apply_range_style(ws, "F12:F12", value="요구부서", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "G12:J12", value=data["request_dept"], horizontal="left")
+
+        apply_range_style(ws, "A13:A13", value="계약번호", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B13:E13", value=data["contract_no"], horizontal="left")
+        apply_range_style(ws, "F13:F13", value="발주담당자", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "G13:J13", value=data["order_manager"], horizontal="left")
+
+        # -------------------------------------------------
+        # ☑️ 품목 헤더
+        # -------------------------------------------------
+        item_header_row = 14
+        headers = [
+            "no",
+            "LOT NO",
+            "품명",
+            "규격/사양",
+            "단위",
+            "수량",
+            "단가",
+            "공급가계",
+            "세액",
+            "납품기한",
+        ]
+
+        for idx, header in enumerate(headers, start=1):
+            cell = ws.cell(row=item_header_row, column=idx)
+            cell.value = header
+            cell.fill = PatternFill(fill_type="solid", fgColor=header_fill)
+            cell.font = Font(bold=True, size=11, name="맑은 고딕")
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        set_all_borders(ws, item_header_row, item_header_row, 1, 10)
+
+        # -------------------------------------------------
+        # ☑️ 품목 데이터
+        # -------------------------------------------------
+        start_row = 15
+        max_item_rows = 25
+        items = data["items"]
+
+        if not items:
+            for i in range(max_item_rows):
+                row_no = start_row + i
+                ws.cell(row=row_no, column=1).value = i + 1
+            set_all_borders(ws, start_row, start_row + max_item_rows - 1, 1, 10)
+        else:
+            for i in range(max_item_rows):
+                row_no = start_row + i
+                ws.cell(row=row_no, column=1).value = i + 1
+
+            for i, item in enumerate(items[:max_item_rows], start=0):
+                row_no = start_row + i
+                ws.cell(row=row_no, column=1).value = item["no"]
+                ws.cell(row=row_no, column=2).value = item["lot_no"]
+                ws.cell(row=row_no, column=3).value = item["product_name"]
+                ws.cell(row=row_no, column=4).value = item["spec"]
+                ws.cell(row=row_no, column=5).value = item["unit"]
+                ws.cell(row=row_no, column=6).value = item["qty"]
+                ws.cell(row=row_no, column=7).value = item["unit_price"]
+                ws.cell(row=row_no, column=8).value = item["supply_amount"]
+                ws.cell(row=row_no, column=9).value = item["tax_amount"]
+                ws.cell(row=row_no, column=10).value = item["delivery_deadline"]
+
+            set_all_borders(ws, start_row, start_row + max_item_rows - 1, 1, 10)
+
+        # -------------------------------------------------
+        # ☑️ 하단 합계 / 참고사항 / 발주조건
+        # -------------------------------------------------
+        apply_range_style(ws, "A40:A40", value="총합계", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B40:F40", value=data["total_amount_krw"], horizontal="left")
+        apply_range_style(ws, "G40:J40", value=data["total_amount_text"], horizontal="right")
+
+        apply_range_style(ws, "A41:A41", value="참고사항", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B41:J41", value=data["note_text"], horizontal="left")
+
+        apply_range_style(ws, "A42:A42", value="발주조건", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B42:J42", value=data["payment_condition"], horizontal="left")
+
+        # -------------------------------------------------
+        # ☑️ 시트 옵션
+        # -------------------------------------------------
+        ws.freeze_panes = "A14"
+        ws.sheet_view.showGridLines = False
+
+        return wb
+
+    # =====================================================
+    # ☑️ 엑셀 내보내기
+    # =====================================================
+    def export_to_excel(self, e):
+        try:
+            wb = self.build_excel_workbook()
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            save_path = os.path.join(base_dir, "purchase_order.xlsx")
+            wb.save(save_path)
+
+            print("엑셀 저장 완료:", save_path)
+
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text(f"엑셀 파일이 저장되었습니다. ({save_path})"),
+                open=True,
+            )
+            self.page.update()
+
+        except Exception as ex:
+            print("엑셀 저장 오류:", ex)
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text(f"엑셀 저장 중 오류가 발생했습니다: {ex}"),
+                open=True,
+            )
+            self.page.update()
+
+    # =====================================================
     # ☑️ 저장 버튼
     # =====================================================
     def save_data(self, e):
-        # ⭐ 저장 전에 최신 총합계/한글 금액 상태를 다시 반영
         self.update_summary()
-
-        # ⭐ 저장 버튼 클릭 시 입력 데이터를 수집하여 구조화된 형태로 준비
         data = self.collect_data()
 
-        # ⭐ 저장 버튼 클릭 시 입력 데이터를 수집하여 콘솔에 출력되도록 처리
         print("===== 발주서 저장 데이터 =====")
         print(data)
 
@@ -838,6 +1139,16 @@ class PurchaseOrderDialog:
                                 on_click=self.close_dialog,
                             ),
                             ft.ElevatedButton(
+                                "엑셀 내보내기",
+                                height=42,
+                                style=ft.ButtonStyle(
+                                    bgcolor="#16A34A",
+                                    color=ft.Colors.WHITE,
+                                    shape=ft.RoundedRectangleBorder(radius=8),
+                                ),
+                                on_click=self.export_to_excel,
+                            ),
+                            ft.ElevatedButton(
                                 "저장",
                                 height=42,
                                 style=ft.ButtonStyle(
@@ -899,4 +1210,4 @@ def main(page: ft.Page):
     page.add(purchase_order)
 
 
-ft.app(target=main)
+ft.run(main)

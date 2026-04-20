@@ -1,4 +1,7 @@
+import os
 import flet as ft
+from openpyxl import Workbook
+from openpyxl.styles import Border, Side, Alignment, PatternFill, Font
 
 
 # =========================================================
@@ -93,6 +96,61 @@ def format_number(value):
 
 
 # =========================================================
+# ☑️ 엑셀 스타일 공통 유틸
+# =========================================================
+def apply_range_style(
+    ws,
+    cell_range,
+    value="",
+    fill_color=None,
+    bold=False,
+    font_size=12,
+    horizontal="center",
+    vertical="center",
+):
+    thin = Side(style="thin", color="000000")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    cells = ws[cell_range]
+    for row in cells:
+        for cell in row:
+            cell.border = border
+            cell.alignment = Alignment(
+                horizontal=horizontal,
+                vertical=vertical,
+                wrap_text=True,
+            )
+            cell.font = Font(
+                bold=bold,
+                size=font_size,
+                name="맑은 고딕",
+            )
+            if fill_color:
+                cell.fill = PatternFill(
+                    fill_type="solid",
+                    fgColor=fill_color,
+                )
+
+    top_left = cells[0][0]
+    top_left.value = value
+
+
+def set_all_borders(ws, start_row, end_row, start_col, end_col):
+    thin = Side(style="thin", color="000000")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for r in range(start_row, end_row + 1):
+        for c in range(start_col, end_col + 1):
+            ws.cell(r, c).border = border
+            ws.cell(r, c).alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+                wrap_text=True,
+            )
+            ws.cell(r, c).font = Font(name="맑은 고딕", size=11)
+
+
+# =========================================================
 # ☑️ 공통 셀 박스
 # =========================================================
 def box_label(text, width=None, height=FIELD_HEIGHT, bold=False):
@@ -101,7 +159,7 @@ def box_label(text, width=None, height=FIELD_HEIGHT, bold=False):
         height=height,
         bgcolor=HEADER_BG,
         alignment=ft.Alignment(0, 0),
-        border=ft.border.all(1, BORDER_COLOR),
+        border=ft.Border.all(1, BORDER_COLOR),
         content=ft.Text(
             text,
             size=13,
@@ -116,7 +174,7 @@ def box_input(control, width=None, height=FIELD_HEIGHT):
     return ft.Container(
         width=width,
         height=height,
-        border=ft.border.all(1, BORDER_COLOR),
+        border=ft.Border.all(1, BORDER_COLOR),
         bgcolor=WHITE,
         alignment=ft.Alignment(0, 0),
         content=control,
@@ -174,7 +232,6 @@ class ProductionOrderDialog:
         # -------------------------------------------------
         # ☑️ 하단 품목 행 데이터
         # -------------------------------------------------
-        # ⭐ 생산지시서 품목 입력 행 18개를 생성해서 문서형 입력 UI 구성
         self.item_rows = []
         for i in range(18):
             self.item_rows.append(self.build_item_row(i + 1))
@@ -182,7 +239,6 @@ class ProductionOrderDialog:
         # -------------------------------------------------
         # ☑️ 다이얼로그 생성
         # -------------------------------------------------
-        # ⭐ ERP 프론트 생산지시서 입력 모달 UI 구현
         self.dialog = ft.AlertDialog(
             modal=True,
             inset_padding=10,
@@ -199,7 +255,6 @@ class ProductionOrderDialog:
         row_data = {}
 
         def on_amount_change(e=None):
-            # ⭐ 수량·구매단가·판매가 입력 시 금액 자동 계산 기능 구현
             qty = to_int(row_data["qty"].value)
             buy_price = to_int(row_data["buy_price"].value)
             sell_price = to_int(row_data["sell_price"].value)
@@ -207,7 +262,6 @@ class ProductionOrderDialog:
             buy_total = qty * buy_price
             sell_total = qty * sell_price
 
-            # ⭐ 계산 결과를 읽기 전용 필드에 즉시 반영 처리
             row_data["buy_total"].value = format_number(buy_total) if buy_total else ""
             row_data["sell_total"].value = format_number(sell_total) if sell_total else ""
             self.page.update()
@@ -253,7 +307,7 @@ class ProductionOrderDialog:
                     ft.Container(
                         width=TITLE_LEFT_WIDTH,
                         height=TITLE_HEIGHT,
-                        border=ft.border.all(1, BORDER_COLOR),
+                        border=ft.Border.all(1, BORDER_COLOR),
                         alignment=ft.Alignment(0, 0),
                         content=ft.Text(
                             "생산지시서",
@@ -308,18 +362,14 @@ class ProductionOrderDialog:
             ),
         )
 
-# =====================================================
+    # =====================================================
     # ☑️ 담당자 블록
-    #     🔥 수정:
-    #     - 오른쪽 외곽선이 안 보이던 원인 해결
-    #     - 왼쪽 라벨은 고정폭
-    #     - 오른쪽 입력칸은 expand=True로 남은 폭만 사용
     # =====================================================
     def build_person_block(self):
         return ft.Container(
             width=RIGHT_TOTAL_W,
             height=CUSTOMER_BLOCK_HEIGHT,
-            border=ft.border.all(1, BORDER_COLOR),
+            border=ft.Border.all(1, BORDER_COLOR),
             bgcolor=WHITE,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             content=ft.Row(
@@ -330,7 +380,7 @@ class ProductionOrderDialog:
                         height=CUSTOMER_BLOCK_HEIGHT,
                         bgcolor=HEADER_BG,
                         alignment=ft.Alignment(0, 0),
-                        border=ft.border.only(
+                        border=ft.Border.only(
                             right=ft.BorderSide(1, BORDER_COLOR),
                         ),
                         content=ft.Text(
@@ -342,7 +392,7 @@ class ProductionOrderDialog:
                         ),
                     ),
                     ft.Container(
-                        expand=True,  # 🔥 핵심: width=RIGHT_INPUT_W 쓰지 말고 남은 폭만 차지
+                        expand=True,
                         height=CUSTOMER_BLOCK_HEIGHT,
                         bgcolor=WHITE,
                         alignment=ft.Alignment(0, 0),
@@ -363,7 +413,6 @@ class ProductionOrderDialog:
                 controls=[
                     box_label("주문처", width=CUSTOMER_LABEL_W, height=CUSTOMER_BLOCK_HEIGHT),
                     box_input(self.customer_name, width=CUSTOMER_VALUE_W, height=CUSTOMER_BLOCK_HEIGHT),
-
                     ft.Column(
                         spacing=0,
                         controls=[
@@ -383,7 +432,6 @@ class ProductionOrderDialog:
                             ),
                         ],
                     ),
-
                     self.build_person_block(),
                 ],
             ),
@@ -462,7 +510,6 @@ class ProductionOrderDialog:
     # ☑️ 저장 데이터 수집
     # =====================================================
     def collect_data(self):
-        # ⭐ 입력된 품목 행만 선별하여 데이터 구조화 및 저장 처리
         items = []
 
         for row in self.item_rows:
@@ -480,7 +527,6 @@ class ProductionOrderDialog:
                 "period": row["period"].value,
             }
 
-            # ⭐ 값이 들어간 품목 행만 저장 대상에 포함
             has_value = any(str(v).strip() != "" for k, v in item.items() if k != "no")
             if has_value:
                 items.append(item)
@@ -499,14 +545,233 @@ class ProductionOrderDialog:
             "items": items,
         }
 
+    def build_excel_workbook(self):
+        data = self.collect_data()
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "생산지시서"
+
+        # -------------------------------------------------
+        # ☑️ 컬럼 폭 설정
+        # -------------------------------------------------
+        column_widths = {
+            "A": 8,   # no / 라벨
+            "B": 14,
+            "C": 16,
+            "D": 16,
+            "E": 10,
+            "F": 13,
+            "G": 13,
+            "H": 10,
+            "I": 14,
+            "J": 14,
+            "K": 16,
+        }
+
+        for col, width in column_widths.items():
+            ws.column_dimensions[col].width = width
+
+        # -------------------------------------------------
+        # ☑️ 행 높이 설정
+        # -------------------------------------------------
+        ws.row_dimensions[1].height = 30
+        ws.row_dimensions[2].height = 30
+        ws.row_dimensions[3].height = 30
+        ws.row_dimensions[4].height = 30
+        ws.row_dimensions[5].height = 26
+        ws.row_dimensions[6].height = 26
+        ws.row_dimensions[7].height = 26
+        ws.row_dimensions[8].height = 26
+        ws.row_dimensions[9].height = 26
+        ws.row_dimensions[10].height = 28
+
+        # -------------------------------------------------
+        # ☑️ 머지
+        # -------------------------------------------------
+        ws.merge_cells("A1:H4")
+
+        # 🔥 수정: 오른쪽 결재 영역은 통병합 금지
+        ws.merge_cells("I2:I4")
+        ws.merge_cells("J2:J4")
+        ws.merge_cells("K2:K4")
+
+        ws.merge_cells("B5:H5")
+        ws.merge_cells("J5:K5")
+
+        ws.merge_cells("B6:H6")
+        ws.merge_cells("J6:K6")
+
+        ws.merge_cells("B7:H7")
+        ws.merge_cells("J7:K7")
+
+        ws.merge_cells("A8:A9")
+        ws.merge_cells("B8:E9")
+        ws.merge_cells("G8:H8")
+        ws.merge_cells("G9:H9")
+        ws.merge_cells("I8:I9")
+        ws.merge_cells("J8:K9")
+
+        # -------------------------------------------------
+        # ☑️ 공통 색상
+        # -------------------------------------------------
+        header_fill = "F2F2F2"
+
+        # -------------------------------------------------
+        # ☑️ 제목 영역
+        # -------------------------------------------------
+        apply_range_style(
+            ws,
+            "A1:H4",
+            value="생산지시서",
+            bold=True,
+            font_size=24,
+        )
+
+        # 🔥 수정: 오른쪽 상단은 칸별로 따로 스타일 적용
+        apply_range_style(ws, "I1:I1", value="담당", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "J1:J1", value="", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "K1:K1", value="", fill_color=header_fill, bold=True)
+
+        apply_range_style(ws, "I2:I4", value="")
+        apply_range_style(ws, "J2:J4", value="")
+        apply_range_style(ws, "K2:K4", value="")
+
+        # -------------------------------------------------
+        # ☑️ 상단 기본 정보
+        # -------------------------------------------------
+        apply_range_style(ws, "A5:A5", value="지시일자", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B5:H5", value=data["instruction_date"], horizontal="left")
+        apply_range_style(ws, "I5:I5", value="납품장소", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "J5:K5", value=data["delivery_place"], horizontal="left")
+
+        apply_range_style(ws, "A6:A6", value="문서번호", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B6:H6", value=data["doc_no"], horizontal="left")
+        apply_range_style(ws, "I6:I6", value="요구부서", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "J6:K6", value=data["request_dept"], horizontal="left")
+
+        apply_range_style(ws, "A7:A7", value="계약번호", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B7:H7", value=data["contract_no"], horizontal="left")
+        apply_range_style(ws, "I7:I7", value="생산담당자", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "J7:K7", value=data["production_manager"], horizontal="left")
+
+        # -------------------------------------------------
+        # ☑️ 주문처 / TEL / FAX / 담당자 블록
+        # -------------------------------------------------
+        apply_range_style(ws, "A8:A9", value="주문처", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "B8:E9", value=data["customer_name"], horizontal="left")
+
+        apply_range_style(ws, "F8:F8", value="TEL", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "G8:H8", value=data["tel"], horizontal="left")
+
+        apply_range_style(ws, "F9:F9", value="FAX", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "G9:H9", value=data["fax"], horizontal="left")
+
+        apply_range_style(ws, "I8:I9", value="담당자", fill_color=header_fill, bold=True)
+        apply_range_style(ws, "J8:K9", value=data["person_in_charge"], horizontal="left")
+
+        # -------------------------------------------------
+        # ☑️ 품목 헤더
+        # -------------------------------------------------
+        item_header_row = 10
+        headers = [
+            "no",
+            "LOT NO",
+            "품명",
+            "규격/사양",
+            "단위",
+            "구매단가",
+            "판매가",
+            "수량",
+            "구매가계",
+            "판매가계",
+            "생산기간",
+        ]
+
+        for idx, header in enumerate(headers, start=1):
+            cell = ws.cell(row=item_header_row, column=idx)
+            cell.value = header
+            cell.fill = PatternFill(fill_type="solid", fgColor=header_fill)
+            cell.font = Font(bold=True, size=11, name="맑은 고딕")
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        set_all_borders(ws, item_header_row, item_header_row, 1, 11)
+
+        # -------------------------------------------------
+        # ☑️ 품목 데이터
+        # -------------------------------------------------
+        start_row = 11
+        items = data["items"]
+
+        if not items:
+            empty_count = 10
+            for i in range(empty_count):
+                row_no = start_row + i
+                ws.cell(row=row_no, column=1).value = str(i + 1)
+            set_all_borders(ws, start_row, start_row + empty_count - 1, 1, 11)
+        else:
+            for i, item in enumerate(items, start=0):
+                row_no = start_row + i
+                ws.cell(row=row_no, column=1).value = item["no"]
+                ws.cell(row=row_no, column=2).value = item["lot_no"]
+                ws.cell(row=row_no, column=3).value = item["product_name"]
+                ws.cell(row=row_no, column=4).value = item["spec"]
+                ws.cell(row=row_no, column=5).value = item["unit"]
+                ws.cell(row=row_no, column=6).value = item["buy_price"]
+                ws.cell(row=row_no, column=7).value = item["sell_price"]
+                ws.cell(row=row_no, column=8).value = item["qty"]
+                ws.cell(row=row_no, column=9).value = item["buy_total"]
+                ws.cell(row=row_no, column=10).value = item["sell_total"]
+                ws.cell(row=row_no, column=11).value = item["period"]
+
+            set_all_borders(ws, start_row, start_row + len(items) - 1, 1, 11)
+
+        # -------------------------------------------------
+        # ☑️ 시트 옵션
+        # -------------------------------------------------
+        ws.freeze_panes = "A10"
+        ws.sheet_view.showGridLines = False
+
+        return wb
+
+    # =====================================================
+    # ☑️ 엑셀 내보내기 버튼
+    # =====================================================
+    def export_to_excel(self, e):
+        try:
+            wb = self.build_excel_workbook()
+
+            # 🔥 핵심 수정 1: 상대경로 말고 현재 py 파일 기준 절대경로 사용
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            save_path = os.path.join(base_dir, "production_order.xlsx")
+
+            # 🔥 핵심 수정 2: 실제 저장
+            wb.save(save_path)
+
+            # 🔥 핵심 수정 3: 콘솔에도 저장 위치 출력
+            print("엑셀 저장 완료:", save_path)
+
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text(f"엑셀 파일이 저장되었습니다.\n{save_path}"),
+                open=True,
+            )
+            self.page.update()
+
+        except Exception as ex:
+            print("엑셀 저장 오류:", ex)
+
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text(f"엑셀 저장 중 오류가 발생했습니다: {ex}"),
+                open=True,
+            )
+            self.page.update()
+
     # =====================================================
     # ☑️ 저장 버튼
     # =====================================================
     def save_data(self, e):
-        # ⭐ 저장 버튼 클릭 시 입력 데이터를 수집하여 구조화된 형태로 준비
         data = self.collect_data()
 
-        # ⭐ 저장 버튼 클릭 시 입력 데이터를 수집하여 콘솔에 출력되도록 처리
         print("===== 생산지시서 저장 데이터 =====")
         print(data)
 
@@ -582,6 +847,16 @@ class ProductionOrderDialog:
                                 on_click=self.close_dialog,
                             ),
                             ft.ElevatedButton(
+                                "엑셀 내보내기",
+                                height=42,
+                                style=ft.ButtonStyle(
+                                    bgcolor="#16A34A",
+                                    color=ft.Colors.WHITE,
+                                    shape=ft.RoundedRectangleBorder(radius=8),
+                                ),
+                                on_click=self.export_to_excel,
+                            ),
+                            ft.ElevatedButton(
                                 "저장",
                                 height=42,
                                 style=ft.ButtonStyle(
@@ -617,30 +892,30 @@ def main(page: ft.Page):
     popup = ProductionOrderDialog(page)
 
     production_order = ft.Column(
-            alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
-                ft.Text(
-                    "생산지시서 모달창 예제",
-                    size=26,
-                    weight=ft.FontWeight.W_700,
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        controls=[
+            ft.Text(
+                "생산지시서 모달창 예제",
+                size=26,
+                weight=ft.FontWeight.W_700,
+            ),
+            ft.Container(height=20),
+            ft.ElevatedButton(
+                "생산지시서 열기",
+                width=220,
+                height=50,
+                style=ft.ButtonStyle(
+                    bgcolor="#111827",
+                    color=ft.Colors.WHITE,
+                    shape=ft.RoundedRectangleBorder(radius=10),
                 ),
-                ft.Container(height=20),
-                ft.ElevatedButton(
-                    "생산지시서 열기",
-                    width=220,
-                    height=50,
-                    style=ft.ButtonStyle(
-                        bgcolor="#111827",
-                        color=ft.Colors.WHITE,
-                        shape=ft.RoundedRectangleBorder(radius=10),
-                    ),
-                    on_click=popup.open,
-                ),
-            ],
-        )
+                on_click=popup.open,
+            ),
+        ],
+    )
 
     page.add(production_order)
 
 
-ft.app(target=main)
+ft.run(main)

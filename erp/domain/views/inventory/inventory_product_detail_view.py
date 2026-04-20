@@ -1,7 +1,16 @@
 import flet as ft
 from components import common as cm
-from components.common.product_search_table_common import build_product_search_table_page
+from components.common.product_search_table_common import (
+    build_product_search_table_page,
+    format_weight_display,
+)
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
+
+
+# =========================================================
+# ☑️ 추가: session prefix 상수화
+# =========================================================
+SESSION_PREFIX = "inventory_product_detail"
 
 
 # =========================================================
@@ -16,8 +25,9 @@ def product_detail_row_adapter(saved_data: dict, next_no: int):
         "brand": saved_data.get("brand", ""),
         "manufacturer": saved_data.get("manufacturer", ""),
         "consumer_price": saved_data.get("consumer_price", ""),
-        # 👊 상세 모달은 weight 키를 쓰므로 현재 테이블 컬럼용으로 spec_weight에 매핑
-        "spec_weight": saved_data.get("weight", ""),
+        # ☑️ 상세 모달과 테이블 모두 spec_weight로 통일
+        # ☑️ 공통 포맷 함수 사용으로 숫자만 들어와도 kg 표시 일관성 유지
+        "spec_weight": format_weight_display(saved_data.get("spec_weight", "")),
         "barcode": "",
         "stock_unit": "",
         "sale_status": "",
@@ -84,6 +94,6 @@ def erp_inventory_product_detail_view():
         register_title="상품 상세 정보 등록",
         edit_title="상품 상세 정보 수정",
         register_fields=PRODUCT_DETAIL_FIELDS,
-        session_prefix="product_detail",
+        session_prefix=SESSION_PREFIX,
         register_row_adapter=product_detail_row_adapter,
     )

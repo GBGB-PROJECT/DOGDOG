@@ -1,0 +1,1 @@
+from .client_view import erp_client_view

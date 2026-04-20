@@ -98,6 +98,9 @@ def format_number(value):
 # =========================================================
 # ☑️ 엑셀 스타일 공통 유틸
 # =========================================================
+# ❌ 엑셀 셀 범위 스타일 공통 함수
+# ❌ 테두리 / 정렬 / 폰트 / 배경색 / 값 입력을 한 번에 처리함
+# ❌ build_excel_workbook() 안에서 반복 호출되며 엑셀 표 모양을 유지하는 핵심 함수
 def apply_range_style(
     ws,
     cell_range,
@@ -136,6 +139,8 @@ def apply_range_style(
     top_left.value = value
 
 
+# ❌ 지정한 범위 전체에 테두리와 기본 정렬/폰트를 넣는 함수
+# ❌ 품목 표 전체 줄을 그릴 때 사용됨
 def set_all_borders(ws, start_row, end_row, start_col, end_col):
     thin = Side(style="thin", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -511,6 +516,8 @@ class ProductionOrderDialog:
     # =====================================================
     # ☑️ 저장 데이터 수집
     # =====================================================
+    # ❌ 화면 입력값들을 dict 형태의 저장 데이터로 모으는 핵심 함수
+    # ❌ 엑셀 생성 전에 build_excel_workbook()가 이 데이터를 가져다 씀
     def collect_data(self):
         items = []
 
@@ -547,6 +554,8 @@ class ProductionOrderDialog:
             "items": items,
         }
 
+    # ❌ 생산지시서 화면 구조를 엑셀 워크북으로 그대로 다시 만드는 핵심 함수
+    # ❌ 컬럼 폭 / 행 높이 / 병합 / 제목 / 상단정보 / 주문처블록 / 품목표 / 시트옵션이 전부 여기 있음
     def build_excel_workbook(self):
         data = self.collect_data()
 
@@ -751,6 +760,8 @@ class ProductionOrderDialog:
     # =====================================================
     # ☑️ 엑셀 내보내기 버튼
     # =====================================================
+    # ❌ build_excel_workbook()로 만든 워크북을 실제 .xlsx 파일로 저장하는 함수
+    # ❌ 저장 경로 결정, wb.save(), 저장 완료 메시지 출력이 전부 여기서 처리됨
     def export_to_excel(self, e):
         try:
             wb = self.build_excel_workbook()

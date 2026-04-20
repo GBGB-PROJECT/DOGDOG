@@ -157,6 +157,9 @@ def format_number(value):
 # =========================================================
 # ☑️ 엑셀 스타일 공통 유틸
 # =========================================================
+# ❌ 엑셀 셀 범위 스타일 공통 함수
+# ❌ 테두리 / 정렬 / 폰트 / 배경색 / 값 입력을 한 번에 처리함
+# ❌ build_excel_workbook() 안에서 반복 호출되며 엑셀 표 모양을 유지하는 핵심 함수
 def apply_range_style(
     ws,
     cell_range,
@@ -195,6 +198,8 @@ def apply_range_style(
     top_left.value = value
 
 
+# ❌ 지정한 범위 전체에 테두리와 기본 정렬/폰트를 넣는 함수
+# ❌ 품목 표 전체 줄을 그릴 때 사용됨
 def set_all_borders(ws, start_row, end_row, start_col, end_col):
     thin = Side(style="thin", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -425,6 +430,8 @@ class PurchaseOrderDialog:
     # =====================================================
     # ☑️ 합계 업데이트
     # =====================================================
+    # ❌ 발주서 품목행의 공급가/세액을 모두 합산해서 총합계를 만드는 핵심 함수
+    # ❌ total_amount_text, total_amount_krw 값을 갱신하며 엑셀 생성 직전에도 호출됨
     def update_summary(self):
         total_supply = 0
         total_tax = 0
@@ -736,6 +743,8 @@ class PurchaseOrderDialog:
     # =====================================================
     # ☑️ 저장 데이터 수집
     # =====================================================
+    # ❌ 화면 입력값들을 dict 형태의 저장 데이터로 모으는 핵심 함수
+    # ❌ 엑셀 생성 전에 build_excel_workbook()가 이 데이터를 가져다 씀
     def collect_data(self):
         items = []
 
@@ -787,6 +796,8 @@ class PurchaseOrderDialog:
     # =====================================================
     # ☑️ 엑셀 워크북 생성
     # =====================================================
+    # ❌ 발주서 화면 구조를 엑셀 워크북으로 그대로 다시 만드는 핵심 함수
+    # ❌ 컬럼 폭 / 행 높이 / 병합 / 제목 / 수신처 / 발신처 / 발주정보 / 품목표 / 총합계 / 참고사항 / 발주조건이 전부 여기 있음
     def build_excel_workbook(self):
         self.update_summary()
         data = self.collect_data()
@@ -1035,6 +1046,8 @@ class PurchaseOrderDialog:
     # =====================================================
     # ☑️ 엑셀 내보내기
     # =====================================================
+    # ❌ build_excel_workbook()로 만든 워크북을 실제 .xlsx 파일로 저장하는 함수
+    # ❌ 저장 경로 결정, wb.save(), 저장 완료 메시지 출력이 전부 여기서 처리됨
     def export_to_excel(self, e):
         try:
             wb = self.build_excel_workbook()

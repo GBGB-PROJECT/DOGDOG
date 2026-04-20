@@ -12,6 +12,12 @@ from domain.views.merchandise import merchandise_view
 from domain.views.merchandise import merchandise_master_view
 from domain.views.merchandise import merchandise_info_detail_view
 
+# ☑️ 추가: 인사관리 화면 import
+from domain.views.hr import erp_employee_view
+
+# ☑️ 추가: 고객관리 화면 import
+from domain.views.customer import erp_client_view
+
 
 
 
@@ -54,10 +60,16 @@ MENU_ITEMS = {
     "재고관리": inventory_view.erp_inventory_view,
 
     "물류관리": lambda: ft.Container(content=ft.Text("물류관리 준비 중")),
-    "고객관리": lambda: ft.Container(content=ft.Text("고객관리 준비 중")),
+
+    # ☑️ 수정: 고객관리 실제 화면 연결
+    "고객관리": erp_client_view,
+    
     "영업관리": lambda: ft.Container(content=ft.Text("영업관리 준비 중")),
     "회계관리": lambda: ft.Container(content=ft.Text("회계관리 준비 중")),
-    "인사관리": lambda: ft.Container(content=ft.Text("인사관리 준비 중")),
+
+    # ☑️ 수정: 인사관리 실제 화면 연결
+    "인사관리": erp_employee_view,
+
     "시스템관리": lambda: ft.Container(content=ft.Text("시스템관리 준비 중")),
 
     # ☑️ 추가: 재고관리 하위 메뉴 연결

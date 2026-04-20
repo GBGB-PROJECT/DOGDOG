@@ -137,7 +137,7 @@ PRODUCT_DETAIL_FIELDS = [
     },
     {
         "label": "중량",
-        "key": "weight",
+        "key": "spec_weight",
         "type": "float",
         "required": False,
         "max_length": 10,

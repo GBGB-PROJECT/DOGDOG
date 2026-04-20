@@ -49,11 +49,13 @@ def build_text(
         overflow=ft.TextOverflow.ELLIPSIS,
     )
 
+
 # =========================================================
-# 👊 추가: 중량 표시 포맷터
+# 👊 공통 이동: 중량 표시 포맷터
 # =========================================================
 # ⭐ 숫자만 들어오면 kg를 자동으로 붙여서 테이블 표시용 문자열로 변환
 # ⭐ 이미 kg / g 같은 단위가 붙어 있으면 그대로 유지
+# ⭐ 상품 마스터 / 상품 상세 / 재고 상세 등에서 함께 쓰는 공통 함수
 def format_weight_display(value):
     text = str(value or "").strip()
     if not text:
@@ -166,8 +168,8 @@ def build_table_cell(
 # =========================================================
 # ⭐ 모달에서 저장된 입력값(saved_data)을
 # ⭐ 현재 테이블 한 줄(row) 형식으로 바꿔주는 기본 변환 함수
-# ⭐ 상품 마스터/상품 상세처럼 필드명이 조금 다른 경우를 대비해
-# ⭐ spec_weight와 weight를 같이 처리함
+# ⭐ 상품 마스터 / 상품 상세 등에서 공통으로 사용할 수 있는 기본 구조
+# ⭐ 중량 key는 spec_weight 하나로 통일해서 처리함
 def default_register_row_adapter(saved_data: dict, next_no: int):
     return {
         "no": str(next_no),
@@ -177,8 +179,9 @@ def default_register_row_adapter(saved_data: dict, next_no: int):
         "brand": saved_data.get("brand", ""),
         "manufacturer": saved_data.get("manufacturer", ""),
         "consumer_price": saved_data.get("consumer_price", ""),
+        # ☑️ spec_weight로 통일
         "spec_weight": format_weight_display(
-            saved_data.get("spec_weight", saved_data.get("weight", ""))
+            saved_data.get("spec_weight", "")
         ),
         "barcode": saved_data.get("barcode", ""),
         "stock_unit": saved_data.get("stock_unit", ""),

@@ -3,8 +3,7 @@ import datetime
 
 from components import common as cm
 from components.common.modals.modal import build_modal
-from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
-from components.common.product_search_table_common import format_weight_display
+from components.common.modals.field_defs import CLIENT_FIELDS
 
 
 # =========================================================
@@ -27,11 +26,6 @@ TEXT_PRIMARY = "#111827"
 TEXT_SECONDARY = "#6B7280"
 TEXT_ROW = "#374151"
 
-# =========================================================
-# ☑️ 추가: session prefix 상수화
-# =========================================================
-SESSION_PREFIX = "merchandise_product_detail"
-
 
 # =========================================================
 # ☑️ 공통 텍스트
@@ -42,7 +36,6 @@ def build_text(
     color=TEXT_PRIMARY,
     weight=ft.FontWeight.W_400,
     text_align=ft.TextAlign.LEFT,
-    max_lines=1,
 ):
     return ft.Text(
         value=value,
@@ -50,16 +43,9 @@ def build_text(
         color=color,
         weight=weight,
         text_align=text_align,
-        max_lines=max_lines,
+        max_lines=1,
         overflow=ft.TextOverflow.ELLIPSIS,
     )
-
-
-# =========================================================
-# ☑️ 숫자/중량 표시 포맷
-# =========================================================
-# ☑️ 공통화: 중량 표시 포맷은 product_search_table_common.py의
-# ☑️ format_weight_display()를 import 해서 함께 사용
 
 
 # =========================================================
@@ -126,50 +112,21 @@ def action_button(text, on_click=None, width=78):
 
 
 # =========================================================
-# ☑️ 상세정보 저장 데이터 -> 테이블 row 변환
-# =========================================================
-def product_detail_row_adapter(saved_data: dict, next_no: int):
-    return {
-        "no": str(next_no),
-        "product_code": saved_data.get("product_code", ""),
-        "product_name": saved_data.get("product_name", ""),
-        "product_image": saved_data.get("product_image", ""),
-        "product_detail_page": saved_data.get("product_detail_page", ""),
-        "product_type": saved_data.get("product_type", ""),
-        "brand": saved_data.get("brand", ""),
-        "manufacturer": saved_data.get("manufacturer", ""),
-        "consumer_price": saved_data.get("consumer_price", ""),
-        "cost": saved_data.get("cost", ""),
-        "spec_weight": format_weight_display(saved_data.get("spec_weight", "")),
-        "function": saved_data.get("function", ""),
-        "description": saved_data.get("description", ""),
-        "crude_protein": saved_data.get("crude_protein", ""),
-        "crude_fat": saved_data.get("crude_fat", ""),
-        "crude_ash": saved_data.get("crude_ash", ""),
-        "crude_fiber": saved_data.get("crude_fiber", ""),
-        "moisture": saved_data.get("moisture", ""),
-        "calcium": saved_data.get("calcium", ""),
-        "phosphorus": saved_data.get("phosphorus", ""),
-        "calorie": saved_data.get("calorie", ""),
-    }
-
-
-# =========================================================
-# ☑️ 가로 스크롤형 테이블 셀
+# ☑️ 테이블 셀 공통
 # =========================================================
 def build_table_cell(
     text,
-    width,
+    expand,
     align_x=-1,
     weight=ft.FontWeight.W_400,
     color=TEXT_ROW,
     size=12,
 ):
     return ft.Container(
-        width=width,
+        expand=expand,
         alignment=ft.Alignment(align_x, 0),
         content=build_text(
-            value=str(text or ""),
+            value=text,
             size=size,
             color=color,
             weight=weight,
@@ -179,34 +136,59 @@ def build_table_cell(
 
 
 # =========================================================
-# ☑️ 상품 상세 정보 관리 화면
+# ☑️ 저장 데이터 -> 고객 테이블 row 변환
 # =========================================================
-def erp_merchandise_info_detail_view():
-    page_title = "상품관리 > 상품 상세 정보 관리"
+def client_row_adapter(saved_data: dict, next_no: int):
+    return {
+        "no": str(next_no),
+        "client_name": saved_data.get("client_name", ""),
+        "client_id": saved_data.get("client_id", ""),
+        "phone": saved_data.get("phone", ""),
+        "zip_code": saved_data.get("zip_code", ""),
+        "address": saved_data.get("address", ""),
+        "address_detail": saved_data.get("address_detail", ""),
+        "birth_date": saved_data.get("birth_date", ""),
+        "gender": saved_data.get("gender", ""),
+        "client_grade": saved_data.get("client_grade", ""),
+        "is_subscribed": saved_data.get("is_subscribed", ""),
+        "note": saved_data.get("note", ""),
+    }
+
+
+# =========================================================
+# ☑️ 고객관리 화면
+# =========================================================
+def erp_client_view():
+    page_title = "고객관리 > 고객정보관리"
 
     dummy_rows = [
         {
             "no": "1",
-            "product_code": "P-1001",
-            "product_name": "하림 가장 맛있는 시간",
-            "product_image": "https://example.com/image1.jpg",
-            "product_detail_page": "https://example.com/detail1",
-            "product_type": "사료",
-            "brand": "하림",
-            "manufacturer": "하림펫푸드",
-            "consumer_price": "32000",
-            "cost": "21000",
-            "spec_weight": "1.2kg",
-            "function": "장건강",
-            "description": "반려견용 프리미엄 사료",
-            "crude_protein": "24.0",
-            "crude_fat": "14.0",
-            "crude_ash": "8.0",
-            "crude_fiber": "3.5",
-            "moisture": "10.0",
-            "calcium": "1.2",
-            "phosphorus": "1.0",
-            "calorie": "360.0",
+            "client_name": "김민수",
+            "client_id": "CLIENT001",
+            "phone": "010-1111-2222",
+            "zip_code": "06236",
+            "address": "서울특별시 강남구 테헤란로",
+            "address_detail": "101동 1203호",
+            "birth_date": "1994-05-14",
+            "gender": "남",
+            "client_grade": "VIP",
+            "is_subscribed": "Y",
+            "note": "정기구매 고객",
+        },
+        {
+            "no": "2",
+            "client_name": "이서연",
+            "client_id": "CLIENT002",
+            "phone": "010-3333-4444",
+            "zip_code": "13529",
+            "address": "경기도 성남시 분당구",
+            "address_detail": "202호",
+            "birth_date": "1998-11-02",
+            "gender": "여",
+            "client_grade": "일반",
+            "is_subscribed": "N",
+            "note": "",
         },
     ]
 
@@ -214,7 +196,7 @@ def erp_merchandise_info_detail_view():
 
     selected_start = {"value": None}
     selected_end = {"value": None}
-    search_type_value = {"value": "product_name"}
+    search_type_value = {"value": "client_name"}
 
     start_field_holder = ft.Container()
     start_icon_holder = ft.Container(width=38, height=38)
@@ -241,51 +223,40 @@ def erp_merchandise_info_detail_view():
         alignment=ft.Alignment(0, 0),
     )
 
+    col_expand = {
+        "no": 4,
+        "client_name": 8,
+        "client_id": 9,
+        "phone": 10,
+        "zip_code": 7,
+        "address": 13,
+        "address_detail": 10,
+        "birth_date": 8,
+        "gender": 5,
+        "client_grade": 7,
+        "is_subscribed": 6,
+        "note": 9,
+    }
+
     row_spacing = 10
     row_padding_x = 14
     row_padding_y = 14
 
     search_type_labels = {
-        "product_name": "상품명",
-        "product_code": "제품코드",
-        "product_type": "상품종류",
-        "brand": "브랜드",
-        "manufacturer": "제조사",
-        "function": "기능",
+        "client_name": "고객명",
+        "client_id": "고객 ID",
+        "phone": "전화번호",
+        "client_grade": "고객등급",
+        "is_subscribed": "구독여부",
     }
 
     search_key_map = {
-        "product_name": "product_name",
-        "product_code": "product_code",
-        "product_type": "product_type",
-        "brand": "brand",
-        "manufacturer": "manufacturer",
-        "function": "function",
+        "client_name": "client_name",
+        "client_id": "client_id",
+        "phone": "phone",
+        "client_grade": "client_grade",
+        "is_subscribed": "is_subscribed",
     }
-
-    columns = [
-        {"key": "no", "label": "no", "width": 60, "align_x": 0},
-        {"key": "product_code", "label": "제품코드", "width": 110, "align_x": -1},
-        {"key": "product_name", "label": "상품명", "width": 150, "align_x": -1},
-        {"key": "product_image", "label": "상품 이미지", "width": 180, "align_x": -1},
-        {"key": "product_detail_page", "label": "상품 상세페이지", "width": 190, "align_x": -1},
-        {"key": "product_type", "label": "상품종류", "width": 100, "align_x": -1},
-        {"key": "brand", "label": "브랜드", "width": 100, "align_x": -1},
-        {"key": "manufacturer", "label": "제조사", "width": 120, "align_x": -1},
-        {"key": "consumer_price", "label": "소비자판매가", "width": 110, "align_x": 1},
-        {"key": "cost", "label": "원가", "width": 100, "align_x": 1},
-        {"key": "spec_weight", "label": "중량", "width": 90, "align_x": 1},
-        {"key": "function", "label": "기능", "width": 120, "align_x": -1},
-        {"key": "description", "label": "설명", "width": 220, "align_x": -1},
-        {"key": "crude_protein", "label": "조단백", "width": 80, "align_x": 1},
-        {"key": "crude_fat", "label": "조지방", "width": 80, "align_x": 1},
-        {"key": "crude_ash", "label": "조회분", "width": 80, "align_x": 1},
-        {"key": "crude_fiber", "label": "조섬유", "width": 80, "align_x": 1},
-        {"key": "moisture", "label": "수분", "width": 80, "align_x": 1},
-        {"key": "calcium", "label": "칼슘", "width": 80, "align_x": 1},
-        {"key": "phosphorus", "label": "인", "width": 80, "align_x": 1},
-        {"key": "calorie", "label": "열량", "width": 80, "align_x": 1},
-    ]
 
     def format_date_text(value):
         if not value:
@@ -456,21 +427,32 @@ def erp_merchandise_info_detail_view():
                 bottom=row_padding_y,
             ),
             content=ft.Row(
+                expand=True,
                 spacing=row_spacing,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    build_table_cell(
-                        col["label"],
-                        col["width"],
-                        col["align_x"],
-                        ft.FontWeight.W_700,
-                        TEXT_PRIMARY,
-                    )
-                    for col in columns
+                    build_table_cell("no", col_expand["no"], 0, ft.FontWeight.W_700),
+                    build_table_cell("고객명", col_expand["client_name"], -1, ft.FontWeight.W_700),
+                    build_table_cell("고객 ID", col_expand["client_id"], -1, ft.FontWeight.W_700),
+                    build_table_cell("전화번호", col_expand["phone"], -1, ft.FontWeight.W_700),
+                    build_table_cell("우편번호", col_expand["zip_code"], 0, ft.FontWeight.W_700),
+                    build_table_cell("주소", col_expand["address"], -1, ft.FontWeight.W_700),
+                    build_table_cell("상세주소", col_expand["address_detail"], -1, ft.FontWeight.W_700),
+                    build_table_cell("생년월일", col_expand["birth_date"], 0, ft.FontWeight.W_700),
+                    build_table_cell("성별", col_expand["gender"], 0, ft.FontWeight.W_700),
+                    build_table_cell("고객등급", col_expand["client_grade"], 0, ft.FontWeight.W_700),
+                    build_table_cell("구독여부", col_expand["is_subscribed"], 0, ft.FontWeight.W_700),
+                    build_table_cell("비고", col_expand["note"], -1, ft.FontWeight.W_700),
                 ],
             ),
         )
 
     def build_table_row(row):
+        subscribe_color = {
+            "Y": "#16A34A",
+            "N": "#DC2626",
+        }.get(row.get("is_subscribed", ""), TEXT_PRIMARY)
+
         return ft.Container(
             padding=ft.Padding.only(
                 left=row_padding_x,
@@ -481,14 +463,28 @@ def erp_merchandise_info_detail_view():
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
             content=ft.Row(
+                expand=True,
                 spacing=row_spacing,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
+                    build_table_cell(row.get("no", ""), col_expand["no"], 0),
+                    build_table_cell(row.get("client_name", ""), col_expand["client_name"], -1),
+                    build_table_cell(row.get("client_id", ""), col_expand["client_id"], -1),
+                    build_table_cell(row.get("phone", ""), col_expand["phone"], -1),
+                    build_table_cell(row.get("zip_code", ""), col_expand["zip_code"], 0),
+                    build_table_cell(row.get("address", ""), col_expand["address"], -1),
+                    build_table_cell(row.get("address_detail", ""), col_expand["address_detail"], -1),
+                    build_table_cell(row.get("birth_date", ""), col_expand["birth_date"], 0),
+                    build_table_cell(row.get("gender", ""), col_expand["gender"], 0),
+                    build_table_cell(row.get("client_grade", ""), col_expand["client_grade"], 0),
                     build_table_cell(
-                        row.get(col["key"], ""),
-                        col["width"],
-                        col["align_x"],
-                    )
-                    for col in columns
+                        row.get("is_subscribed", ""),
+                        col_expand["is_subscribed"],
+                        0,
+                        ft.FontWeight.W_700,
+                        subscribe_color,
+                    ),
+                    build_table_cell(row.get("note", ""), col_expand["note"], -1),
                 ],
             ),
         )
@@ -511,7 +507,7 @@ def erp_merchandise_info_detail_view():
         )
 
         keyword = (search_field.value or "").strip()
-        actual_key = search_key_map.get(search_type_value["value"], "product_name")
+        actual_key = search_key_map.get(search_type_value["value"], "client_name")
 
         filtered_rows = []
 
@@ -552,12 +548,12 @@ def erp_merchandise_info_detail_view():
         e.page.update()
 
     def clear_register_session(page: ft.Page):
-        for field in PRODUCT_DETAIL_FIELDS:
-            page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
+        for field in CLIENT_FIELDS:
+            page.session.store.set(f"client_{field['key']}", "")
 
     def handle_register_success(saved_data: dict):
         next_no = len(rows_state) + 1
-        new_row = product_detail_row_adapter(saved_data, next_no)
+        new_row = client_row_adapter(saved_data, next_no)
         rows_state.append(new_row)
         refresh_table(rows_state)
 
@@ -566,10 +562,10 @@ def erp_merchandise_info_detail_view():
 
         popup_layer.content = build_modal(
             page=e.page,
-            register_title="상품 상세 정보 등록",
-            edit_title="상품 상세 정보 수정",
-            fields=PRODUCT_DETAIL_FIELDS,
-            session_prefix=SESSION_PREFIX,
+            register_title="고객 등록",
+            edit_title="고객 정보 수정",
+            fields=CLIENT_FIELDS,
+            session_prefix="client",
             close_handler=close_register_modal,
             on_submit_success=handle_register_success,
         )
@@ -613,26 +609,16 @@ def erp_merchandise_info_detail_view():
         ),
     )
 
-    table_content = ft.Column(
-        spacing=0,
-        controls=[
-            build_table_header(),
-            table_rows_holder,
-        ],
-    )
-
     table_area = ft.Container(
         expand=True,
         border=ft.border.all(1, TABLE_BORDER),
         border_radius=10,
         bgcolor=CARD_BG,
-        clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        content=ft.Row(
-            scroll=ft.ScrollMode.AUTO,
+        content=ft.Column(
+            spacing=0,
             controls=[
-                ft.Container(
-                    content=table_content,
-                )
+                build_table_header(),
+                table_rows_holder,
             ],
         ),
     )

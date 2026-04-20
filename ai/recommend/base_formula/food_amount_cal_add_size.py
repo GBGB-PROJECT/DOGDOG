@@ -1,27 +1,27 @@
 # 저체중(BCS 1 ~ 4) = 체중 증가가 필요한 강아지
 def get_low_weight_factor(BCS):
     if BCS == 1:
-        return 1.8
+        return 1.8, 1.4
     elif BCS == 2:
-        return 1.6
+        return 1.6, 1.3
     elif BCS == 3:
-        return 1.4
+        return 1.4, 1.2
     elif BCS == 4:
-        return 1.2
+        return 1.2, 1.1
 
-# adult_stand_m
+# adult_month
 # size(견종)에 따른 생애주기 구분 -> 성견 유무 구하기
 # 견종 -> size 구분
 # size -> 성견 기준 개월 도출
 
 # 계수
 # (임신/수유) > 질병->ai > 비만 > 나이(성장기, 노견)
-def get_factor(age_m, BCS, neutered, adult_stand_m):
+def get_factor(age_m, BCS, neutered, adult_month):
     # 성견 - 기준 정하기*****
-    if age_m >= adult_stand_m:
+    if age_m >= adult_month:
         #저체중
         if BCS <= 4:
-            return get_low_weight_factor(BCS)
+            return get_low_weight_factor(BCS)[1]
 
         #비만*****
 
@@ -90,28 +90,37 @@ def calculate_base_g(
         age_m: int, 
         neutered: bool, 
         bcs: int, 
-        adult_stand_m: int, 
+        adult_month: int, 
         food_kcal: float
     ) -> float:
     RER = cal_RER(weight)
 
     # DER
-    w = get_factor(age_m, bcs, neutered, adult_stand_m)
+    w = get_factor(age_m, bcs, neutered, adult_month)
     DER = RER * w
 
     base_g = DER / food_kcal
     goal_weight = base_g
 
+    # 목표 몸무게 계산
+    # + 비만강아지 칼로리 보정
     if 6 <= bcs <= 9:
         g_factor, w_factor = get_high_weight_factor(bcs)
         DER = DER * g_factor
         goal_weight = weight / w_factor
-        print(f'목표 몸무게는 {goal_weight:.2f}kg 입니다.')
+        
+    elif 1 <= bcs <= 4:
+        _, w_factor = get_low_weight_factor(bcs)
+        goal_weight = weight * w_factor
+
+    print(f'기존 몸무게는 {weight}kg 입니다.')
+    print(f'목표(정상) 몸무게는 {goal_weight:.2f}kg 입니다.')
+    print()
 
     base_g = DER / food_kcal
 
     print(f'일일 칼로리는 {DER:.2f}kcal 입니다.')
     print(f'하루 권장 급여량은 {base_g:.2f}g 입니다.')
+    print()
 
     return base_g, goal_weight
-    

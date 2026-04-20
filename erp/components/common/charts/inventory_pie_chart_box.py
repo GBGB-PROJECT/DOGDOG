@@ -1,16 +1,7 @@
 import flet as ft
+from service.erp_homeview_service import get_home_view_data
+from components import common as cm
 import flet_charts as fch
-
-
-CARD_BG = "#FFFFFF"
-TEXT_PRIMARY = "#2B2F36"
-TEXT_SECONDARY = "#6B7280"
-TEXT_MUTED = "#9CA3AF"
-
-PIE_BLUE = "#0B4F8A"
-PIE_SKY = "#4DA3D9"
-PIE_LIGHT = "#BFD9EA"
-
 
 def _legend_item(color: str, label: str, percent: str):
     return ft.Container(
@@ -30,7 +21,7 @@ def _legend_item(color: str, label: str, percent: str):
                         ft.Text(
                             label,
                             size=12,
-                            color=TEXT_PRIMARY,
+                            color=cm.TEXT_PRIMARY,
                             weight=ft.FontWeight.W_600,
                         ),
                     ],
@@ -38,7 +29,7 @@ def _legend_item(color: str, label: str, percent: str):
                 ft.Text(
                     percent,
                     size=12,
-                    color=TEXT_SECONDARY,
+                    color=cm.TEXT_SECONDARY,
                     weight=ft.FontWeight.W_600,
                 ),
             ],
@@ -47,10 +38,18 @@ def _legend_item(color: str, label: str, percent: str):
 
 
 def build_inventory_pie_chart_box():
+    sale_data, inventory_data, feed_data = get_home_view_data()
+
+    categories = [
+    (cm.PIE_BLUE, "건사료", feed_data.get("dry_feed", 0)),
+    (cm.PIE_SKY, "습식사료", feed_data.get("wet_feed", 0)),
+    (cm.PIE_LIGHT, "간식", feed_data.get("snack", 0)),
+    ]
+
     return ft.Container(
         width=480,  # ☑️ 수정: 기존 440 -> 480 / 카드 전체 조금 더 확대
         height=320,  # ☑️ 수정: 기존 250 -> 270 / 카드 높이도 확대
-        bgcolor=CARD_BG,
+        bgcolor=cm.CARD_BG,
         border_radius=16,
         border=ft.border.all(1, "#E0E1E2"),
         padding=18,  # ☑️ 수정: 기존 16 -> 18 / 내부 여백 확대
@@ -65,12 +64,12 @@ def build_inventory_pie_chart_box():
                             "재고 현황 (2026/04/01)",
                             size=19,  # ☑️ 수정: 기존 18 -> 19
                             weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
+                            color=cm.TEXT_PRIMARY,
                         ),
                         ft.IconButton(
                             icon=ft.Icons.ADD,
                             icon_size=24,  # ☑️ 수정: 기존 22 -> 24
-                            icon_color=TEXT_PRIMARY,
+                            icon_color=cm.TEXT_PRIMARY,
                         ),
                     ],
                 ),
@@ -83,26 +82,10 @@ def build_inventory_pie_chart_box():
                             height=140,  # ☑️ 수정: 기존 120 -> 140
                             alignment=ft.Alignment(0, 0),
                             content=fch.PieChart(
-                                sections=[
-                                    fch.PieChartSection(
-                                        value=60,
-                                        color=PIE_BLUE,
-                                        radius=17,  # ☑️ 수정: 기존 15 -> 17 / 차트 크기 확대
-                                    ),
-                                    fch.PieChartSection(
-                                        value=25,
-                                        color=PIE_SKY,
-                                        radius=17,  # ☑️ 수정
-                                    ),
-                                    fch.PieChartSection(
-                                        value=15,
-                                        color=PIE_LIGHT,
-                                        radius=17,  # ☑️ 수정
-                                    ),
-                                ],
+                                sections= [fch.PieChartSection(value=val, color=clr, radius=17) for clr, lbl, val in categories],
                                 sections_space=4,
                                 center_space_radius=46,  # ☑️ 수정: 기존 40 -> 46 / 가운데 반경 확대
-                                center_space_color=CARD_BG,
+                                center_space_color=cm.CARD_BG,
                             ),
                         ),
                         ft.Container(
@@ -115,26 +98,23 @@ def build_inventory_pie_chart_box():
                                     ft.Row(
                                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                         controls=[
-                                            ft.Text(
-                                                "카테고리",
-                                                size=12,
-                                                color=TEXT_MUTED,
-                                            ),
-                                            ft.Text(
-                                                "%",
-                                                size=12,
-                                                color=TEXT_MUTED,
-                                            ),
+                                            ft.Text("카테고리",size=12,color=cm.TEXT_MUTED),
+                                            ft.Text("%",size=12,color=cm.TEXT_MUTED),
                                         ],
                                     ),
                                     ft.Container(
-                                        width=220,  # ☑️ 수정: 기존 200 -> 220 / divider 길이 확대
-                                        height=1,
-                                        bgcolor="#D1D5DB",
-                                    ),
-                                    _legend_item(PIE_BLUE, "건사료", "60%"),
-                                    _legend_item(PIE_SKY, "습식사료", "25%"),
-                                    _legend_item(PIE_LIGHT, "간식", "15%"),
+                                        expand=True,
+                                        content=ft.Column( # 💡 리스트 대신 'Column'이라는 바구니 하나를 통째로 넣습니다.
+                                        scroll=ft.ScrollMode.AUTO, # 혹시 아이템이 많아지면 스크롤도 가능하게!
+                                        controls=[
+                                        # 구분선이 빠졌다면 여기에 추가해주는 게 예쁩니다.
+                                        ft.Container(height=1, bgcolor="#D1D5DB"), 
+                                        # 리스트 컴프리헨션으로 만든 아이템들을 여기에 풉니다.
+                                        *[_legend_item(clr, lbl, f"{val}%") for clr, lbl, val in categories]
+                                    ]
+                                    )
+                                )
+                                
                                 ],
                             ),
                         ),

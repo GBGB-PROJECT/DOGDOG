@@ -1,4 +1,5 @@
 from components import common as cm
+from service.erp_homeview_service import *
 import flet as ft
 import flet_charts as fch
 
@@ -8,39 +9,11 @@ CHART_MAX_Y = 85  # 🟥 수정: 80보다 조금 크게 잡아서 80k 그리드 
 def build_sales_linechart():
     selected_metric = {"value": "1개월"}
 
-    chart_data_map = {
-        "1주일": [  # ☑️ 수정: (라벨, 선 그래프 값, 막대 그래프 값) 구조로 확장
-            ("4/1", 20, 15),
-            ("4/2", 40, 30),
-            ("4/3", 20, 18),
-            ("4/4", 80, 65),
-            ("4/5", 50, 38),
-            ("4/6", 60, 52),
-            ("4/7", 20, 16),
-        ],
-        "1개월": [  # ☑️ 수정: (라벨, 선 그래프 값, 막대 그래프 값) 구조로 확장
-            ("1월", 20, 18),
-            ("2월", 40, 32),
-            ("3월", 20, 15),
-            ("4월", 80, 68),
-            ("5월", 50, 42),
-            ("6월", 70, 58),
-            ("7월", 20, 17),
-        ],
-        "1년": [  # ☑️ 수정: (라벨, 선 그래프 값, 막대 그래프 값) 구조로 확장
-            ("2021", 20, 18),
-            ("2023", 40, 35),
-            ("2024", 20, 16),
-            ("2025", 80, 70),
-            ("2026", 50, 44),
-        ],
-    }
-
     chart_container = ft.Container(expand=True)
     metric_selector_container = ft.Container()
 
     def get_current_chart_data():
-        return chart_data_map[selected_metric["value"]]
+        return get_sales_data(selected_metric["value"])
 
     def build_metric_label(text: str):
         is_selected = selected_metric["value"] == text
@@ -58,110 +31,110 @@ def build_sales_linechart():
             ),
         )
 
-    def build_line_chart():
-        chart_data = get_current_chart_data()
+    # def build_line_chart():
+    #     chart_data = get_current_chart_data()
 
-        if not chart_data:
-            return ft.Container(
-                expand=True,
-                height=CHART_HEIGHT,
-                alignment=ft.Alignment(0, 0),
-                content=ft.Text(
-                    "기록이 없습니다.",
-                    color=cm.TEXT_PRIMARY,
-                    size=16,
-                    weight=ft.FontWeight.W_500,
-                ),
-            )
+    #     if not chart_data:
+    #         return ft.Container(
+    #             expand=True,
+    #             height=CHART_HEIGHT,
+    #             alignment=ft.Alignment(0, 0),
+    #             content=ft.Text(
+    #                 "기록이 없습니다.",
+    #                 color=cm.TEXT_PRIMARY,
+    #                 size=16,
+    #                 weight=ft.FontWeight.W_500,
+    #             ),
+    #         )
 
-        points = []  # ☑️ 수정: normal/highlight 제거 → 하나로 통합
-        bottom_labels = []
+    #     points = []  # ☑️ 수정: normal/highlight 제거 → 하나로 통합
+    #     bottom_labels = []
 
-        x_step = 2  # ☑️ 추가: X축 간격 확장 (연도 잘림 방지 핵심)
+    #     x_step = 2  # ☑️ 추가: X축 간격 확장 (연도 잘림 방지 핵심)
 
-        for i, (label_text, value, _bar_value) in enumerate(chart_data):  # ☑️ 수정: 막대값까지 받되 선 그래프는 value만 사용
-            x_value = i * x_step  # ☑️ 수정: 간격 확장 적용
+    #     for i, (label_text, value, _bar_value) in enumerate(chart_data):  # ☑️ 수정: 막대값까지 받되 선 그래프는 value만 사용
+    #         x_value = i * x_step  # ☑️ 수정: 간격 확장 적용
 
-            points.append(
-                fch.LineChartDataPoint(
-                    x_value,
-                    value,
-                    point=True,  # ☑️ 추가: 모든 점 표시
-                )
-            )
+    #         points.append(
+    #             fch.LineChartDataPoint(
+    #                 x_value,
+    #                 value,
+    #                 point=True,  # ☑️ 추가: 모든 점 표시
+    #             )
+    #         )
 
-            bottom_labels.append(
-                fch.ChartAxisLabel(
-                    value=x_value,  # ☑️ 수정: 라벨도 같은 좌표 사용
-                    label=ft.Text(
-                        label_text,
-                        size=12,
-                        color=cm.TEXT_TERTIARY,
-                        weight=ft.FontWeight.W_500,
-                    ),
-                )
-            )
+    #         bottom_labels.append(
+    #             fch.ChartAxisLabel(
+    #                 value=x_value,  # ☑️ 수정: 라벨도 같은 좌표 사용
+    #                 label=ft.Text(
+    #                     label_text,
+    #                     size=12,
+    #                     color=cm.TEXT_TERTIARY,
+    #                     weight=ft.FontWeight.W_500,
+    #                 ),
+    #             )
+    #         )
 
-        return fch.LineChart(
-            expand=True,
-            height=CHART_HEIGHT,
-            min_x=0,
-            max_x=(len(chart_data) - 1) * x_step,  # ☑️ 수정: 확장된 X범위 반영
-            min_y=0,
-            max_y=CHART_MAX_Y,
-            interactive=True,
-            border=ft.border.all(0, ft.Colors.TRANSPARENT),
+    #     return fch.LineChart(
+    #         expand=True,
+    #         height=CHART_HEIGHT,
+    #         min_x=0,
+    #         max_x=(len(chart_data) - 1) * x_step,  # ☑️ 수정: 확장된 X범위 반영
+    #         min_y=0,
+    #         max_y=CHART_MAX_Y,
+    #         interactive=True,
+    #         border=ft.border.all(0, ft.Colors.TRANSPARENT),
 
-            left_axis=fch.ChartAxis(
-                labels=[  # ☑️ 추가: 좌측 Y축 라벨
-                    fch.ChartAxisLabel(
-                        value=20,
-                        label=ft.Text("20k", size=12, color=cm.TEXT_TERTIARY),
-                    ),
-                    fch.ChartAxisLabel(
-                        value=40,
-                        label=ft.Text("40k", size=12, color=cm.TEXT_TERTIARY),
-                    ),
-                    fch.ChartAxisLabel(
-                        value=60,
-                        label=ft.Text("60k", size=12, color=cm.TEXT_TERTIARY),
-                    ),
-                    fch.ChartAxisLabel(
-                        value=80,
-                        label=ft.Text("80k", size=12, color=cm.TEXT_TERTIARY),
-                    ),
-                ],
-                label_size=42,  # ☑️ 수정: 좌측 공간 확보
-            ),
+    #         left_axis=fch.ChartAxis(
+    #             labels=[  # ☑️ 추가: 좌측 Y축 라벨
+    #                 fch.ChartAxisLabel(
+    #                     value=20,
+    #                     label=ft.Text("20k", size=12, color=cm.TEXT_TERTIARY),
+    #                 ),
+    #                 fch.ChartAxisLabel(
+    #                     value=40,
+    #                     label=ft.Text("40k", size=12, color=cm.TEXT_TERTIARY),
+    #                 ),
+    #                 fch.ChartAxisLabel(
+    #                     value=60,
+    #                     label=ft.Text("60k", size=12, color=cm.TEXT_TERTIARY),
+    #                 ),
+    #                 fch.ChartAxisLabel(
+    #                     value=80,
+    #                     label=ft.Text("80k", size=12, color=cm.TEXT_TERTIARY),
+    #                 ),
+    #             ],
+    #             label_size=42,  # ☑️ 수정: 좌측 공간 확보
+    #         ),
 
-            bottom_axis=fch.ChartAxis(
-                labels=bottom_labels,
-                label_size=36,
-            ),
+    #         bottom_axis=fch.ChartAxis(
+    #             labels=bottom_labels,
+    #             label_size=36,
+    #         ),
 
-            horizontal_grid_lines=fch.ChartGridLines(
-                interval=20,  # ☑️ 수정: 20단위 맞춤
-                color=cm.CHART_GRID_COLOR,
-                width=1,
-            ),
+    #         horizontal_grid_lines=fch.ChartGridLines(
+    #             interval=20,  # ☑️ 수정: 20단위 맞춤
+    #             color=cm.CHART_GRID_COLOR,
+    #             width=1,
+    #         ),
 
-            vertical_grid_lines=fch.ChartGridLines(
-                interval=x_step,  # ☑️ 수정: X 간격과 동기화
-                color=ft.Colors.TRANSPARENT,
-                width=0,
-            ),
+    #         vertical_grid_lines=fch.ChartGridLines(
+    #             interval=x_step,  # ☑️ 수정: X 간격과 동기화
+    #             color=ft.Colors.TRANSPARENT,
+    #             width=0,
+    #         ),
 
-            data_series=[
-                fch.LineChartData(
-                    points=points,  # ☑️ 수정: 하나만 사용
-                    stroke_width=3,
-                    color=cm.CHART_LINE_COLOR,
-                    curved=False,  # ☑️ 수정: 직선 차트
-                    rounded_stroke_cap=True,
-                    point=True,  # ☑️ 추가: 전체 점 표시
-                ),
-            ],
-        )
+    #         data_series=[
+    #             fch.LineChartData(
+    #                 points=points,  # ☑️ 수정: 하나만 사용
+    #                 stroke_width=3,
+    #                 color=cm.CHART_LINE_COLOR,
+    #                 curved=False,  # ☑️ 수정: 직선 차트
+    #                 rounded_stroke_cap=True,
+    #                 point=True,  # ☑️ 추가: 전체 점 표시
+    #             ),
+    #         ],
+    #     )
 
     def build_combo_chart():  # ☑️ 추가: 막대 그래프 + 직선 그래프를 함께 보여주는 콤보 차트
         chart_data = get_current_chart_data()

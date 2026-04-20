@@ -4,7 +4,7 @@ from service.erp_homeview_service import get_home_view_data
 
 def erp_home_view():
     # 데이터 가져오기
-    sale_data, inventory_data = get_home_view_data()
+    sale_data, inventory_data, feed_data = get_home_view_data()
     return ft.Container(
         expand=True,
         bgcolor=cm.PAGE_BG,

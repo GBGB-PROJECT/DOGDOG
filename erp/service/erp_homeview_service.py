@@ -24,7 +24,12 @@ def get_home_view_data():
     current_total_inventory = 53000 # 현재 총 재고량
     monthly_avg_sales_qty = 13500 # 월 평균 판매량
 
-    # [PROCESSING] View가 바로 출력할 수 있게 가공
+    ## 건사료/습식사료/간식 (전체 제고를 100으로 백분률로 입력)
+    dry_feed= 60
+    wet_feed= 25
+    snack= 15
+
+### 1. 매출 하이라이트
     sales_processed_data = {
         # 매출 하이라이트 (hd용)
         "total_sale": f"{raw_total_sales:,}",
@@ -42,10 +47,37 @@ def get_home_view_data():
         "week_goal": f"{raw_weekly_goal // 10000:,}",
     }
 
+### 3. 생산 제고 하이라이트
     inventory_processed_data = {
         "monthly_production_qty": f"{monthly_production_qty:,}",
         "expected_incoming_qty": f"{expected_incoming_qty:,}",
         "current_total_inventory": f"{current_total_inventory:,}",
         "monthly_avg_sales_qty": f"{monthly_avg_sales_qty:,}"
     }
-    return sales_processed_data, inventory_processed_data
+
+### 4. 사료 비율
+    feed_data={
+        "dry_feed": dry_feed,
+        "wet_feed": wet_feed,
+        "snack": snack
+    }
+    return sales_processed_data, inventory_processed_data, feed_data
+
+### 3. home 페이지의 line data 내역
+def get_sales_data(period):
+    chart_data_map = {
+        "1주일": [ 
+            ("4/1", 20, 15), ("4/2", 40, 30), ("4/3", 20, 18), 
+            ("4/4", 80, 65), ("4/5", 50, 38), ("4/6", 60, 52), ("4/7", 20, 16)
+        ],
+        "1개월": [ 
+            ("1월", 20, 18), ("2월", 40, 32), ("3월", 20, 15), 
+            ("4월", 80, 68), ("5월", 50, 42), ("6월", 70, 58), ("7월", 20, 17)
+        ],
+        "1년": [ 
+            ("2021", 20, 18), ("2023", 40, 35), ("2024", 20, 16), 
+            ("2025", 80, 70), ("2026", 50, 44)
+        ],
+    }
+    # 요청한 기간(period)의 데이터를 꺼내주고, 없으면 빈 리스트 반환
+    return chart_data_map.get(period, [])

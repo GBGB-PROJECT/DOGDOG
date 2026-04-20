@@ -177,7 +177,8 @@ def apply_range_style(
             cell.alignment = Alignment(
                 horizontal=horizontal,
                 vertical=vertical,
-                wrap_text=True,
+                wrap_text=False,
+                shrink_to_fit=True,
             )
             cell.font = Font(
                 bold=bold,
@@ -204,7 +205,8 @@ def set_all_borders(ws, start_row, end_row, start_col, end_col):
             ws.cell(r, c).alignment = Alignment(
                 horizontal="center",
                 vertical="center",
-                wrap_text=True,
+                wrap_text=False,
+                shrink_to_fit=True,
             )
             ws.cell(r, c).font = Font(name="맑은 고딕", size=11)
 
@@ -797,12 +799,12 @@ class PurchaseOrderDialog:
         # ☑️ 컬럼 폭 설정
         # -------------------------------------------------
         column_widths = {
-            "A": 8,
-            "B": 14,
+            "A": 12,
+            "B": 18,
             "C": 18,
             "D": 16,
-            "E": 10,
-            "F": 12,
+            "E": 12,
+            "F": 14,
             "G": 12,
             "H": 14,
             "I": 12,
@@ -840,10 +842,8 @@ class PurchaseOrderDialog:
         # 수신처
         ws.merge_cells("A5:A6")
         ws.merge_cells("B5:D6")
-        ws.merge_cells("F5:F5")
-        ws.merge_cells("G5:G5")
-        ws.merge_cells("F6:F6")
-        ws.merge_cells("G6:G6")
+        ws.merge_cells("F5:G5")
+        ws.merge_cells("F6:G6")
         ws.merge_cells("H5:H6")
         ws.merge_cells("I5:J6")
 
@@ -970,7 +970,12 @@ class PurchaseOrderDialog:
             cell.value = header
             cell.fill = PatternFill(fill_type="solid", fgColor=header_fill)
             cell.font = Font(bold=True, size=11, name="맑은 고딕")
-            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+                wrap_text=False,
+                shrink_to_fit=True,
+            )
 
         set_all_borders(ws, item_header_row, item_header_row, 1, 10)
 
@@ -1022,7 +1027,7 @@ class PurchaseOrderDialog:
         # -------------------------------------------------
         # ☑️ 시트 옵션
         # -------------------------------------------------
-        ws.freeze_panes = "A14"
+        ws.freeze_panes = None
         ws.sheet_view.showGridLines = False
 
         return wb

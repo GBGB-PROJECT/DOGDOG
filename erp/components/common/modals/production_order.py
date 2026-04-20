@@ -118,7 +118,8 @@ def apply_range_style(
             cell.alignment = Alignment(
                 horizontal=horizontal,
                 vertical=vertical,
-                wrap_text=True,
+                wrap_text=False,
+                shrink_to_fit=True,
             )
             cell.font = Font(
                 bold=bold,
@@ -145,7 +146,8 @@ def set_all_borders(ws, start_row, end_row, start_col, end_col):
             ws.cell(r, c).alignment = Alignment(
                 horizontal="center",
                 vertical="center",
-                wrap_text=True,
+                wrap_text=False,
+                shrink_to_fit=True,
             )
             ws.cell(r, c).font = Font(name="맑은 고딕", size=11)
 
@@ -556,17 +558,17 @@ class ProductionOrderDialog:
         # ☑️ 컬럼 폭 설정
         # -------------------------------------------------
         column_widths = {
-            "A": 8,   # no / 라벨
-            "B": 14,
-            "C": 16,
+            "A": 12,
+            "B": 16,
+            "C": 18,
             "D": 16,
-            "E": 10,
-            "F": 13,
-            "G": 13,
-            "H": 10,
+            "E": 12,
+            "F": 14,
+            "G": 14,
+            "H": 12,
             "I": 14,
-            "J": 14,
-            "K": 16,
+            "J": 16,
+            "K": 18,
         }
 
         for col, width in column_widths.items():
@@ -575,6 +577,9 @@ class ProductionOrderDialog:
         # -------------------------------------------------
         # ☑️ 행 높이 설정
         # -------------------------------------------------
+        for row_idx in range(1, 60):
+            ws.row_dimensions[row_idx].height = 26
+
         ws.row_dimensions[1].height = 30
         ws.row_dimensions[2].height = 30
         ws.row_dimensions[3].height = 30
@@ -693,7 +698,12 @@ class ProductionOrderDialog:
             cell.value = header
             cell.fill = PatternFill(fill_type="solid", fgColor=header_fill)
             cell.font = Font(bold=True, size=11, name="맑은 고딕")
-            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+                wrap_text=False,
+                shrink_to_fit=True,
+            )
 
         set_all_borders(ws, item_header_row, item_header_row, 1, 11)
 
@@ -701,16 +711,20 @@ class ProductionOrderDialog:
         # ☑️ 품목 데이터
         # -------------------------------------------------
         start_row = 11
+        max_item_rows = 18
         items = data["items"]
 
         if not items:
-            empty_count = 10
-            for i in range(empty_count):
+            for i in range(max_item_rows):
                 row_no = start_row + i
                 ws.cell(row=row_no, column=1).value = str(i + 1)
-            set_all_borders(ws, start_row, start_row + empty_count - 1, 1, 11)
+            set_all_borders(ws, start_row, start_row + max_item_rows - 1, 1, 11)
         else:
-            for i, item in enumerate(items, start=0):
+            for i in range(max_item_rows):
+                row_no = start_row + i
+                ws.cell(row=row_no, column=1).value = str(i + 1)
+
+            for i, item in enumerate(items[:max_item_rows], start=0):
                 row_no = start_row + i
                 ws.cell(row=row_no, column=1).value = item["no"]
                 ws.cell(row=row_no, column=2).value = item["lot_no"]
@@ -724,12 +738,12 @@ class ProductionOrderDialog:
                 ws.cell(row=row_no, column=10).value = item["sell_total"]
                 ws.cell(row=row_no, column=11).value = item["period"]
 
-            set_all_borders(ws, start_row, start_row + len(items) - 1, 1, 11)
+            set_all_borders(ws, start_row, start_row + max_item_rows - 1, 1, 11)
 
         # -------------------------------------------------
         # ☑️ 시트 옵션
         # -------------------------------------------------
-        ws.freeze_panes = "A10"
+        ws.freeze_panes = None
         ws.sheet_view.showGridLines = False
 
         return wb

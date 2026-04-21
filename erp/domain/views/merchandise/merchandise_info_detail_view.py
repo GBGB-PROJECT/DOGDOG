@@ -601,7 +601,7 @@ def erp_merchandise_info_detail_view():
 
     table_area = ft.Container(
         expand=True,
-        border=ft.border.all(1, cm.TABLE_BORDER),
+        border=ft.border.all(1, cm.FIELD_BORDER),
         border_radius=10,
         bgcolor=cm.CARD_BG,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,

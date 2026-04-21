@@ -50,15 +50,14 @@ def erp_info_box(title, main, sub):
 def custom_textfield(label:str, hint:str, is_password=False):
     """둥근 테두리의 규격화된 입력창"""
     def on_text_change(e):
-        val = e.control.value # 현재 입력된 값
+        current_value = e.control.value # 현재 입력된 값
 
-        if not val:
+        if not current_value:
             return
-        if re.search(r'[가-힣ㄱ-ㅎㅏ-ㅣ]', val):
-            cleaned = re.sub(r'[가-힣ㄱ-ㅎㅏ-ㅣ]', '', val)
-            if val != cleaned:
-                e.control.value = cleaned
-                e.control.update()
+        cleaned = re.sub(r'[가-힣ㄱ-ㅎㅏ-ㅣ]', '', current_value)
+        if e.control.value != cleaned:
+            e.control.value = cleaned
+            e.control.update()
     return ft.Column(
         spacing=5,
         controls=[
@@ -72,6 +71,7 @@ def custom_textfield(label:str, hint:str, is_password=False):
                 content_padding=15,
                 text_size=14,
                 bgcolor=ft.Colors.WHITE,
+                keyboard_type=ft.KeyboardType.EMAIL if not is_password else ft.KeyboardType.VISIBLE_PASSWORD,
                 input_filter=ft.InputFilter(
                     allow=True,
                     regex_string=r"[a-zA-Z0-9!@#$%^&*().,]*",

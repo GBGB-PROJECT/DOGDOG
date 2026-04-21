@@ -482,11 +482,18 @@ def erp_production_supplier_view():
             return
 
         def move_page(target_page: int):
-            pagination_state["current_page"] = target_page
+            if target_page < 1:
+                return
+            if target_page > total_pages:
+                return
             run_search(target_page)
 
         start_page = max(1, current_page - 2)
         end_page = min(total_pages, start_page + 4)
+
+        # ☑️ 끝 페이지가 5개보다 적게 보이면 시작 페이지를 다시 보정
+        if end_page - start_page < 4:
+            start_page = max(1, end_page - 4)
 
         page_buttons = []
 
@@ -508,7 +515,7 @@ def erp_production_supplier_view():
                     border=ft.Border.all(1, BUTTON_BORDER),
                     border_radius=6,
                     alignment=ft.Alignment(0, 0),
-                    on_click=(lambda e, p=page_no: move_page(p)),
+                    on_click=None if is_current else (lambda e, p=page_no: move_page(p)),
                     content=ft.Text(
                         value=str(page_no),
                         size=13,
@@ -532,91 +539,171 @@ def erp_production_supplier_view():
             controls=page_buttons,
         )
 
+    # =========================================================
+    # ☑️ 수정: 연락상태 검색어를 화면 표시값 기준으로 보정
+    # - DB는 boolean 이지만 화면에는 활성/비활성으로 표시됨
+    # - 사용자가 Y/N, true/false, 1/0으로 검색해도 동작하게 처리
+    # - 특히 "활성" 검색 시 "비활성"이 같이 잡히는 문제를 막기 위해 exact 조건 사용
+    # =========================================================
+    def normalize_contact_keyword(keyword: str):
+        clean_keyword = (keyword or "").strip()
+        lowered = clean_keyword.lower()
+
+        if lowered in ["활성", "가능", "사용", "y", "yes", "true", "1"]:
+            return "활성"
+
+        if lowered in ["비활성", "불가", "미사용", "n", "no", "false", "0"]:
+            return "비활성"
+
+        return clean_keyword
+
     def get_keyword_param(keyword: str):
-        return f"%{keyword}%"
+        return f"%{(keyword or '').strip()}%"
 
-    def get_count_query_and_params(search_key: str, keyword: str):
-        keyword_param = get_keyword_param(keyword)
+    # =========================================================
+    # ☑️ 수정: 거래처 조회용 WHERE 절을 한 곳에서 생성
+    # - 검색어 조건도 DB WHERE에 포함
+    # - 날짜 조건도 DB WHERE에 포함
+    # - 그래서 더 이상 전체 데이터를 가져온 뒤 Python에서 자르지 않음
+    # =========================================================
+    def build_supplier_where_clause(keyword: str):
+        where_clauses = []
+        params = []
 
-        query_map = {
-            "supplier_id": (Supplier.search_supplier_id_count_query, (keyword_param,)),
-            "supplier_name": (Supplier.search_supplier_name_count_query, (keyword_param,)),
-            "brn": (Supplier.search_brn_count_query, (keyword_param,)),
-            "is_contact_status": (Supplier.search_is_contact_status_count_query, (keyword_param,)),
-            "sup_manager": (Supplier.search_sup_manager_count_query, (keyword_param,)),
-            "phone": (Supplier.search_phone_count_query, (keyword_param,)),
-        }
+        clean_keyword = (keyword or "").strip()
+        search_key = search_type_value["value"]
 
-        return query_map.get(search_key, (Supplier.search_supplier_name_count_query, (keyword_param,)))
+        if clean_keyword:
+            if search_key == "supplier_id":
+                where_clauses.append("CAST(supplier_id AS TEXT) LIKE %s")
+                params.append(get_keyword_param(clean_keyword))
 
-    def get_list_query_and_params(search_key: str, keyword: str):
-        keyword_param = get_keyword_param(keyword)
+            elif search_key == "supplier_name":
+                where_clauses.append("LOWER(COALESCE(supplier_name, '')) LIKE LOWER(%s)")
+                params.append(get_keyword_param(clean_keyword))
 
-        query_map = {
-            "supplier_id": (Supplier.search_supplier_id_query, (keyword_param,)),
-            "supplier_name": (Supplier.search_supplier_name_query, (keyword_param,)),
-            "brn": (Supplier.search_brn_query, (keyword_param,)),
-            "is_contact_status": (Supplier.search_is_contact_status_query, (keyword_param,)),
-            "sup_manager": (Supplier.search_sup_manager_query, (keyword_param,)),
-            "phone": (Supplier.search_phone_query, (keyword_param,)),
-        }
+            elif search_key == "brn":
+                where_clauses.append("LOWER(COALESCE(brn, '')) LIKE LOWER(%s)")
+                params.append(get_keyword_param(clean_keyword))
 
-        return query_map.get(search_key, (Supplier.search_supplier_name_query, (keyword_param,)))
+            elif search_key == "is_contact_status":
+                contact_keyword = normalize_contact_keyword(clean_keyword)
 
-    def apply_date_filter(rows):
-        filtered_rows = []
+                if contact_keyword in ["활성", "비활성"]:
+                    where_clauses.append(
+                        """
+                        CASE
+                            WHEN is_contact_status IS TRUE THEN '활성'
+                            ELSE '비활성'
+                        END = %s
+                        """
+                    )
+                    params.append(contact_keyword)
+                else:
+                    where_clauses.append(
+                        """
+                        LOWER(
+                            CASE
+                                WHEN is_contact_status IS TRUE THEN '활성'
+                                ELSE '비활성'
+                            END
+                        ) LIKE LOWER(%s)
+                        """
+                    )
+                    params.append(get_keyword_param(contact_keyword))
 
-        for row in rows:
-            is_match = True
-            last_update_value = str(row.get("last_update", "")).strip()
+            elif search_key == "sup_manager":
+                where_clauses.append("LOWER(COALESCE(sup_manager, '')) LIKE LOWER(%s)")
+                params.append(get_keyword_param(clean_keyword))
 
-            if last_update_value:
-                try:
-                    date_text = last_update_value[:10]
-                    update_date_obj = datetime.datetime.strptime(date_text, "%Y-%m-%d")
+            elif search_key == "phone":
+                where_clauses.append("LOWER(COALESCE(phone, '')) LIKE LOWER(%s)")
+                params.append(get_keyword_param(clean_keyword))
 
-                    if selected_start["value"] and update_date_obj < selected_start["value"].replace(hour=0, minute=0, second=0, microsecond=0):
-                        is_match = False
-                    if selected_end["value"] and update_date_obj > selected_end["value"].replace(hour=0, minute=0, second=0, microsecond=0):
-                        is_match = False
-                except ValueError:
-                    pass
+        # =========================================================
+        # ☑️ 수정: 날짜 필터도 DB WHERE로 처리
+        # - 기존: 전체 조회 후 Python에서 last_update 비교
+        # - 변경: PostgreSQL에서 last_update::date 기준으로 필터링
+        # =========================================================
+        if selected_start["value"]:
+            where_clauses.append("last_update::date >= %s")
+            params.append(selected_start["value"].strftime("%Y-%m-%d"))
 
-            if is_match:
-                filtered_rows.append(row)
+        if selected_end["value"]:
+            where_clauses.append("last_update::date <= %s")
+            params.append(selected_end["value"].strftime("%Y-%m-%d"))
 
-        return filtered_rows
+        if where_clauses:
+            return "WHERE " + " AND ".join(where_clauses), params
+
+        return "", params
+
+    # =========================================================
+    # ☑️ 수정: count도 DB 조건 기준으로 직접 조회
+    # =========================================================
+    def fetch_total_count(keyword: str):
+        where_sql, params = build_supplier_where_clause(keyword)
+
+        count_query = f"""
+        SELECT COUNT(*) AS total_count
+        FROM "ERP".supplier
+        {where_sql}
+        """
+
+        count_result = fetch_one(count_query, tuple(params))
+        return int((count_result or {}).get("total_count", 0))
+
+    # =========================================================
+    # ☑️ 수정: 목록도 DB에서 50개씩만 직접 조회
+    # - 진짜 페이지네이션 핵심 부분
+    # - LIMIT / OFFSET을 SQL에 붙여서 현재 페이지 데이터만 가져옴
+    # =========================================================
+    def fetch_supplier_rows(keyword: str, page_no: int):
+        where_sql, params = build_supplier_where_clause(keyword)
+        offset = (page_no - 1) * PAGE_SIZE
+
+        list_query = f"""
+        SELECT
+            supplier_id,
+            supplier_name,
+            brn,
+            is_contact_status,
+            designated_payment_date,
+            scheduled_payment_date,
+            employee_id,
+            memo,
+            sup_manager,
+            phone,
+            last_update
+        FROM "ERP".supplier
+        {where_sql}
+        ORDER BY supplier_id ASC
+        LIMIT %s OFFSET %s
+        """
+
+        list_params = tuple(params + [PAGE_SIZE, offset])
+        raw_rows = fetch_all(list_query, list_params)
+        return supplier_db_row_adapter(raw_rows, page_no)
 
     def run_search(page_no: int = 1):
         keyword = (search_field.value or "").strip()
-        search_key = search_type_value["value"]
 
-        if keyword:
-            count_query, count_params = get_count_query_and_params(search_key, keyword)
-            count_result = fetch_one(count_query, count_params)
-            total_count = (count_result or {}).get("total_count", 0)
+        total_count = fetch_total_count(keyword)
+        total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
 
-            list_query, list_params = get_list_query_and_params(search_key, keyword)
-            raw_rows = fetch_all(list_query, list_params)
-        else:
-            count_result = fetch_one(Supplier.count_query)
-            total_count = (count_result or {}).get("total_count", 0)
-            raw_rows = fetch_all(Supplier.list_query)
+        # ☑️ 현재 페이지가 총 페이지보다 커지는 상황 방지
+        if page_no > total_pages:
+            page_no = total_pages
+        if page_no < 1:
+            page_no = 1
 
         pagination_state["total_count"] = total_count
-        pagination_state["total_pages"] = max(1, math.ceil(total_count / PAGE_SIZE))
+        pagination_state["total_pages"] = total_pages
         pagination_state["current_page"] = page_no
         pagination_state["keyword"] = keyword
 
-        all_rows = supplier_db_row_adapter(raw_rows, 1)
-        filtered_rows = apply_date_filter(all_rows)
-
-        start_idx = (page_no - 1) * PAGE_SIZE
-        end_idx = start_idx + PAGE_SIZE
-        paged_rows = filtered_rows[start_idx:end_idx]
-
         rows_state.clear()
-        rows_state.extend(paged_rows)
+        rows_state.extend(fetch_supplier_rows(keyword, page_no))
 
         start_text = (
             selected_start["value"].strftime("%Y-%m-%d")
@@ -632,7 +719,8 @@ def erp_production_supplier_view():
         result_text.value = (
             f"기간: {start_text} ~ {end_text} / "
             f"검색어: {keyword if keyword else '없음'} / "
-            f"조회 건수: {len(filtered_rows)}건"
+            f"전체 조회 건수: {total_count}건 / "
+            f"현재 페이지: {page_no}/{total_pages}"
         )
 
         refresh_table(rows_state)

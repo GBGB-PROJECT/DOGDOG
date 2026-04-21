@@ -1,10 +1,11 @@
+import math
 import flet as ft
 import datetime
 
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import EMPLOYEE_FIELDS
-from db import fetch_all
+from db import fetch_all, fetch_one
 from full_query import Employee
 
 
@@ -27,6 +28,9 @@ TABLE_BORDER = "#E5E7EB"
 TEXT_PRIMARY = "#111827"
 TEXT_SECONDARY = "#6B7280"
 TEXT_ROW = "#374151"
+
+SESSION_PREFIX = "employee"
+PAGE_SIZE = 50
 
 
 # =========================================================
@@ -170,10 +174,11 @@ def employee_row_adapter(saved_data: dict, next_no: int):
 # ☑️ DB row -> 사원 테이블 row 변환
 # - Employee.list_query 결과 기준
 # =========================================================
-def employee_db_row_adapter(db_rows: list):
+def employee_db_row_adapter(db_rows: list, page_no: int):
     rows = []
+    start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
-    for index, row in enumerate(db_rows, start=1):
+    for index, row in enumerate(db_rows, start=start_no):
         rows.append(
             {
                 "no": str(index),
@@ -207,6 +212,14 @@ def erp_employee_view():
     selected_end = {"value": None}
     search_type_value = {"value": "username"}
 
+    pagination_state = {
+        "current_page": 1,
+        "total_count": 0,
+        "total_pages": 1,
+        "keyword": "",
+        "page_ref": None,
+    }
+
     start_field_holder = ft.Container()
     start_icon_holder = ft.Container(width=38, height=38)
     end_field_holder = ft.Container()
@@ -219,6 +232,7 @@ def erp_employee_view():
     )
 
     table_rows_holder = ft.Column(spacing=0)
+    pagination_holder = ft.Container()
 
     dim_bg = ft.Container(
         visible=False,
@@ -259,15 +273,6 @@ def erp_employee_view():
         "emp_position_id": "직급ID",
         "phone": "전화번호",
         "email": "이메일",
-    }
-
-    search_key_map = {
-        "username": "username",
-        "employee_id": "employee_id",
-        "account_id": "account_id",
-        "emp_position_id": "emp_position_id",
-        "phone": "phone",
-        "email": "email",
     }
 
     def format_date_text(value):
@@ -414,14 +419,11 @@ def erp_employee_view():
     )
 
     search_field = ft.TextField(
-        width=185,
+        width=220,
         height=38,
         value="",
         hint_text="검색어",
-        hint_style=ft.TextStyle(
-            size=13,
-            color=HINT_TEXT,
-        ),
+        hint_style=ft.TextStyle(size=13, color=HINT_TEXT),
         text_size=13,
         border_color=FIELD_BORDER,
         border_radius=6,
@@ -461,6 +463,8 @@ def erp_employee_view():
         )
 
     def build_table_row(row):
+        active_color = "#166534" if row.get("active") == "재직" else "#991B1B"
+
         return ft.Container(
             padding=ft.Padding.only(
                 left=row_padding_x,
@@ -487,7 +491,13 @@ def erp_employee_view():
                     build_table_cell(row.get("phone", ""), col_expand["phone"], -1),
                     build_table_cell(row.get("address", ""), col_expand["address"], -1),
                     build_table_cell(row.get("postal_code", ""), col_expand["postal_code"], 0),
-                    build_table_cell(row.get("active", ""), col_expand["active"], 0),
+                    build_table_cell(
+                        row.get("active", ""),
+                        col_expand["active"],
+                        0,
+                        ft.FontWeight.W_700,
+                        active_color,
+                    ),
                 ],
             ),
         )
@@ -497,14 +507,225 @@ def erp_employee_view():
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
-    def load_rows():
-        db_rows = fetch_all(Employee.list_query)
-        rows_state.clear()
-        rows_state.extend(employee_db_row_adapter(db_rows))
-        refresh_table(rows_state)
-        result_text.value = f"조회 건수: {len(rows_state)}건"
+    def apply_date_filter(rows):
+        filtered_rows = []
 
-    def run_search():
+        for row in rows:
+            is_match = True
+            hire_date_value = str(row.get("hire_date", "")).strip()
+
+            if hire_date_value:
+                try:
+                    date_text = hire_date_value[:10]
+                    hire_date_obj = datetime.datetime.strptime(date_text, "%Y-%m-%d")
+
+                    if selected_start["value"] and hire_date_obj < selected_start["value"].replace(hour=0, minute=0, second=0, microsecond=0):
+                        is_match = False
+                    if selected_end["value"] and hire_date_obj > selected_end["value"].replace(hour=0, minute=0, second=0, microsecond=0):
+                        is_match = False
+                except ValueError:
+                    pass
+
+            if is_match:
+                filtered_rows.append(row)
+
+        return filtered_rows
+
+    # =========================================================
+    # ☑️ 추가: 검색조건별 count/list 쿼리 선택
+    # =========================================================
+    def get_search_queries():
+        search_queries = {
+            "username": (
+                Employee.search_username_count_query,
+                Employee.search_username_query,
+            ),
+            "employee_id": (
+                Employee.search_employee_id_count_query,
+                Employee.search_employee_id_query,
+            ),
+            "account_id": (
+                Employee.search_account_id_count_query,
+                Employee.search_account_id_query,
+            ),
+            "emp_position_id": (
+                Employee.search_emp_position_id_count_query,
+                Employee.search_emp_position_id_query,
+            ),
+            "phone": (
+                Employee.search_phone_count_query,
+                Employee.search_phone_query,
+            ),
+            "email": (
+                Employee.search_email_count_query,
+                Employee.search_email_query,
+            ),
+        }
+        return search_queries[search_type_value["value"]]
+
+    def get_keyword_param(keyword: str):
+        return f"%{(keyword or '').strip()}%"
+
+    def fetch_total_count(keyword=""):
+        if keyword:
+            count_query, _ = get_search_queries()
+            row = fetch_one(count_query, (get_keyword_param(keyword),))
+        else:
+            row = fetch_one(Employee.count_query)
+
+        if not row:
+            return 0
+
+        return int(row.get("total_count", 0))
+
+    def fetch_employee_rows(keyword="", page_no=1):
+        offset = (page_no - 1) * PAGE_SIZE
+
+        if keyword:
+            _, list_query = get_search_queries()
+            db_rows = fetch_all(
+                f"{list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}",
+                (get_keyword_param(keyword),),
+            )
+        else:
+            db_rows = fetch_all(
+                f"{Employee.list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}"
+            )
+
+        return employee_db_row_adapter(db_rows, page_no)
+
+    def move_page(page_no: int, page: ft.Page):
+        if page_no < 1:
+            return
+
+        if page_no > pagination_state["total_pages"]:
+            return
+
+        pagination_state["current_page"] = page_no
+        pagination_state["page_ref"] = page
+        reload_current_page()
+        page.update()
+
+    def build_page_button(label, page_no=None, selected=False, disabled=False):
+        text_color = ft.Colors.WHITE if selected else "#0F172A"
+        bgcolor = "#2563EB" if selected else ft.Colors.TRANSPARENT
+
+        if disabled:
+            text_color = "#94A3B8"
+
+        return ft.Container(
+            width=40,
+            height=40,
+            border_radius=10,
+            bgcolor=bgcolor,
+            alignment=ft.Alignment(0, 0),
+            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            content=ft.Text(
+                value=label,
+                size=16,
+                color=text_color,
+                weight=ft.FontWeight.W_700 if selected else ft.FontWeight.W_500,
+                text_align=ft.TextAlign.CENTER,
+            ),
+        )
+
+    def build_icon_page_button(icon_name, page_no=None, disabled=False):
+        icon_color = "#94A3B8" if disabled else "#0F172A"
+
+        return ft.Container(
+            width=40,
+            height=40,
+            border_radius=10,
+            alignment=ft.Alignment(0, 0),
+            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            content=ft.Icon(
+                icon_name,
+                size=20,
+                color=icon_color,
+            ),
+        )
+
+    def refresh_pagination():
+        total_pages = pagination_state["total_pages"]
+        current_page = pagination_state["current_page"]
+
+        if total_pages <= 1:
+            pagination_holder.content = None
+            return
+
+        page_controls = [
+            build_icon_page_button(
+                ft.Icons.CHEVRON_LEFT,
+                current_page - 1,
+                disabled=(current_page == 1),
+            )
+        ]
+
+        if total_pages <= 5:
+            page_numbers = list(range(1, total_pages + 1))
+        else:
+            if current_page <= 3:
+                page_numbers = [1, 2, 3, 4, None, total_pages]
+            elif current_page >= total_pages - 2:
+                page_numbers = [1, None, total_pages - 3, total_pages - 2, total_pages - 1, total_pages]
+            else:
+                page_numbers = [1, current_page - 1, current_page, current_page + 1, None, total_pages]
+
+        for page_no in page_numbers:
+            if page_no is None:
+                page_controls.append(
+                    ft.Container(
+                        width=40,
+                        height=40,
+                        alignment=ft.Alignment(0, 0),
+                        content=ft.Text(
+                            "...",
+                            size=18,
+                            color="#0F172A",
+                            weight=ft.FontWeight.W_700,
+                        ),
+                    )
+                )
+            else:
+                page_controls.append(
+                    build_page_button(
+                        label=str(page_no),
+                        page_no=page_no,
+                        selected=(page_no == current_page),
+                    )
+                )
+
+        page_controls.append(
+            build_icon_page_button(
+                ft.Icons.CHEVRON_RIGHT,
+                current_page + 1,
+                disabled=(current_page == total_pages),
+            )
+        )
+
+        pagination_holder.content = ft.Container(
+            padding=ft.Padding.only(top=14, bottom=6),
+            alignment=ft.Alignment(0, 0),
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=8,
+                controls=page_controls,
+            ),
+        )
+
+    def reload_current_page():
+        keyword = pagination_state["keyword"]
+        current_page = pagination_state["current_page"]
+
+        fetched_rows = fetch_employee_rows(keyword, current_page)
+        filtered_rows = apply_date_filter(fetched_rows)
+
+        rows_state.clear()
+        rows_state.extend(filtered_rows)
+        refresh_table(rows_state)
+        refresh_pagination()
+
         start_text = (
             selected_start["value"].strftime("%Y-%m-%d")
             if selected_start["value"]
@@ -516,43 +737,34 @@ def erp_employee_view():
             else "미선택"
         )
 
-        keyword = (search_field.value or "").strip()
-        actual_key = search_key_map.get(search_type_value["value"], "username")
-
-        filtered_rows = []
-
-        for row in rows_state:
-            is_match = True
-
-            if keyword:
-                target_value = str(row.get(actual_key, ""))
-                if keyword.lower() not in target_value.lower():
-                    is_match = False
-
-            hire_date_value = str(row.get("hire_date", "")).strip()
-            if hire_date_value:
-                try:
-                    hire_date_obj = datetime.datetime.strptime(hire_date_value[:10], "%Y-%m-%d")
-                    if selected_start["value"] and hire_date_obj < selected_start["value"].replace(hour=0, minute=0, second=0, microsecond=0):
-                        is_match = False
-                    if selected_end["value"] and hire_date_obj > selected_end["value"].replace(hour=0, minute=0, second=0, microsecond=0):
-                        is_match = False
-                except ValueError:
-                    pass
-
-            if is_match:
-                filtered_rows.append(row)
-
         result_text.value = (
             f"기간: {start_text} ~ {end_text} / "
+            f"검색조건: {search_type_labels[search_type_value['value']]} / "
             f"검색어: {keyword if keyword else '없음'} / "
-            f"조회 건수: {len(filtered_rows)}건"
+            f"전체 {pagination_state['total_count']}건 / "
+            f"현재 {len(rows_state)}건 / "
+            f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
         )
 
-        refresh_table(filtered_rows)
-        result_text.page.update()
+    def load_rows(page_ref: ft.Page | None = None):
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = page_ref
+        pagination_state["total_count"] = fetch_total_count("")
+        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        reload_current_page()
 
-    search_field.on_submit = lambda e: run_search()
+    def run_search(page_ref: ft.Page | None = None):
+        keyword = (search_field.value or "").strip()
+
+        pagination_state["keyword"] = keyword
+        pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = page_ref
+        pagination_state["total_count"] = fetch_total_count(keyword)
+        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        reload_current_page()
+
+    search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
 
     def on_print(e):
         result_text.value = "인쇄 기능은 아직 연결 전입니다."
@@ -570,7 +782,7 @@ def erp_employee_view():
 
     def clear_register_session(page: ft.Page):
         for field in EMPLOYEE_FIELDS:
-            page.session.store.set(f"employee_{field['key']}", "")
+            page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
 
     def handle_register_success(saved_data: dict):
         next_no = len(rows_state) + 1
@@ -586,7 +798,7 @@ def erp_employee_view():
             register_title="사원 등록",
             edit_title="사원 정보 수정",
             fields=EMPLOYEE_FIELDS,
-            session_prefix="employee",
+            session_prefix=SESSION_PREFIX,
             close_handler=close_register_modal,
             on_submit_success=handle_register_success,
         )
@@ -604,7 +816,14 @@ def erp_employee_view():
         result_text.value = f"DB 조회 실패: {exc}"
 
     action_controls = [
-        action_button("조회", on_click=lambda e: run_search(), width=78),
+        action_button(
+            "조회",
+            on_click=lambda e: (
+                load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
+                e.page.update(),
+            ),
+            width=78,
+        ),
         action_button("인쇄", on_click=on_print, width=78),
         action_button("다운로드", on_click=on_download, width=104),
         action_button("등록", on_click=open_register_modal, width=78),
@@ -671,6 +890,7 @@ def erp_employee_view():
                             ),
                             result_text,
                             table_area,
+                            pagination_holder,
                         ],
                     ),
                 ),

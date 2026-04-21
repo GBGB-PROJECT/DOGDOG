@@ -481,7 +481,32 @@ def erp_customer_view():
     # ☑️ 수정: 검색어 파라미터 1개만 만들기
     # =========================================================
     def get_keyword_param(keyword: str):
-        return f"%{keyword}%"
+        # =========================================================
+        # ☑️ 수정: 화면 표시값(Y/N, 활성/비활성) 기준 검색 보정
+        # - 구독여부는 DB boolean이지만 화면에는 Y/N으로 표시됨
+        # - 상태는 DB boolean이지만 화면에는 활성/비활성으로 표시됨
+        # - 특히 "활성" 검색 시 "비활성"까지 같이 잡히지 않도록 exact 검색 처리
+        # =========================================================
+        clean_keyword = (keyword or "").strip()
+        selected_type = search_type_value["value"]
+
+        if selected_type == "is_subscribed":
+            lowered = clean_keyword.lower()
+            if lowered in ["y", "yes", "true", "1", "구독", "사용", "활성"]:
+                return "Y"
+            if lowered in ["n", "no", "false", "0", "미구독", "비구독", "비활성"]:
+                return "N"
+            return clean_keyword
+
+        if selected_type == "active":
+            lowered = clean_keyword.lower()
+            if lowered in ["활성", "사용", "y", "yes", "true", "1"]:
+                return "활성"
+            if lowered in ["비활성", "미사용", "n", "no", "false", "0"]:
+                return "비활성"
+            return clean_keyword
+
+        return f"%{clean_keyword}%"
 
     # =========================================================
     # ☑️ 수정: 드롭다운 선택값에 따라 실제 사용할 쿼리 분기

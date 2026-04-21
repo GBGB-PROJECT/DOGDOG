@@ -1,7 +1,8 @@
+import math
 import flet as ft
-from db import fetch_all
-from full_query import ProductDetail
 from components import common as cm
+from db import fetch_all, fetch_one
+from full_query import ProductDetail
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 
@@ -27,6 +28,7 @@ TEXT_ROW = "#374151"
 # ☑️ 상품 상세 session prefix
 # =========================================================
 SESSION_PREFIX = "product_detail"
+PAGE_SIZE = 50
 
 
 def build_text(
@@ -88,18 +90,11 @@ def build_table_cell(
     )
 
 
-def get_product_detail_rows(keyword=""):
-    if keyword:
-        search = f"%{keyword}%"
-        raw_rows = fetch_all(
-            ProductDetail.search_query,
-            (search, search, search, search, search),
-        )
-    else:
-        raw_rows = fetch_all(ProductDetail.list_query)
-
+def product_detail_db_row_adapter(db_rows: list, page_no: int):
     rows = []
-    for index, row in enumerate(raw_rows, start=1):
+    start_no = ((page_no - 1) * PAGE_SIZE) + 1
+
+    for index, row in enumerate(db_rows, start=start_no):
         rows.append(
             {
                 "no": str(index),
@@ -122,6 +117,7 @@ def get_product_detail_rows(keyword=""):
                 "feedshape": row.get("feedshape", ""),
             }
         )
+
     return rows
 
 
@@ -162,13 +158,6 @@ def erp_merchandise_info_detail_view():
         "function": "기능",
         "main_protein": "주원료",
     }
-    search_key_map = {
-        "product_name": "product_name",
-        "type": "type",
-        "brand": "brand",
-        "function": "function",
-        "main_protein": "main_protein",
-    }
 
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
@@ -191,12 +180,21 @@ def erp_merchandise_info_detail_view():
         {"key": "feedshape", "label": "사료 형태", "width": 90, "align_x": -1},
     ]
 
+    pagination_state = {
+        "current_page": 1,
+        "total_count": 0,
+        "total_pages": 1,
+        "keyword": "",
+        "page_ref": None,
+    }
+
     result_text = ft.Text(
         value="DB 조회 전입니다.",
         size=13,
         color=TEXT_SECONDARY,
     )
     table_rows_holder = ft.Column(spacing=0)
+    pagination_holder = ft.Container()
 
     dim_bg = ft.Container(
         visible=False,
@@ -342,34 +340,221 @@ def erp_merchandise_info_detail_view():
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
-    def load_rows(keyword=""):
-        rows_state.clear()
-        rows_state.extend(get_product_detail_rows(keyword))
-        refresh_table(rows_state)
-        result_text.value = f"조회 건수: {len(rows_state)}건"
+    # =========================================================
+    # ☑️ 추가: 검색조건별 count/list 쿼리 선택
+    # =========================================================
+    def get_search_queries():
+        search_queries = {
+            "product_name": (
+                ProductDetail.search_product_name_count_query,
+                ProductDetail.search_product_name_query,
+            ),
+            "type": (
+                ProductDetail.search_type_count_query,
+                ProductDetail.search_type_query,
+            ),
+            "brand": (
+                ProductDetail.search_brand_count_query,
+                ProductDetail.search_brand_query,
+            ),
+            "function": (
+                ProductDetail.search_function_count_query,
+                ProductDetail.search_function_query,
+            ),
+            "main_protein": (
+                ProductDetail.search_main_protein_count_query,
+                ProductDetail.search_main_protein_query,
+            ),
+        }
+        return search_queries[search_type_value["value"]]
 
-    def run_search():
-        keyword = (search_field.value or "").strip()
+    def get_keyword_param(keyword: str):
+        return f"%{(keyword or '').strip()}%"
 
-        if not keyword:
-            load_rows("")
-            result_text.update()
+    def fetch_total_count(keyword=""):
+        if keyword:
+            count_query, _ = get_search_queries()
+            row = fetch_one(count_query, (get_keyword_param(keyword),))
+        else:
+            row = fetch_one(ProductDetail.count_query)
+
+        if not row:
+            return 0
+
+        return int(row.get("total_count", 0))
+
+    def fetch_product_rows(keyword="", page_no=1):
+        offset = (page_no - 1) * PAGE_SIZE
+
+        if keyword:
+            _, list_query = get_search_queries()
+            db_rows = fetch_all(
+                f"{list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}",
+                (get_keyword_param(keyword),),
+            )
+        else:
+            db_rows = fetch_all(
+                f"{ProductDetail.list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}"
+            )
+
+        return product_detail_db_row_adapter(db_rows, page_no)
+
+    def move_page(page_no: int, page: ft.Page):
+        if page_no < 1:
             return
 
-        actual_key = search_key_map.get(search_type_value["value"], "product_name")
-        db_rows = get_product_detail_rows(keyword)
+        if page_no > pagination_state["total_pages"]:
+            return
 
-        filtered_rows = []
-        for row in db_rows:
-            target_value = str(row.get(actual_key, ""))
-            if keyword.lower() in target_value.lower():
-                filtered_rows.append(row)
+        pagination_state["current_page"] = page_no
+        pagination_state["page_ref"] = page
+        reload_current_page()
+        page.update()
+
+    def build_page_button(label, page_no=None, selected=False, disabled=False):
+        text_color = ft.Colors.WHITE if selected else "#0F172A"
+        bgcolor = "#2563EB" if selected else ft.Colors.TRANSPARENT
+
+        if disabled:
+            text_color = "#94A3B8"
+
+        return ft.Container(
+            width=40,
+            height=40,
+            border_radius=10,
+            bgcolor=bgcolor,
+            alignment=ft.Alignment(0, 0),
+            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            content=ft.Text(
+                value=label,
+                size=16,
+                color=text_color,
+                weight=ft.FontWeight.W_700 if selected else ft.FontWeight.W_500,
+                text_align=ft.TextAlign.CENTER,
+            ),
+        )
+
+    def build_icon_page_button(icon_name, page_no=None, disabled=False):
+        icon_color = "#94A3B8" if disabled else "#0F172A"
+
+        return ft.Container(
+            width=40,
+            height=40,
+            border_radius=10,
+            alignment=ft.Alignment(0, 0),
+            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            content=ft.Icon(
+                icon_name,
+                size=20,
+                color=icon_color,
+            ),
+        )
+
+    def refresh_pagination():
+        total_pages = pagination_state["total_pages"]
+        current_page = pagination_state["current_page"]
+
+        if total_pages <= 1:
+            pagination_holder.content = None
+            return
+
+        page_controls = [
+            build_icon_page_button(
+                ft.Icons.CHEVRON_LEFT,
+                current_page - 1,
+                disabled=(current_page == 1),
+            )
+        ]
+
+        if total_pages <= 5:
+            page_numbers = list(range(1, total_pages + 1))
+        else:
+            if current_page <= 3:
+                page_numbers = [1, 2, 3, 4, None, total_pages]
+            elif current_page >= total_pages - 2:
+                page_numbers = [1, None, total_pages - 3, total_pages - 2, total_pages - 1, total_pages]
+            else:
+                page_numbers = [1, current_page - 1, current_page, current_page + 1, None, total_pages]
+
+        for page_no in page_numbers:
+            if page_no is None:
+                page_controls.append(
+                    ft.Container(
+                        width=40,
+                        height=40,
+                        alignment=ft.Alignment(0, 0),
+                        content=ft.Text(
+                            "...",
+                            size=18,
+                            color="#0F172A",
+                            weight=ft.FontWeight.W_700,
+                        ),
+                    )
+                )
+            else:
+                page_controls.append(
+                    build_page_button(
+                        label=str(page_no),
+                        page_no=page_no,
+                        selected=(page_no == current_page),
+                    )
+                )
+
+        page_controls.append(
+            build_icon_page_button(
+                ft.Icons.CHEVRON_RIGHT,
+                current_page + 1,
+                disabled=(current_page == total_pages),
+            )
+        )
+
+        pagination_holder.content = ft.Container(
+            padding=ft.Padding.only(top=14, bottom=6),
+            alignment=ft.Alignment(0, 0),
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=8,
+                controls=page_controls,
+            ),
+        )
+
+    def reload_current_page():
+        keyword = pagination_state["keyword"]
+        current_page = pagination_state["current_page"]
+
+        fetched_rows = fetch_product_rows(keyword, current_page)
 
         rows_state.clear()
-        rows_state.extend(filtered_rows)
-        refresh_table(filtered_rows)
-        result_text.value = f"검색어: {keyword} / 조회 건수: {len(rows_state)}건"
-        result_text.update()
+        rows_state.extend(fetched_rows)
+        refresh_table(rows_state)
+        refresh_pagination()
+
+        result_text.value = (
+            f"검색조건: {search_type_labels[search_type_value['value']]} / "
+            f"검색어: {keyword if keyword else '없음'} / "
+            f"전체 {pagination_state['total_count']}건 / "
+            f"현재 {len(rows_state)}건 / "
+            f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
+        )
+
+    def load_rows(page_ref: ft.Page | None = None):
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = page_ref
+        pagination_state["total_count"] = fetch_total_count("")
+        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        reload_current_page()
+
+    def run_search(page_ref: ft.Page | None = None):
+        keyword = (search_field.value or "").strip()
+
+        pagination_state["keyword"] = keyword
+        pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = page_ref
+        pagination_state["total_count"] = fetch_total_count(keyword)
+        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        reload_current_page()
 
     def on_download(e):
         result_text.value = "다운로드 기능은 아직 연결 전입니다."
@@ -412,10 +597,10 @@ def erp_merchandise_info_detail_view():
         e.page.update()
 
     dim_bg.on_click = close_register_modal
-    search_field.on_submit = lambda e: run_search()
+    search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
 
     try:
-        load_rows("")
+        load_rows()
     except Exception as exc:
         result_text.value = f"DB 조회 실패: {exc}"
 
@@ -428,7 +613,14 @@ def erp_merchandise_info_detail_view():
             controls=[
                 search_type,
                 search_field,
-                action_button("조회", on_click=lambda e: run_search(), width=78),
+                action_button(
+                    "조회",
+                    on_click=lambda e: (
+                        load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
+                        e.page.update(),
+                    ),
+                    width=78,
+                ),
                 action_button("인쇄", on_click=on_print, width=78),
                 action_button("다운로드", on_click=on_download, width=104),
                 action_button("등록", on_click=open_register_modal, width=78),
@@ -479,6 +671,7 @@ def erp_merchandise_info_detail_view():
                             ),
                             result_text,
                             table_area,
+                            pagination_holder,
                         ],
                     ),
                 ),

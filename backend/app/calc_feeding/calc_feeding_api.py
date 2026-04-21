@@ -3,10 +3,53 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.db import get_db
-from backend.app.calc_feeding.guideIntake_repository import get_guide_intake, get_feeding_count
+from backend.app.calc_feeding.repository.guideIntake_repository import get_guide_intake, get_feeding_count
 from backend.dependencies import get_pet_by_id, check_pet_owner
 
-router = APIRouter(tags=["calc_feeding"])
+# from backend.app.feeding_recommendation.schema import (
+#     FeedingRecommendationCreateRequest,
+# )
+from backend.app.calc_feeding.cal_guideIntake_service import create_feeding_recommendation_service
+
+# 예시: 실제 프로젝트에 맞는 auth dependency로 교체
+# from backend.dependencies import get_current_customer_id
+
+router = APIRouter(tags=["calc_guide_feeding"])
+
+@router.post("/pets/{pet_id}/cal_feeding/guide")
+def create_feeding_recommendation_api(
+    pet_id: int,
+    db: Session = Depends(get_db),
+):
+    result = create_feeding_recommendation_service(
+        db=db,
+        pet_id=pet_id,
+    )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "success": True,
+            "message": "권장 급여량이 생성되었습니다.",
+            "data": result
+        }
+    )
+'''
+"data": {
+    "pet_id": result["pet_id"],
+    "base_intake": result["base_intake"],
+    "guide_intake": result["guide_intake"],
+    "guide_date": result["guide_date"].isoformat() if result["guide_date"] else None,
+    "feeding_count": result["feeding_count"],
+    "base_per_meal_g": result["base_per_meal_g"],
+    "guide_per_meal_g": result["guide_per_meal_g"],
+    "adjustment_ratio": result["adjustment_ratio"],
+    "adjustment_rate": result["adjustment_rate"],
+    "adjustment_reason": result["adjustment_reason"],
+    "recommend_kcal": result["recommend_kcal"],
+    "goal_weight": result["goal_weight"],
+}
+'''
 
 @router.get("/pets/{pet_id}/cal_feeding/guide")
 def read_guide_intake(
@@ -80,7 +123,6 @@ def read_guide_intake(
 
                 "recommended_at":guide.guide_date
             }
-
 
         return {
             "success": True,

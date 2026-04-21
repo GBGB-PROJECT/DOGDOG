@@ -20,3 +20,6 @@ base_g = round(base_g, 2)
 goal_weight = round(goal_weight, 2)
 
 print(base_g, goal_weight)
+'''
+python -m ai.test.test_base_formula
+'''

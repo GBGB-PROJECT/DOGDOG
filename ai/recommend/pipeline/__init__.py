@@ -1,1 +1,0 @@
-from .inference import predict_recommend_g

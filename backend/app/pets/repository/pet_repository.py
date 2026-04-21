@@ -31,14 +31,12 @@ class PetRepository:
 
     def create_pet_and_butler(self, customer_id: int, pet_data: dict) -> CompanionPet:
         try:
-            # Parse sex_and_neuter 
-            # 1: M/False, 2: M/True, 3: F/False, 4: F/True
-            # To respect DB constraint `sex in (1,2)` -> 1=Male, 2=Female
+            # Parse sex_and_neuter
             sn = pet_data["sex_and_neuter"]
             sex_val = 1 if sn in [1, 2] else 2
             is_neutered_val = True if sn in [2, 4] else False
 
-            # CompanionPet insert
+            # 1. CompanionPet 인스턴스 생성
             pet = CompanionPet(
                 nickname=pet_data["nickname"],
                 birth_day=pet_data["birth_day"],
@@ -58,20 +56,34 @@ class PetRepository:
                 diseases=json.dumps(pet_data.get("diseases", []), ensure_ascii=False),
                 active=True
             )
+            
             self.db.add(pet)
-            self.db.flush() # get pet_id
+            # 2. flush()를 호출하여 DB에서 pet_id 값을 즉시 할당받음
+            self.db.flush()
 
-            # CompanionButler insert
+            # flush 이후 pet_id가 제대로 할당되었는지 검증 (안전 장치)
+            if not pet.pet_id:
+                raise ValueError("pet_id를 확보하지 못했습니다.")
+
+            # 3. 확보된 pet_id와 전달받은 customer_id를 이용해 CompanionButler 생성 (필수 필드 포함)
             butler = CompanionButler(
                 pet_id=pet.pet_id,
                 customer_id=customer_id,
                 is_main_butler=True,
                 active=True
             )
+            
             self.db.add(butler)
+            
+            # 4. 단 한 번의 단일 트랜잭션으로 pet과 butler를 동시에 영구 저장
             self.db.commit()
             
+            # commit 후 pet 객체를 서비스 계층에서 안전하게 다루기 위해 refresh 수행
+            self.db.refresh(pet)
+            
             return pet
+            
         except Exception as e:
+            # 예외 발생 시 반드시 롤백하여 DB의 부분 저장 원천 차단
             self.db.rollback()
             raise Exception(f"DATABASE_ERROR: {str(e)}")

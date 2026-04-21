@@ -178,6 +178,7 @@ def erp_customer_view():
         "total_count": 0,
         "total_pages": 1,
         "keyword": "",
+        "page_ref": None,
     }
 
     start_field_holder = ft.Container()
@@ -514,10 +515,14 @@ def erp_customer_view():
             return
 
         pagination_state["current_page"] = page_no
+        pagination_state["page_ref"] = page
         reload_current_page()
         page.update()
 
-    def build_page_button(label, page_ref: ft.Page, page_no=None, selected=False, disabled=False):
+    # =========================================================
+    # ☑️ 수정: page_ref를 매번 인자로 받지 않고 클릭 시 e.page를 직접 사용
+    # =========================================================
+    def build_page_button(label, page_no=None, selected=False, disabled=False):
         text_color = ft.Colors.WHITE if selected else "#0F172A"
         bgcolor = "#2563EB" if selected else ft.Colors.TRANSPARENT
 
@@ -530,7 +535,7 @@ def erp_customer_view():
             border_radius=10,
             bgcolor=bgcolor,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, page_ref),
+            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
             content=ft.Text(
                 value=label,
                 size=16,
@@ -540,7 +545,10 @@ def erp_customer_view():
             ),
         )
 
-    def build_icon_page_button(icon_name, page_ref: ft.Page, page_no=None, disabled=False):
+    # =========================================================
+    # ☑️ 수정: 화살표 버튼도 클릭 시 e.page를 직접 사용
+    # =========================================================
+    def build_icon_page_button(icon_name, page_no=None, disabled=False):
         icon_color = "#94A3B8" if disabled else "#0F172A"
 
         return ft.Container(
@@ -548,7 +556,7 @@ def erp_customer_view():
             height=40,
             border_radius=10,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, page_ref),
+            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
             content=ft.Icon(
                 icon_name,
                 size=20,
@@ -556,7 +564,7 @@ def erp_customer_view():
             ),
         )
 
-    def refresh_pagination(page_ref: ft.Page):
+    def refresh_pagination():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
@@ -567,7 +575,6 @@ def erp_customer_view():
         page_controls = [
             build_icon_page_button(
                 ft.Icons.CHEVRON_LEFT,
-                page_ref,
                 current_page - 1,
                 disabled=(current_page == 1),
             )
@@ -602,7 +609,6 @@ def erp_customer_view():
                 page_controls.append(
                     build_page_button(
                         label=str(page_no),
-                        page_ref=page_ref,
                         page_no=page_no,
                         selected=(page_no == current_page),
                     )
@@ -611,7 +617,6 @@ def erp_customer_view():
         page_controls.append(
             build_icon_page_button(
                 ft.Icons.CHEVRON_RIGHT,
-                page_ref,
                 current_page + 1,
                 disabled=(current_page == total_pages),
             )
@@ -628,7 +633,10 @@ def erp_customer_view():
             ),
         )
 
-    def reload_current_page(page_ref: ft.Page | None = None):
+    # =========================================================
+    # ☑️ 수정: 현재 페이지 다시 불러올 때 항상 pagination도 같이 갱신
+    # =========================================================
+    def reload_current_page():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]
 
@@ -638,9 +646,7 @@ def erp_customer_view():
         rows_state.clear()
         rows_state.extend(filtered_rows)
         refresh_table(rows_state)
-
-        if page_ref is not None:
-            refresh_pagination(page_ref)
+        refresh_pagination()
 
         start_text = (
             selected_start["value"].strftime("%Y-%m-%d")
@@ -664,18 +670,20 @@ def erp_customer_view():
     def load_rows(page_ref: ft.Page | None = None):
         pagination_state["keyword"] = ""
         pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count("")
         pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
-        reload_current_page(page_ref)
+        reload_current_page()
 
     def run_search(page_ref: ft.Page | None = None):
         keyword = (search_field.value or "").strip()
 
         pagination_state["keyword"] = keyword
         pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count(keyword)
         pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
-        reload_current_page(page_ref)
+        reload_current_page()
 
     search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
 
@@ -724,7 +732,14 @@ def erp_customer_view():
     refresh_picker_fields()
 
     action_controls = [
-        action_button("조회", on_click=lambda e: (load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page), e.page.update()), width=78),
+        action_button(
+            "조회",
+            on_click=lambda e: (
+                load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
+                e.page.update(),
+            ),
+            width=78,
+        ),
         action_button("인쇄", on_click=on_print, width=78),
         action_button("다운로드", on_click=on_download, width=104),
         action_button("등록", on_click=open_register_modal, width=78),

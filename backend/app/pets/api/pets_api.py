@@ -4,13 +4,28 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
 from db.db import get_db
-from backend.app.pets.repository.petFood_repository import end_pet_food
-from backend.app.pets.petFood_service import create_pet_food
-from backend.app.pets.repository.petFoodDetail_repository import get_current_pet_food_detail, get_pet_by_id
-# from backend.app.core.auth import get_current_customer_id  # 가정: 토큰에서 customer_id 추출
+from app.pets.schemas import PetRegisterRequest, PetRegisterResponse
+from app.pets.service.pet_service import PetService
+from app.auth.security import get_current_user
+
+from app.pets.repository.petFood_repository import end_pet_food
+from app.pets.service.petFood_service import create_pet_food
+from app.pets.repository.petFoodDetail_repository import get_current_pet_food_detail, get_pet_by_id
 from datetime import date, timedelta
 
-router = APIRouter(tags=["pets"])
+router = APIRouter(prefix="/api/v1/pets", tags=["Pets"])
+
+# 반려견 최초 등록 ------------------------------------------------------------------
+@router.post("", response_model=PetRegisterResponse, status_code=201)
+def register_pet(
+    request: PetRegisterRequest,
+    customer_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    service = PetService(db)
+    result = service.register_pet(customer_id, request)
+    return JSONResponse(status_code=201, content=result)
+
 
 # 급여사료 등록 ------------------------------------------------------------------
 class PetFoodCreateRequest(BaseModel):
@@ -19,7 +34,7 @@ class PetFoodCreateRequest(BaseModel):
     total_weight: int = Field(..., gt=0, description="남은 급여 가능량(g)")
     # left_intake: int = Field(..., ge=0, description="남은 급여 가능량(g)")
 
-@router.post("/pets/{pet_id}/pet_food")
+@router.post("/{pet_id}/pet_food")
 def register_pet_food(
     pet_id: int,
     body: PetFoodCreateRequest,
@@ -93,7 +108,7 @@ def register_pet_food(
         )
 
 # 급여사료 상세조회 --------------------------------------------------------------    
-@router.get("/pets/{pet_id}/pet_food")
+@router.get("/{pet_id}/pet_food")
 def read_current_pet_food_detail(
     pet_id: int,
     db: Session = Depends(get_db)
@@ -199,7 +214,7 @@ def read_current_pet_food_detail(
         )
     
 # 급여사료 삭제 ------------------------------------------------------------------
-@router.delete("/pets/{pet_id}/pet_food")
+@router.delete("/{pet_id}/pet_food")
 def remove_pet_food(
     pet_id: int,
     db: Session = Depends(get_db)

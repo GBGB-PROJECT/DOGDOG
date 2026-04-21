@@ -1,9 +1,5 @@
 import os
 import sys
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from backend.app.pets.pets_api import router as pets_router
 
 # 프로젝트 루트 디렉토리를 sys.path에 추가하여 db 패키지를 찾을 수 있게 합니다.
 # 현재 파일 위치: backend/main.py -> 부모가 프로젝트 루트
@@ -16,6 +12,11 @@ if project_root not in sys.path:
 # backend 폴더 자체도 path에 추가하여 app.logs... 임포트가 가능하게 합니다.
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.pets.api.pets_api import router as pets_router
 
 # 이제 db.db와 app.logs...를 정상적으로 임포트할 수 있습니다.
 # from app.logs.api.feeding_api import router as feeding_router
@@ -39,7 +40,7 @@ app.add_middleware(
 # app.include_router(feeding_router, prefix="/api/v1/feeding")
 
 # pets 라우터 등록
-app.include_router(pets_router, prefix="/app")
+app.include_router(pets_router)
 
 @app.get("/")
 def read_root():

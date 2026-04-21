@@ -1,26 +1,46 @@
 import psycopg2
+import os 
 from psycopg2.extras import RealDictCursor
 from decimal import Decimal
 from datetime import datetime, date
 
 
 # =========================================================
+# ☑️ .env 파일 간단 로드
+# - erp/.env 파일에 있는 DB 접속정보를 os.environ에 올림
+# - python-dotenv 설치 없이 사용
+# =========================================================
+def load_env():
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+
+    if not os.path.exists(env_path):
+        return
+
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip())
+
+
+load_env()
+
+
+# =========================================================
 # ☑️ DB 접속 설정
-# - host: DB 서버 주소
-# - dbname: 데이터베이스 이름
-# - user: DB 계정
-# - password: DB 비밀번호
-# - port: 포트 번호
-#
-# ※ 현재는 조회 전용으로만 사용
-# ※ INSERT / UPDATE / DELETE 같은 실제 반영 기능은 아예 제거함
+# - 기존 DB_CONFIG 형태 유지
+# - 값만 .env / 환경변수에서 읽음
 # =========================================================
 DB_CONFIG = {
-    "host": "pg.nas6418.ddns.net",
-    "dbname": "Dogdog",
-    "user": "dog_5",
-    "password": "kosmo",
-    "port": 9934,
+    "host": os.getenv("DB_HOST"),
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "port": int(os.getenv("DB_PORT", "5432")),
 }
 
 

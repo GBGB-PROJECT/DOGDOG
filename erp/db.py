@@ -1,5 +1,5 @@
+import os
 import psycopg2
-import os 
 from psycopg2.extras import RealDictCursor
 from decimal import Decimal
 from datetime import datetime, date
@@ -8,7 +8,7 @@ from datetime import datetime, date
 # =========================================================
 # ☑️ .env 파일 간단 로드
 # - erp/.env 파일에 있는 DB 접속정보를 os.environ에 올림
-# - python-dotenv 설치 없이 사용
+# - python-dotenv 설치 없이 표준 라이브러리만 사용
 # =========================================================
 def load_env():
     env_path = os.path.join(os.path.dirname(__file__), ".env")
@@ -24,7 +24,7 @@ def load_env():
                 continue
 
             key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip())
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
 load_env()
@@ -32,8 +32,8 @@ load_env()
 
 # =========================================================
 # ☑️ DB 접속 설정
-# - 기존 DB_CONFIG 형태 유지
-# - 값만 .env / 환경변수에서 읽음
+# - 기존 DB_CONFIG 구조 유지
+# - 실제 접속정보는 erp/.env 또는 OS 환경변수에서 읽어옴
 # =========================================================
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
@@ -54,14 +54,6 @@ def get_connection():
 
 # =========================================================
 # ☑️ Flet 직렬화용 값 변환
-# - PostgreSQL에서 가져온 Decimal / datetime 타입은
-#   Flet Web(msgpack)에서 바로 직렬화되지 않을 수 있음
-# - 따라서 화면에 넘기기 전에 기본 타입으로 변환
-#
-# 변환 규칙:
-# - Decimal -> float
-# - datetime/date -> 문자열
-# - dict/list/tuple 내부도 재귀적으로 변환
 # =========================================================
 def sanitize_for_flet(value):
     if isinstance(value, Decimal):
@@ -87,13 +79,6 @@ def sanitize_for_flet(value):
 
 # =========================================================
 # ☑️ 여러 행 조회
-# - SELECT 결과를 리스트로 반환
-# - RealDictCursor를 사용해서 컬럼명을 key처럼 바로 쓸 수 있음
-# - Decimal / datetime 타입은 sanitize_for_flet()로 변환
-#
-# 예:
-# rows = fetch_all(ProductDetail.list_query)
-# rows[0]["product_name"]
 # =========================================================
 def fetch_all(query: str, params=None):
     conn = get_connection()
@@ -108,11 +93,6 @@ def fetch_all(query: str, params=None):
 
 # =========================================================
 # ☑️ 한 행만 조회
-# - SELECT 결과 중 1행만 반환
-# - Decimal / datetime 타입은 sanitize_for_flet()로 변환
-#
-# 예:
-# row = fetch_one("SELECT ... WHERE id = %s", (1,))
 # =========================================================
 def fetch_one(query: str, params=None):
     conn = get_connection()
@@ -128,7 +108,6 @@ def fetch_one(query: str, params=None):
 # =========================================================
 # ☑️ 실행 함수 제거
 # - 실제 데이터 저장/수정/삭제를 막기 위해 execute()는 사용 불가
-# - 실수로 저장 버튼을 눌러도 DB 반영이 일어나지 않도록 차단
 # =========================================================
 def execute(query: str, params=None):
     raise RuntimeError(

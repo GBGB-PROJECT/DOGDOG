@@ -117,5 +117,10 @@ def insert_pet_product_feeding(
         deactivate_pet_food(
             db=db, pet_food=active_pet_food, feeding_false_date=date.today()
         )
-
-        return active_pet_food
+        new_pet_food = CompanionPetProductFeeding(
+            pet_id=pet_id,
+            product_id=product_id,
+            one_gram_calories=one_gram_calories,
+        )
+        db.add(new_pet_food)
+        return new_pet_food

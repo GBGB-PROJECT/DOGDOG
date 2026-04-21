@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from db.db import get_db
 from app.pets.schemas import PetRegisterRequest, PetRegisterResponse
 from app.pets.service.pet_service import PetService
+from app.pets.service.pet_info_service import PetService as PetInfoService
 from app.auth.security import get_current_user
 
 from app.pets.repository.petFood_repository import end_pet_food
@@ -288,5 +289,38 @@ def remove_pet_food(
                 "success": False,
                 "error_code": "PET_PRODUCT_FEEDING_DELETE_FAILED",
                 "message": "급여 사료 정보 삭제에 실패했습니다."
+            }
+        )
+
+# 반려견 정보 리스트 조회 (Customer ID 기준) --------------------------------------
+@router.get("/{customer_id}")
+async def get_pet_info(customer_id: int, db: Session = Depends(get_db)):
+    try:
+        # 서비스 계층 호출
+        results = PetInfoService.get_pet_list_with_profile(db, customer_id)
+
+        if not results:
+            from fastapi import HTTPException
+            # 데이터가 없을 때는 404 에러
+            raise HTTPException(status_code=404, detail="해당 고객의 반려동물이 없습니다.")
+        
+        return {
+            "status": "success",
+            "message": "고객 반려동물 추출 완료",
+            "data": results
+        }
+
+    except Exception as e:
+        from fastapi import HTTPException
+        if isinstance(e, HTTPException):
+            raise e
+            
+        print(f"반려견 목록 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error_code": "PET_INFO_READ_FAILED",
+                "message": "반려견 목록 조회에 실패했습니다."
             }
         )

@@ -3,9 +3,9 @@ import json
 import numpy as np
 from ai.recommend import calculate_base_g
 
-model = joblib.load("/ai/recommend/models/model.pkl")
+model = joblib.load("ai/recommend/models/model.pkl")
 
-with open("/ai/recommend/models/feature_columns.json", "r") as f:
+with open("ai/recommend/models/feature_columns.json", "r") as f:
     feature_cols = json.load(f) 
 
 def predict_recommend_g(

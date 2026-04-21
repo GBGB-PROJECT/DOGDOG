@@ -49,14 +49,16 @@ def erp_info_box(title, main, sub):
 
 def custom_textfield(label:str, hint:str, is_password=False):
     """둥근 테두리의 규격화된 입력창"""
-    def clean_logic(e):
-        """텍스트 검사 및 한글제거"""
-        cleaned_text = re.sub(r"[^a-zA-Z0-9!@#$%^&*().,]", "", e.control.value)
-        
-        # 원래 입력된 값과 청소된 값이 다르면 교체
-        if e.control.value != cleaned_text:
-            e.control.value = cleaned_text
-            e.control.update() 
+    def on_text_change(e):
+        val = e.control.value # 현재 입력된 값
+
+        if not val:
+            return
+        if re.search(r'[가-힣ㄱ-ㅎㅏ-ㅣ]', val):
+            cleaned = re.sub(r'[가-힣ㄱ-ㅎㅏ-ㅣ]', '', val)
+            if val != cleaned:
+                e.control.value = cleaned
+                e.control.update()
     return ft.Column(
         spacing=5,
         controls=[
@@ -70,6 +72,11 @@ def custom_textfield(label:str, hint:str, is_password=False):
                 content_padding=15,
                 text_size=14,
                 bgcolor=ft.Colors.WHITE,
+                input_filter=ft.InputFilter(
+                    allow=True,
+                    regex_string=r"[a-zA-Z0-9!@#$%^&*().,]*",
+                    replacement_string=""
+                ),
                 on_change=on_text_change # 4. 정의한 함수 이름과 동일하게 맞춤
             )
         ],

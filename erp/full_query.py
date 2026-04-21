@@ -204,21 +204,6 @@ class Customer:
         """
 
     # =========================================================
-    # ☑️ 고객 검색 개수 조회
-    # =========================================================
-    search_count_query\
-        = """
-        SELECT COUNT(*) AS total_count
-        FROM "Companion".customer
-        WHERE
-            CAST(customer_id AS TEXT) LIKE %s
-            OR LOWER(CAST(is_subscribed AS TEXT)) LIKE LOWER(%s)
-            OR CAST(subs_count AS TEXT) LIKE %s
-            OR CAST(permission AS TEXT) LIKE %s
-            OR LOWER(CAST(active AS TEXT)) LIKE LOWER(%s)
-        """
-
-    # =========================================================
     # ☑️ 고객 전체 조회
     # =========================================================
     list_query\
@@ -235,9 +220,19 @@ class Customer:
         """
 
     # =========================================================
-    # ☑️ 고객 검색 조회
+    # ☑️ 고객ID 검색 개수 조회
     # =========================================================
-    search_query\
+    search_customer_id_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "Companion".customer
+        WHERE CAST(customer_id AS TEXT) LIKE %s
+        """
+
+    # =========================================================
+    # ☑️ 고객ID 검색 조회
+    # =========================================================
+    search_customer_id_query\
         = """
         SELECT
             customer_id,
@@ -247,11 +242,114 @@ class Customer:
             active,
             last_update
         FROM "Companion".customer
-        WHERE
-            CAST(customer_id AS TEXT) LIKE %s
-            OR LOWER(CAST(is_subscribed AS TEXT)) LIKE LOWER(%s)
-            OR CAST(subs_count AS TEXT) LIKE %s
-            OR CAST(permission AS TEXT) LIKE %s
-            OR LOWER(CAST(active AS TEXT)) LIKE LOWER(%s)
+        WHERE CAST(customer_id AS TEXT) LIKE %s
+        ORDER BY customer_id ASC
+        """
+
+    # =========================================================
+    # ☑️ 구독여부 검색 개수 조회
+    # =========================================================
+    search_is_subscribed_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "Companion".customer
+        WHERE LOWER(CAST(is_subscribed AS TEXT)) LIKE LOWER(%s)
+        """
+
+    # =========================================================
+    # ☑️ 구독여부 검색 조회
+    # =========================================================
+    search_is_subscribed_query\
+        = """
+        SELECT
+            customer_id,
+            is_subscribed,
+            subs_count,
+            permission,
+            active,
+            last_update
+        FROM "Companion".customer
+        WHERE LOWER(CAST(is_subscribed AS TEXT)) LIKE LOWER(%s)
+        ORDER BY customer_id ASC
+        """
+
+    # =========================================================
+    # ☑️ 구독횟수 검색 개수 조회
+    # =========================================================
+    search_subs_count_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "Companion".customer
+        WHERE CAST(subs_count AS TEXT) LIKE %s
+        """
+
+    # =========================================================
+    # ☑️ 구독횟수 검색 조회
+    # =========================================================
+    search_subs_count_query\
+        = """
+        SELECT
+            customer_id,
+            is_subscribed,
+            subs_count,
+            permission,
+            active,
+            last_update
+        FROM "Companion".customer
+        WHERE CAST(subs_count AS TEXT) LIKE %s
+        ORDER BY customer_id ASC
+        """
+
+    # =========================================================
+    # ☑️ 권한 검색 개수 조회
+    # =========================================================
+    search_permission_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "Companion".customer
+        WHERE CAST(permission AS TEXT) LIKE %s
+        """
+
+    # =========================================================
+    # ☑️ 권한 검색 조회
+    # =========================================================
+    search_permission_query\
+        = """
+        SELECT
+            customer_id,
+            is_subscribed,
+            subs_count,
+            permission,
+            active,
+            last_update
+        FROM "Companion".customer
+        WHERE CAST(permission AS TEXT) LIKE %s
+        ORDER BY customer_id ASC
+        """
+
+    # =========================================================
+    # ☑️ 상태 검색 개수 조회
+    # =========================================================
+    search_active_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "Companion".customer
+        WHERE LOWER(CAST(active AS TEXT)) LIKE LOWER(%s)
+        """
+
+    # =========================================================
+    # ☑️ 상태 검색 조회
+    # =========================================================
+    search_active_query\
+        = """
+        SELECT
+            customer_id,
+            is_subscribed,
+            subs_count,
+            permission,
+            active,
+            last_update
+        FROM "Companion".customer
+        WHERE LOWER(CAST(active AS TEXT)) LIKE LOWER(%s)
         ORDER BY customer_id ASC
         """

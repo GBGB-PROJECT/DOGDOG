@@ -477,13 +477,44 @@ def erp_customer_view():
 
         return filtered_rows
 
-    def get_keyword_params(keyword: str):
-        search = f"%{keyword}%"
-        return (search, search, search, search, search)
+    # =========================================================
+    # ☑️ 수정: 검색어 파라미터 1개만 만들기
+    # =========================================================
+    def get_keyword_param(keyword: str):
+        return f"%{keyword}%"
+
+    # =========================================================
+    # ☑️ 수정: 드롭다운 선택값에 따라 실제 사용할 쿼리 분기
+    # =========================================================
+    def get_search_queries():
+        search_queries = {
+            "customer_id": (
+                Customer.search_customer_id_count_query,
+                Customer.search_customer_id_query,
+            ),
+            "is_subscribed": (
+                Customer.search_is_subscribed_count_query,
+                Customer.search_is_subscribed_query,
+            ),
+            "subs_count": (
+                Customer.search_subs_count_count_query,
+                Customer.search_subs_count_query,
+            ),
+            "permission": (
+                Customer.search_permission_count_query,
+                Customer.search_permission_query,
+            ),
+            "active": (
+                Customer.search_active_count_query,
+                Customer.search_active_query,
+            ),
+        }
+        return search_queries[search_type_value["value"]]
 
     def fetch_total_count(keyword=""):
         if keyword:
-            row = fetch_one(Customer.search_count_query, get_keyword_params(keyword))
+            count_query, _ = get_search_queries()
+            row = fetch_one(count_query, (get_keyword_param(keyword),))
         else:
             row = fetch_one(Customer.count_query)
 
@@ -496,9 +527,10 @@ def erp_customer_view():
         offset = (page_no - 1) * PAGE_SIZE
 
         if keyword:
+            _, list_query = get_search_queries()
             db_rows = fetch_all(
-                f"{Customer.search_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}",
-                get_keyword_params(keyword),
+                f"{list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}",
+                (get_keyword_param(keyword),),
             )
         else:
             db_rows = fetch_all(
@@ -519,9 +551,6 @@ def erp_customer_view():
         reload_current_page()
         page.update()
 
-    # =========================================================
-    # ☑️ 수정: page_ref를 매번 인자로 받지 않고 클릭 시 e.page를 직접 사용
-    # =========================================================
     def build_page_button(label, page_no=None, selected=False, disabled=False):
         text_color = ft.Colors.WHITE if selected else "#0F172A"
         bgcolor = "#2563EB" if selected else ft.Colors.TRANSPARENT
@@ -545,9 +574,6 @@ def erp_customer_view():
             ),
         )
 
-    # =========================================================
-    # ☑️ 수정: 화살표 버튼도 클릭 시 e.page를 직접 사용
-    # =========================================================
     def build_icon_page_button(icon_name, page_no=None, disabled=False):
         icon_color = "#94A3B8" if disabled else "#0F172A"
 
@@ -633,9 +659,6 @@ def erp_customer_view():
             ),
         )
 
-    # =========================================================
-    # ☑️ 수정: 현재 페이지 다시 불러올 때 항상 pagination도 같이 갱신
-    # =========================================================
     def reload_current_page():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]

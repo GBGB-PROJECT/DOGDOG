@@ -14,6 +14,7 @@ def get_home_view_data():
     raw_yearly_rate = 0.5
     raw_monthly_rate = 0.85
     raw_weekly_rate = 0.75
+    year = 2026
     
     raw_monthly_goal = 3500000
     raw_weekly_goal = 750000
@@ -36,6 +37,7 @@ def get_home_view_data():
         "last_year_growth": f"{raw_yoy_growth}",
         "total_sale_value": f"{raw_sales_qty:,}",
         "growth_goal": f"{raw_yearly_rate * 100}",
+        "year": year,
 
         # 목표 달성률 및 차트용 (hd용)
         "month_rate": raw_monthly_rate, # 차트용은 숫자로 전달 (0.85)

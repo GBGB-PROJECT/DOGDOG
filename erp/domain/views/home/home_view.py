@@ -1,6 +1,6 @@
 import flet as ft
 from components import common as cm
-from service.erp_homeview_service import get_home_view_data
+from service.erp_home_view_service import get_home_view_data
 
 def erp_home_view():
     # 데이터 가져오기
@@ -23,10 +23,10 @@ def erp_home_view():
                     expand=True,
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        cm.erp_info_box("총 매출 ",f"{sale_data.get('total_sale',0)} 원", "2026년 누계 실적"),
+                        cm.erp_info_box("총 매출 ",f"{sale_data.get('total_sale',0)} 원", f"{sale_data.get('year',0)}년 누계 실적"),
                         cm.erp_info_box("연간 목표대비 달성", f"{sale_data.get('growth_goal',0)}%", "연간 목표:"),
                         cm.erp_info_box("전년대비 성장", f"{sale_data.get('last_year_growth',0)}%", ""),
-                        cm.erp_info_box("총 판매량수", f"{sale_data.get('total_sale_value',0)}개", "2026년 누적 판매량수"),
+                        cm.erp_info_box("총 판매량수", f"{sale_data.get('total_sale_value',0)}개", f"{sale_data.get('year',0)}년 누적 판매량수"),
                     ],
                 ),
                 ft.Row(

@@ -33,7 +33,7 @@ class ErpLoginView(ft.Container):
 
     ## 입력창을 선언함
     self.id_input = cm.custom_textfield('사번', "GB0001") # label값, placeholder값
-    self.email_input = cm.custom_textfield('이메일', "test@naver.com")
+    self.email_input = cm.custom_textfield('이메일', "dogdog@gaebap.com")
     self.password_input = cm.custom_textfield("비밀번호", "********", is_password=True)
 
     self.content = self.build_login_erp()

@@ -58,6 +58,8 @@ def register_pet_food(
             product_id=product_id,
             total_weight=total_weight,
         )
+        db.commit()
+        db.refresh(result)
 
         return {
             "success": True,
@@ -66,6 +68,7 @@ def register_pet_food(
         }
 
     except ValueError as e:
+        db.rollback()
         error_code = str(e)
 
         error_map = {
@@ -97,6 +100,7 @@ def register_pet_food(
         )
 
     except Exception as e:
+        db.rollback()
         print("급여 사료 등록 실패:", e)
 
         return JSONResponse(
@@ -217,9 +221,10 @@ def read_current_pet_food_detail(
 # 급여사료 삭제 ------------------------------------------------------------------
 @router.delete("/{pet_id}/pet_food")
 def remove_pet_food(
-    pet_id: int,
-    db: Session = Depends(get_db)
-):
+    pet_id: int, 
+    db: Session = Depends(get_db),
+    customer_id: int = Depends(get_current_user)
+    ):
     try:
         # 1. 반려견 존재 확인
         pet = get_pet_by_id(db=db, pet_id=pet_id)
@@ -282,6 +287,7 @@ def remove_pet_food(
         }
 
     except Exception as e:
+        db.rollback()
         print(f"급여 사료 삭제 실패: {e}")
         return JSONResponse(
             status_code=500,

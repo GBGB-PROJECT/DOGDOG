@@ -165,7 +165,7 @@ def customer_db_row_adapter(db_rows: list, page_no: int):
 
 
 def erp_customer_view():
-    page_title = "고객관리 > 고객정보관리"
+    page_title = "고객관리"
 
     rows_state = []
 

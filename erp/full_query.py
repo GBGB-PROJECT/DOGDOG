@@ -353,3 +353,188 @@ class Customer:
         WHERE LOWER(CAST(active AS TEXT)) LIKE LOWER(%s)
         ORDER BY customer_id ASC
         """
+    
+class Supplier:
+    #############################################
+    # supplier
+    #############################################
+
+    count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "ERP".supplier
+        """
+
+    list_query\
+        = """
+        SELECT
+            supplier_id,
+            supplier_name,
+            brn,
+            is_contact_status,
+            designated_payment_date,
+            scheduled_payment_date,
+            employee_id,
+            memo,
+            sup_manager,
+            phone,
+            last_update
+        FROM "ERP".supplier
+        ORDER BY supplier_id ASC
+        """
+
+    search_supplier_id_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "ERP".supplier
+        WHERE CAST(supplier_id AS TEXT) LIKE %s
+        """
+
+    search_supplier_id_query\
+        = """
+        SELECT
+            supplier_id,
+            supplier_name,
+            brn,
+            is_contact_status,
+            designated_payment_date,
+            scheduled_payment_date,
+            employee_id,
+            memo,
+            sup_manager,
+            phone,
+            last_update
+        FROM "ERP".supplier
+        WHERE CAST(supplier_id AS TEXT) LIKE %s
+        ORDER BY supplier_id ASC
+        """
+
+    search_supplier_name_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "ERP".supplier
+        WHERE LOWER(COALESCE(supplier_name, '')) LIKE LOWER(%s)
+        """
+
+    search_supplier_name_query\
+        = """
+        SELECT
+            supplier_id,
+            supplier_name,
+            brn,
+            is_contact_status,
+            designated_payment_date,
+            scheduled_payment_date,
+            employee_id,
+            memo,
+            sup_manager,
+            phone,
+            last_update
+        FROM "ERP".supplier
+        WHERE LOWER(COALESCE(supplier_name, '')) LIKE LOWER(%s)
+        ORDER BY supplier_id ASC
+        """
+
+    search_brn_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "ERP".supplier
+        WHERE LOWER(COALESCE(brn, '')) LIKE LOWER(%s)
+        """
+
+    search_brn_query\
+        = """
+        SELECT
+            supplier_id,
+            supplier_name,
+            brn,
+            is_contact_status,
+            designated_payment_date,
+            scheduled_payment_date,
+            employee_id,
+            memo,
+            sup_manager,
+            phone,
+            last_update
+        FROM "ERP".supplier
+        WHERE LOWER(COALESCE(brn, '')) LIKE LOWER(%s)
+        ORDER BY supplier_id ASC
+        """
+
+    search_is_contact_status_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "ERP".supplier
+        WHERE LOWER(CAST(is_contact_status AS TEXT)) LIKE LOWER(%s)
+        """
+
+    search_is_contact_status_query\
+        = """
+        SELECT
+            supplier_id,
+            supplier_name,
+            brn,
+            is_contact_status,
+            designated_payment_date,
+            scheduled_payment_date,
+            employee_id,
+            memo,
+            sup_manager,
+            phone,
+            last_update
+        FROM "ERP".supplier
+        WHERE LOWER(CAST(is_contact_status AS TEXT)) LIKE LOWER(%s)
+        ORDER BY supplier_id ASC
+        """
+
+    search_sup_manager_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "ERP".supplier
+        WHERE LOWER(COALESCE(sup_manager, '')) LIKE LOWER(%s)
+        """
+
+    search_sup_manager_query\
+        = """
+        SELECT
+            supplier_id,
+            supplier_name,
+            brn,
+            is_contact_status,
+            designated_payment_date,
+            scheduled_payment_date,
+            employee_id,
+            memo,
+            sup_manager,
+            phone,
+            last_update
+        FROM "ERP".supplier
+        WHERE LOWER(COALESCE(sup_manager, '')) LIKE LOWER(%s)
+        ORDER BY supplier_id ASC
+        """
+
+    search_phone_count_query\
+        = """
+        SELECT COUNT(*) AS total_count
+        FROM "ERP".supplier
+        WHERE LOWER(COALESCE(phone, '')) LIKE LOWER(%s)
+        """
+
+    search_phone_query\
+        = """
+        SELECT
+            supplier_id,
+            supplier_name,
+            brn,
+            is_contact_status,
+            designated_payment_date,
+            scheduled_payment_date,
+            employee_id,
+            memo,
+            sup_manager,
+            phone,
+            last_update
+        FROM "ERP".supplier
+        WHERE LOWER(COALESCE(phone, '')) LIKE LOWER(%s)
+        ORDER BY supplier_id ASC
+        """

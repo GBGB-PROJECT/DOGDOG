@@ -312,3 +312,69 @@ EMPLOYEE_FIELDS = [
         "max_length": 10,
     },
 ]
+
+SUPPLIER_FIELDS = [
+    {
+        "label": "거래처명",
+        "key": "supplier_name",
+        "type": "text",
+        "required": True,
+        "max_length": 50,
+    },
+    {
+        "label": "사업자번호",
+        "key": "brn",
+        "type": "bizno",
+        "required": True,
+        "max_length": 12,
+    },
+    {
+        "label": "연락상태",
+        "key": "is_contact_status",
+        "type": "text",
+        "required": False,
+        "max_length": 10,
+    },
+    {
+        "label": "지정결제일",
+        "key": "designated_payment_date",
+        "type": "int",
+        "required": False,
+        "max_length": 2,
+    },
+    {
+        "label": "예정결제일",
+        "key": "scheduled_payment_date",
+        "type": "date",
+        "required": False,
+        "max_length": 10,
+    },
+    {
+        "label": "담당자ID",
+        "key": "employee_id",
+        "type": "int",
+        "required": False,
+        "max_length": 10,
+    },
+    {
+        "label": "메모",
+        "key": "memo",
+        "type": "text",
+        "required": False,
+        "max_length": 300,
+    },
+    {
+        "label": "담당자명",
+        "key": "sup_manager",
+        "type": "name",
+        "required": False,
+        "max_length": 30,
+    },
+    {
+        "label": "전화번호",
+        "key": "phone",
+        "type": "phone",
+        "required": False,
+        "max_length": 20,
+    },
+]

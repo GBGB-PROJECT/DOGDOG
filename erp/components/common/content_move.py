@@ -22,6 +22,8 @@ from domain.views.production import production_view
 
 from domain.views.production import production_order_view
 
+from domain.views.production import production_supplier_view
+
 
 ## ============= 페이지 이동 (실질)
 
@@ -59,6 +61,7 @@ MENU_ITEMS = {
 
     "생산관리": production_view.erp_production_view,
     "발주 관리": production_order_view.erp_production_order_view,
+    "거래처 관리": production_supplier_view.erp_production_supplier_view,
 
     # ☑️ 수정: 임시 텍스트 → 실제 재고관리 메인 화면 연결
     "재고관리": inventory_view.erp_inventory_view,

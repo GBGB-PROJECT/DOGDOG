@@ -1,1 +1,1 @@
-from .client_view import erp_client_view
+from .customer_view import erp_customer_view

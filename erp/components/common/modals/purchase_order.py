@@ -1228,4 +1228,5 @@ def main(page: ft.Page):
     page.add(purchase_order)
 
 
-ft.run(main)
+if __name__ == "__main__":
+    ft.run(main)

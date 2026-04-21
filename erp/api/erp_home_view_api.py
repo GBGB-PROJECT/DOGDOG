@@ -83,3 +83,5 @@ def get_sales_data(period):
     }
     # 요청한 기간(period)의 데이터를 꺼내주고, 없으면 빈 리스트 반환
     return chart_data_map.get(period, [])
+
+### 4. 생산달성률/불량률 line chart 데이터

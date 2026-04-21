@@ -1,6 +1,6 @@
 import flet as ft
 from components import common as cm
-from service.erp_home_view_service import get_home_view_data
+from service.erp_home_view_api import get_home_view_data
 
 def erp_home_view():
     # 데이터 가져오기

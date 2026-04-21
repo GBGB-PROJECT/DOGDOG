@@ -1,5 +1,5 @@
 from components import common as cm
-from service.erp_home_view_service import *
+from api.erp_home_view_api import *
 import flet as ft
 import flet_charts as fch
 
@@ -30,111 +30,6 @@ def build_sales_linechart():
                 weight=ft.FontWeight.W_600,
             ),
         )
-
-    # def build_line_chart():
-    #     chart_data = get_current_chart_data()
-
-    #     if not chart_data:
-    #         return ft.Container(
-    #             expand=True,
-    #             height=CHART_HEIGHT,
-    #             alignment=ft.Alignment(0, 0),
-    #             content=ft.Text(
-    #                 "기록이 없습니다.",
-    #                 color=cm.TEXT_PRIMARY,
-    #                 size=16,
-    #                 weight=ft.FontWeight.W_500,
-    #             ),
-    #         )
-
-    #     points = []  # ☑️ 수정: normal/highlight 제거 → 하나로 통합
-    #     bottom_labels = []
-
-    #     x_step = 2  # ☑️ 추가: X축 간격 확장 (연도 잘림 방지 핵심)
-
-    #     for i, (label_text, value, _bar_value) in enumerate(chart_data):  # ☑️ 수정: 막대값까지 받되 선 그래프는 value만 사용
-    #         x_value = i * x_step  # ☑️ 수정: 간격 확장 적용
-
-    #         points.append(
-    #             fch.LineChartDataPoint(
-    #                 x_value,
-    #                 value,
-    #                 point=True,  # ☑️ 추가: 모든 점 표시
-    #             )
-    #         )
-
-    #         bottom_labels.append(
-    #             fch.ChartAxisLabel(
-    #                 value=x_value,  # ☑️ 수정: 라벨도 같은 좌표 사용
-    #                 label=ft.Text(
-    #                     label_text,
-    #                     size=12,
-    #                     color=cm.TEXT_TERTIARY,
-    #                     weight=ft.FontWeight.W_500,
-    #                 ),
-    #             )
-    #         )
-
-    #     return fch.LineChart(
-    #         expand=True,
-    #         height=CHART_HEIGHT,
-    #         min_x=0,
-    #         max_x=(len(chart_data) - 1) * x_step,  # ☑️ 수정: 확장된 X범위 반영
-    #         min_y=0,
-    #         max_y=CHART_MAX_Y,
-    #         interactive=True,
-    #         border=ft.border.all(0, ft.Colors.TRANSPARENT),
-
-    #         left_axis=fch.ChartAxis(
-    #             labels=[  # ☑️ 추가: 좌측 Y축 라벨
-    #                 fch.ChartAxisLabel(
-    #                     value=20,
-    #                     label=ft.Text("20k", size=12, color=cm.TEXT_TERTIARY),
-    #                 ),
-    #                 fch.ChartAxisLabel(
-    #                     value=40,
-    #                     label=ft.Text("40k", size=12, color=cm.TEXT_TERTIARY),
-    #                 ),
-    #                 fch.ChartAxisLabel(
-    #                     value=60,
-    #                     label=ft.Text("60k", size=12, color=cm.TEXT_TERTIARY),
-    #                 ),
-    #                 fch.ChartAxisLabel(
-    #                     value=80,
-    #                     label=ft.Text("80k", size=12, color=cm.TEXT_TERTIARY),
-    #                 ),
-    #             ],
-    #             label_size=42,  # ☑️ 수정: 좌측 공간 확보
-    #         ),
-
-    #         bottom_axis=fch.ChartAxis(
-    #             labels=bottom_labels,
-    #             label_size=36,
-    #         ),
-
-    #         horizontal_grid_lines=fch.ChartGridLines(
-    #             interval=20,  # ☑️ 수정: 20단위 맞춤
-    #             color=cm.CHART_GRID_COLOR,
-    #             width=1,
-    #         ),
-
-    #         vertical_grid_lines=fch.ChartGridLines(
-    #             interval=x_step,  # ☑️ 수정: X 간격과 동기화
-    #             color=ft.Colors.TRANSPARENT,
-    #             width=0,
-    #         ),
-
-    #         data_series=[
-    #             fch.LineChartData(
-    #                 points=points,  # ☑️ 수정: 하나만 사용
-    #                 stroke_width=3,
-    #                 color=cm.CHART_LINE_COLOR,
-    #                 curved=False,  # ☑️ 수정: 직선 차트
-    #                 rounded_stroke_cap=True,
-    #                 point=True,  # ☑️ 추가: 전체 점 표시
-    #             ),
-    #         ],
-    #     )
 
     def build_combo_chart():  # ☑️ 추가: 막대 그래프 + 직선 그래프를 함께 보여주는 콤보 차트
         chart_data = get_current_chart_data()

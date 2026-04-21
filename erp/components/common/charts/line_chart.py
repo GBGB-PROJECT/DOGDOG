@@ -78,7 +78,7 @@ def build_sales_linechart():
                     label=ft.Text(
                         label_text,
                         size=12,
-                        color=cm.TEXT_TERTIARY,
+                        color=cm.PIE_BLUE,
                         weight=ft.FontWeight.W_500,
                     ),
                 )

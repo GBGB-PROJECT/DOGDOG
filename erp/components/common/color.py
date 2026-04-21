@@ -49,3 +49,16 @@ CHART_MAX_Y = 80  # ☑️ 수정: 데이터 값(20~80)에 맞게 Y축 최대값
 
 '''registration_popup(팝업창에서 사용하는 색깔)'''
 INCORRECT_POPUPCOLOR = "#b51919"
+
+'''status box: 상태박스(production_status_box)'''
+BORDER_LIGHT = "#D9DDE3"
+BAR_ACTIVE = "#0B4F8A"
+
+
+'''merchadies(상품재고) colors'''
+FIELD_BORDER = "#D1D5DB"
+FIELD_TEXT = "#222222"
+BUTTON_BG = "#F3F4F6"
+BUTTON_TEXT = "#374151"
+TABLE_HEADER_BG = "#F9FAFB"
+TEXT_ROW = "#374151"

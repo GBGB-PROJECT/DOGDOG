@@ -6,32 +6,10 @@ from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 from components.common.product_search_table_common import format_weight_display
 
-
-# =========================================================
-# ☑️ merchandise_master_view 스타일 참고용 공통 색상
-# =========================================================
-FIELD_BG = ft.Colors.WHITE
-FIELD_BORDER = "#D1D5DB"
-FIELD_TEXT = "#222222"
-HINT_TEXT = "#9CA3AF"
-
-BUTTON_BG = "#F3F4F6"
-BUTTON_TEXT = "#374151"
-BUTTON_BORDER = "#D1D5DB"
-
-CARD_BG = ft.Colors.WHITE
-TABLE_HEADER_BG = "#F9FAFB"
-TABLE_BORDER = "#E5E7EB"
-
-TEXT_PRIMARY = "#111827"
-TEXT_SECONDARY = "#6B7280"
-TEXT_ROW = "#374151"
-
 # =========================================================
 # ☑️ 추가: session prefix 상수화
 # =========================================================
 SESSION_PREFIX = "merchandise_product_detail"
-
 
 # =========================================================
 # ☑️ 공통 텍스트
@@ -39,7 +17,7 @@ SESSION_PREFIX = "merchandise_product_detail"
 def build_text(
     value,
     size=12,
-    color=TEXT_PRIMARY,
+    color=cm.TEXT_PRIMARY,
     weight=ft.FontWeight.W_400,
     text_align=ft.TextAlign.LEFT,
     max_lines=1,
@@ -69,8 +47,8 @@ def date_value_box(text, on_click=None):
     return ft.Container(
         width=138,
         height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
+        bgcolor=cm.PAGE_BG,
+        border=ft.Border.all(1, cm.FIELD_BORDER),
         border_radius=6,
         padding=ft.Padding.only(left=14, right=14),
         alignment=ft.Alignment(-1, 0),
@@ -78,7 +56,7 @@ def date_value_box(text, on_click=None):
         content=ft.Text(
             value=text,
             size=13,
-            color=FIELD_TEXT,
+            color=cm.FIELD_TEXT,
             weight=ft.FontWeight.W_500,
         ),
     )
@@ -91,8 +69,8 @@ def calendar_icon_box(on_click=None):
     return ft.Container(
         width=38,
         height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
+        bgcolor=cm.PAGE_BG,
+        border=ft.Border.all(1, cm.FIELD_BORDER),
         border_radius=6,
         alignment=ft.Alignment(0, 0),
         on_click=on_click,
@@ -111,15 +89,15 @@ def action_button(text, on_click=None, width=78):
     return ft.Container(
         width=width,
         height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
+        bgcolor=cm.BUTTON_BG,
+        border=ft.Border.all(1, cm.FIELD_BORDER),
         border_radius=6,
         alignment=ft.Alignment(0, 0),
         on_click=on_click,
         content=ft.Text(
             value=text,
             size=13,
-            color=BUTTON_TEXT,
+            color=cm.BUTTON_TEXT,
             weight=ft.FontWeight.W_500,
         ),
     )
@@ -162,7 +140,7 @@ def build_table_cell(
     width,
     align_x=-1,
     weight=ft.FontWeight.W_400,
-    color=TEXT_ROW,
+    color=cm.TEXT_ROW,
     size=12,
 ):
     return ft.Container(
@@ -224,7 +202,7 @@ def erp_merchandise_info_detail_view():
     result_text = ft.Text(
         value="아직 조회하지 않았습니다.",
         size=13,
-        color=TEXT_SECONDARY,
+        color=cm.TEXT_SECONDARY,
     )
 
     table_rows_holder = ft.Column(spacing=0)
@@ -372,7 +350,7 @@ def erp_merchandise_info_detail_view():
     search_type_text = ft.Text(
         value=search_type_labels[search_type_value["value"]],
         size=13,
-        color=FIELD_TEXT,
+        color=cm.FIELD_TEXT,
         weight=ft.FontWeight.W_500,
     )
 
@@ -390,7 +368,7 @@ def erp_merchandise_info_detail_view():
                 content=ft.Text(
                     value=label,
                     size=13,
-                    color=FIELD_TEXT,
+                    color=cm.FIELD_TEXT,
                     weight=ft.FontWeight.W_500,
                 ),
             ),
@@ -400,8 +378,8 @@ def erp_merchandise_info_detail_view():
     search_type = ft.Container(
         width=140,
         height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
+        bgcolor=cm.PAGE_BG,
+        border=ft.Border.all(1, cm.FIELD_BORDER),
         border_radius=6,
         padding=ft.Padding.only(left=12, right=4),
         content=ft.Row(
@@ -437,18 +415,18 @@ def erp_merchandise_info_detail_view():
         hint_text="검색어",
         hint_style=ft.TextStyle(
             size=13,
-            color=HINT_TEXT,
+            color=cm.TEXT_MUTED,
         ),
         text_size=13,
-        border_color=FIELD_BORDER,
+        border_color=cm.FIELD_BORDER,
         border_radius=6,
-        bgcolor=FIELD_BG,
+        bgcolor=cm.PAGE_BG,
         content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
     )
 
     def build_table_header():
         return ft.Container(
-            bgcolor=TABLE_HEADER_BG,
+            bgcolor=cm.TABLE_HEADER_BG,
             padding=ft.Padding.only(
                 left=row_padding_x,
                 right=row_padding_x,
@@ -463,7 +441,7 @@ def erp_merchandise_info_detail_view():
                         col["width"],
                         col["align_x"],
                         ft.FontWeight.W_700,
-                        TEXT_PRIMARY,
+                        cm.TEXT_PRIMARY,
                     )
                     for col in columns
                 ],
@@ -478,8 +456,8 @@ def erp_merchandise_info_detail_view():
                 top=row_padding_y,
                 bottom=row_padding_y,
             ),
-            border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
-            bgcolor=CARD_BG,
+            border=ft.border.only(bottom=ft.BorderSide(1, cm.TABLE_BORDER)),
+            bgcolor=cm.CARD_BG,
             content=ft.Row(
                 spacing=row_spacing,
                 controls=[
@@ -623,9 +601,9 @@ def erp_merchandise_info_detail_view():
 
     table_area = ft.Container(
         expand=True,
-        border=ft.border.all(1, TABLE_BORDER),
+        border=ft.border.all(1, cm.TABLE_BORDER),
         border_radius=10,
-        bgcolor=CARD_BG,
+        bgcolor=cm.CARD_BG,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Row(
             scroll=ft.ScrollMode.AUTO,
@@ -655,7 +633,7 @@ def erp_merchandise_info_detail_view():
                             ft.Text(
                                 value=page_title,
                                 size=20,
-                                color=TEXT_PRIMARY,
+                                color=cm.TEXT_PRIMARY,
                                 weight=ft.FontWeight.W_700,
                             ),
                             result_text,

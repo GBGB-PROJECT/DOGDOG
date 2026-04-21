@@ -1,4 +1,5 @@
 from ..common import color as c
+import re
 import flet as ft
 
 # ============================================================
@@ -47,23 +48,33 @@ def erp_info_box(title, main, sub):
 ## 규격화된 textfield
 
 def custom_textfield(label:str, hint:str, is_password=False):
-  """둥근 테두리의 규격화된 입력창"""
-  return ft.Column(
-    spacing = 5, # 버튼 좌우 크기
-    controls=[
-      ft.Text(label,size=12, color=c.MAIN_COLOR, weight='bold'),
-      ft.TextField(
-        hint_text=hint,
-        password=is_password,
-        border_radius=20,
-        border_color=c.MAIN_COLOR,
-        height=45,
-        content_padding=15,
-        text_size=14,
-        bgcolor=ft.Colors.WHITE,
-      )
-    ],
-  )
+    """둥근 테두리의 규격화된 입력창"""
+    def clean_logic(e):
+        """텍스트 검사 및 한글제거"""
+        cleaned_text = re.sub(r"[^a-zA-Z0-9!@#$%^&*().,]", "", e.control.value)
+        
+        # 원래 입력된 값과 청소된 값이 다르면 교체
+        if e.control.value != cleaned_text:
+            e.control.value = cleaned_text
+            e.control.update() 
+    return ft.Column(
+        spacing=5,
+        controls=[
+            ft.Text(label, size=12, color=c.MAIN_COLOR, weight='bold'),
+            ft.TextField(
+                hint_text=hint,
+                password=is_password,
+                border_radius=20,
+                border_color=c.MAIN_COLOR,
+                height=45,
+                content_padding=15,
+                text_size=14,
+                bgcolor=ft.Colors.WHITE,
+                on_change=on_text_change # 4. 정의한 함수 이름과 동일하게 맞춤
+            )
+        ],
+    )
+
 
 def primary_button(text: str, on_click):
     """브랜드 색상이 적용된 둥근 버튼"""

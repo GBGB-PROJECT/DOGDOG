@@ -20,8 +20,8 @@ class AuthController:
         # 3단계: 비밀번호 길이 체크 (8자 이상)
         if not password:
             return False, "비밀번호를 입력해 주세요.", "pw"
-        if len(password) < 8:
-            return False, "비밀번호는 최소 8자 이상이어야 합니다.", "pw"
+        if re.search(r'[가-힣]', password):
+            return False, "비밀번호에 한글을 포함할 수 없습니다.", "pw"
 
         # 모든 관문을 무사히 통과했다면? 프리패스!
         return True, "", ""

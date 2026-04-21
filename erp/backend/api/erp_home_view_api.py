@@ -85,3 +85,9 @@ def get_sales_data(period):
     return chart_data_map.get(period, [])
 
 ### 4. 생산달성률/불량률 line chart 데이터
+def get_production_defect_rate():
+    production_defect_rate = {
+        "production_rate": [0.20, 0.20, 0.70, 0.20, 0.20, 0.20, 0.20],
+        "defect_rate": [0.20, 0.20, 0.20, 0.20, 0.60, 0.20, 0.20]
+    }
+    return production_defect_rate

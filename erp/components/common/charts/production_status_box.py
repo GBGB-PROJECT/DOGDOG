@@ -1,13 +1,6 @@
 import flet as ft
-
-
-CARD_BG = "#FFFFFF"
-INNER_BG = "#FFFFFF"
-TEXT_PRIMARY = "#2B2F36"
-TEXT_SECONDARY = "#6B7280"
-BORDER_LIGHT = "#D9DDE3"
-BAR_ACTIVE = "#0B4F8A"
-
+from backend.api.erp_home_view_api import *
+from components import common as cm
 
 def _vertical_progress(value: float):
     # value: 0.0 ~ 1.0
@@ -20,14 +13,13 @@ def _vertical_progress(value: float):
             content=ft.ProgressBar(
                 width=140,
                 value=value,
-                bgcolor=BORDER_LIGHT,
-                color=BAR_ACTIVE,
+                bgcolor=cm.BORDER_LIGHT,
+                color=cm.BAR_ACTIVE,
                 border_radius=10,
                 bar_height=10,
             ),
         ),
     )
-
 
 def _mini_progress_panel(title: str, values: list[float]):
     bars = [_vertical_progress(v) for v in values[:7]]  # ☑️ 
@@ -36,18 +28,15 @@ def _mini_progress_panel(title: str, values: list[float]):
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
         height=150,
         controls=[
-            ft.Text("5k", size=11, color=TEXT_SECONDARY),
-            ft.Text("4k", size=11, color=TEXT_SECONDARY),
-            ft.Text("3k", size=11, color=TEXT_SECONDARY),
-            ft.Text("2k", size=11, color=TEXT_SECONDARY),
-            ft.Text("1k", size=11, color=TEXT_SECONDARY),
+            ft.Text(f"{i}k", size=11, color=cm.TEXT_SECONDARY)
+            for i in range(5,0,-1)
         ],
     )
 
     return ft.Container(
         expand=True,
         height=220,
-        bgcolor=INNER_BG,
+        bgcolor=cm.PAGE_BG,
         border_radius=14,
         padding=16,
         content=ft.Column(
@@ -61,7 +50,7 @@ def _mini_progress_panel(title: str, values: list[float]):
                             title,
                             size=15,
                             weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
+                            color=cm.TEXT_PRIMARY,
                         ),
                         ft.Container(
                             height=30,
@@ -72,7 +61,7 @@ def _mini_progress_panel(title: str, values: list[float]):
                             content=ft.Text(
                                 "+12%",
                                 size=12,
-                                color=TEXT_PRIMARY,
+                                color=cm.TEXT_PRIMARY,
                                 weight=ft.FontWeight.W_500,
                             ),
                         ),
@@ -96,14 +85,14 @@ def _mini_progress_panel(title: str, values: list[float]):
         ),
     )
 
-
 def build_production_status_box():
-    left_values = [0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20]  # ☑️ 
-    right_values = [0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20]  # ☑️ 
+    data = get_production_defect_rate()
+    production_rate = data['production_rate']
+    defect_rate = data['defect_rate'] 
 
     return ft.Container(
         expand=True,
-        bgcolor=CARD_BG,
+        bgcolor=cm.PAGE_BG,
         border_radius=16,
         border=ft.border.all(1, "#E0E1E2"),
         padding=20,
@@ -118,20 +107,20 @@ def build_production_status_box():
                             "생산현황 (2026/04/13)",
                             size=20,
                             weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
+                            color=cm.TEXT_PRIMARY,
                         ),
                         ft.IconButton(
                             icon=ft.Icons.ADD,
                             icon_size=26,
-                            icon_color=TEXT_PRIMARY,
+                            icon_color=cm.TEXT_PRIMARY,
                         ),
                     ],
                 ),
                 ft.Row(
                     spacing=16,
                     controls=[
-                        _mini_progress_panel("생산 달성률", left_values),
-                        _mini_progress_panel("불량률", right_values),
+                        _mini_progress_panel("생산 달성률", production_rate),
+                        _mini_progress_panel("불량률", defect_rate),
                     ],
                 ),
             ],

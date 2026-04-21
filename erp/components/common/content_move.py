@@ -12,7 +12,15 @@ from domain.views.merchandise import merchandise_view
 from domain.views.merchandise import merchandise_master_view
 from domain.views.merchandise import merchandise_info_detail_view
 
+# ☑️ 추가: 인사관리 화면 import
+from domain.views.hr import erp_employee_view
 
+# ☑️ 추가: 고객관리 화면 import
+from domain.views.customer import erp_customer_view
+
+from domain.views.production import production_view
+
+from domain.views.production import production_order_view
 
 
 ## ============= 페이지 이동 (실질)
@@ -40,7 +48,6 @@ MENU_ITEMS = {
     "매출관리": inventory_view.erp_inventory_view,
     "원가관리": lambda: ft.Container(content=ft.Text("원가관리 준비 중")),
     "구매관리": sales_view.erp_sales_view,
-    "상품관리": lambda: ft.Container(content=ft.Text("상품관리 준비 중")),
 
     # 👊 수정: 임시 텍스트 → 실제 상품관리 메인 화면 연결
     "상품관리": merchandise_view.erp_merchandise_view,
@@ -50,14 +57,23 @@ MENU_ITEMS = {
 
     "상품 상세 정보 관리": merchandise_info_detail_view.erp_merchandise_info_detail_view,
 
+    "생산관리": production_view.erp_production_view,
+    "발주 관리": production_order_view.erp_production_order_view,
+
     # ☑️ 수정: 임시 텍스트 → 실제 재고관리 메인 화면 연결
     "재고관리": inventory_view.erp_inventory_view,
 
     "물류관리": lambda: ft.Container(content=ft.Text("물류관리 준비 중")),
-    "고객관리": lambda: ft.Container(content=ft.Text("고객관리 준비 중")),
+
+    # ☑️ 수정: 고객관리 실제 화면 연결
+    "고객관리": erp_customer_view,
+    
     "영업관리": lambda: ft.Container(content=ft.Text("영업관리 준비 중")),
     "회계관리": lambda: ft.Container(content=ft.Text("회계관리 준비 중")),
-    "인사관리": lambda: ft.Container(content=ft.Text("인사관리 준비 중")),
+
+    # ☑️ 수정: 인사관리 실제 화면 연결
+    "인사관리": erp_employee_view,
+
     "시스템관리": lambda: ft.Container(content=ft.Text("시스템관리 준비 중")),
 
     # ☑️ 추가: 재고관리 하위 메뉴 연결

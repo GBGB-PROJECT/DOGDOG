@@ -1,0 +1,1 @@
+from .customer_view import erp_customer_view

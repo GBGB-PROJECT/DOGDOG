@@ -1,10 +1,24 @@
-from backend.erp.production.repository import count_suppliers, fetch_suppliers
+from backend.erp.production.repository import (
+    count_suppliers,
+    fetch_suppliers,
+    count_purchase_orders,
+    fetch_purchase_orders,
+    fetch_purchase_order_detail,
+    fetch_purchase_order_items,
+)
 
 
 # =========================================================
 # ☑️ 생산관리 Service
-# - 현재 포함 기능: 거래처관리
-# - 추후 생산관리 관련 기능이 늘어나면 이 파일에서 service 함수를 확장
+# - 거래처관리: supplier 조회
+# - 발주관리: purchase_order + purchase_order_item JOIN 조회
 # =========================================================
 
-__all__ = ["count_suppliers", "fetch_suppliers"]
+__all__ = [
+    "count_suppliers",
+    "fetch_suppliers",
+    "count_purchase_orders",
+    "fetch_purchase_orders",
+    "fetch_purchase_order_detail",
+    "fetch_purchase_order_items",
+]

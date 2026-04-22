@@ -1,6 +1,6 @@
 """
 이 파일은 API를 전달받았다 가정하고(raw, api에서...)  
-  => get_raw_data
+=> get_raw_data
 가공을 해서 
 view 출력 가능 형태로 전환
 """

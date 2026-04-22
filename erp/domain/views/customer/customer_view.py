@@ -9,7 +9,7 @@ from backend.erp.customer.service import count_customers, fetch_customers
 
 
 # =========================================================
-# ☑️ merchandise_master_view 스타일 참고용 공통 색상
+# ☑️ product_master_view 스타일 참고용 공통 색상
 # =========================================================
 FIELD_BG = ft.Colors.WHITE
 FIELD_BORDER = "#D1D5DB"

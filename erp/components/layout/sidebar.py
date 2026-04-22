@@ -184,16 +184,16 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         )
 
     # ☑️ 추가: 상품관리 확장형
-    if selected_menu in com.MERCHANDISE_ALL_ITEMS:
-        merchandise_controls = _build_expanded_menu_controls(
-            com.MERCHANDISE_MAIN_ITEMS,
+    if selected_menu in com.PRODUCT_ALL_ITEMS:
+        product_controls = _build_expanded_menu_controls(
+            com.PRODUCT_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
         )
 
         return _build_expanded_sidebar(
             header_control=_section_header("상품관리", on_menu_click),
-            menu_controls=merchandise_controls,
+            menu_controls=product_controls,
         )
 
     # ☑️ 추가: 생산관리 확장형

@@ -1,3 +1,0 @@
-from .merchandise_view import erp_merchandise_view
-from .merchandise_master_view import erp_merchandise_master_view
-from .merchandise_info_detail_view import erp_merchandise_info_detail_view

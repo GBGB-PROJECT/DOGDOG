@@ -146,7 +146,7 @@ def product_detail_row_adapter(saved_data: dict, next_no: int):
     }
 
 
-def erp_merchandise_info_detail_view():
+def erp_product_detail_view():
     page_title = "상품관리 > 상품 상세 정보 관리"
 
     search_type_value = {"value": "product_name"}

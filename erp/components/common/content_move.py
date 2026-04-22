@@ -8,9 +8,9 @@ from domain.views.inventory import inventory_status_view
 from domain.views.inventory import inventory_product_detail_view
 
 # 👊 추가: 상품관리 화면 연결
-from domain.views.merchandise import merchandise_view
-from domain.views.merchandise import merchandise_master_view
-from domain.views.merchandise import merchandise_info_detail_view
+from domain.views.product import product_view
+from domain.views.product import product_master_view
+from domain.views.product import product_detail_view
 
 # ☑️ 추가: 인사관리 화면 import
 from domain.views.hr import erp_employee_view
@@ -52,12 +52,12 @@ MENU_ITEMS = {
     "구매관리": sales_view.erp_sales_view,
 
     # 👊 수정: 임시 텍스트 → 실제 상품관리 메인 화면 연결
-    "상품관리": merchandise_view.erp_merchandise_view,
+    "상품관리": product_view.erp_product_view,
 
     # 👊 추가: 상품관리 하위 메뉴 연결
-    "상품마스터정보관리": merchandise_master_view.erp_merchandise_master_view,
+    "상품마스터정보관리": product_master_view.erp_product_master_view,
 
-    "상품 상세 정보 관리": merchandise_info_detail_view.erp_merchandise_info_detail_view,
+    "상품 상세 정보 관리": product_detail_view.erp_product_detail_view,
 
     "생산관리": production_view.erp_production_view,
     "발주 관리": purchase_order_view.erp_purchase_order_view,
@@ -121,7 +121,7 @@ INVENTORY_PRODUCT_ITEMS = [
 
 '''상품관리 메뉴 - sales'''
 # ☑️ 추가: 상품관리 1차 메뉴
-MERCHANDISE_MAIN_ITEMS = [
+PRODUCT_MAIN_ITEMS = [
     "상품카테고리관리",
     "상품마스터정보관리",
     "상품 상세 정보 관리",
@@ -129,7 +129,7 @@ MERCHANDISE_MAIN_ITEMS = [
 ]
 
 # ☑️ 추가: 상품관리 전체 묶음
-MERCHANDISE_ALL_ITEMS = [
+PRODUCT_ALL_ITEMS = [
     "상품관리",
     "상품카테고리관리",
     "상품마스터정보관리",
@@ -164,11 +164,11 @@ MENU_TO_ROUTE = {
     "매출관리": "/sales",
     "원가관리": "/cost",
     "구매관리": "/purchase",
-    "상품관리": "/merchandise",
-    "상품카테고리관리": "/merchandise/category",
-    "상품마스터정보관리": "/merchandise/master",
-    "상품 상세 정보 관리": "/merchandise/detail",
-    "자재명세서": "/merchandise/bom",
+    "상품관리": "/product",
+    "상품카테고리관리": "/product/category",
+    "상품마스터정보관리": "/product/master",
+    "상품 상세 정보 관리": "/product/detail",
+    "자재명세서": "/product/bom",
     "생산관리": "/production",
     "생산실적": "/production/performance",
     "생산입고": "/production/inbound",

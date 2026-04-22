@@ -2,7 +2,7 @@ import flet as ft
 from components import common as cm
 
 
-def erp_merchandise_view():
+def erp_product_view():
     return ft.Container(
         expand=True,
         bgcolor=cm.PAGE_BG,

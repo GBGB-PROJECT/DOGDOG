@@ -128,7 +128,7 @@ def product_master_row_adapter(saved_data: dict, next_no: int):
     }
 
 
-def erp_merchandise_master_view():
+def erp_product_master_view():
     page_title = "상품관리 > 상품마스터정보관리"
 
     search_type_value = {"value": "product_name"}

@@ -5,11 +5,11 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import EMPLOYEE_FIELDS
-from backend.erp.service.erp_query_service import count_employees, fetch_employees
+from backend.erp.employee.service import count_employees, fetch_employees
 
 
 # =========================================================
-# ☑️ merchandise_master_view 스타일 참고용 공통 색상
+# ☑️ product_master_view 스타일 참고용 공통 색상
 # =========================================================
 FIELD_BG = ft.Colors.WHITE
 FIELD_BORDER = "#D1D5DB"
@@ -203,7 +203,7 @@ def employee_db_row_adapter(db_rows: list, page_no: int):
 # ☑️ 인사관리 화면
 # =========================================================
 def erp_employee_view():
-    page_title = "인사관리 > 사원관리"
+    page_title = "인사관리"
 
     rows_state = []
 

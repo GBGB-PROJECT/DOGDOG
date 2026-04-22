@@ -180,9 +180,9 @@ def default_register_row_adapter(saved_data: dict, next_no: int):
         "manufacturer": saved_data.get("manufacturer", ""),
         "consumer_price": saved_data.get("consumer_price", ""),
         # ☑️ spec_weight로 통일
-        "spec_weight": format_weight_display(
-            saved_data.get("spec_weight", "")
-        ),
+        # "spec_weight": format_weight_display(
+        #     saved_data.get("spec_weight", "")
+        # ),
         "barcode": saved_data.get("barcode", ""),
         "stock_unit": saved_data.get("stock_unit", ""),
         "sale_status": saved_data.get("sale_status", ""),
@@ -505,7 +505,7 @@ def build_product_search_table_page(
                     build_table_cell("브랜드", col_expand["brand"], -1, ft.FontWeight.W_700),
                     build_table_cell("제조사", col_expand["manufacturer"], -1, ft.FontWeight.W_700),
                     build_table_cell("소비자판매가", col_expand["consumer_price"], 1, ft.FontWeight.W_700),
-                    build_table_cell("규격(중량)", col_expand["spec_weight"], 1, ft.FontWeight.W_700),
+                    # build_table_cell("규격(중량)", col_expand["spec_weight"], 1, ft.FontWeight.W_700),
                     build_table_cell("바코드", col_expand["barcode"], -1, ft.FontWeight.W_700),
                     build_table_cell("재고단위", col_expand["stock_unit"], -1, ft.FontWeight.W_700),
                     build_table_cell("판매 상태", col_expand["sale_status"], 0, ft.FontWeight.W_700),

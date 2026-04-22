@@ -1183,6 +1183,60 @@ class PurchaseOrderDialog:
         )
 
     # =====================================================
+    # ☑️ DB 조회 결과를 발주서 모달에 주입
+    # - purchase_order: 발주 헤더
+    # - purchase_order_item: 발주 품목 목록
+    # =====================================================
+    def set_order_data(self, order_data: dict, item_rows: list[dict]):
+        def set_value(control, value):
+            control.value = "" if value is None else str(value)
+
+        def money(value):
+            return format_number(to_int(value)) if value not in (None, "") else ""
+
+        set_value(self.receiver_name, order_data.get("supplier_name", ""))
+        set_value(self.receiver_tel, order_data.get("supplier_phone", ""))
+        set_value(self.receiver_fax, "")
+        set_value(self.receiver_person, order_data.get("supplier_manager", ""))
+
+        set_value(self.order_date, order_data.get("contract_date", ""))
+        set_value(self.order_no, order_data.get("purchase_order_id", ""))
+        set_value(self.contract_no, order_data.get("purchase_order_id", ""))
+        set_value(self.delivery_place, "")
+        set_value(self.request_dept, "생산관리")
+        set_value(self.order_manager, order_data.get("employee_id", ""))
+
+        for row in self.item_rows:
+            row["lot_no"].value = ""
+            row["product_name"].value = ""
+            row["spec"].value = ""
+            row["unit"].value = ""
+            row["qty"].value = ""
+            row["unit_price"].value = ""
+            row["supply_amount"].value = ""
+            row["tax_amount"].value = ""
+            row["delivery_deadline"].value = ""
+
+        deadline = order_data.get("inbound_scheduled_date", "")
+        for index, item in enumerate(item_rows[: len(self.item_rows)]):
+            row = self.item_rows[index]
+            final_amount = to_int(item.get("final_amount"))
+            total_amount = to_int(item.get("total_amount"))
+            supply_amount = final_amount or total_amount
+
+            row["lot_no"].value = str(item.get("product_id", "") or "")
+            row["product_name"].value = str(item.get("product_name", "") or item.get("product_id", "") or "")
+            row["spec"].value = str(item.get("storage_method", "") or item.get("product_type", "") or "")
+            row["unit"].value = "ea"
+            row["qty"].value = money(item.get("quantity"))
+            row["unit_price"].value = money(item.get("purchase_price"))
+            row["supply_amount"].value = money(supply_amount)
+            row["tax_amount"].value = money(0)
+            row["delivery_deadline"].value = str(deadline or "")
+
+        self.update_summary()
+
+    # =====================================================
     # ☑️ 모달 열기
     # =====================================================
     def open(self, e=None):

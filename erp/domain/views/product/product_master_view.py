@@ -1,16 +1,11 @@
 import math
 import flet as ft
-import datetime
-
 from components import common as cm
+from backend.erp.product.service import count_product_details, fetch_product_details
 from components.common.modals.modal import build_modal
-from components.common.modals.field_defs import CUSTOMER_FIELDS
-from backend.erp.customer.service import count_customers, fetch_customers
+from components.common.modals.field_defs import PRODUCT_MASTER_FIELDS
 
 
-# =========================================================
-# ☑️ product_master_view 스타일 참고용 공통 색상
-# =========================================================
 FIELD_BG = ft.Colors.WHITE
 FIELD_BORDER = "#D1D5DB"
 FIELD_TEXT = "#222222"
@@ -28,7 +23,10 @@ TEXT_PRIMARY = "#111827"
 TEXT_SECONDARY = "#6B7280"
 TEXT_ROW = "#374151"
 
-SESSION_PREFIX = "customer"
+# =========================================================
+# ☑️ 상품 마스터 session prefix
+# =========================================================
+SESSION_PREFIX = "product_master"
 PAGE_SIZE = 50
 
 
@@ -38,6 +36,7 @@ def build_text(
     color=TEXT_PRIMARY,
     weight=ft.FontWeight.W_400,
     text_align=ft.TextAlign.LEFT,
+    max_lines=1,
 ):
     return ft.Text(
         value=str(value or ""),
@@ -45,44 +44,8 @@ def build_text(
         color=color,
         weight=weight,
         text_align=text_align,
-        max_lines=1,
+        max_lines=max_lines,
         overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=FIELD_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Icon(
-            ft.Icons.CALENDAR_MONTH_OUTLINED,
-            size=18,
-            color="#4B5563",
-        ),
     )
 
 
@@ -106,14 +69,14 @@ def action_button(text, on_click=None, width=78):
 
 def build_table_cell(
     text,
-    expand,
+    width,
     align_x=-1,
     weight=ft.FontWeight.W_400,
     color=TEXT_ROW,
     size=12,
 ):
     return ft.Container(
-        expand=expand,
+        width=width,
         alignment=ft.Alignment(align_x, 0),
         content=build_text(
             value=text,
@@ -121,29 +84,12 @@ def build_table_cell(
             color=color,
             weight=weight,
             text_align=ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT,
+            max_lines=2,
         ),
     )
 
 
-def customer_row_adapter(saved_data: dict, next_no: int):
-    subscribed_raw = (saved_data.get("is_subscribed", "") or "").strip().lower()
-    active_raw = (saved_data.get("active", "") or "").strip().lower()
-
-    subscribed_text = "Y" if subscribed_raw in ["true", "1", "y", "yes", "구독", "사용", "활성"] else "N"
-    active_text = "활성" if active_raw in ["true", "1", "y", "yes", "활성", "사용"] else "비활성"
-
-    return {
-        "no": str(next_no),
-        "customer_id": saved_data.get("customer_id", ""),
-        "is_subscribed": subscribed_text,
-        "subs_count": saved_data.get("subs_count", ""),
-        "permission": saved_data.get("permission", ""),
-        "active": active_text,
-        "last_update": "",
-    }
-
-
-def customer_db_row_adapter(db_rows: list, page_no: int):
+def product_master_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
@@ -151,26 +97,60 @@ def customer_db_row_adapter(db_rows: list, page_no: int):
         rows.append(
             {
                 "no": str(index),
-                "customer_id": row.get("customer_id", ""),
-                "is_subscribed": "Y" if row.get("is_subscribed") else "N",
-                "subs_count": row.get("subs_count", ""),
-                "permission": row.get("permission", ""),
-                "active": "활성" if row.get("active") else "비활성",
-                "last_update": row.get("last_update", ""),
+                "product_detail_id": row.get("product_detail_id", ""),
+                "type": row.get("type", ""),
+                "brand": row.get("brand", ""),
+                "product_name": row.get("product_name", ""),
+                "life": row.get("life", ""),
+                "main_protein": row.get("main_protein", ""),
+                "kibble_size": row.get("kibble_size", ""),
+                "calories": row.get("calories", ""),
             }
         )
 
     return rows
 
 
-def erp_customer_view():
-    page_title = "고객관리"
+# =========================================================
+# ☑️ 모달 저장 데이터 -> 테이블 row 변환
+# =========================================================
+def product_master_row_adapter(saved_data: dict, next_no: int):
+    return {
+        "no": str(next_no),
+        "product_detail_id": saved_data.get("product_code", ""),
+        "type": saved_data.get("product_type", ""),
+        "brand": saved_data.get("brand", ""),
+        "product_name": saved_data.get("product_name", ""),
+        "life": "",
+        "main_protein": saved_data.get("manufacturer", ""),
+        "kibble_size": saved_data.get("spec_weight", ""),
+        "calories": saved_data.get("consumer_price", ""),
+    }
 
-    rows_state = []
 
-    selected_start = {"value": None}
-    selected_end = {"value": None}
-    search_type_value = {"value": "customer_id"}
+def erp_product_master_view():
+    page_title = "상품관리 > 상품마스터정보관리"
+
+    search_type_value = {"value": "product_name"}
+    search_type_labels = {
+        "product_name": "상품명",
+        "type": "상품종류",
+        "brand": "브랜드",
+        "life": "급여단계",
+        "main_protein": "주원료",
+    }
+
+    columns = [
+        {"key": "no", "label": "No", "width": 60, "align_x": 0},
+        {"key": "product_detail_id", "label": "상세ID", "width": 80, "align_x": 1},
+        {"key": "product_name", "label": "상품명", "width": 240, "align_x": -1},
+        {"key": "type", "label": "상품종류", "width": 100, "align_x": -1},
+        {"key": "brand", "label": "브랜드", "width": 90, "align_x": -1},
+        {"key": "life", "label": "급여단계", "width": 90, "align_x": -1},
+        {"key": "main_protein", "label": "주원료", "width": 140, "align_x": -1},
+        {"key": "kibble_size", "label": "알갱이 크기", "width": 110, "align_x": -1},
+        {"key": "calories", "label": "칼로리", "width": 80, "align_x": 1},
+    ]
 
     pagination_state = {
         "current_page": 1,
@@ -180,17 +160,11 @@ def erp_customer_view():
         "page_ref": None,
     }
 
-    start_field_holder = ft.Container()
-    start_icon_holder = ft.Container(width=38, height=38)
-    end_field_holder = ft.Container()
-    end_icon_holder = ft.Container(width=38, height=38)
-
     result_text = ft.Text(
-        value="조회 전입니다.",
+        value="DB 조회 전입니다.",
         size=13,
         color=TEXT_SECONDARY,
     )
-
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
 
@@ -206,110 +180,22 @@ def erp_customer_view():
         alignment=ft.Alignment(0, 0),
     )
 
-    col_expand = {
-        "no": 4,
-        "customer_id": 8,
-        "is_subscribed": 8,
-        "subs_count": 8,
-        "permission": 7,
-        "active": 7,
-    }
-
     row_spacing = 10
     row_padding_x = 14
     row_padding_y = 14
 
-    search_type_labels = {
-        "customer_id": "고객ID",
-        "is_subscribed": "구독여부",
-        "subs_count": "구독횟수",
-        "permission": "권한",
-        "active": "상태",
-    }
-
-    def format_date_text(value):
-        if not value:
-            return ""
-        return value.strftime("%Y.%m.%d")
-
-    def refresh_picker_fields():
-        start_field_holder.content = date_value_box(
-            text=format_date_text(selected_start["value"]),
-            on_click=open_start_picker,
-        )
-        start_icon_holder.content = calendar_icon_box(on_click=open_start_picker)
-
-        end_field_holder.content = date_value_box(
-            text=format_date_text(selected_end["value"]),
-            on_click=open_end_picker,
-        )
-        end_icon_holder.content = calendar_icon_box(on_click=open_end_picker)
-
-    def on_start_date_change(e):
-        if e.control.value:
-            corrected_date = e.control.value + datetime.timedelta(hours=9)
-            selected_start["value"] = corrected_date
-
-            if selected_end["value"] and selected_end["value"] < selected_start["value"]:
-                selected_end["value"] = selected_start["value"]
-
-        refresh_picker_fields()
-        e.page.update()
-
-    def on_end_date_change(e):
-        if e.control.value:
-            corrected_date = e.control.value + datetime.timedelta(hours=9)
-
-            if selected_start["value"] and corrected_date < selected_start["value"]:
-                selected_end["value"] = selected_start["value"]
-            else:
-                selected_end["value"] = corrected_date
-
-        refresh_picker_fields()
-        e.page.update()
-
-    start_date_picker = ft.DatePicker(
-        first_date=datetime.datetime(2000, 1, 1),
-        last_date=datetime.datetime(2035, 12, 31),
-        on_change=on_start_date_change,
+    search_field = ft.TextField(
+        width=220,
+        height=38,
+        value="",
+        hint_text="검색어",
+        hint_style=ft.TextStyle(size=13, color=HINT_TEXT),
+        text_size=13,
+        border_color=FIELD_BORDER,
+        border_radius=6,
+        bgcolor=FIELD_BG,
+        content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
     )
-
-    end_date_picker = ft.DatePicker(
-        first_date=datetime.datetime(2000, 1, 1),
-        last_date=datetime.datetime(2035, 12, 31),
-        on_change=on_end_date_change,
-    )
-
-    def open_start_picker(e):
-        page = e.page
-
-        if start_date_picker not in page.overlay:
-            page.overlay.append(start_date_picker)
-
-        if selected_start["value"]:
-            start_date_picker.value = selected_start["value"]
-
-        start_date_picker.open = True
-        page.update()
-
-    def open_end_picker(e):
-        page = e.page
-
-        if end_date_picker not in page.overlay:
-            page.overlay.append(end_date_picker)
-
-        if selected_start["value"]:
-            end_date_picker.first_date = selected_start["value"]
-        else:
-            end_date_picker.first_date = datetime.datetime(2000, 1, 1)
-
-        if selected_end["value"]:
-            end_date_picker.value = selected_end["value"]
-        elif selected_start["value"]:
-            end_date_picker.value = selected_start["value"]
-
-        end_date_picker.open = True
-        page.update()
 
     search_type_text = ft.Text(
         value=search_type_labels[search_type_value["value"]],
@@ -340,7 +226,7 @@ def erp_customer_view():
         )
 
     search_type = ft.Container(
-        width=140,
+        width=150,
         height=38,
         bgcolor=FIELD_BG,
         border=ft.Border.all(1, FIELD_BORDER),
@@ -372,18 +258,7 @@ def erp_customer_view():
         ),
     )
 
-    search_field = ft.TextField(
-        width=185,
-        height=38,
-        value="",
-        hint_text="검색어",
-        hint_style=ft.TextStyle(size=13, color=HINT_TEXT),
-        text_size=13,
-        border_color=FIELD_BORDER,
-        border_radius=6,
-        bgcolor=FIELD_BG,
-        content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
-    )
+    rows_state = []
 
     def build_table_header():
         return ft.Container(
@@ -395,24 +270,21 @@ def erp_customer_view():
                 bottom=row_padding_y,
             ),
             content=ft.Row(
-                expand=True,
                 spacing=row_spacing,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독여부", col_expand["is_subscribed"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독횟수", col_expand["subs_count"], 0, ft.FontWeight.W_700),
-                    build_table_cell("권한", col_expand["permission"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상태", col_expand["active"], 0, ft.FontWeight.W_700),
+                    build_table_cell(
+                        col["label"],
+                        col["width"],
+                        col["align_x"],
+                        ft.FontWeight.W_700,
+                        TEXT_PRIMARY,
+                    )
+                    for col in columns
                 ],
             ),
         )
 
     def build_table_row(row):
-        subscribe_color = "#16A34A" if row.get("is_subscribed", "") == "Y" else "#DC2626"
-        active_color = "#2563EB" if row.get("active", "") == "활성" else "#6B7280"
-
         return ft.Container(
             padding=ft.Padding.only(
                 left=row_padding_x,
@@ -423,101 +295,42 @@ def erp_customer_view():
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
             content=ft.Row(
-                expand=True,
                 spacing=row_spacing,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("customer_id", ""), col_expand["customer_id"], 0),
                     build_table_cell(
-                        row.get("is_subscribed", ""),
-                        col_expand["is_subscribed"],
-                        0,
-                        ft.FontWeight.W_700,
-                        subscribe_color,
-                    ),
-                    build_table_cell(row.get("subs_count", ""), col_expand["subs_count"], 0),
-                    build_table_cell(row.get("permission", ""), col_expand["permission"], 0),
-                    build_table_cell(
-                        row.get("active", ""),
-                        col_expand["active"],
-                        0,
-                        ft.FontWeight.W_700,
-                        active_color,
-                    ),
+                        row.get(col["key"], ""),
+                        col["width"],
+                        col["align_x"],
+                    )
+                    for col in columns
                 ],
             ),
         )
 
     def refresh_table(filtered_rows):
         table_rows_holder.controls.clear()
-
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
-    def apply_date_filter(rows):
-        filtered_rows = []
-
-        for row in rows:
-            is_match = True
-            last_update_value = str(row.get("last_update", "")).strip()
-
-            if last_update_value:
-                try:
-                    date_text = last_update_value[:10]
-                    update_date_obj = datetime.datetime.strptime(date_text, "%Y-%m-%d")
-
-                    if (
-                        selected_start["value"]
-                        and update_date_obj < selected_start["value"].replace(
-                            hour=0,
-                            minute=0,
-                            second=0,
-                            microsecond=0,
-                        )
-                    ):
-                        is_match = False
-
-                    if (
-                        selected_end["value"]
-                        and update_date_obj > selected_end["value"].replace(
-                            hour=0,
-                            minute=0,
-                            second=0,
-                            microsecond=0,
-                        )
-                    ):
-                        is_match = False
-
-                except ValueError:
-                    pass
-
-            if is_match:
-                filtered_rows.append(row)
-
-        return filtered_rows
-
     # =========================================================
-    # ☑️ SQLAlchemy ORM: 고객 count/list 조회
-    # - SQL 문자열을 직접 실행하지 않고 CustomerModel 기반 ORM 함수 사용
+    # ☑️ SQLAlchemy ORM: 상품마스터 count/list 조회
+    # - SQL 문자열을 직접 실행하지 않고 ProductDetailModel 기반 ORM 함수 사용
     # =========================================================
     def fetch_total_count(keyword=""):
-        return count_customers(
+        return count_product_details(
             search_type=search_type_value["value"],
             keyword=keyword,
         )
 
-    def fetch_customer_rows(keyword="", page_no=1):
+    def fetch_product_rows(keyword="", page_no=1):
         offset = (page_no - 1) * PAGE_SIZE
-
-        db_rows = fetch_customers(
+        db_rows = fetch_product_details(
             search_type=search_type_value["value"],
             keyword=keyword,
             limit=PAGE_SIZE,
             offset=offset,
         )
-
-        return customer_db_row_adapter(db_rows, page_no)
+        return product_master_db_row_adapter(db_rows, page_no)
 
     def move_page(page_no: int, page: ft.Page):
         if page_no < 1:
@@ -528,7 +341,6 @@ def erp_customer_view():
 
         pagination_state["current_page"] = page_no
         pagination_state["page_ref"] = page
-
         reload_current_page()
         page.update()
 
@@ -644,28 +456,14 @@ def erp_customer_view():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]
 
-        fetched_rows = fetch_customer_rows(keyword, current_page)
-        filtered_rows = apply_date_filter(fetched_rows)
+        fetched_rows = fetch_product_rows(keyword, current_page)
 
         rows_state.clear()
-        rows_state.extend(filtered_rows)
-
+        rows_state.extend(fetched_rows)
         refresh_table(rows_state)
         refresh_pagination()
 
-        start_text = (
-            selected_start["value"].strftime("%Y-%m-%d")
-            if selected_start["value"]
-            else "미선택"
-        )
-        end_text = (
-            selected_end["value"].strftime("%Y-%m-%d")
-            if selected_end["value"]
-            else "미선택"
-        )
-
         result_text.value = (
-            f"기간: {start_text} ~ {end_text} / "
             f"검색조건: {search_type_labels[search_type_value['value']]} / "
             f"검색어: {keyword if keyword else '없음'} / "
             f"전체 {pagination_state['total_count']}건 / "
@@ -682,7 +480,6 @@ def erp_customer_view():
             1,
             math.ceil(pagination_state["total_count"] / PAGE_SIZE),
         )
-
         reload_current_page()
 
     def run_search(page_ref: ft.Page | None = None):
@@ -696,17 +493,14 @@ def erp_customer_view():
             1,
             math.ceil(pagination_state["total_count"] / PAGE_SIZE),
         )
-
         reload_current_page()
-
-    search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
-
-    def on_print(e):
-        result_text.value = "인쇄 기능은 아직 연결 전입니다."
-        e.page.update()
 
     def on_download(e):
         result_text.value = "다운로드 기능은 아직 연결 전입니다."
+        e.page.update()
+
+    def on_print(e):
+        result_text.value = "인쇄 기능은 아직 연결 전입니다."
         e.page.update()
 
     def close_register_modal(e):
@@ -716,13 +510,12 @@ def erp_customer_view():
         e.page.update()
 
     def clear_register_session(page: ft.Page):
-        for field in CUSTOMER_FIELDS:
+        for field in PRODUCT_MASTER_FIELDS:
             page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
 
     def handle_register_success(saved_data: dict):
         next_no = len(rows_state) + 1
-        new_row = customer_row_adapter(saved_data, next_no)
-
+        new_row = product_master_row_adapter(saved_data, next_no)
         rows_state.append(new_row)
         refresh_table(rows_state)
 
@@ -731,9 +524,9 @@ def erp_customer_view():
 
         popup_layer.content = build_modal(
             page=e.page,
-            register_title="고객 등록",
-            edit_title="고객 정보 수정",
-            fields=CUSTOMER_FIELDS,
+            register_title="상품 마스터 정보 등록",
+            edit_title="상품 마스터 정보 수정",
+            fields=PRODUCT_MASTER_FIELDS,
             session_prefix=SESSION_PREFIX,
             close_handler=close_register_modal,
             on_submit_success=handle_register_success,
@@ -743,22 +536,12 @@ def erp_customer_view():
         e.page.update()
 
     dim_bg.on_click = close_register_modal
+    search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
 
-    refresh_picker_fields()
-
-    action_controls = [
-        action_button(
-            "조회",
-            on_click=lambda e: (
-                load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
-                e.page.update(),
-            ),
-            width=78,
-        ),
-        action_button("인쇄", on_click=on_print, width=78),
-        action_button("다운로드", on_click=on_download, width=104),
-        action_button("등록", on_click=open_register_modal, width=78),
-    ]
+    try:
+        load_rows()
+    except Exception as exc:
+        result_text.value = f"DB 조회 실패: {exc}"
 
     filter_bar = ft.Container(
         bgcolor=ft.Colors.WHITE,
@@ -767,21 +550,29 @@ def erp_customer_view():
             spacing=10,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                start_field_holder,
-                start_icon_holder,
-                ft.Text(
-                    value="~",
-                    size=16,
-                    color="#374151",
-                    weight=ft.FontWeight.W_500,
-                ),
-                end_field_holder,
-                end_icon_holder,
                 search_type,
                 search_field,
-                *action_controls,
+                action_button(
+                    "조회",
+                    on_click=lambda e: (
+                        load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
+                        e.page.update(),
+                    ),
+                    width=78,
+                ),
+                action_button("인쇄", on_click=on_print, width=78),
+                action_button("다운로드", on_click=on_download, width=104),
+                action_button("등록", on_click=open_register_modal, width=78),
             ],
         ),
+    )
+
+    table_content = ft.Column(
+        spacing=0,
+        controls=[
+            build_table_header(),
+            table_rows_holder,
+        ],
     )
 
     table_area = ft.Container(
@@ -789,12 +580,10 @@ def erp_customer_view():
         border=ft.border.all(1, TABLE_BORDER),
         border_radius=10,
         bgcolor=CARD_BG,
-        content=ft.Column(
-            spacing=0,
-            controls=[
-                build_table_header(),
-                table_rows_holder,
-            ],
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        content=ft.Row(
+            scroll=ft.ScrollMode.AUTO,
+            controls=[ft.Container(content=table_content)],
         ),
     )
 
@@ -829,7 +618,7 @@ def erp_customer_view():
         ),
     )
 
-    root = ft.Container(
+    return ft.Container(
         expand=True,
         content=ft.Stack(
             expand=True,
@@ -840,10 +629,3 @@ def erp_customer_view():
             ],
         ),
     )
-
-    try:
-        load_rows()
-    except Exception as exc:
-        result_text.value = f"DB 조회 실패: {exc}"
-
-    return root

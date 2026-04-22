@@ -37,8 +37,8 @@ def _legend_item(color: str, label: str, percent: str):
     )
 
 
-def build_inventory_pie_chart_box():
-    sale_data, inventory_data, feed_data = get_home_view_data()
+def build_stock_pie_chart_box():
+    sale_data, stock_data, feed_data = get_home_view_data()
 
     categories = [
     (cm.PIE_BLUE, "건사료", feed_data.get("dry_feed", 0)),

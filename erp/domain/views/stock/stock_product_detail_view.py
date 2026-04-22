@@ -1,9 +1,9 @@
 import math
 import flet as ft
+import datetime
+
 from components import common as cm
-from backend.erp.service.erp_query_service import count_product_details, fetch_product_details
-from components.common.modals.modal import build_modal
-from components.common.modals.field_defs import PRODUCT_MASTER_FIELDS
+from backend.erp.stock.service import count_stocks, fetch_stocks
 
 
 FIELD_BG = ft.Colors.WHITE
@@ -23,10 +23,6 @@ TEXT_PRIMARY = "#111827"
 TEXT_SECONDARY = "#6B7280"
 TEXT_ROW = "#374151"
 
-# =========================================================
-# ☑️ 상품 마스터 session prefix
-# =========================================================
-SESSION_PREFIX = "product_master"
 PAGE_SIZE = 50
 
 
@@ -46,6 +42,42 @@ def build_text(
         text_align=text_align,
         max_lines=max_lines,
         overflow=ft.TextOverflow.ELLIPSIS,
+    )
+
+
+def date_value_box(text, on_click=None):
+    return ft.Container(
+        width=138,
+        height=38,
+        bgcolor=FIELD_BG,
+        border=ft.Border.all(1, FIELD_BORDER),
+        border_radius=6,
+        padding=ft.Padding.only(left=14, right=14),
+        alignment=ft.Alignment(-1, 0),
+        on_click=on_click,
+        content=ft.Text(
+            value=text,
+            size=13,
+            color=FIELD_TEXT,
+            weight=ft.FontWeight.W_500,
+        ),
+    )
+
+
+def calendar_icon_box(on_click=None):
+    return ft.Container(
+        width=38,
+        height=38,
+        bgcolor=FIELD_BG,
+        border=ft.Border.all(1, FIELD_BORDER),
+        border_radius=6,
+        alignment=ft.Alignment(0, 0),
+        on_click=on_click,
+        content=ft.Icon(
+            ft.Icons.CALENDAR_MONTH_OUTLINED,
+            size=18,
+            color="#4B5563",
+        ),
     )
 
 
@@ -89,7 +121,7 @@ def build_table_cell(
     )
 
 
-def product_master_db_row_adapter(db_rows: list, page_no: int):
+def stock_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
@@ -97,59 +129,76 @@ def product_master_db_row_adapter(db_rows: list, page_no: int):
         rows.append(
             {
                 "no": str(index),
-                "product_detail_id": row.get("product_detail_id", ""),
-                "type": row.get("type", ""),
-                "brand": row.get("brand", ""),
-                "product_name": row.get("product_name", ""),
-                "life": row.get("life", ""),
-                "main_protein": row.get("main_protein", ""),
-                "kibble_size": row.get("kibble_size", ""),
-                "calories": row.get("calories", ""),
+                "product_id": row.get("product_id", ""),
+                "inbound_id": row.get("inbound_id", ""),
+                "save_stock": row.get("save_stock", ""),
+                "sale_stock": row.get("sale_stock", ""),
+                "scrap_stock": row.get("scrap_stock", ""),
+                "stock_available": row.get("stock_available", ""),
+                "expiration_date": row.get("expiration_date", ""),
+                "last_update": row.get("last_update", ""),
             }
         )
 
     return rows
 
 
-# =========================================================
-# ☑️ 모달 저장 데이터 -> 테이블 row 변환
-# =========================================================
-def product_master_row_adapter(saved_data: dict, next_no: int):
-    return {
-        "no": str(next_no),
-        "product_detail_id": saved_data.get("product_code", ""),
-        "type": saved_data.get("product_type", ""),
-        "brand": saved_data.get("brand", ""),
-        "product_name": saved_data.get("product_name", ""),
-        "life": "",
-        "main_protein": saved_data.get("manufacturer", ""),
-        "kibble_size": saved_data.get("spec_weight", ""),
-        "calories": saved_data.get("consumer_price", ""),
-    }
+def normalize_to_date(value):
+    if not value:
+        return None
+
+    if isinstance(value, datetime.datetime):
+        corrected_value = value + datetime.timedelta(hours=9)
+        return corrected_value.date()
+
+    if isinstance(value, datetime.date):
+        return value
+
+    return None
 
 
-def erp_merchandise_master_view():
-    page_title = "상품관리 > 상품마스터정보관리"
+def parse_row_date(value):
+    if not value:
+        return None
 
-    search_type_value = {"value": "product_name"}
+    value_text = str(value).strip()
+    if not value_text:
+        return None
+
+    date_text = value_text[:10]
+
+    try:
+        return datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def erp_stock_product_detail_view():
+    page_title = "재고관리 > 상품별 재고 상세"
+
+    selected_start = {"value": None}
+    selected_end = {"value": None}
+    search_type_value = {"value": "product_id"}
     search_type_labels = {
-        "product_name": "상품명",
-        "type": "상품종류",
-        "brand": "브랜드",
-        "life": "급여단계",
-        "main_protein": "주원료",
+        "product_id": "상품ID",
+        "inbound_id": "입고ID",
+        "save_stock": "보관재고",
+        "sale_stock": "판매재고",
+        "scrap_stock": "폐기재고",
+        "stock_available": "가용재고",
+        "expiration_date": "유통기한",
     }
 
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product_detail_id", "label": "상세ID", "width": 80, "align_x": 1},
-        {"key": "product_name", "label": "상품명", "width": 240, "align_x": -1},
-        {"key": "type", "label": "상품종류", "width": 100, "align_x": -1},
-        {"key": "brand", "label": "브랜드", "width": 90, "align_x": -1},
-        {"key": "life", "label": "급여단계", "width": 90, "align_x": -1},
-        {"key": "main_protein", "label": "주원료", "width": 140, "align_x": -1},
-        {"key": "kibble_size", "label": "규격(중량)", "width": 110, "align_x": -1},
-        {"key": "calories", "label": "칼로리", "width": 80, "align_x": 1},
+        {"key": "product_id", "label": "상품ID", "width": 100, "align_x": 1},
+        {"key": "inbound_id", "label": "입고ID", "width": 100, "align_x": 1},
+        {"key": "save_stock", "label": "보관재고", "width": 120, "align_x": 1},
+        {"key": "sale_stock", "label": "판매재고", "width": 120, "align_x": 1},
+        {"key": "scrap_stock", "label": "폐기재고", "width": 120, "align_x": 1},
+        {"key": "stock_available", "label": "가용재고", "width": 120, "align_x": 1},
+        {"key": "expiration_date", "label": "유통기한", "width": 140, "align_x": 0},
+        {"key": "last_update", "label": "최종수정일", "width": 190, "align_x": 0},
     ]
 
     pagination_state = {
@@ -160,25 +209,19 @@ def erp_merchandise_master_view():
         "page_ref": None,
     }
 
+    start_field_holder = ft.Container()
+    start_icon_holder = ft.Container(width=38, height=38)
+    end_field_holder = ft.Container()
+    end_icon_holder = ft.Container(width=38, height=38)
+
     result_text = ft.Text(
         value="DB 조회 전입니다.",
         size=13,
         color=TEXT_SECONDARY,
     )
+
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
-
-    dim_bg = ft.Container(
-        visible=False,
-        expand=True,
-        bgcolor=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
-    )
-
-    popup_layer = ft.Container(
-        visible=False,
-        expand=True,
-        alignment=ft.Alignment(0, 0),
-    )
 
     row_spacing = 10
     row_padding_x = 14
@@ -197,12 +240,109 @@ def erp_merchandise_master_view():
         content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
     )
 
+    def format_date_text(value):
+        if not value:
+            return ""
+        return value.strftime("%Y.%m.%d")
+
+    def refresh_picker_fields():
+        start_field_holder.content = date_value_box(
+            text=format_date_text(selected_start["value"]),
+            on_click=open_start_picker,
+        )
+        start_icon_holder.content = calendar_icon_box(on_click=open_start_picker)
+
+        end_field_holder.content = date_value_box(
+            text=format_date_text(selected_end["value"]),
+            on_click=open_end_picker,
+        )
+        end_icon_holder.content = calendar_icon_box(on_click=open_end_picker)
+
+    def on_start_date_change(e):
+        if e.control.value:
+            selected_start["value"] = normalize_to_date(e.control.value)
+
+            if selected_end["value"] and selected_end["value"] < selected_start["value"]:
+                selected_end["value"] = selected_start["value"]
+
+        refresh_picker_fields()
+        e.page.update()
+
+    def on_end_date_change(e):
+        if e.control.value:
+            selected_date = normalize_to_date(e.control.value)
+
+            if selected_start["value"] and selected_date < selected_start["value"]:
+                selected_end["value"] = selected_start["value"]
+            else:
+                selected_end["value"] = selected_date
+
+        refresh_picker_fields()
+        e.page.update()
+
+    start_date_picker = ft.DatePicker(
+        first_date=datetime.datetime(2000, 1, 1),
+        last_date=datetime.datetime(2035, 12, 31),
+        on_change=on_start_date_change,
+    )
+
+    end_date_picker = ft.DatePicker(
+        first_date=datetime.datetime(2000, 1, 1),
+        last_date=datetime.datetime(2035, 12, 31),
+        on_change=on_end_date_change,
+    )
+
+    def open_start_picker(e):
+        page = e.page
+
+        if start_date_picker not in page.overlay:
+            page.overlay.append(start_date_picker)
+
+        if selected_start["value"]:
+            start_date_picker.value = datetime.datetime.combine(
+                selected_start["value"],
+                datetime.time.min,
+            )
+
+        start_date_picker.open = True
+        page.update()
+
+    def open_end_picker(e):
+        page = e.page
+
+        if end_date_picker not in page.overlay:
+            page.overlay.append(end_date_picker)
+
+        if selected_start["value"]:
+            end_date_picker.first_date = datetime.datetime.combine(
+                selected_start["value"],
+                datetime.time.min,
+            )
+        else:
+            end_date_picker.first_date = datetime.datetime(2000, 1, 1)
+
+        if selected_end["value"]:
+            end_date_picker.value = datetime.datetime.combine(
+                selected_end["value"],
+                datetime.time.min,
+            )
+        elif selected_start["value"]:
+            end_date_picker.value = datetime.datetime.combine(
+                selected_start["value"],
+                datetime.time.min,
+            )
+
+        end_date_picker.open = True
+        page.update()
+
     search_type_text = ft.Text(
         value=search_type_labels[search_type_value["value"]],
         size=13,
         color=FIELD_TEXT,
         weight=ft.FontWeight.W_500,
     )
+
+    rows_state = []
 
     def set_search_type(value: str):
         search_type_value["value"] = value
@@ -258,8 +398,6 @@ def erp_merchandise_master_view():
         ),
     )
 
-    rows_state = []
-
     def build_table_header():
         return ft.Container(
             bgcolor=TABLE_HEADER_BG,
@@ -309,28 +447,46 @@ def erp_merchandise_master_view():
 
     def refresh_table(filtered_rows):
         table_rows_holder.controls.clear()
+
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
+    def get_selected_date_text(value):
+        if not value:
+            return None
+        return value.strftime("%Y-%m-%d")
+
+    def get_target_date_field():
+        if search_type_value["value"] == "expiration_date":
+            return "expiration_date"
+        return "last_update"
+
     # =========================================================
-    # ☑️ SQLAlchemy ORM: 상품마스터 count/list 조회
-    # - SQL 문자열을 직접 실행하지 않고 ProductDetailModel 기반 ORM 함수 사용
+    # ☑️ SQLAlchemy ORM: stock count/list 조회
     # =========================================================
     def fetch_total_count(keyword=""):
-        return count_product_details(
+        return count_stocks(
             search_type=search_type_value["value"],
             keyword=keyword,
+            start_date=get_selected_date_text(selected_start["value"]),
+            end_date=get_selected_date_text(selected_end["value"]),
+            date_field=get_target_date_field(),
         )
 
-    def fetch_product_rows(keyword="", page_no=1):
+    def fetch_stock_rows(keyword="", page_no=1):
         offset = (page_no - 1) * PAGE_SIZE
-        db_rows = fetch_product_details(
+
+        db_rows = fetch_stocks(
             search_type=search_type_value["value"],
             keyword=keyword,
             limit=PAGE_SIZE,
             offset=offset,
+            start_date=get_selected_date_text(selected_start["value"]),
+            end_date=get_selected_date_text(selected_end["value"]),
+            date_field=get_target_date_field(),
         )
-        return product_master_db_row_adapter(db_rows, page_no)
+
+        return stock_db_row_adapter(db_rows, page_no)
 
     def move_page(page_no: int, page: ft.Page):
         if page_no < 1:
@@ -341,6 +497,7 @@ def erp_merchandise_master_view():
 
         pagination_state["current_page"] = page_no
         pagination_state["page_ref"] = page
+
         reload_current_page()
         page.update()
 
@@ -405,9 +562,23 @@ def erp_merchandise_master_view():
             if current_page <= 3:
                 page_numbers = [1, 2, 3, 4, None, total_pages]
             elif current_page >= total_pages - 2:
-                page_numbers = [1, None, total_pages - 3, total_pages - 2, total_pages - 1, total_pages]
+                page_numbers = [
+                    1,
+                    None,
+                    total_pages - 3,
+                    total_pages - 2,
+                    total_pages - 1,
+                    total_pages,
+                ]
             else:
-                page_numbers = [1, current_page - 1, current_page, current_page + 1, None, total_pages]
+                page_numbers = [
+                    1,
+                    current_page - 1,
+                    current_page,
+                    current_page + 1,
+                    None,
+                    total_pages,
+                ]
 
         for page_no in page_numbers:
             if page_no is None:
@@ -456,14 +627,27 @@ def erp_merchandise_master_view():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]
 
-        fetched_rows = fetch_product_rows(keyword, current_page)
+        fetched_rows = fetch_stock_rows(keyword, current_page)
 
         rows_state.clear()
         rows_state.extend(fetched_rows)
+
         refresh_table(rows_state)
         refresh_pagination()
 
+        start_text = (
+            selected_start["value"].strftime("%Y-%m-%d")
+            if selected_start["value"]
+            else "미선택"
+        )
+        end_text = (
+            selected_end["value"].strftime("%Y-%m-%d")
+            if selected_end["value"]
+            else "미선택"
+        )
+
         result_text.value = (
+            f"기간: {start_text} ~ {end_text} / "
             f"검색조건: {search_type_labels[search_type_value['value']]} / "
             f"검색어: {keyword if keyword else '없음'} / "
             f"전체 {pagination_state['total_count']}건 / "
@@ -480,6 +664,7 @@ def erp_merchandise_master_view():
             1,
             math.ceil(pagination_state["total_count"] / PAGE_SIZE),
         )
+
         reload_current_page()
 
     def run_search(page_ref: ft.Page | None = None):
@@ -493,6 +678,7 @@ def erp_merchandise_master_view():
             1,
             math.ceil(pagination_state["total_count"] / PAGE_SIZE),
         )
+
         reload_current_page()
 
     def on_download(e):
@@ -503,40 +689,9 @@ def erp_merchandise_master_view():
         result_text.value = "인쇄 기능은 아직 연결 전입니다."
         e.page.update()
 
-    def close_register_modal(e):
-        dim_bg.visible = False
-        popup_layer.visible = False
-        popup_layer.content = None
-        e.page.update()
-
-    def clear_register_session(page: ft.Page):
-        for field in PRODUCT_MASTER_FIELDS:
-            page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
-
-    def handle_register_success(saved_data: dict):
-        next_no = len(rows_state) + 1
-        new_row = product_master_row_adapter(saved_data, next_no)
-        rows_state.append(new_row)
-        refresh_table(rows_state)
-
-    def open_register_modal(e):
-        clear_register_session(e.page)
-
-        popup_layer.content = build_modal(
-            page=e.page,
-            register_title="상품 마스터 정보 등록",
-            edit_title="상품 마스터 정보 수정",
-            fields=PRODUCT_MASTER_FIELDS,
-            session_prefix=SESSION_PREFIX,
-            close_handler=close_register_modal,
-            on_submit_success=handle_register_success,
-        )
-        dim_bg.visible = True
-        popup_layer.visible = True
-        e.page.update()
-
-    dim_bg.on_click = close_register_modal
     search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
+
+    refresh_picker_fields()
 
     try:
         load_rows()
@@ -550,19 +705,24 @@ def erp_merchandise_master_view():
             spacing=10,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
+                start_field_holder,
+                start_icon_holder,
+                end_field_holder,
+                end_icon_holder,
                 search_type,
                 search_field,
                 action_button(
                     "조회",
                     on_click=lambda e: (
-                        load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
+                        load_rows(e.page)
+                        if not (search_field.value or "").strip()
+                        else run_search(e.page),
                         e.page.update(),
                     ),
                     width=78,
                 ),
                 action_button("인쇄", on_click=on_print, width=78),
                 action_button("다운로드", on_click=on_download, width=104),
-                action_button("등록", on_click=open_register_modal, width=78),
             ],
         ),
     )
@@ -583,7 +743,9 @@ def erp_merchandise_master_view():
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Row(
             scroll=ft.ScrollMode.AUTO,
-            controls=[ft.Container(content=table_content)],
+            controls=[
+                ft.Container(content=table_content),
+            ],
         ),
     )
 
@@ -620,12 +782,5 @@ def erp_merchandise_master_view():
 
     return ft.Container(
         expand=True,
-        content=ft.Stack(
-            expand=True,
-            controls=[
-                main_content,
-                dim_bg,
-                popup_layer,
-            ],
-        ),
+        content=main_content,
     )

@@ -1,6 +1,6 @@
 import flet as ft
 from components import common as cm
-from components.common.charts.twin_chart import build_inventory_twin_chart
+from components.common.charts.twin_chart import build_production_twin_chart
 
 from components.common.modals.purchase_order import PurchaseOrderDialog
 
@@ -194,7 +194,7 @@ def erp_production_view():
             ),
         )
 
-    def build_top_production_item_box(item_data):
+    def build_recent_purchase_item_box(item_data):
         return ft.Container(
             expand=1,
             height=210,
@@ -238,7 +238,7 @@ def erp_production_view():
             ),
         )
 
-    def build_top_production_box(section_data):
+    def build_recent_purchase_box(section_data):
         return build_base_box(
             expand=1,
             padding=20,
@@ -255,7 +255,7 @@ def erp_production_view():
                     ft.Row(
                         spacing=12,
                         controls=[
-                            build_top_production_item_box(item)
+                            build_recent_purchase_item_box(item)
                             for item in section_data["items"]
                         ],
                     ),
@@ -308,7 +308,7 @@ def erp_production_view():
                     spacing=16,
                     controls=[build_status_box(box) for box in status_box_data],
                 ),
-                build_inventory_twin_chart(),
+                build_production_twin_chart(),
                 ft.Row(
                     spacing=6,
                     controls=[
@@ -343,7 +343,7 @@ def erp_production_view():
                             ],
                         ),
                     ),
-                        build_top_production_box(top_production_section_data),
+                        build_recent_purchase_box(top_production_section_data),
                     ],
                 ),
             ],

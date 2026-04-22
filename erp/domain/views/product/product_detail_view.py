@@ -1,7 +1,7 @@
 import math
 import flet as ft
 from components import common as cm
-from backend.erp.service.erp_query_service import count_product_details, fetch_product_details
+from backend.erp.product.service import count_product_details, fetch_product_details
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 
@@ -146,7 +146,7 @@ def product_detail_row_adapter(saved_data: dict, next_no: int):
     }
 
 
-def erp_merchandise_info_detail_view():
+def erp_product_detail_view():
     page_title = "상품관리 > 상품 상세 정보 관리"
 
     search_type_value = {"value": "product_name"}

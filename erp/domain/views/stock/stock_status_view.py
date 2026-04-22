@@ -1,6 +1,6 @@
 import flet as ft
 from components import common as cm
-from components.common.charts.twin_chart import build_inventory_twin_chart
+from components.common.charts.twin_chart import build_stock_twin_chart
 
 
 # ==============================
@@ -17,7 +17,7 @@ TEXT_ROW = "#374151"
 ACTION_BLUE = "#2563EB"
 
 
-def erp_inventory_status_view():
+def erp_stock_status_view():
     # ==============================
     # ☑️ 데이터 영역
     # ==============================
@@ -51,7 +51,7 @@ def erp_inventory_status_view():
         },
     ]
 
-    top_inventory_item_template = {
+    top_stock_item_template = {
         "name": "하림 가장 맛있는 시간",
         "action_text": "즉시 생산",
         "rows": [
@@ -61,18 +61,18 @@ def erp_inventory_status_view():
         ],
     }
 
-    def generate_top_inventory_items(count=5):
+    def generate_top_stock_items(count=5):
         return [
             {
-                **top_inventory_item_template,
+                **top_stock_item_template,
                 "on_action_click": lambda e, idx=i: print(f"{idx + 1}번째 클릭"),
             }
             for i in range(count)
         ]
 
-    top_inventory_section_data = {
+    top_stock_section_data = {
         "title": "매출 TOP 3 재고",
-        "items": generate_top_inventory_items(5),
+        "items": generate_top_stock_items(5),
     }
 
     # ==============================
@@ -189,7 +189,7 @@ def erp_inventory_status_view():
             ),
         )
 
-    def build_top_inventory_item_box(item_data):
+    def build_top_stock_item_box(item_data):
         return ft.Container(
             expand=1,
             height=210,
@@ -233,7 +233,7 @@ def erp_inventory_status_view():
             ),
         )
 
-    def build_top_inventory_box(section_data):
+    def build_top_stock_box(section_data):
         return build_base_box(
             expand=1,
             padding=20,
@@ -250,7 +250,7 @@ def erp_inventory_status_view():
                     ft.Row(
                         spacing=12,
                         controls=[
-                            build_top_inventory_item_box(item)
+                            build_top_stock_item_box(item)
                             for item in section_data["items"]
                         ],
                     ),
@@ -303,7 +303,7 @@ def erp_inventory_status_view():
                     spacing=16,
                     controls=[build_status_box(box) for box in status_box_data],
                 ),
-                build_inventory_twin_chart(),
+                build_stock_twin_chart(),
                 ft.Row(
                     spacing=6,
                     controls=[
@@ -315,7 +315,7 @@ def erp_inventory_status_view():
                             padding=6,
                             border=ft.border.all(1, BORDER_COLOR),
                         ),
-                        build_top_inventory_box(top_inventory_section_data),
+                        build_top_stock_box(top_stock_section_data),
                     ],
                 ),
             ],

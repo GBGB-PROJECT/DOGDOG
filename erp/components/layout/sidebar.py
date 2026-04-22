@@ -119,10 +119,10 @@ def _build_expanded_menu_controls(items, selected_menu, on_menu_click):
 
 def build_erp_sidebar(selected_menu: str, on_menu_click):
     # ☑️ 추가: 재고관리 확장형
-    if selected_menu in com.INVENTORY_ALL_ITEMS:
-        is_product_open = selected_menu in ["상품 재고 관리"] + com.INVENTORY_PRODUCT_ITEMS
+    if selected_menu in com.STOCK_ALL_ITEMS:
+        is_product_open = selected_menu in ["상품 재고 관리"] + com.STOCK_PRODUCT_ITEMS
 
-        inventory_controls = [
+        stock_controls = [
             _menu_item(
                 text="창고관리",
                 selected_menu=selected_menu,
@@ -146,12 +146,12 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
                 text_color=com.EXPANDED_TEXT_COLOR,
                 active_color=com.PAGE_BG,
                 active_bgcolor=com.EXPANDED_ACTIVE_BG,
-                is_forced_selected=selected_menu in com.INVENTORY_PRODUCT_ITEMS,
+                is_forced_selected=selected_menu in com.STOCK_PRODUCT_ITEMS,
             ),
         ]
 
         if is_product_open:
-            inventory_controls.extend(
+            stock_controls.extend(
                 [
                     _menu_item(
                         text=item,
@@ -163,11 +163,11 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
                         selected_weight=ft.FontWeight.BOLD,
                         left_padding=40,
                     )
-                    for item in com.INVENTORY_PRODUCT_ITEMS
+                    for item in com.STOCK_PRODUCT_ITEMS
                 ]
             )
 
-        inventory_controls.append(
+        stock_controls.append(
             _menu_item(
                 text="상품 부자재 관리",
                 selected_menu=selected_menu,
@@ -180,20 +180,20 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
 
         return _build_expanded_sidebar(
             header_control=_section_header("재고관리", on_menu_click),
-            menu_controls=inventory_controls,
+            menu_controls=stock_controls,
         )
 
     # ☑️ 추가: 상품관리 확장형
-    if selected_menu in com.MERCHANDISE_ALL_ITEMS:
-        merchandise_controls = _build_expanded_menu_controls(
-            com.MERCHANDISE_MAIN_ITEMS,
+    if selected_menu in com.PRODUCT_ALL_ITEMS:
+        product_controls = _build_expanded_menu_controls(
+            com.PRODUCT_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
         )
 
         return _build_expanded_sidebar(
             header_control=_section_header("상품관리", on_menu_click),
-            menu_controls=merchandise_controls,
+            menu_controls=product_controls,
         )
 
     # ☑️ 추가: 생산관리 확장형

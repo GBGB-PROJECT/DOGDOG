@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 import logging
 
 from db.db import get_db
-from dependencies import check_pet_owner, get_current_user_id
+from dependencies import check_pet_owner, get_current_user
 from ..service.pet_log_service import PetLogService
 from ..repository.pet_log_repository import PetLogRepository
 
@@ -77,7 +77,7 @@ router = APIRouter(prefix="/api/v1/logs/poop", tags=["Poop Logs"])
 def register_poop_log(
     pet_id: int,
     request: PoopLogCreate,
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """[등록] 반려견의 배변 기록을 등록합니다."""
@@ -132,7 +132,7 @@ def register_poop_log(
 def update_poop_log(
     pet_log_numeric_id: int,
     request: PoopLogUpdate,
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """[수정] 배변 기록의 점수, 발생 일시, 메모를 수정합니다."""
@@ -183,7 +183,7 @@ def update_poop_log(
 @router.delete("/{pet_log_numeric_id}")
 def delete_poop_log(
     pet_log_numeric_id: int,
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """[삭제] 배변 기록을 논리 삭제(Soft Delete)합니다."""

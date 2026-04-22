@@ -1,16 +1,10 @@
-import os
-import sys
 from datetime import date
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 # 프로젝트 루트 및 backend 경로 추가
 current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.abspath(os.path.join(current_dir, "../../"))
-project_root = os.path.abspath(os.path.join(backend_dir, "../"))
 
-if project_root not in sys.path: sys.path.insert(0, project_root)
-if backend_dir not in sys.path: sys.path.insert(0, backend_dir)
 
 # 1. FastAPI 및 테스트 도구 임포트
 from fastapi import FastAPI

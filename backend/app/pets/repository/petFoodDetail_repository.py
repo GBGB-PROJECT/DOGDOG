@@ -1,10 +1,17 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from db.models import CompanionPet, CompanionCustomerFood, CompanionPetProductFeeding, OpdProduct, OpdProductDetail
+from db.models import (
+    CompanionPet,
+    CompanionCustomerFood,
+    CompanionPetProductFeeding,
+    OpdProduct,
+    OpdProductDetail,
+)
 
 from sqlalchemy.orm import Session
-from backend.dependencies import get_pet_by_id
+from dependencies import get_pet_by_id
+
 
 def get_current_pet_food_detail(db: Session, pet_id: int):
     # pet 존재 확인
@@ -22,31 +29,30 @@ def get_current_pet_food_detail(db: Session, pet_id: int):
             select(
                 CompanionPetProductFeeding.product_id.label("product_id"),
                 CompanionPetProductFeeding.is_feeding_check.label("is_feeding_check"),
-                OpdProductDetail.thumbnail.label("thumbnail"), #
-                OpdProductDetail.brand.label("brand"), #
+                OpdProductDetail.thumbnail.label("thumbnail"),  #
+                OpdProductDetail.brand.label("brand"),  #
                 OpdProductDetail.product_name.label("product_name"),
                 OpdProduct.weight.label("product_weight"),
                 CompanionPet.feeding_count.label("feeding_count"),
                 CompanionCustomerFood.pet_id.label("pet_id"),
                 CompanionCustomerFood.total_weight.label("total_weight"),
                 CompanionCustomerFood.total_intake.label("total_intake"),
-                CompanionCustomerFood.left_food_count.label("left_food_count")
+                CompanionCustomerFood.left_food_count.label("left_food_count"),
             )
             .join(
-            CompanionPet,
-            CompanionPet.pet_id == CompanionPetProductFeeding.pet_id
+                CompanionPet, CompanionPet.pet_id == CompanionPetProductFeeding.pet_id
             )
             .join(
                 CompanionCustomerFood,
-                CompanionCustomerFood.pet_id == CompanionPet.pet_id
+                CompanionCustomerFood.pet_id == CompanionPet.pet_id,
             )
             .join(
                 OpdProduct,
-                OpdProduct.product_id == CompanionPetProductFeeding.product_id
+                OpdProduct.product_id == CompanionPetProductFeeding.product_id,
             )
             .join(
                 OpdProductDetail,
-                OpdProductDetail.product_detail_id == OpdProduct.product_detail_id
+                OpdProductDetail.product_detail_id == OpdProduct.product_detail_id,
             )
             .where(
                 CompanionPetProductFeeding.pet_id == pet_id,

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import logging
 
 from db.db import get_db
-from dependencies import check_pet_owner
+from dependencies import check_pet_owner, get_current_user
 from app.home.service.dashboard_service import DashboardService
 from app.home.repository.dashboard_repository import DashboardRepository
 
@@ -17,10 +17,10 @@ router = APIRouter(prefix="/api/v1/home", tags=["Home Dashboard"])
 def get_daily_dashboard_summary(
     pet_id: int,
     query_date: Optional[date] = Query(None, alias="date", description="조회할 날짜 (기본값: 오늘)"),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """[조회] 앱 커스텀 홈 화면 대시보드의 '위젯' 구성을 위한 일일 요약 정보를 조회합니다."""
-    customer_id = 1  # TODO: JWT 토큰에서 파싱
     repo = DashboardRepository(db)
 
     # 1. 소유권 검증 (dependencies.py 재사용)

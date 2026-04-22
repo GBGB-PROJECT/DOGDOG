@@ -8,7 +8,7 @@ from db.db import get_db
 from app.pets.schemas import PetRegisterRequest, PetRegisterResponse
 from app.pets.service.pet_service import PetService
 from app.pets.service.pet_info_service import PetService as PetInfoService
-from dependencies import get_current_user_id, check_pet_owner
+from dependencies import get_current_user, check_pet_owner
 
 from app.pets.repository.petFood_repository import end_pet_food
 from app.pets.service.petFood_service import create_pet_food
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/v1/pets", tags=["Pets"])
 @router.post("", response_model=PetRegisterResponse, status_code=201)
 def register_pet(
     request: PetRegisterRequest,
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     service = PetService(db)
@@ -44,7 +44,7 @@ def register_pet_food(
     pet_id: int,
     body: PetFoodCreateRequest,
     db: Session = Depends(get_db),
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
 ):
     """
     로그인한 사용자의 반려견에게 현재 급여 중인 사료를 등록한다.
@@ -81,7 +81,7 @@ def register_pet_food(
             "INVALID_TOTAL_WEIGHT": (422, "총 무게는 0보다 커야 합니다."),
             "HIGH_TOTAL_WEIGHT": (
                 422,
-                f"잔여량은 상품 총무게보다 작거나 같아야합니다.",
+                "잔여량은 상품 총무게보다 작거나 같아야합니다.",
             ),
             # "INVALID_LEFT_INTAKE": (422, "사료 잔여량은 0 이상이어야 합니다."),
             "PET_NOT_FOUND": (404, "존재하지 않는 반려견입니다."),
@@ -123,7 +123,7 @@ def register_pet_food(
 def read_current_pet_food_detail(
     pet_id: int, 
     db: Session = Depends(get_db),
-    customer_id: int = Depends(get_current_user_id)
+    customer_id: int = Depends(get_current_user)
 ):
     try:
         if not check_pet_owner(db, pet_id, customer_id):
@@ -236,7 +236,7 @@ def read_current_pet_food_detail(
 def remove_pet_food(
     pet_id: int, 
     db: Session = Depends(get_db),
-    customer_id: int = Depends(get_current_user_id)
+    customer_id: int = Depends(get_current_user)
     ):
     try:
         # 1. 반려견 존재 확인
@@ -311,7 +311,7 @@ def remove_pet_food(
 # 반려견 정보 리스트 조회 (Customer ID 기준) --------------------------------------
 @router.get("")
 async def get_pet_info(
-    customer_id: int = Depends(get_current_user_id), 
+    customer_id: int = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
     try:

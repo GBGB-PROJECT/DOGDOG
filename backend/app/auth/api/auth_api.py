@@ -56,7 +56,7 @@ def email_signup(request: EmailSignupRequest, db: Session = Depends(get_db)):
 
 
 from app.auth.schemas import LoginRequest, TokenResponse, RefreshRequest
-from dependencies import get_current_user_id
+from dependencies import get_current_user
 
 @router.post("/login", response_model=TokenResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
@@ -108,7 +108,7 @@ def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
 @router.post("/logout")
 def logout(
     db: Session = Depends(get_db), 
-    customer_id: int = Depends(get_current_user_id)
+    customer_id: int = Depends(get_current_user)
 ):
     """[로그아웃] 현재 로그인된 유저의 Refresh Token을 무효화합니다."""
     repo = AuthRepository(db)

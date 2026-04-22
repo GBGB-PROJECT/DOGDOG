@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 import logging
 
 from db.db import get_db
-from dependencies import check_pet_owner, get_current_user_id
+from dependencies import check_pet_owner, get_current_user
 from ..service.feeding_service import FeedingService
 from ..repository.feeding_repository import FeedingRepository
 
@@ -34,7 +34,7 @@ router = APIRouter(prefix="/api/v1/logs/feeding", tags=["Feeding Logs"])
 @router.post("", status_code=status.HTTP_201_CREATED)
 def register_feeding(
     request: FeedingCreate,
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """[등록] 새로운 급여 기록을 등록하고 사료 재고를 업데이트합니다."""
@@ -96,7 +96,7 @@ def get_feeding_logs(
     end_date: Optional[date] = None,
     limit: int = 20,
     offset: int = 0,
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """[조회] 특정 반려동물의 급여 기록과 통계를 조회합니다."""
@@ -126,7 +126,7 @@ def update_feeding(
     pet_food_id: int,
     feeding_date: date,
     request: FeedingUpdate,
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """[수정] 급여 기록을 수정하고 재고 데이터를 보정합니다."""
@@ -179,7 +179,7 @@ def update_feeding(
 def delete_feeding(
     pet_food_id: int, 
     feeding_date: date = Query(...), 
-    customer_id: int = Depends(get_current_user_id),
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """[삭제] 급여 기록을 삭제하고 소모된 재고를 복구합니다."""

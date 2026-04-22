@@ -13,45 +13,7 @@ from db.models import (
     CompanionFeedingGuide,
 )
 
-
-# def get_pet_by_id(db: Session, pet_id: int):
-#     query = (
-#         select(CompanionPet)
-#         .where(CompanionPet.pet_id == pet_id)
-#     )
-#     return db.execute(query).scalar_one_or_none()
-
-
-# def check_pet_owner(db: Session, pet_id: int, customer_id: int) -> bool:
-#     query = (
-#         select(CompanionButler)
-#         .where(
-#             CompanionButler.pet_id == pet_id,
-#             CompanionButler.customer_id == customer_id
-#         )
-#     )
-#     result = db.execute(query).scalar_one_or_none()
-#     return result is not None
-
-
-# def get_active_pet_food(db: Session, pet_id: int):
-#     query = (
-#         select(CompanionPetFood)
-#         .where(
-#             CompanionPetFood.pet_id == pet_id,
-#             CompanionPetFood.active == True
-#         )
-#         .order_by(desc(CompanionPetFood.create_date))
-#     )
-#     return db.execute(query).scalars().first()
-
-
-# def get_food_by_id(db: Session, food_id: int):
-#     query = (
-#         select(OpdFood)
-#         .where(OpdFood.food_id == food_id)
-#     )
-#     return db.execute(query).scalar_one_or_none()
+from datetime import date
 
 '''
 guide_feeding = predict_recommend_g(
@@ -173,6 +135,7 @@ def create_feeding_recommendation(
     else:
         recommendation.base_intake = int(round(base_intake))
         recommendation.guide_intake = int(round(guide_intake))
+        recommendation.guide_date=date.today()
 
     db.add(recommendation)
     db.commit()

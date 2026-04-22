@@ -16,6 +16,7 @@ from backend.app.calc_feeding.cal_guideIntake_service import create_feeding_reco
 
 router = APIRouter(tags=["calc_guide_feeding"])
 
+# 등록
 @router.post("/pets/{pet_id}/cal_feeding/guide")
 def create_feeding_recommendation_api(
     pet_id: int,
@@ -51,6 +52,7 @@ def create_feeding_recommendation_api(
 }
 '''
 
+# 조회
 @router.get("/pets/{pet_id}/cal_feeding/guide")
 def read_guide_intake(
         pet_id: int,
@@ -120,6 +122,7 @@ def read_guide_intake(
 
                 "adjusted_daily_food_g":guide.guide_intake,
                 "adjusted_per_meal_g":f"{adjusted_per_meal:.1f}",
+                "feeding_count":feeding_count,
 
                 "recommended_at":guide.guide_date
             }

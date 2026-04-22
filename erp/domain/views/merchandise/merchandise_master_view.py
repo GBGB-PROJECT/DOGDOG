@@ -1,7 +1,7 @@
 import math
 import flet as ft
 from components import common as cm
-from backend.erp.service.erp_query_service import count_product_details, fetch_product_details
+from backend.erp.product.service import count_product_details, fetch_product_details
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_MASTER_FIELDS
 

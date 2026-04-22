@@ -1,6 +1,6 @@
 import flet as ft
 from components import common as cm
-from components.common.charts.twin_chart import build_inventory_twin_chart
+from components.common.charts.twin_chart import build_production_twin_chart
 
 from components.common.modals.purchase_order import PurchaseOrderDialog
 
@@ -308,7 +308,7 @@ def erp_production_view():
                     spacing=16,
                     controls=[build_status_box(box) for box in status_box_data],
                 ),
-                build_inventory_twin_chart(),
+                build_production_twin_chart(),
                 ft.Row(
                     spacing=6,
                     controls=[

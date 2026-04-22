@@ -18,15 +18,25 @@ BOTTOM_LABEL_AREA = 34     # 하단 월 라벨 영역 높이
 CHART_HEIGHT = PLOT_HEIGHT + BOTTOM_LABEL_AREA
 
 
-def build_inventory_twin_chart():
-    chart_data = [
-        ("1월", 20, 35),
-        ("2월", 43, 50),
-        ("3월", 13, 35),
-        ("4월", 40, 65),
-        ("5월", 58, 75),
-        ("6월", 35, 55),
-    ]
+# =========================================================
+# ☑️ 공통 twin chart
+# =========================================================
+def build_twin_chart(
+    title="입출고 현황",
+    legend_primary="입고",
+    legend_secondary="출고",
+    unit_text="단위: 천원",
+    chart_data=None,
+):
+    if chart_data is None:
+        chart_data = [
+            ("1월", 20, 35),
+            ("2월", 43, 50),
+            ("3월", 13, 35),
+            ("4월", 40, 65),
+            ("5월", 58, 75),
+            ("6월", 35, 55),
+        ]
 
     # ☑️ 수정: 0은 따로 그릴 거라서 여기서는 제외
     y_axis_labels = ["100k", "80k", "60k", "40k", "20k"]
@@ -203,7 +213,7 @@ def build_inventory_twin_chart():
                             border_radius=2,
                         ),
                         ft.Text(
-                            value="입고",
+                            value=legend_primary,
                             size=12,
                             color=TEXT_SECONDARY,
                         ),
@@ -220,14 +230,14 @@ def build_inventory_twin_chart():
                             border_radius=2,
                         ),
                         ft.Text(
-                            value="출고",
+                            value=legend_secondary,
                             size=12,
                             color=TEXT_SECONDARY,
                         ),
                     ],
                 ),
                 ft.Text(
-                    value="단위: 천원",
+                    value=unit_text,
                     size=12,
                     color=TEXT_SECONDARY,
                 ),
@@ -249,7 +259,7 @@ def build_inventory_twin_chart():
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         ft.Text(
-                            "입출고 현황",
+                            title,
                             size=18,
                             weight=ft.FontWeight.W_700,
                             color=TEXT_PRIMARY,
@@ -267,4 +277,28 @@ def build_inventory_twin_chart():
                 ),
             ],
         ),
+    )
+
+
+# =========================================================
+# ☑️ 재고 현황 전용 차트
+# =========================================================
+def build_inventory_twin_chart():
+    return build_twin_chart(
+        title="입출고 현황",
+        legend_primary="입고",
+        legend_secondary="출고",
+        unit_text="단위: 천원",
+    )
+
+
+# =========================================================
+# ☑️ 생산관리 전용 차트
+# =========================================================
+def build_production_twin_chart():
+    return build_twin_chart(
+        title="생산 실적",
+        legend_primary="생산",
+        legend_secondary="불량",
+        unit_text="단위: 천원",
     )

@@ -20,6 +20,7 @@ from app.logs.api.feeding_api import router as feeding_router
 from app.logs.api.poop_api import router as poop_router
 from app.home.api.dashboard_api import router as dashboard_router
 from app.logs.api.logs_api import router as logs_router
+from app.logs.api.weight_bcs_api import router as weight_bcs_router
 
 app = FastAPI(
     title="DOGDOG API",
@@ -41,6 +42,7 @@ app.include_router(dashboard_router)
 app.include_router(logs_router)
 app.include_router(feeding_router)
 app.include_router(poop_router)
+app.include_router(weight_bcs_router)
 
 
 @app.get("/")

@@ -194,7 +194,7 @@ def erp_production_view():
             ),
         )
 
-    def build_top_production_item_box(item_data):
+    def build_recent_purchase_item_box(item_data):
         return ft.Container(
             expand=1,
             height=210,
@@ -238,7 +238,7 @@ def erp_production_view():
             ),
         )
 
-    def build_top_production_box(section_data):
+    def build_recent_purchase_box(section_data):
         return build_base_box(
             expand=1,
             padding=20,
@@ -255,7 +255,7 @@ def erp_production_view():
                     ft.Row(
                         spacing=12,
                         controls=[
-                            build_top_production_item_box(item)
+                            build_recent_purchase_item_box(item)
                             for item in section_data["items"]
                         ],
                     ),
@@ -343,7 +343,7 @@ def erp_production_view():
                             ],
                         ),
                     ),
-                        build_top_production_box(top_production_section_data),
+                        build_recent_purchase_box(top_production_section_data),
                     ],
                 ),
             ],

@@ -1,10 +1,9 @@
 from sqlalchemy.orm import Session
 
-from backend.app.products.product_repository import (
+from backend.app.products.repository.productDetail_repository import (
     get_active_product_by_id,
     get_product_detail_by_id,
 )
-
 
 def get_product_detail_service(db: Session, product_id: int):
     """

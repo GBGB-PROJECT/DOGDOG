@@ -451,27 +451,15 @@ def erp_stock_product_detail_view():
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
-    def apply_date_filter(rows):
-        filtered_rows = []
+    def get_selected_date_text(value):
+        if not value:
+            return None
+        return value.strftime("%Y-%m-%d")
 
-        target_key = "expiration_date" if search_type_value["value"] == "expiration_date" else "last_update"
-
-        for row in rows:
-            target_date = parse_row_date(row.get(target_key, ""))
-
-            if selected_start["value"] or selected_end["value"]:
-                if not target_date:
-                    continue
-
-                if selected_start["value"] and target_date < selected_start["value"]:
-                    continue
-
-                if selected_end["value"] and target_date > selected_end["value"]:
-                    continue
-
-            filtered_rows.append(row)
-
-        return filtered_rows
+    def get_target_date_field():
+        if search_type_value["value"] == "expiration_date":
+            return "expiration_date"
+        return "last_update"
 
     # =========================================================
     # ☑️ SQLAlchemy ORM: stock count/list 조회
@@ -480,6 +468,9 @@ def erp_stock_product_detail_view():
         return count_stocks(
             search_type=search_type_value["value"],
             keyword=keyword,
+            start_date=get_selected_date_text(selected_start["value"]),
+            end_date=get_selected_date_text(selected_end["value"]),
+            date_field=get_target_date_field(),
         )
 
     def fetch_stock_rows(keyword="", page_no=1):
@@ -490,6 +481,9 @@ def erp_stock_product_detail_view():
             keyword=keyword,
             limit=PAGE_SIZE,
             offset=offset,
+            start_date=get_selected_date_text(selected_start["value"]),
+            end_date=get_selected_date_text(selected_end["value"]),
+            date_field=get_target_date_field(),
         )
 
         return stock_db_row_adapter(db_rows, page_no)
@@ -634,10 +628,9 @@ def erp_stock_product_detail_view():
         current_page = pagination_state["current_page"]
 
         fetched_rows = fetch_stock_rows(keyword, current_page)
-        filtered_rows = apply_date_filter(fetched_rows)
 
         rows_state.clear()
-        rows_state.extend(filtered_rows)
+        rows_state.extend(fetched_rows)
 
         refresh_table(rows_state)
         refresh_pagination()

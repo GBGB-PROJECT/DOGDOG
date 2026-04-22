@@ -12,8 +12,9 @@ from backend.erp.common.query_utils import (
 
 
 # =========================================================
-# ☑️ 거래처관리 Repository
-# - ERP.supplier ORM 모델 기반 조회
+# ☑️ 생산관리 Repository
+# - 현재 포함 기능: 거래처관리(ERP.supplier)
+# - 생산관리 하위 기능이 늘어나면 이 파일에 생산관리 관련 조회/저장 로직을 추가
 # - 거래처ID / 거래처명 / 사업자번호 / 연락상태 / 담당자명 / 전화번호 검색 처리
 # - last_update 기준 기간 필터 처리
 # - count + limit/offset 페이지네이션 처리
@@ -76,6 +77,9 @@ def _apply_supplier_filter(query, search_type: str, keyword: str, start_date=Non
     return query
 
 
+# =========================================================
+# ☑️ 생산관리 > 거래처관리 count
+# =========================================================
 def count_suppliers(search_type="supplier_name", keyword="", start_date=None, end_date=None):
     db = SessionLocal()
     try:
@@ -86,6 +90,9 @@ def count_suppliers(search_type="supplier_name", keyword="", start_date=None, en
         db.close()
 
 
+# =========================================================
+# ☑️ 생산관리 > 거래처관리 list
+# =========================================================
 def fetch_suppliers(search_type="supplier_name", keyword="", limit=50, offset=0, start_date=None, end_date=None):
     db = SessionLocal()
     try:

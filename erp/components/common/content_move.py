@@ -47,7 +47,7 @@ ERP_MAIN_MENU_ITEMS = [
 # erp_homecontent.view,     
 MENU_ITEMS = {
     "홈": home_view.erp_home_view,
-    "매출관리": stock_view.erp_stock_view,
+    "매출관리": lambda: ft.Container(content=ft.Text("매출관리 준비 중")),
     "원가관리": lambda: ft.Container(content=ft.Text("원가관리 준비 중")),
     "구매관리": sales_view.erp_sales_view,
 
@@ -66,6 +66,11 @@ MENU_ITEMS = {
     # ☑️ 수정: 임시 텍스트 → 실제 재고관리 메인 화면 연결
     "재고관리": stock_view.erp_stock_view,
 
+    # ☑️ 추가: 재고관리 하위 메뉴 연결
+    "재고 현황": stock_status_view.erp_stock_status_view,
+
+    "상품별 재고 상세": stock_product_detail_view.erp_stock_product_detail_view,
+
     "물류관리": lambda: ft.Container(content=ft.Text("물류관리 준비 중")),
 
     # ☑️ 수정: 고객관리 실제 화면 연결
@@ -79,10 +84,7 @@ MENU_ITEMS = {
 
     "시스템관리": lambda: ft.Container(content=ft.Text("시스템관리 준비 중")),
 
-    # ☑️ 추가: 재고관리 하위 메뉴 연결
-    "재고 현황": stock_status_view.erp_stock_status_view,
-
-    "상품별 재고 상세": stock_product_detail_view.erp_stock_product_detail_view,
+    
 }
 
 """각 side바의 제목 탭을 의미함
@@ -179,7 +181,7 @@ MENU_TO_ROUTE = {
     "생산입고": "/production/inbound",
     "발주 관리": "/production/order",
     "품질 및 이력 관리": "/production/quality",
-    "거래처 관리": "/production/customer",
+    "거래처 관리": "/production/supplier",
     "재고관리": "/stock",
     "창고관리": "/stock/warehouse",
     "원자재 재고 관리": "/stock/raw-material",

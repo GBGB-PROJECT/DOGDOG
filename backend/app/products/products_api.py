@@ -91,7 +91,7 @@ def read_products_weights(
                 "error_code": "PRODUCT_LIST_READ_FAILED",
                 "message": "상품 무게 조회에 실패했습니다."
             }
-        )
+        ) 
     
 # 상품 상세정보 불러오기 ---------------------------------------------------------------------
 @router.get("/products/{product_id}")

@@ -14,7 +14,7 @@ from app.logs.repository.pet_log_repository import PetLogRepository
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/logs/weight_bcs", tags=["Logs - Weight & BCS"])
+router = APIRouter(prefix="/api/v1/logs/weight_bcs", tags=["Weight & BCS Logs"])
 
 
 # Schemas

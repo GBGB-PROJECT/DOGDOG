@@ -9,10 +9,10 @@ from app.users.id_repository import (
     get_pet_id,
 )  # 가정: 토큰에서 customer_id 추출
 
-router = APIRouter(tags=["users"])
+router = APIRouter(prefix="/api/v1/users", tags=["Users"])
 
 
-@router.get("/users/id")
+@router.get("/id")
 def read_my_id_info(
     email: EmailStr = Query(
         default=None,

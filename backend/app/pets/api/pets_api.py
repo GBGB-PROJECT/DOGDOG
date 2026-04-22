@@ -61,8 +61,8 @@ def register_pet_food(
             product_id=product_id,
             total_weight=total_weight,
         )
-        db.commit()
-        db.refresh(result)
+        #db.commit()
+        #db.refresh(result)
 
         return {
             "success": True,
@@ -181,6 +181,7 @@ def patch_pet_food(
         )
 
     except Exception as e:
+        db.rollback()
         print("급여 사료 수정 실패:", e)
         return JSONResponse(
             status_code=500,

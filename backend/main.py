@@ -16,7 +16,7 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 
-# 이제 db.db와 app.logs...를 정상적으로 임포트할 수 있습니다.
+# routers
 from app.pets.api.pets_api import router as pets_router
 from app.users.users_api import router as users_router
 from app.auth.api.auth_api import router as auth_router
@@ -41,6 +41,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# users 라우터 등록
+app.include_router(auth_router)
+app.include_router(users_router)
+
+# pets 라우터 등록
+app.include_router(pets_router)
+
 # 라우터 등록
 # app.include_router(dashboard_router)
 app.include_router(logs_router)
@@ -48,12 +55,6 @@ app.include_router(feeding_router)
 app.include_router(poop_router)
 app.include_router(weight_bcs_router)
 
-# users 라우터 등록
-app.include_router(users_router, prefix="/app")
-app.include_router(auth_router)
-
-# pets 라우터 등록
-app.include_router(pets_router)
 
 @app.get("/")
 def read_root():

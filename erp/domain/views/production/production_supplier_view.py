@@ -5,8 +5,7 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import SUPPLIER_FIELDS
-from db import fetch_all, fetch_one
-from full_query import Supplier
+from db import count_suppliers, fetch_suppliers
 
 
 # =========================================================
@@ -540,149 +539,33 @@ def erp_production_supplier_view():
         )
 
     # =========================================================
-    # ☑️ 수정: 연락상태 검색어를 화면 표시값 기준으로 보정
-    # - DB는 boolean 이지만 화면에는 활성/비활성으로 표시됨
-    # - 사용자가 Y/N, true/false, 1/0으로 검색해도 동작하게 처리
-    # - 특히 "활성" 검색 시 "비활성"이 같이 잡히는 문제를 막기 위해 exact 조건 사용
+    # ☑️ SQLAlchemy ORM: 거래처 count/list 조회
+    # - SQL 문자열을 직접 실행하지 않고 SupplierModel 기반 ORM 함수 사용
+    # - 검색조건/날짜조건은 ORM filter로 처리
     # =========================================================
-    def normalize_contact_keyword(keyword: str):
-        clean_keyword = (keyword or "").strip()
-        lowered = clean_keyword.lower()
+    def get_selected_date_text(value):
+        if not value:
+            return None
+        return value.strftime("%Y-%m-%d")
 
-        if lowered in ["활성", "가능", "사용", "y", "yes", "true", "1"]:
-            return "활성"
-
-        if lowered in ["비활성", "불가", "미사용", "n", "no", "false", "0"]:
-            return "비활성"
-
-        return clean_keyword
-
-    def get_keyword_param(keyword: str):
-        return f"%{(keyword or '').strip()}%"
-
-    # =========================================================
-    # ☑️ 수정: 거래처 조회용 WHERE 절을 한 곳에서 생성
-    # - 검색어 조건도 DB WHERE에 포함
-    # - 날짜 조건도 DB WHERE에 포함
-    # - 그래서 더 이상 전체 데이터를 가져온 뒤 Python에서 자르지 않음
-    # =========================================================
-    def build_supplier_where_clause(keyword: str):
-        where_clauses = []
-        params = []
-
-        clean_keyword = (keyword or "").strip()
-        search_key = search_type_value["value"]
-
-        if clean_keyword:
-            if search_key == "supplier_id":
-                where_clauses.append("CAST(supplier_id AS TEXT) LIKE %s")
-                params.append(get_keyword_param(clean_keyword))
-
-            elif search_key == "supplier_name":
-                where_clauses.append("LOWER(COALESCE(supplier_name, '')) LIKE LOWER(%s)")
-                params.append(get_keyword_param(clean_keyword))
-
-            elif search_key == "brn":
-                where_clauses.append("LOWER(COALESCE(brn, '')) LIKE LOWER(%s)")
-                params.append(get_keyword_param(clean_keyword))
-
-            elif search_key == "is_contact_status":
-                contact_keyword = normalize_contact_keyword(clean_keyword)
-
-                if contact_keyword in ["활성", "비활성"]:
-                    where_clauses.append(
-                        """
-                        CASE
-                            WHEN is_contact_status IS TRUE THEN '활성'
-                            ELSE '비활성'
-                        END = %s
-                        """
-                    )
-                    params.append(contact_keyword)
-                else:
-                    where_clauses.append(
-                        """
-                        LOWER(
-                            CASE
-                                WHEN is_contact_status IS TRUE THEN '활성'
-                                ELSE '비활성'
-                            END
-                        ) LIKE LOWER(%s)
-                        """
-                    )
-                    params.append(get_keyword_param(contact_keyword))
-
-            elif search_key == "sup_manager":
-                where_clauses.append("LOWER(COALESCE(sup_manager, '')) LIKE LOWER(%s)")
-                params.append(get_keyword_param(clean_keyword))
-
-            elif search_key == "phone":
-                where_clauses.append("LOWER(COALESCE(phone, '')) LIKE LOWER(%s)")
-                params.append(get_keyword_param(clean_keyword))
-
-        # =========================================================
-        # ☑️ 수정: 날짜 필터도 DB WHERE로 처리
-        # - 기존: 전체 조회 후 Python에서 last_update 비교
-        # - 변경: PostgreSQL에서 last_update::date 기준으로 필터링
-        # =========================================================
-        if selected_start["value"]:
-            where_clauses.append("last_update::date >= %s")
-            params.append(selected_start["value"].strftime("%Y-%m-%d"))
-
-        if selected_end["value"]:
-            where_clauses.append("last_update::date <= %s")
-            params.append(selected_end["value"].strftime("%Y-%m-%d"))
-
-        if where_clauses:
-            return "WHERE " + " AND ".join(where_clauses), params
-
-        return "", params
-
-    # =========================================================
-    # ☑️ 수정: count도 DB 조건 기준으로 직접 조회
-    # =========================================================
     def fetch_total_count(keyword: str):
-        where_sql, params = build_supplier_where_clause(keyword)
+        return count_suppliers(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            start_date=get_selected_date_text(selected_start["value"]),
+            end_date=get_selected_date_text(selected_end["value"]),
+        )
 
-        count_query = f"""
-        SELECT COUNT(*) AS total_count
-        FROM "ERP".supplier
-        {where_sql}
-        """
-
-        count_result = fetch_one(count_query, tuple(params))
-        return int((count_result or {}).get("total_count", 0))
-
-    # =========================================================
-    # ☑️ 수정: 목록도 DB에서 50개씩만 직접 조회
-    # - 진짜 페이지네이션 핵심 부분
-    # - LIMIT / OFFSET을 SQL에 붙여서 현재 페이지 데이터만 가져옴
-    # =========================================================
     def fetch_supplier_rows(keyword: str, page_no: int):
-        where_sql, params = build_supplier_where_clause(keyword)
         offset = (page_no - 1) * PAGE_SIZE
-
-        list_query = f"""
-        SELECT
-            supplier_id,
-            supplier_name,
-            brn,
-            is_contact_status,
-            designated_payment_date,
-            scheduled_payment_date,
-            employee_id,
-            memo,
-            sup_manager,
-            phone,
-            last_update
-        FROM "ERP".supplier
-        {where_sql}
-        ORDER BY supplier_id ASC
-        LIMIT %s OFFSET %s
-        """
-
-        list_params = tuple(params + [PAGE_SIZE, offset])
-        raw_rows = fetch_all(list_query, list_params)
+        raw_rows = fetch_suppliers(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+            start_date=get_selected_date_text(selected_start["value"]),
+            end_date=get_selected_date_text(selected_end["value"]),
+        )
         return supplier_db_row_adapter(raw_rows, page_no)
 
     def run_search(page_no: int = 1):

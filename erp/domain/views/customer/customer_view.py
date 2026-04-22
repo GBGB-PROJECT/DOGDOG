@@ -5,8 +5,7 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import CUSTOMER_FIELDS
-from db import fetch_all, fetch_one
-from full_query import Customer
+from db import count_customers, fetch_customers
 
 
 # =========================================================
@@ -165,7 +164,7 @@ def customer_db_row_adapter(db_rows: list, page_no: int):
 
 
 def erp_customer_view():
-    page_title = "고객관리"
+    page_title = "고객관리 > 고객정보관리"
 
     rows_state = []
 
@@ -283,6 +282,7 @@ def erp_customer_view():
 
     def open_start_picker(e):
         page = e.page
+
         if start_date_picker not in page.overlay:
             page.overlay.append(start_date_picker)
 
@@ -294,6 +294,7 @@ def erp_customer_view():
 
     def open_end_picker(e):
         page = e.page
+
         if end_date_picker not in page.overlay:
             page.overlay.append(end_date_picker)
 
@@ -450,6 +451,7 @@ def erp_customer_view():
 
     def refresh_table(filtered_rows):
         table_rows_holder.controls.clear()
+
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
@@ -465,10 +467,28 @@ def erp_customer_view():
                     date_text = last_update_value[:10]
                     update_date_obj = datetime.datetime.strptime(date_text, "%Y-%m-%d")
 
-                    if selected_start["value"] and update_date_obj < selected_start["value"].replace(hour=0, minute=0, second=0, microsecond=0):
+                    if (
+                        selected_start["value"]
+                        and update_date_obj < selected_start["value"].replace(
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            microsecond=0,
+                        )
+                    ):
                         is_match = False
-                    if selected_end["value"] and update_date_obj > selected_end["value"].replace(hour=0, minute=0, second=0, microsecond=0):
+
+                    if (
+                        selected_end["value"]
+                        and update_date_obj > selected_end["value"].replace(
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            microsecond=0,
+                        )
+                    ):
                         is_match = False
+
                 except ValueError:
                     pass
 
@@ -478,89 +498,24 @@ def erp_customer_view():
         return filtered_rows
 
     # =========================================================
-    # ☑️ 수정: 검색어 파라미터 1개만 만들기
+    # ☑️ SQLAlchemy ORM: 고객 count/list 조회
+    # - SQL 문자열을 직접 실행하지 않고 CustomerModel 기반 ORM 함수 사용
     # =========================================================
-    def get_keyword_param(keyword: str):
-        # =========================================================
-        # ☑️ 수정: 화면 표시값(Y/N, 활성/비활성) 기준 검색 보정
-        # - 구독여부는 DB boolean이지만 화면에는 Y/N으로 표시됨
-        # - 상태는 DB boolean이지만 화면에는 활성/비활성으로 표시됨
-        # - 특히 "활성" 검색 시 "비활성"까지 같이 잡히지 않도록 exact 검색 처리
-        # =========================================================
-        clean_keyword = (keyword or "").strip()
-        selected_type = search_type_value["value"]
-
-        if selected_type == "is_subscribed":
-            lowered = clean_keyword.lower()
-            if lowered in ["y", "yes", "true", "1", "구독", "사용", "활성"]:
-                return "Y"
-            if lowered in ["n", "no", "false", "0", "미구독", "비구독", "비활성"]:
-                return "N"
-            return clean_keyword
-
-        if selected_type == "active":
-            lowered = clean_keyword.lower()
-            if lowered in ["활성", "사용", "y", "yes", "true", "1"]:
-                return "활성"
-            if lowered in ["비활성", "미사용", "n", "no", "false", "0"]:
-                return "비활성"
-            return clean_keyword
-
-        return f"%{clean_keyword}%"
-
-    # =========================================================
-    # ☑️ 수정: 드롭다운 선택값에 따라 실제 사용할 쿼리 분기
-    # =========================================================
-    def get_search_queries():
-        search_queries = {
-            "customer_id": (
-                Customer.search_customer_id_count_query,
-                Customer.search_customer_id_query,
-            ),
-            "is_subscribed": (
-                Customer.search_is_subscribed_count_query,
-                Customer.search_is_subscribed_query,
-            ),
-            "subs_count": (
-                Customer.search_subs_count_count_query,
-                Customer.search_subs_count_query,
-            ),
-            "permission": (
-                Customer.search_permission_count_query,
-                Customer.search_permission_query,
-            ),
-            "active": (
-                Customer.search_active_count_query,
-                Customer.search_active_query,
-            ),
-        }
-        return search_queries[search_type_value["value"]]
-
     def fetch_total_count(keyword=""):
-        if keyword:
-            count_query, _ = get_search_queries()
-            row = fetch_one(count_query, (get_keyword_param(keyword),))
-        else:
-            row = fetch_one(Customer.count_query)
-
-        if not row:
-            return 0
-
-        return int(row.get("total_count", 0))
+        return count_customers(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+        )
 
     def fetch_customer_rows(keyword="", page_no=1):
         offset = (page_no - 1) * PAGE_SIZE
 
-        if keyword:
-            _, list_query = get_search_queries()
-            db_rows = fetch_all(
-                f"{list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}",
-                (get_keyword_param(keyword),),
-            )
-        else:
-            db_rows = fetch_all(
-                f"{Customer.list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}"
-            )
+        db_rows = fetch_customers(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+        )
 
         return customer_db_row_adapter(db_rows, page_no)
 
@@ -573,6 +528,7 @@ def erp_customer_view():
 
         pagination_state["current_page"] = page_no
         pagination_state["page_ref"] = page
+
         reload_current_page()
         page.update()
 
@@ -693,6 +649,7 @@ def erp_customer_view():
 
         rows_state.clear()
         rows_state.extend(filtered_rows)
+
         refresh_table(rows_state)
         refresh_pagination()
 
@@ -712,6 +669,7 @@ def erp_customer_view():
             f"검색조건: {search_type_labels[search_type_value['value']]} / "
             f"검색어: {keyword if keyword else '없음'} / "
             f"전체 {pagination_state['total_count']}건 / "
+            f"현재 {len(rows_state)}건 / "
             f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
         )
 
@@ -720,7 +678,11 @@ def erp_customer_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
+
         reload_current_page()
 
     def run_search(page_ref: ft.Page | None = None):
@@ -730,7 +692,11 @@ def erp_customer_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count(keyword)
-        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
+
         reload_current_page()
 
     search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
@@ -756,6 +722,7 @@ def erp_customer_view():
     def handle_register_success(saved_data: dict):
         next_no = len(rows_state) + 1
         new_row = customer_row_adapter(saved_data, next_no)
+
         rows_state.append(new_row)
         refresh_table(rows_state)
 
@@ -874,13 +841,9 @@ def erp_customer_view():
         ),
     )
 
-    # 최초 진입 시 1페이지 자동 조회
-    def initialize():
-        try:
-            load_rows()
-        except Exception as exc:
-            result_text.value = f"DB 조회 실패: {exc}"
-
-    initialize()
+    try:
+        load_rows()
+    except Exception as exc:
+        result_text.value = f"DB 조회 실패: {exc}"
 
     return root

@@ -5,8 +5,7 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import EMPLOYEE_FIELDS
-from db import fetch_all, fetch_one
-from full_query import Employee
+from db import count_employees, fetch_employees
 
 
 # =========================================================
@@ -172,7 +171,7 @@ def employee_row_adapter(saved_data: dict, next_no: int):
 
 # =========================================================
 # ☑️ DB row -> 사원 테이블 row 변환
-# - Employee.list_query 결과 기준
+# - EmployeeModel 결과 기준
 # =========================================================
 def employee_db_row_adapter(db_rows: list, page_no: int):
     rows = []
@@ -204,7 +203,7 @@ def employee_db_row_adapter(db_rows: list, page_no: int):
 # ☑️ 인사관리 화면
 # =========================================================
 def erp_employee_view():
-    page_title = "인사관리"
+    page_title = "인사관리 > 사원관리"
 
     rows_state = []
 
@@ -330,6 +329,7 @@ def erp_employee_view():
 
     def open_start_picker(e):
         page = e.page
+
         if start_date_picker not in page.overlay:
             page.overlay.append(start_date_picker)
 
@@ -341,6 +341,7 @@ def erp_employee_view():
 
     def open_end_picker(e):
         page = e.page
+
         if end_date_picker not in page.overlay:
             page.overlay.append(end_date_picker)
 
@@ -504,6 +505,7 @@ def erp_employee_view():
 
     def refresh_table(filtered_rows):
         table_rows_holder.controls.clear()
+
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
@@ -519,10 +521,28 @@ def erp_employee_view():
                     date_text = hire_date_value[:10]
                     hire_date_obj = datetime.datetime.strptime(date_text, "%Y-%m-%d")
 
-                    if selected_start["value"] and hire_date_obj < selected_start["value"].replace(hour=0, minute=0, second=0, microsecond=0):
+                    if (
+                        selected_start["value"]
+                        and hire_date_obj < selected_start["value"].replace(
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            microsecond=0,
+                        )
+                    ):
                         is_match = False
-                    if selected_end["value"] and hire_date_obj > selected_end["value"].replace(hour=0, minute=0, second=0, microsecond=0):
+
+                    if (
+                        selected_end["value"]
+                        and hire_date_obj > selected_end["value"].replace(
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            microsecond=0,
+                        )
+                    ):
                         is_match = False
+
                 except ValueError:
                     pass
 
@@ -532,65 +552,24 @@ def erp_employee_view():
         return filtered_rows
 
     # =========================================================
-    # ☑️ 추가: 검색조건별 count/list 쿼리 선택
+    # ☑️ SQLAlchemy ORM: 사원 count/list 조회
+    # - SQL 문자열을 직접 실행하지 않고 EmployeeModel 기반 ORM 함수 사용
     # =========================================================
-    def get_search_queries():
-        search_queries = {
-            "username": (
-                Employee.search_username_count_query,
-                Employee.search_username_query,
-            ),
-            "employee_id": (
-                Employee.search_employee_id_count_query,
-                Employee.search_employee_id_query,
-            ),
-            "account_id": (
-                Employee.search_account_id_count_query,
-                Employee.search_account_id_query,
-            ),
-            "emp_position_id": (
-                Employee.search_emp_position_id_count_query,
-                Employee.search_emp_position_id_query,
-            ),
-            "phone": (
-                Employee.search_phone_count_query,
-                Employee.search_phone_query,
-            ),
-            "email": (
-                Employee.search_email_count_query,
-                Employee.search_email_query,
-            ),
-        }
-        return search_queries[search_type_value["value"]]
-
-    def get_keyword_param(keyword: str):
-        return f"%{(keyword or '').strip()}%"
-
     def fetch_total_count(keyword=""):
-        if keyword:
-            count_query, _ = get_search_queries()
-            row = fetch_one(count_query, (get_keyword_param(keyword),))
-        else:
-            row = fetch_one(Employee.count_query)
-
-        if not row:
-            return 0
-
-        return int(row.get("total_count", 0))
+        return count_employees(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+        )
 
     def fetch_employee_rows(keyword="", page_no=1):
         offset = (page_no - 1) * PAGE_SIZE
 
-        if keyword:
-            _, list_query = get_search_queries()
-            db_rows = fetch_all(
-                f"{list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}",
-                (get_keyword_param(keyword),),
-            )
-        else:
-            db_rows = fetch_all(
-                f"{Employee.list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}"
-            )
+        db_rows = fetch_employees(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+        )
 
         return employee_db_row_adapter(db_rows, page_no)
 
@@ -603,6 +582,7 @@ def erp_employee_view():
 
         pagination_state["current_page"] = page_no
         pagination_state["page_ref"] = page
+
         reload_current_page()
         page.update()
 
@@ -723,6 +703,7 @@ def erp_employee_view():
 
         rows_state.clear()
         rows_state.extend(filtered_rows)
+
         refresh_table(rows_state)
         refresh_pagination()
 
@@ -751,7 +732,11 @@ def erp_employee_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
+
         reload_current_page()
 
     def run_search(page_ref: ft.Page | None = None):
@@ -761,7 +746,11 @@ def erp_employee_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count(keyword)
-        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
+
         reload_current_page()
 
     search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
@@ -787,6 +776,7 @@ def erp_employee_view():
     def handle_register_success(saved_data: dict):
         next_no = len(rows_state) + 1
         new_row = employee_row_adapter(saved_data, next_no)
+
         rows_state.append(new_row)
         refresh_table(rows_state)
 

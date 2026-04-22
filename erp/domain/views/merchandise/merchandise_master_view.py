@@ -1,8 +1,7 @@
 import math
 import flet as ft
 from components import common as cm
-from db import fetch_all, fetch_one
-from full_query import ProductDetail
+from db import count_product_details, fetch_product_details
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_MASTER_FIELDS
 
@@ -314,62 +313,23 @@ def erp_merchandise_master_view():
             table_rows_holder.controls.append(build_table_row(row))
 
     # =========================================================
-    # ☑️ 추가: 검색조건별 count/list 쿼리 선택
+    # ☑️ SQLAlchemy ORM: 상품마스터 count/list 조회
+    # - SQL 문자열을 직접 실행하지 않고 ProductDetailModel 기반 ORM 함수 사용
     # =========================================================
-    def get_search_queries():
-        search_queries = {
-            "product_name": (
-                ProductDetail.search_product_name_count_query,
-                ProductDetail.search_product_name_query,
-            ),
-            "type": (
-                ProductDetail.search_type_count_query,
-                ProductDetail.search_type_query,
-            ),
-            "brand": (
-                ProductDetail.search_brand_count_query,
-                ProductDetail.search_brand_query,
-            ),
-            "life": (
-                ProductDetail.search_life_count_query,
-                ProductDetail.search_life_query,
-            ),
-            "main_protein": (
-                ProductDetail.search_main_protein_count_query,
-                ProductDetail.search_main_protein_query,
-            ),
-        }
-        return search_queries[search_type_value["value"]]
-
-    def get_keyword_param(keyword: str):
-        return f"%{(keyword or '').strip()}%"
-
     def fetch_total_count(keyword=""):
-        if keyword:
-            count_query, _ = get_search_queries()
-            row = fetch_one(count_query, (get_keyword_param(keyword),))
-        else:
-            row = fetch_one(ProductDetail.count_query)
-
-        if not row:
-            return 0
-
-        return int(row.get("total_count", 0))
+        return count_product_details(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+        )
 
     def fetch_product_rows(keyword="", page_no=1):
         offset = (page_no - 1) * PAGE_SIZE
-
-        if keyword:
-            _, list_query = get_search_queries()
-            db_rows = fetch_all(
-                f"{list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}",
-                (get_keyword_param(keyword),),
-            )
-        else:
-            db_rows = fetch_all(
-                f"{ProductDetail.list_query}\nLIMIT {PAGE_SIZE} OFFSET {offset}"
-            )
-
+        db_rows = fetch_product_details(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+        )
         return product_master_db_row_adapter(db_rows, page_no)
 
     def move_page(page_no: int, page: ft.Page):
@@ -516,7 +476,10 @@ def erp_merchandise_master_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
         reload_current_page()
 
     def run_search(page_ref: ft.Page | None = None):
@@ -526,7 +489,10 @@ def erp_merchandise_master_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count(keyword)
-        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
         reload_current_page()
 
     def on_download(e):

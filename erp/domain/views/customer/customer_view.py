@@ -5,7 +5,7 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import CUSTOMER_FIELDS
-from backend.erp.customer.service import count_customers, fetch_customers
+from backend.erp.customer.service import count_customers, fetch_customers, create_customer
 
 
 # =========================================================
@@ -720,11 +720,15 @@ def erp_customer_view():
             page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
 
     def handle_register_success(saved_data: dict):
-        next_no = len(rows_state) + 1
-        new_row = customer_row_adapter(saved_data, next_no)
-
-        rows_state.append(new_row)
-        refresh_table(rows_state)
+        create_customer(saved_data)
+        pagination_state["current_page"] = 1
+        pagination_state["keyword"] = ""
+        pagination_state["total_count"] = fetch_total_count("")
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
+        reload_current_page()
 
     def open_register_modal(e):
         clear_register_session(e.page)

@@ -87,8 +87,14 @@ def build_modal(
             key = f"{session_prefix}_{field['key']}"
             saved_data[field["key"]] = (page.session.store.get(key) or "").strip()
 
-        if on_submit_success:
-            on_submit_success(saved_data)
+        try:
+            if on_submit_success:
+                on_submit_success(saved_data)
+        except Exception as exc:
+            # ☑️ DB insert / 제약조건 / 중복값 오류가 나면 모달을 닫지 않고 안내만 표시
+            show_message(page, f"저장 실패: {exc}")
+            page.update()
+            return
 
         refresh_title()
         show_message(page, "저장이 완료되었습니다.")

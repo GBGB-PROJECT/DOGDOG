@@ -8,6 +8,12 @@ from backend.erp.common.query_utils import (
     like_keyword,
     normalize_bool_keyword,
 )
+from backend.erp.common.mutation_utils import (
+    to_int_or_none,
+    to_bool_or_none,
+    require_int,
+    require_bool,
+)
 
 
 # =========================================================
@@ -83,5 +89,34 @@ def fetch_customers(search_type="customer_id", keyword="", limit=50, offset=0):
             .all()
         )
         return [model_to_dict(row, CUSTOMER_COLUMNS) for row in rows]
+    finally:
+        db.close()
+
+
+# =========================================================
+# ☑️ 고객 등록
+# =========================================================
+def create_customer(data: dict):
+    db = SessionLocal()
+    try:
+        customer_id = require_int(data.get("customer_id"), "고객ID")
+
+        if db.query(CompanionCustomer).filter(CompanionCustomer.customer_id == customer_id).first():
+            raise ValueError(f"이미 존재하는 고객ID입니다: {customer_id}")
+
+        customer = CompanionCustomer(
+            customer_id=customer_id,
+            is_subscribed=require_bool(data.get("is_subscribed"), "구독여부"),
+            subs_count=require_int(data.get("subs_count"), "구독횟수"),
+            permission=require_int(data.get("permission"), "권한"),
+            active=require_bool(data.get("active"), "상태"),
+        )
+        db.add(customer)
+        db.commit()
+        db.refresh(customer)
+        return model_to_dict(customer, CUSTOMER_COLUMNS)
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

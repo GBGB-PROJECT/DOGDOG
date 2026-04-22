@@ -5,7 +5,7 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import SUPPLIER_FIELDS
-from backend.erp.production.service import count_suppliers, fetch_suppliers
+from backend.erp.production.service import count_suppliers, fetch_suppliers, create_supplier, create_supplier
 
 
 # =========================================================
@@ -630,10 +630,8 @@ def erp_production_supplier_view():
             page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
 
     def handle_register_success(saved_data: dict):
-        next_no = len(rows_state) + 1
-        new_row = supplier_row_adapter(saved_data, next_no)
-        rows_state.append(new_row)
-        refresh_table(rows_state)
+        create_supplier(saved_data)
+        run_search(1)
 
     def open_register_modal(e):
         clear_register_session(e.page)

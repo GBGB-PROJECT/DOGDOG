@@ -2,8 +2,17 @@ from sqlalchemy import cast
 from sqlalchemy.types import String
 
 from db.db import SessionLocal
-from db.models import ErpEmployee
+from db.models import ErpEmployee, ErpEmpPosition
 from backend.erp.common.query_utils import model_to_dict, like_keyword
+from backend.erp.common.mutation_utils import (
+    clean_text,
+    to_int_or_none,
+    require_int,
+    require_bool,
+    require_text,
+    require_date,
+    to_date_or_none,
+)
 
 
 # =========================================================
@@ -78,5 +87,54 @@ def fetch_employees(search_type="username", keyword="", limit=50, offset=0):
             .all()
         )
         return [model_to_dict(row, EMPLOYEE_COLUMNS) for row in rows]
+    finally:
+        db.close()
+
+
+# =========================================================
+# ☑️ 사원 등록
+# =========================================================
+def create_employee(data: dict):
+    db = SessionLocal()
+    try:
+        employee_id = require_int(data.get("employee_id"), "사원ID")
+        account_id = require_text(data.get("account_id"), "계정ID")
+        email = require_text(data.get("email"), "이메일")
+        emp_position_id = to_int_or_none(data.get("emp_position_id"))
+        manager_id = to_int_or_none(data.get("manager_id"))
+
+        if db.query(ErpEmployee).filter(ErpEmployee.employee_id == employee_id).first():
+            raise ValueError(f"이미 존재하는 사원ID입니다: {employee_id}")
+        if db.query(ErpEmployee).filter(ErpEmployee.account_id == account_id).first():
+            raise ValueError(f"이미 존재하는 계정ID입니다: {account_id}")
+        if db.query(ErpEmployee).filter(ErpEmployee.email == email).first():
+            raise ValueError(f"이미 존재하는 이메일입니다: {email}")
+        if emp_position_id and not db.query(ErpEmpPosition).filter(ErpEmpPosition.emp_position_id == emp_position_id).first():
+            raise ValueError(f"존재하지 않는 직급ID입니다: {emp_position_id}")
+        if manager_id and not db.query(ErpEmployee).filter(ErpEmployee.employee_id == manager_id).first():
+            raise ValueError(f"존재하지 않는 관리자ID입니다: {manager_id}")
+
+        employee = ErpEmployee(
+            employee_id=employee_id,
+            account_id=account_id,
+            password=require_text(data.get("password"), "비밀번호"),
+            username=require_text(data.get("username"), "이름"),
+            hire_date=require_date(data.get("hire_date"), "입사일"),
+            quit_date=to_date_or_none(data.get("quit_date")),
+            emp_position_id=emp_position_id,
+            manager_id=manager_id,
+            email=email,
+            phone=require_text(data.get("phone"), "전화번호"),
+            address=require_text(data.get("address"), "주소"),
+            postal_code=require_text(data.get("postal_code"), "우편번호"),
+            active=require_bool(data.get("active"), "재직여부"),
+        )
+        db.add(employee)
+        db.commit()
+        db.refresh(employee)
+        return model_to_dict(employee, EMPLOYEE_COLUMNS)
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

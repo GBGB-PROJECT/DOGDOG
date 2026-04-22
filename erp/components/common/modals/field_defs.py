@@ -41,13 +41,13 @@ PRODUCT_MASTER_FIELDS = [
         "required": True,
         "max_length": 10,
     },
-    {
-        "label": "규격(중량)",
-        "key": "spec_weight",
-        "type": "float",
-        "required": False,
-        "max_length": 10,
-    },
+    # {
+    #     "label": "규격(중량)",
+    #     "key": "spec_weight",
+    #     "type": "float",
+    #     "required": False,
+    #     "max_length": 10,
+    # },
     {
         "label": "바코드",
         "key": "barcode",

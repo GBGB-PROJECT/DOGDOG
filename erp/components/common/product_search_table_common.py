@@ -505,7 +505,7 @@ def build_product_search_table_page(
                     build_table_cell("브랜드", col_expand["brand"], -1, ft.FontWeight.W_700),
                     build_table_cell("제조사", col_expand["manufacturer"], -1, ft.FontWeight.W_700),
                     build_table_cell("소비자판매가", col_expand["consumer_price"], 1, ft.FontWeight.W_700),
-                    build_table_cell("규격(중량)", col_expand["spec_weight"], 1, ft.FontWeight.W_700),
+                    # build_table_cell("규격(중량)", col_expand["spec_weight"], 1, ft.FontWeight.W_700),
                     build_table_cell("바코드", col_expand["barcode"], -1, ft.FontWeight.W_700),
                     build_table_cell("재고단위", col_expand["stock_unit"], -1, ft.FontWeight.W_700),
                     build_table_cell("판매 상태", col_expand["sale_status"], 0, ft.FontWeight.W_700),

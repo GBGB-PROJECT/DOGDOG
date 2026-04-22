@@ -148,7 +148,7 @@ def erp_product_master_view():
         {"key": "brand", "label": "브랜드", "width": 90, "align_x": -1},
         {"key": "life", "label": "급여단계", "width": 90, "align_x": -1},
         {"key": "main_protein", "label": "주원료", "width": 140, "align_x": -1},
-        {"key": "kibble_size", "label": "규격(중량)", "width": 110, "align_x": -1},
+        {"key": "kibble_size", "label": "알갱이 크기", "width": 110, "align_x": -1},
         {"key": "calories", "label": "칼로리", "width": 80, "align_x": 1},
     ]
 

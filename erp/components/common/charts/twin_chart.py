@@ -283,7 +283,7 @@ def build_twin_chart(
 # =========================================================
 # ☑️ 재고 현황 전용 차트
 # =========================================================
-def build_inventory_twin_chart():
+def build_stock_twin_chart():
     return build_twin_chart(
         title="입출고 현황",
         legend_primary="입고",

@@ -1,11 +1,11 @@
 """frame과 연결되어 frame의 내용물을 채우는 파일"""
 import flet as ft
 from domain.views.home import home_view
-from domain.views.inventory import inventory_view 
+from domain.views.stock import stock_view
 from domain.views.sales import sales_view 
 
-from domain.views.inventory import inventory_status_view
-from domain.views.inventory import inventory_product_detail_view
+from domain.views.stock import stock_status_view
+from domain.views.stock import stock_product_detail_view
 
 # 👊 추가: 상품관리 화면 연결
 from domain.views.product import product_view
@@ -47,7 +47,7 @@ ERP_MAIN_MENU_ITEMS = [
 # erp_homecontent.view,     
 MENU_ITEMS = {
     "홈": home_view.erp_home_view,
-    "매출관리": inventory_view.erp_inventory_view,
+    "매출관리": stock_view.erp_stock_view,
     "원가관리": lambda: ft.Container(content=ft.Text("원가관리 준비 중")),
     "구매관리": sales_view.erp_sales_view,
 
@@ -64,7 +64,7 @@ MENU_ITEMS = {
     "거래처 관리": production_supplier_view.erp_production_supplier_view,
 
     # ☑️ 수정: 임시 텍스트 → 실제 재고관리 메인 화면 연결
-    "재고관리": inventory_view.erp_inventory_view,
+    "재고관리": stock_view.erp_stock_view,
 
     "물류관리": lambda: ft.Container(content=ft.Text("물류관리 준비 중")),
 
@@ -80,18 +80,18 @@ MENU_ITEMS = {
     "시스템관리": lambda: ft.Container(content=ft.Text("시스템관리 준비 중")),
 
     # ☑️ 추가: 재고관리 하위 메뉴 연결
-    "재고 현황": inventory_status_view.erp_inventory_status_view,
+    "재고 현황": stock_status_view.erp_stock_status_view,
 
-    "상품별 재고 상세": inventory_product_detail_view.erp_inventory_product_detail_view,
+    "상품별 재고 상세": stock_product_detail_view.erp_stock_product_detail_view,
 }
 
 """각 side바의 제목 탭을 의미함
     1차 메뉴: 최초 클릭
     2차 메뉴: 1차 클릭 수 세부 항목을 재클릭"""
 
-'''재고관리 메뉴 - inventory'''
+'''재고관리 메뉴 - stock'''
 # 재고관리 1차 메뉴 -> 최초 출력
-INVENTORY_MAIN_ITEMS = [
+STOCK_MAIN_ITEMS = [
     "창고관리",
     "원자재 재고 관리",
     "상품 재고 관리",
@@ -99,7 +99,7 @@ INVENTORY_MAIN_ITEMS = [
 ]
 
 # ☑️ 추가: 재고관리 관련 상태 전체 묶음
-INVENTORY_ALL_ITEMS = [
+STOCK_ALL_ITEMS = [
     "재고관리",
     "창고관리",
     "원자재 재고 관리",
@@ -112,11 +112,16 @@ INVENTORY_ALL_ITEMS = [
 
 
 ##  재고 관리 2차 메뉴: 상품 재고관리에 대한 세부 항목
-INVENTORY_PRODUCT_ITEMS = [
+STOCK_PRODUCT_ITEMS = [
     "재고 현황",
     "상품별 재고 상세",
     "입고/출고 관리",
 ]
+# ☑️ 
+STOCK_MAIN_ITEMS = STOCK_MAIN_ITEMS
+STOCK_ALL_ITEMS = STOCK_ALL_ITEMS
+STOCK_PRODUCT_ITEMS = STOCK_PRODUCT_ITEMS
+
 '''==================== 재고관리 종료 ===================='''
 
 '''상품관리 메뉴 - sales'''
@@ -175,14 +180,14 @@ MENU_TO_ROUTE = {
     "발주 관리": "/production/order",
     "품질 및 이력 관리": "/production/quality",
     "거래처 관리": "/production/customer",
-    "재고관리": "/inventory",
-    "창고관리": "/inventory/warehouse",
-    "원자재 재고 관리": "/inventory/raw-material",
-    "상품 재고 관리": "/inventory/product",
-    "재고 현황": "/inventory/product/status",
-    "상품별 재고 상세": "/inventory/product/detail",
-    "입고/출고 관리": "/inventory/product/inout",
-    "상품 부자재 관리": "/inventory/sub-material",
+    "재고관리": "/stock",
+    "창고관리": "/stock/warehouse",
+    "원자재 재고 관리": "/stock/raw-material",
+    "상품 재고 관리": "/stock/product",
+    "재고 현황": "/stock/product/status",
+    "상품별 재고 상세": "/stock/product/detail",
+    "입고/출고 관리": "/stock/product/inout",
+    "상품 부자재 관리": "/stock/sub-material",
     "물류관리": "/logistics",
     "고객관리": "/customer",
     "영업관리": "/business",

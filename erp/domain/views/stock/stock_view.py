@@ -2,7 +2,7 @@ import flet as ft
 from components import common as cm
 
 
-def erp_inventory_view():
+def erp_stock_view():
     return ft.Container(
         expand=True,
         bgcolor=cm.PAGE_BG,
@@ -17,7 +17,7 @@ def erp_inventory_view():
                     weight=ft.FontWeight.W_700,
                 ),
                 ft.Text(
-                    value="재고관리 메인 화면",
+                    value="좌측 하위 메뉴에서 재고관리 기능을 선택하세요.",
                     size=16,
                     color="#666666",
                 ),

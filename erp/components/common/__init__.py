@@ -7,7 +7,7 @@ from .product_search_table_common import *
 
 # 차트 components
 from .charts.gauge_chart import *
-from .charts.inventory_pie_chart_box import *
+from .charts.stock_pie_chart_box import *
 from .charts.line_chart import *
 from .charts.production_status_box import *
 

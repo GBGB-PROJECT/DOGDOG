@@ -180,9 +180,9 @@ def default_register_row_adapter(saved_data: dict, next_no: int):
         "manufacturer": saved_data.get("manufacturer", ""),
         "consumer_price": saved_data.get("consumer_price", ""),
         # ☑️ spec_weight로 통일
-        "spec_weight": format_weight_display(
-            saved_data.get("spec_weight", "")
-        ),
+        # "spec_weight": format_weight_display(
+        #     saved_data.get("spec_weight", "")
+        # ),
         "barcode": saved_data.get("barcode", ""),
         "stock_unit": saved_data.get("stock_unit", ""),
         "sale_status": saved_data.get("sale_status", ""),

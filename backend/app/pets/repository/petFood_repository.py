@@ -114,11 +114,11 @@ def insert_pet_product_feeding(
 
         # 새 급여 사료 row 생성
         # false 처리 -> json으로 결과 넘기고 update
-        #deactivate_pet_food(
+        # deactivate_pet_food(
         #    db=db, pet_food=active_pet_food, feeding_false_date=date.today()
-        #)
+        # )
         new_pet_food.is_feeding_check = True
         new_pet_food.product_id = product_id
         new_pet_food.one_gram_calories = one_gram_calories
-    
+
     return new_pet_food

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import logging
 
 from db.db import get_db
-from dependencies import check_pet_owner
+from dependencies import check_pet_owner, get_current_user_id
 from app.logs.service.logs_service import LogsService
 from app.logs.repository.logs_repository import LogsRepository
 
@@ -18,10 +18,10 @@ def get_unified_timeline_logs(
     pet_id: int,
     query_date: Optional[date] = Query(None, alias="date", description="조회할 날짜 (기본값: 오늘)"),
     category: Optional[str] = Query(None, description="분류별 조회용 ('all', 'feeding', 'poop', 'water' 등)"),
+    customer_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """[조회] 타임라인 방식의 상세 기록 리스트(급여, 배변, 음수 등)를 통합하여 시간 역순으로 제공합니다."""
-    customer_id = 1  # TODO: JWT 연동
     repo = LogsRepository(db)
 
     # 1. 소유권 검증

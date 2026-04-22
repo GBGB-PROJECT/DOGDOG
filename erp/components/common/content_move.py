@@ -20,7 +20,7 @@ from domain.views.customer import erp_customer_view
 
 from domain.views.production import production_view
 
-from domain.views.production import production_order_view
+from erp.domain.views.production import purchase_order_view
 
 from domain.views.production import production_supplier_view
 
@@ -60,7 +60,7 @@ MENU_ITEMS = {
     "상품 상세 정보 관리": merchandise_info_detail_view.erp_merchandise_info_detail_view,
 
     "생산관리": production_view.erp_production_view,
-    "발주 관리": production_order_view.erp_production_order_view,
+    "발주 관리": purchase_order_view.erp_purchase_order_view,
     "거래처 관리": production_supplier_view.erp_production_supplier_view,
 
     # ☑️ 수정: 임시 텍스트 → 실제 재고관리 메인 화면 연결

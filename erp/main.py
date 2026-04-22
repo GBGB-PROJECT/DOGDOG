@@ -1,7 +1,18 @@
 import sys
 import os
+from pathlib import Path
 import webbrowser
 import flet as ft
+
+# =========================================================
+# ☑️ 팀 공통 backend/db 패키지 import 경로 설정
+# - erp/main.py를 직접 실행해도 DOGDOG/backend, DOGDOG/db를 찾을 수 있게 처리
+# =========================================================
+ERP_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = ERP_DIR.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 # 홈페이지 프레임 연결
 from domain.erp_homeframe import ErpFrame 
@@ -9,6 +20,7 @@ from domain.erp_homeframe import ErpFrame
 from domain.views.auth.erp_login import ErpLoginView
 # 라우터 인식을 위해서 content_move를 연결
 from components.common import content_move as cm
+
 def main(page: ft.Page):
   page.title = "개밥개밥푸드 ERP"
   page.window_width = 1600

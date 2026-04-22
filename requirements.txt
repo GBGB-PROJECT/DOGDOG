@@ -1,5 +1,5 @@
 # ==========================================
-# 🖥️ BACKEND (FastAPI & Database)
+# BACKEND (FastAPI & Database)
 # ==========================================
 fastapi==0.135.2
 uvicorn==0.42.0
@@ -18,10 +18,16 @@ httptools==0.7.1
 httpx==0.28.1
 watchfiles==1.1.1
 websockets==16.0
-uvloop==0.22.1
+uvloop==0.22.1; sys_platform != 'win32'
+
+# 인증 및 보안 추가
+bcrypt==3.2.2             # 비밀번호 암호화(해싱)용
+passlib==1.7.4            # 비밀번호 해시 관리 라이브러리
+python-jose==3.5.0        # JWT(JSON Web Token) 생성 및 검증
+cryptography==46.0.7      # 보안 및 암호화 알고리즘 지원
 
 # ==========================================
-# 📱 FRONTEND (Flet App)
+# FRONTEND (Flet App)
 # ==========================================
 flet==0.81.0
 flet-charts==0.81.0
@@ -30,14 +36,16 @@ oauthlib==3.3.1
 repath==0.9.0
 
 # ==========================================
-# 📊 DATA & EXCEL PROCESSING
+# DATA, EXCEL & ML (머신러닝 관련 추가)
 # ==========================================
 pandas==2.2.2
-numpy==2.4.4
+numpy==2.2.6
 openpyxl==3.1.5
+joblib==1.5.3             # 모델 저장 및 로드용
+xgboost==3.2.0            # 데이터 분석 및 예측 알고리즘
 
 # ==========================================
-# 🛠️ UTILS & DEVELOPMENT
+# UTILS & DEVELOPMENT
 # ==========================================
 pytest==9.0.2
 msgpack==1.1.2

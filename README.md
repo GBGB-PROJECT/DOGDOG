@@ -98,9 +98,25 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### 4. 환경 변수 설정 (Environment Variables)
+프로젝트 실행에 필요한 보안 및 설정 정보는 `.env` 파일에서 관리합니다. 
+프로젝트 루트 폴더에 `.env` 파일을 생성하고 아래 내용을 팀 환경에 맞게 수정하여 입력하세요.
 
+> **⚠️ 주의:** `.env` 파일에는 데이터베이스 비밀번호 등 민감한 정보가 포함되므로 절대 Git에 커밋하지 마세요. (이미 `.gitignore`에 포함되어 있습니다.)
 
-### 4. 실행 명령어
+```text
+# Database 설정
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD="[PASSWORD]"
+DB_NAME=dogdog_db
+
+# Auth 설정 (JWT 등)
+SECRET_KEY=임의의_복잡한_문자열
+```
+
+### 5. 실행 명령어
 ```bash
 # uvicorn을 사용하여 서버 가동 (main.py 위치 기준)
 uvicorn backend.main:app --reload

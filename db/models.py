@@ -63,7 +63,7 @@ class CompanionCustomerDetail(Base):
     __tablename__ = "customer_detail"
     __table_args__ = (
         CheckConstraint(
-            "oauth_type in ('google','kakao','naver')",
+            "oauth_type in ('google','kakao','naver','local')",
             name="ck_customer_detail_oauth_type",
         ),
         {"schema": "Companion"},
@@ -87,6 +87,8 @@ class CompanionCustomerDetail(Base):
     )
     memo = Column(Text)
     last_update = Column(DateTime, nullable=False, server_default=text("now()"))
+    refresh_token = Column(String(255))
+    refresh_token_exp = Column(DateTime)
 
     customer = relationship(
         "CompanionCustomer",

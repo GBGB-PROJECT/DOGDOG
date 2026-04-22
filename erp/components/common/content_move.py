@@ -20,7 +20,7 @@ from domain.views.customer import erp_customer_view
 
 from domain.views.production import production_view
 
-from erp.domain.views.production import purchase_order_view
+from domain.views.production import purchase_order_view
 
 from domain.views.production import production_supplier_view
 

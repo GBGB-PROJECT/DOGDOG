@@ -203,7 +203,7 @@ def employee_db_row_adapter(db_rows: list, page_no: int):
 # ☑️ 인사관리 화면
 # =========================================================
 def erp_employee_view():
-    page_title = "인사관리 > 사원관리"
+    page_title = "인사관리"
 
     rows_state = []
 

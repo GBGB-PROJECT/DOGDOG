@@ -5,7 +5,7 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import SUPPLIER_FIELDS
-from backend.erp.service.erp_query_service import count_suppliers, fetch_suppliers
+from backend.erp.supplier.service import count_suppliers, fetch_suppliers
 
 
 # =========================================================

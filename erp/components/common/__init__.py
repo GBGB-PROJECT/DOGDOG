@@ -2,7 +2,8 @@
 from .color import *
 from .erp_ui_boxes import *
 from .content_move import *
-from .modals.registration_popup import *
+from .product_search_table_common import *
+
 
 # 차트 components
 from .charts.gauge_chart import *

@@ -22,6 +22,8 @@ def get_current_pet_food_detail(db: Session, pet_id: int):
             select(
                 CompanionPetProductFeeding.product_id.label("product_id"),
                 CompanionPetProductFeeding.is_feeding_check.label("is_feeding_check"),
+                OpdProductDetail.thumbnail.label("thumbnail"), #
+                OpdProductDetail.brand.label("brand"), #
                 OpdProductDetail.product_name.label("product_name"),
                 OpdProduct.weight.label("product_weight"),
                 CompanionPet.feeding_count.label("feeding_count"),
@@ -48,51 +50,7 @@ def get_current_pet_food_detail(db: Session, pet_id: int):
             )
             .where(
                 CompanionPetProductFeeding.pet_id == pet_id,
-                # CompanionPet.pet_id == pet_id,
-                # CompanionCustomerFood.pet_id == pet_id,
                 CompanionPetProductFeeding.is_feeding_check == True,
-                # OpdProduct.product_id == CompanionPetProductFeeding.product_id,
-                # OpdProductDetail.product_detail_id == OpdProductDetail.product_detail_id,
             )
         )
     ).first()
-
-# def get_current_pet_food_detail(db: Session, pet_id: int):
-#     """
-#     현재 급여 중인 사료 상세 조회
-#     - pet_product_feeding.is_feeding_check = True 인 데이터만 조회
-#     - product, pet, customer_food 조인
-#     """
-#     return (
-#         db.query(
-#             CompanionPetProductFeeding.pet_id,
-#             CompanionPetProductFeeding.product_id,
-#             CompanionPetProductFeeding.is_feeding_check,
-
-#             OpdProduct.name.label("product_name"),
-#             OpdProduct.weight.label("product_weight"),
-
-#             CompanionPet.feeding_count.label("feeding_count"),
-
-#             CompanionCustomerFood.total_weight.label("total_weight"),
-#             CompanionCustomerFood.total_intake.label("total_intake"),
-#             CompanionCustomerFood.left_food_count.label("left_food_count"),
-#         )
-#         .join(
-#             OpdProduct,
-#             CompanionPetProductFeeding.product_id == OpdProduct.product_id
-#         )
-#         .join(
-#             CompanionPet,
-#             CompanionPetProductFeeding.pet_id == CompanionPet.pet_id
-#         )
-#         .join(
-#             CompanionCustomerFood,
-#             CompanionPetProductFeeding.pet_id == CompanionCustomerFood.pet_id
-#         )
-#         .filter(
-#             CompanionPetProductFeeding.pet_id == pet_id,
-#             CompanionPetProductFeeding.is_feeding_check.is_(True)
-#         )
-#         .first()
-#     )

@@ -118,80 +118,6 @@ def register_pet_food(
             }
         )
     
-# 급여사료 수정 ------------------------------------------------------------------
-class PetFoodUpdateRequest(BaseModel):
-    effective_date: date = Field(..., description="수정 적용 시작 날짜")
-    product_id: int = Field(..., description="변경할 사료 상품 ID")
-    total_weight: int = Field(..., gt=0, description="사료 총량(g)")
-
-@router.patch("/{pet_id}/pet_food")
-def patch_pet_food(
-    pet_id: int,
-    body: PetFoodUpdateRequest,
-    db: Session = Depends(get_db),
-    customer_id: int = Depends(get_current_user_id),
-):
-    try:
-
-        result = update_pet_food(
-            db=db,
-            customer_id=customer_id,
-            pet_id=pet_id,
-            effective_date=body.effective_date,
-            product_id=body.product_id,
-            total_weight=body.total_weight,
-        )
-
-        return {
-            "success": True,
-            "message": "급여사료 정보가 수정되었습니다.",
-            "data": result
-        }
-
-    except ValueError as e:
-        error_code = str(e)
-
-        error_map = {
-            "INVALID_DATE": (400, "유효하지 않은 날짜입니다."),
-            "PRODUCT_ID_REQUIRED": (400, "상품 ID는 필수입니다."),
-            "TOTAL_WEIGHT_REQUIRED": (400, "총 무게는 필수입니다."),
-            "INVALID_TOTAL_WEIGHT": (422, "총 무게는 0보다 커야 합니다."),
-            "HIGH_TOTAL_WEIGHT": (422, "총 무게는 상품 총무게보다 클 수 없습니다."),
-            "PET_NOT_FOUND": (404, "존재하지 않는 반려견입니다."),
-            "PRODUCT_NOT_FOUND": (404, "존재하지 않는 사료입니다."),
-            "PRODUCT_CALORIES_NOT_FOUND": (404, "상품 칼로리 정보가 없습니다."),
-            "FORBIDDEN_PET_ACCESS": (403, "해당 반려견에 대한 권한이 없습니다."),
-            "NO_FEEDING_DATA": (400, "해당 날짜에 급여 이력이 없습니다."),
-            "EXIST_PET_FOOD": (409, "기존의 상품과 같은 상품입니다.")
-        }
-
-        status_code, message = error_map.get(
-            error_code,
-            (400, "잘못된 요청입니다.")
-        )
-
-        return JSONResponse(
-            status_code=status_code,
-            content={
-                "success": False,
-                "error_code": error_code,
-                "message": message
-            }
-        )
-
-    except Exception as e:
-        db.rollback()
-        print("급여 사료 수정 실패:", e)
-        return JSONResponse(
-            status_code=500,
-            content={
-                "success": False,
-                "error_code": "PET_FOOD_UPDATE_FAILED",
-                "message": "급여 사료 수정에 실패했습니다."
-            }
-        )
-
-
 # 급여사료 상세조회 --------------------------------------------------------------
 @router.get("/{pet_id}/pet_food")
 def read_current_pet_food_detail(
@@ -265,6 +191,8 @@ def read_current_pet_food_detail(
             "data": {
                 "pet_id": pet_food.pet_id,
                 "product_id": pet_food.product_id,
+                "product_thumbnail": pet_food.thumbnail,
+                "product_brand": pet_food.brand,
                 "product_name": pet_food.product_name,
                 "total_weight": total_weight,
                 "product_weight": product_weight,

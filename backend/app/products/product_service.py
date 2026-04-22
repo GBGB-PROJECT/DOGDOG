@@ -35,28 +35,26 @@ def get_product_detail_service(db: Session, product_id: int):
             "error_code": "PRODUCT_DETAIL_NOT_FOUND",
             "message": "상품 상세 정보가 존재하지 않습니다."
         }
+    
+    product_name = f"{product_detail.product_name} {product.weight}g"
 
     # 3. 최종 데이터 조합
     data = {
         "product_id": product.product_id,
         "product_detail_id": product_detail.product_detail_id,
+
         "brand": product_detail.brand,
-        "product_name": product_detail.product_name,
+        "product_name": product_name,
+
         "type": product_detail.type,
         "life": product_detail.life,
-        "function": product_detail.function_,
+        "function": product_detail.function,
         "description": product_detail.description,
         "calories": float(product_detail.calories) if product_detail.calories is not None else None,
+        
         "thumbnail": product_detail.thumbnail,
         "pdi": product_detail.pdi,
-        "crude_protein": float(product_detail.crude_protein) if product_detail.crude_protein is not None else None,
-        "crude_fat": float(product_detail.crude_fat) if product_detail.crude_fat is not None else None,
-        "kibble_size": product_detail.kibble_size,
-        "protein_type": product_detail.protein_type,
-        "main_protein": product_detail.main_protein,
-        "certified": product_detail.certified,
-        "preservative": product_detail.preservative,
-        "feedshape": product_detail.feedshape,
+        
         "quantity": product.quantity,
         "weight": product.weight,
         "retail_price": float(product.retail_price) if product.retail_price is not None else None,

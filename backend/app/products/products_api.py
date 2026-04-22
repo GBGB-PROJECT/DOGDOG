@@ -50,7 +50,7 @@ def read_products(
                 "message": "상품 목록 조회에 실패했습니다."
             }
         )
-    
+
 # 상품 무게
 @router.get("/products/weights")
 def read_products_weights(
@@ -136,6 +136,7 @@ def read_product_detail(
         )
 
     except Exception as e:
+        print(f"서버 내부 오류 발생: {e}")
         return JSONResponse(
             status_code=500,
             content={

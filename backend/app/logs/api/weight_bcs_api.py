@@ -7,8 +7,7 @@ import logging
 
 from db.db import get_db
 
-# from app.auth.security import get_current_user
-from dependencies import check_pet_owner
+from dependencies import check_pet_owner, get_current_user_id
 from app.logs.service.pet_log_service import PetLogService
 from app.logs.repository.pet_log_repository import PetLogRepository
 
@@ -52,8 +51,7 @@ class WeightBcsResponse(BaseModel):
 def create_weight_bcs(
     pet_id: int,
     request: WeightBcsCreateRequest,
-    customer_id: int = 1007,  # (auth merge 전 임시 아이디)
-    # customer_id: int = Depends(get_current_user),
+    customer_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """반려견의 체중 및 BCS 수치를 기록합니다."""
@@ -86,8 +84,7 @@ def create_weight_bcs(
 def update_weight_bcs(
     log_id: int,
     request: WeightBcsUpdateRequest,
-    customer_id: int = 1007,  # (auth merge 전 임시 아이디)
-    # customer_id: int = Depends(get_current_user),
+    customer_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """단일 기록의 수치 또는 날짜를 수정합니다."""
@@ -119,8 +116,7 @@ def update_weight_bcs(
 @router.delete("/{log_id}")
 def delete_weight_bcs(
     log_id: int,
-    customer_id: int = 1007,  # (auth merge 전 임시 아이디)
-    # customer_id: int = Depends(get_current_user),
+    customer_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """단일 기록을 삭제하고 안전하게 롤백합니다."""

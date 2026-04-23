@@ -1,8 +1,13 @@
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from backend.app.products.repository.productDetail_repository import (
+from app.products.repository.productDetail_repository import (
     get_active_product_by_id,
     get_product_detail_by_id,
+)
+from app.products.repository.productsList_repository import (
+    get_product_list, 
+    VALID_SORTS
 )
 
 def get_product_detail_service(db: Session, product_id: int):
@@ -66,4 +71,62 @@ def get_product_detail_service(db: Session, product_id: int):
         "status_code": 200,
         "message": "상품 상세 조회에 성공했습니다.",
         "data": data
+    }
+
+
+def read_product_list(
+    db: Session,
+    keyword: str | None = None,
+    sort: str | None = None,
+):
+    """
+    상품 목록 조회 서비스
+    - product 목록 조회
+    - sort, search에 맞는 결과만
+    """
+    # sort 유효성 검사
+    if sort and sort not in VALID_SORTS:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error_code": "INVALID_SORT",
+                "message": "유효하지 않은 정렬 조건입니다.",
+            },
+        )
+
+    rows = get_product_list(
+        db=db,
+        keyword=keyword,
+        sort=sort,
+    )
+
+    data = [
+        {
+            "product_id": row.product_id,
+            "product_detail_id": row.product_detail_id,
+            "thumbnail": row.thumbnail,
+            "product_name": f"{row.product_name} {row.weight}g X{row.quantity}",
+            "brand": row.brand,
+            "type": row.type,
+            "function": row.function,
+            "quantity":row.quantity,
+            "weight": float(row.weight) if row.weight is not None else None,
+            "is_sample": row.is_sample,
+            "retail_price": float(row.retail_price) if row.retail_price is not None else 0,
+        }
+        for row in rows
+    ]
+
+    if not data:
+        return {
+            "success": True,
+            "message": "검색 결과가 없습니다.",
+            "data": [],
+        }
+
+    return {
+        "success": True,
+        "message": "상품 목록 조회에 성공했습니다.",
+        "data": data,
     }

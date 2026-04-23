@@ -3,7 +3,7 @@ import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.products.products_api import router as products_router
+from app.products.products_api import router as products_router
 
 
 # 프로젝트 루트 디렉토리를 sys.path에 추가하여 db 패키지를 찾을 수 있게 합니다.

@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from database.models import CompanionPet, CompanionButler, OpdProduct
+from db.models import CompanionPet, CompanionButler, OpdProduct
 
 # 존재하는 펫인지 확인
 # 펫아이디 가져오기

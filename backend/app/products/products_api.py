@@ -3,20 +3,23 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.db import get_db
-from backend.app.products.repository.productsList_repository import get_product_list
-from backend.app.products.repository.productsWeight_repository import get_product_weight
+from app.products.repository.productsList_repository import get_product_list
+from app.products.repository.productsWeight_repository import get_product_weight
+from dependencies import get_current_user
+from app.products.schemas import ProductListResponse, ProductWeightResponse
 
-router = APIRouter(tags=["products"])
+router = APIRouter(prefix="/api/v1/products", tags=["Products"])
 
 # 상품 목록 불러오기 ----------------------------------------------------------------------
 # 상품명
-@router.get("/products")
+@router.get("", response_model=ProductListResponse)
 def read_products(
         keyword: str | None = Query(
             default=None,
             max_length=50,
             description="상품명 검색어"
         ),
+        customer_id: int = Depends(get_current_user),
         db: Session = Depends(get_db)
     ):
     try:
@@ -51,14 +54,13 @@ def read_products(
         )
 
 # 상품 무게
-@router.get("/products/weights")
+@router.get("/weights", response_model=ProductWeightResponse)
 def read_products_weights(
-        #/products/weights?product_detail_id=1
+        #/api/v1/products/weights?product_detail_id=1
         product_detail_id: int = Query(
-            # default=None,
-            # max_length=50,
             description="상품 디테일 ID"
         ),
+        customer_id: int = Depends(get_current_user),
         db: Session = Depends(get_db)
     ):
     try:

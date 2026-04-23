@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.products.products_api import router as products_router
+from app.products.products_api import router as products_router
 
 
 
@@ -70,6 +70,9 @@ app.include_router(weight_bcs_router)
 
 # 4. calc_feeding 도메인
 app.include_router(calc_feeding_router)
+
+# 5. Products 도메인
+app.include_router(products_router)
 
 
 

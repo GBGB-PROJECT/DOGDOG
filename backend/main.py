@@ -22,6 +22,12 @@ try:
 except ImportError:
     from erp.product.api import router as erp_product_router
 
+# 🔥🔥🔥 추가: ERP 고객관리 Swagger 라우터
+try:
+    from erp.customer.api import router as erp_customer_router
+except ImportError:
+    from erp.customer.api import router as erp_customer_router
+
 
 app = FastAPI(
     title="DOGDOG API",
@@ -85,6 +91,9 @@ app.include_router(products_router)
 
 # 🔥🔥🔥 추가: ERP 상품 상세 정보 관리 라우터 등록
 app.include_router(erp_product_router)
+
+# 🔥🔥🔥 추가: ERP 고객관리 라우터 등록
+app.include_router(erp_customer_router)
 
 
 # [7] 실행 블록: 터미널에서 python main.py 로 직접 실행 가능하게 합니다.

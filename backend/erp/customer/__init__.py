@@ -1,3 +1,3 @@
-from .service import count_customers, fetch_customers
+from .service import count_customers, fetch_customers, create_customer
 
-__all__ = ["count_customers", "fetch_customers"]
+__all__ = ["count_customers", "fetch_customers", "create_customer"]

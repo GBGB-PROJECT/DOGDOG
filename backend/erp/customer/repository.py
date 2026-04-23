@@ -1,17 +1,16 @@
 from sqlalchemy import cast
 from sqlalchemy.types import String
 
-from backend.db.db import SessionLocal
-from backend.db.models import CompanionCustomer, CompanionCustomerDetail
-from backend.erp.common.query_utils import (
+from db.db import SessionLocal
+from db.models import CompanionCustomer, CompanionCustomerDetail
+from ..common.query_utils import (
     like_keyword,
     normalize_bool_keyword,
 )
-from backend.erp.common.mutation_utils import (
+from ..common.mutation_utils import (
     require_int,
     require_bool,
 )
-
 
 # =========================================================
 # ☑️ 고객관리 Repository

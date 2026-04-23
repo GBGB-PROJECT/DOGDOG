@@ -13,10 +13,10 @@ if project_root not in sys.path:
 
 # [2] 라우터 임포트 (건형님의 파일명에 맞게 조정했습니다)
 try:
-    from backend.erp.auth.erp_signinup_api import router as auth_router
+    from backend.erp.auth.api.erp_signinup_api import router as auth_router
 except ImportError:
     # 혹시 폴더 구조가 다를 경우를 대비해 erp를 뺀 경로도 시도합니다.
-    from erp.auth.erp_signinup_api import router as auth_router
+    from backend.erp.auth.api.erp_signinup_api import router as auth_router
 
 try:
     from backend.erp.product.api import router as product_router

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from backend.db.db import SessionLocal
-from erp.auth.erp_signinup_service import AuthService
+from db.db import SessionLocal
+from backend.erp.auth.service.erp_signinup_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["로그인 인증"])
 
@@ -26,7 +26,7 @@ def login_employee(request: LoginRequest, db: Session = Depends(get_db)):
     service = AuthService(db)
     
     # 서비스로부터 (결과 코드, 메시지) 튜플을 받습니다.
-    status_code, error_code ,message = service.verify_login(
+    status_code, error_code ,message, emp_data = service.verify_login(
         request.account_id, request.email, request.password
     )
     
@@ -36,9 +36,9 @@ def login_employee(request: LoginRequest, db: Session = Depends(get_db)):
             content={                # 실제 화면에 찍힐 JSON 내용
                 "success": False,
                 "code": error_code, # 예: FAIL_EMAIL
-                "msg": message            # 예: 등록된 이메일이 아닙니다
+                "msg": message           # 예: 등록된 이메일이 아닙니다
             }
         )
     
     # 모든 검증 통과 시 (200 OK)
-    return {"success": True, "code":status_code ,"msg": message}
+    return {"success": True, "code":status_code ,"msg": message, 'user_data': emp_data}

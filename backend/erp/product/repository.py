@@ -1,7 +1,15 @@
 from db.db import SessionLocal
 from db.models import OpdProduct, OpdProductDetail
 from ..common.query_utils import like_keyword, model_to_dict
-from ..common.mutation_utils import clean_text, to_float_or_none, require_text
+from ..common.mutation_utils import (
+    clean_text,
+    to_float_or_none,
+    to_int_or_none,
+    to_bool_or_none,
+    require_text,
+    require_int,
+    require_bool,
+)
 from sqlalchemy import String
 
 
@@ -236,7 +244,8 @@ def fetch_product_join_rows(search_type="product_name", keyword="", limit=50, of
 
 # =========================================================
 # ☑️ 상품 상세 등록
-# - 상품마스터/상품상세 화면 모두 OPD.product_detail 기준으로 등록
+# - 상품상세 등록 시 OPD.product_detail 1건 + OPD.product 1건 함께 저장
+# - 저장 직후 JOIN 목록에 바로 노출될 수 있도록 판매옵션도 동시에 생성
 # =========================================================
 def create_product_detail(data: dict):
     db = SessionLocal()
@@ -248,6 +257,18 @@ def create_product_detail(data: dict):
         product_type = require_text(data.get("type"), "타입")
         brand = require_text(data.get("brand"), "브랜드")
         product_name = require_text(data.get("product_name"), "상품명")
+
+        weight = require_int(data.get("weight"), "중량(g)")
+        retail_price = require_int(data.get("retail_price"), "판매가")
+        quantity = require_int(data.get("quantity"), "유닛(EA)")
+        active = require_bool(data.get("active"), "판매상태")
+
+        if weight < 1:
+            raise ValueError("중량(g)은 1 이상이어야 합니다.")
+        if retail_price < 0:
+            raise ValueError("판매가는 0 이상이어야 합니다.")
+        if quantity < 1:
+            raise ValueError("유닛(EA)은 1 이상이어야 합니다.")
 
         if db.query(OpdProductDetail).filter(
             OpdProductDetail.type == product_type,
@@ -275,9 +296,35 @@ def create_product_detail(data: dict):
             feedshape=clean_text(data.get("feedshape")),
         )
         db.add(product_detail)
+        db.flush()
+
+        product = OpdProduct(
+            product_detail_id=product_detail.product_detail_id,
+            quantity=quantity,
+            retail_price=retail_price,
+            weight=weight,
+            is_sample=to_bool_or_none(data.get("is_sample"), False),
+            active=active,
+        )
+        db.add(product)
+
         db.commit()
         db.refresh(product_detail)
-        return model_to_dict(product_detail, PRODUCT_DETAIL_COLUMNS)
+        db.refresh(product)
+
+        return {
+            "product_detail": model_to_dict(product_detail, PRODUCT_DETAIL_COLUMNS),
+            "product": {
+                "product_id": getattr(product, "product_id", None),
+                "product_detail_id": getattr(product, "product_detail_id", None),
+                "quantity": getattr(product, "quantity", None),
+                "retail_price": getattr(product, "retail_price", None),
+                "weight": getattr(product, "weight", None),
+                "is_sample": getattr(product, "is_sample", None),
+                "active": getattr(product, "active", None),
+                "last_update": getattr(product, "last_update", None),
+            },
+        }
     except Exception:
         db.rollback()
         raise

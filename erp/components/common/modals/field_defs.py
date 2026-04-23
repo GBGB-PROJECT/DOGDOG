@@ -23,7 +23,8 @@ PRODUCT_MASTER_FIELDS = [
 
 # =========================================================
 # ☑️ 상품 상세 정보 등록 필드
-# - OPD.product_detail 실제 컬럼 기준
+# - OPD.product_detail + OPD.product JOIN 화면 기준
+# - 상세 정보 등록 시 product_detail 저장 후 product 옵션 1건도 함께 저장
 # =========================================================
 PRODUCT_DETAIL_FIELDS = [
     {"label": "타입", "key": "type", "type": "text", "required": True, "max_length": 9},
@@ -49,6 +50,10 @@ PRODUCT_DETAIL_FIELDS = [
     {"label": "인증", "key": "certified", "type": "text", "required": False, "max_length": 30},
     {"label": "방부제", "key": "preservative", "type": "text", "required": False, "max_length": 30},
     {"label": "사료 형태", "key": "feedshape", "type": "text", "required": False, "max_length": 20},
+    {"label": "중량(g)", "key": "weight", "type": "int", "required": True, "max_length": 10, "min_value": 1},
+    {"label": "판매가", "key": "retail_price", "type": "int", "required": True, "max_length": 10, "min_value": 0},
+    {"label": "유닛(EA)", "key": "quantity", "type": "int", "required": True, "max_length": 10, "min_value": 1},
+    {"label": "판매상태", "key": "active", "type": "bool", "required": True, "max_length": 10},
 ]
 
 

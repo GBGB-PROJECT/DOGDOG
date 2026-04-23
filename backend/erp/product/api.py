@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Query
 from .service import count_product_join_rows, fetch_product_join_rows
 
 router = APIRouter(
-    prefix="/erp/products",
-    tags=["ERP 상품관리"],
+    prefix="/erp/merchandise",
+    tags=["merchandise"],
 )
 
 SEARCH_TYPE_LABELS = {

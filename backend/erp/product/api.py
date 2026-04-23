@@ -80,6 +80,26 @@ def get_product_detail_list(
             row["no"] = index
             result_items.append(row)
 
+        if total_count == 0:
+            return {
+                "success": True,
+                "message": "일치하는 정보가 없습니다.",
+                "data": {
+                    "items": [],
+                    "pagination": {
+                        "page": 1,
+                        "size": size,
+                        "total_count": 0,
+                        "total_pages": 1,
+                    },
+                    "search": {
+                        "search_type": clean_search_type,
+                        "search_type_label": SEARCH_TYPE_LABELS.get(clean_search_type, clean_search_type),
+                        "keyword": clean_keyword,
+                    },
+                },
+            }
+
         return {
             "success": True,
             "message": "상품 상세 정보 목록 조회에 성공했습니다.",

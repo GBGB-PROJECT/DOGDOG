@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.erp.auth.repository.erp_signinup_repository import EmployeeRepository
+from erp.auth.repository.erp_signinup_repository import EmployeeRepository
 
 class AuthService:
     def __init__(self, db: Session):
@@ -28,6 +28,7 @@ class AuthService:
         emp_data = {
             "username": employee.username,
             "email": employee.email,
+            "employee_id": employee.employee_id,
             "emp_position_id":employee.position_name if employee.position_name else "직급 없음"
     }
 

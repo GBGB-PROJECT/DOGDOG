@@ -18,6 +18,7 @@ class EmployeeRepository:
                 ErpEmployee.account_id, # account_id
                 ErpEmployee.email, # email
                 ErpEmployee.password, # password
+                ErpEmployee.employee_id,
                 ErpEmployee.username,
                 ErpEmpPosition.position_name
             )

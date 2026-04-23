@@ -45,11 +45,11 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
             ft.Row(controls=[
                 dogdog.basic_text(spans=[
                     ft.TextSpan(
-                        text=f"{feeding_food_weight if feeding_food_weight != 0 else "???"}g",
+                        text=f"{feeding_food_weight if feeding_food_weight != 0 else '???'}g",
                         style=dogdog.TextStyle(size=16)),
                     ft.TextSpan(text=f" / {view_product_weight}")
                 ], color=ft.Colors.GREY_400, weight="bold", size=16),
-                dogdog.flat_button(text=f"{feeding_data["left_food_count"] if feeding_data else "?"} 일치 남음", scale=0.7),
+                dogdog.flat_button(text=f"{feeding_data['left_food_count'] if feeding_data else '?'} 일치 남음", scale=0.7),
             ]),
             ft.ProgressBar(
                 height=10,

@@ -35,7 +35,7 @@ def build_text(
     size=12,
     color=TEXT_PRIMARY,
     weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.LEFT,
+    text_align=ft.TextAlign.CENTER,
     max_lines=1,
 ):
     return ft.Text(
@@ -63,6 +63,7 @@ def action_button(text, on_click=None, width=78):
             size=13,
             color=BUTTON_TEXT,
             weight=ft.FontWeight.W_500,
+            text_align=ft.TextAlign.CENTER,
         ),
     )
 
@@ -70,20 +71,20 @@ def action_button(text, on_click=None, width=78):
 def build_table_cell(
     text,
     width,
-    align_x=-1,
+    align_x=0,
     weight=ft.FontWeight.W_400,
     color=TEXT_ROW,
     size=12,
 ):
     return ft.Container(
         width=width,
-        alignment=ft.Alignment(align_x, 0),
+        alignment=ft.Alignment(0, 0),
         content=build_text(
             value=text,
             size=size,
             color=color,
             weight=weight,
-            text_align=ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT,
+            text_align=ft.TextAlign.CENTER,
             max_lines=2,
         ),
     )
@@ -101,15 +102,18 @@ def _format_number(value):
         return str(value)
 
 
-def _format_bool_text(value):
+def _format_sale_status(value):
     if value is True:
-        return "Y"
+        return "판매중"
     if value is False:
-        return "N"
-    if str(value).lower() == "true":
-        return "Y"
-    if str(value).lower() == "false":
-        return "N"
+        return "판매중지"
+
+    lowered = str(value).lower()
+    if lowered == "true":
+        return "판매중"
+    if lowered == "false":
+        return "판매중지"
+
     return str(value or "")
 
 
@@ -118,11 +122,13 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
     for index, row in enumerate(db_rows, start=start_no):
+        product_detail_id = row.get("product_detail_id", "")
+        product_id = row.get("product_id", "")
+
         rows.append(
             {
                 "no": str(index),
-                "product_id": row.get("product_id", ""),
-                "product_detail_id": row.get("product_detail_id", ""),
+                "product_display_id": f"{product_detail_id}-{product_id}" if product_detail_id != "" and product_id != "" else "",
                 "type": row.get("type", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
@@ -132,8 +138,7 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
                 "weight": _format_number(row.get("weight", "")),
                 "retail_price": _format_number(row.get("retail_price", "")),
                 "quantity": _format_number(row.get("quantity", "")),
-                "is_sample": _format_bool_text(row.get("is_sample", "")),
-                "active": _format_bool_text(row.get("active", "")),
+                "active": _format_sale_status(row.get("active", "")),
             }
         )
 
@@ -146,8 +151,7 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
 def product_detail_row_adapter(saved_data: dict, next_no: int):
     return {
         "no": str(next_no),
-        "product_id": "",
-        "product_detail_id": "",
+        "product_display_id": "",
         "type": saved_data.get("type", ""),
         "brand": saved_data.get("brand", ""),
         "product_name": saved_data.get("product_name", ""),
@@ -157,7 +161,6 @@ def product_detail_row_adapter(saved_data: dict, next_no: int):
         "weight": "",
         "retail_price": "",
         "quantity": "",
-        "is_sample": "",
         "active": "",
     }
 
@@ -179,19 +182,17 @@ def erp_product_detail_view():
 
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product_id", "label": "상품ID", "width": 80, "align_x": 1},
-        {"key": "product_detail_id", "label": "상세ID", "width": 80, "align_x": 1},
-        {"key": "type", "label": "타입", "width": 90, "align_x": -1},
-        {"key": "brand", "label": "브랜드", "width": 100, "align_x": -1},
-        {"key": "product_name", "label": "상품명", "width": 250, "align_x": -1},
-        {"key": "function", "label": "기능", "width": 200, "align_x": -1},
-        {"key": "main_protein", "label": "주원료", "width": 140, "align_x": -1},
-        {"key": "life", "label": "생애주기", "width": 90, "align_x": -1},
-        {"key": "weight", "label": "중량(g)", "width": 90, "align_x": 1},
-        {"key": "retail_price", "label": "판매가", "width": 100, "align_x": 1},
-        {"key": "quantity", "label": "수량", "width": 70, "align_x": 1},
-        {"key": "is_sample", "label": "샘플", "width": 70, "align_x": 0},
-        {"key": "active", "label": "활성", "width": 70, "align_x": 0},
+        {"key": "product_display_id", "label": "상품ID", "width": 110, "align_x": 0},
+        {"key": "type", "label": "타입", "width": 90, "align_x": 0},
+        {"key": "brand", "label": "브랜드", "width": 100, "align_x": 0},
+        {"key": "product_name", "label": "상품명", "width": 250, "align_x": 0},
+        {"key": "function", "label": "기능", "width": 200, "align_x": 0},
+        {"key": "main_protein", "label": "주원료", "width": 140, "align_x": 0},
+        {"key": "life", "label": "생애주기", "width": 90, "align_x": 0},
+        {"key": "weight", "label": "중량(g)", "width": 90, "align_x": 0},
+        {"key": "retail_price", "label": "판매가(원)", "width": 110, "align_x": 0},
+        {"key": "quantity", "label": "유닛(EA)", "width": 90, "align_x": 0},
+        {"key": "active", "label": "판매상태", "width": 100, "align_x": 0},
     ]
 
     pagination_state = {
@@ -237,6 +238,7 @@ def erp_product_detail_view():
         border_radius=6,
         bgcolor=FIELD_BG,
         content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
+        text_align=ft.TextAlign.CENTER,
     )
 
     search_type_text = ft.Text(
@@ -244,6 +246,7 @@ def erp_product_detail_view():
         size=13,
         color=FIELD_TEXT,
         weight=ft.FontWeight.W_500,
+        text_align=ft.TextAlign.CENTER,
     )
 
     def set_search_type(value: str):
@@ -256,12 +259,13 @@ def erp_product_detail_view():
             height=34,
             content=ft.Container(
                 padding=ft.Padding.only(left=2, right=2),
-                alignment=ft.Alignment(-1, 0),
+                alignment=ft.Alignment(0, 0),
                 content=ft.Text(
                     value=label,
                     size=13,
                     color=FIELD_TEXT,
                     weight=ft.FontWeight.W_500,
+                    text_align=ft.TextAlign.CENTER,
                 ),
             ),
             on_click=lambda e: set_search_type(value),
@@ -278,7 +282,11 @@ def erp_product_detail_view():
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                search_type_text,
+                ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
+                    content=search_type_text,
+                ),
                 ft.PopupMenuButton(
                     tooltip="검색 조건 선택",
                     content=ft.Container(
@@ -492,6 +500,7 @@ def erp_product_detail_view():
                             size=18,
                             color="#0F172A",
                             weight=ft.FontWeight.W_700,
+                            text_align=ft.TextAlign.CENTER,
                         ),
                     )
                 )

@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.calc_feeding.calc_feeding_api import router as cal_feeding_router
+
 # Domain Routers
 from app.pets.api.pets_api import router as pets_router
 from app.users.users_api import router as users_router

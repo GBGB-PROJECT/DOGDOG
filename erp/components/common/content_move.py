@@ -13,7 +13,7 @@ from domain.views.product import product_master_view
 from domain.views.product import product_detail_view
 
 # ☑️ 추가: 인사관리 화면 import
-from domain.views.hr import erp_employee_view
+from domain.views.employee import erp_employee_view
 
 # ☑️ 추가: 고객관리 화면 import
 from domain.views.customer import erp_customer_view
@@ -194,7 +194,7 @@ MENU_TO_ROUTE = {
     "고객관리": "/customer",
     "영업관리": "/business",
     "회계관리": "/accounting",
-    "인사관리": "/hr",
+    "인사관리": "/employee",
     "시스템관리": "/system",
 }
 

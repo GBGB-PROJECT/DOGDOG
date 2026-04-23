@@ -47,7 +47,7 @@ PRODUCT_DETAIL_FIELDS = [
     {"label": "단백질 유형", "key": "protein_type", "type": "text", "required": False, "max_length": 9},
     {"label": "주원료", "key": "main_protein", "type": "text", "required": False, "max_length": 30},
     {"label": "인증", "key": "certified", "type": "text", "required": False, "max_length": 30},
-    {"label": "보존제", "key": "preservative", "type": "text", "required": False, "max_length": 30},
+    {"label": "방부제", "key": "preservative", "type": "text", "required": False, "max_length": 30},
     {"label": "사료 형태", "key": "feedshape", "type": "text", "required": False, "max_length": 20},
 ]
 

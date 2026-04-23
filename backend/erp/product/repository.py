@@ -1,19 +1,47 @@
 from backend.db.db import SessionLocal
-from backend.db.models import OpdProductDetail
-from backend.erp.common.query_utils import model_to_dict, like_keyword
+from backend.db.models import OpdProduct, OpdProductDetail
+from backend.erp.common.query_utils import like_keyword, model_to_dict
 from backend.erp.common.mutation_utils import clean_text, to_float_or_none, require_text
+from sqlalchemy import String
 
 
 # =========================================================
 # ☑️ 상품관리 Repository
-# - OPD.product_detail ORM 모델 기반 조회
-# - 상품명 / 타입 / 브랜드 / 기능 / 급여단계 / 주원료 검색 처리
-# - 상품마스터정보관리와 상품 상세 정보 관리가 함께 사용
+# - 상품 상세 정보 조회 화면은 OPD.product + OPD.product_detail JOIN 기준
+# - product_detail_id 로 조인하여 판매옵션(weight / retail_price / quantity)까지 함께 조회
+# - pdi 는 화면에서 사용하지 않으므로 조회 응답에서 제외
 # - count + limit/offset 페이지네이션 처리
 # =========================================================
 
 PRODUCT_DETAIL_COLUMNS = [
     "product_detail_id",
+    "type",
+    "brand",
+    "product_name",
+    "function",
+    "description",
+    "crude_protein",
+    "crude_fat",
+    "calories",
+    "thumbnail",
+    "kibble_size",
+    "life",
+    "protein_type",
+    "main_protein",
+    "certified",
+    "preservative",
+    "feedshape",
+    "last_update",
+]
+
+PRODUCT_JOIN_COLUMNS = [
+    "product_id",
+    "product_detail_id",
+    "quantity",
+    "retail_price",
+    "weight",
+    "is_sample",
+    "active",
     "type",
     "brand",
     "product_name",
@@ -83,6 +111,125 @@ def fetch_product_details(search_type="product_name", keyword="", limit=50, offs
             .all()
         )
         return [model_to_dict(row, PRODUCT_DETAIL_COLUMNS) for row in rows]
+    finally:
+        db.close()
+
+
+def _build_join_query(db):
+    return (
+        db.query(OpdProduct, OpdProductDetail)
+        .join(
+            OpdProductDetail,
+            OpdProduct.product_detail_id == OpdProductDetail.product_detail_id,
+        )
+    )
+
+
+def _normalize_numeric_keyword(keyword: str):
+    return (keyword or "").replace(",", "").replace("g", "").replace("G", "").strip()
+
+
+def _apply_product_join_filter(query, search_type: str, keyword: str):
+    clean = (keyword or "").strip()
+
+    if not clean:
+        return query
+
+    if search_type == "product_name":
+        return query.filter(OpdProductDetail.product_name.ilike(like_keyword(clean)))
+
+    if search_type == "type":
+        return query.filter(OpdProductDetail.type.ilike(like_keyword(clean)))
+
+    if search_type == "brand":
+        return query.filter(OpdProductDetail.brand.ilike(like_keyword(clean)))
+
+    if search_type == "function":
+        return query.filter(OpdProductDetail.function.ilike(like_keyword(clean)))
+
+    if search_type == "life":
+        return query.filter(OpdProductDetail.life.ilike(like_keyword(clean)))
+
+    if search_type == "main_protein":
+        return query.filter(OpdProductDetail.main_protein.ilike(like_keyword(clean)))
+
+    if search_type == "weight":
+        numeric = _normalize_numeric_keyword(clean)
+        if numeric.isdigit():
+            return query.filter(OpdProduct.weight == int(numeric))
+        return query.filter(OpdProduct.weight.cast(String).ilike(like_keyword(numeric)))
+
+    if search_type == "retail_price":
+        numeric = _normalize_numeric_keyword(clean)
+        if numeric.isdigit():
+            return query.filter(OpdProduct.retail_price == int(numeric))
+        return query.filter(OpdProduct.retail_price.cast(String).ilike(like_keyword(numeric)))
+
+    if search_type == "quantity":
+        numeric = _normalize_numeric_keyword(clean)
+        if numeric.isdigit():
+            return query.filter(OpdProduct.quantity == int(numeric))
+        return query.filter(OpdProduct.quantity.cast(String).ilike(like_keyword(numeric)))
+
+    return query
+
+
+def _product_join_row_to_dict(product, detail):
+    row = {
+        "product_id": getattr(product, "product_id", ""),
+        "product_detail_id": getattr(product, "product_detail_id", ""),
+        "quantity": getattr(product, "quantity", ""),
+        "retail_price": getattr(product, "retail_price", ""),
+        "weight": getattr(product, "weight", ""),
+        "is_sample": getattr(product, "is_sample", ""),
+        "active": getattr(product, "active", ""),
+        "type": getattr(detail, "type", ""),
+        "brand": getattr(detail, "brand", ""),
+        "product_name": getattr(detail, "product_name", ""),
+        "function": getattr(detail, "function", ""),
+        "description": getattr(detail, "description", ""),
+        "crude_protein": getattr(detail, "crude_protein", ""),
+        "crude_fat": getattr(detail, "crude_fat", ""),
+        "calories": getattr(detail, "calories", ""),
+        "thumbnail": getattr(detail, "thumbnail", ""),
+        "kibble_size": getattr(detail, "kibble_size", ""),
+        "life": getattr(detail, "life", ""),
+        "protein_type": getattr(detail, "protein_type", ""),
+        "main_protein": getattr(detail, "main_protein", ""),
+        "certified": getattr(detail, "certified", ""),
+        "preservative": getattr(detail, "preservative", ""),
+        "feedshape": getattr(detail, "feedshape", ""),
+        "last_update": getattr(product, "last_update", None) or getattr(detail, "last_update", None),
+    }
+    return row
+
+
+def count_product_join_rows(search_type="product_name", keyword=""):
+    db = SessionLocal()
+    try:
+        query = _build_join_query(db)
+        query = _apply_product_join_filter(query, search_type, keyword)
+        return query.count()
+    finally:
+        db.close()
+
+
+def fetch_product_join_rows(search_type="product_name", keyword="", limit=50, offset=0):
+    db = SessionLocal()
+    try:
+        query = _build_join_query(db)
+        query = _apply_product_join_filter(query, search_type, keyword)
+        rows = (
+            query.order_by(
+                OpdProductDetail.product_name.asc(),
+                OpdProduct.weight.asc(),
+                OpdProduct.product_id.asc(),
+            )
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+        return [_product_join_row_to_dict(product, detail) for product, detail in rows]
     finally:
         db.close()
 

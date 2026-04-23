@@ -1,7 +1,7 @@
 import math
 import flet as ft
 from components import common as cm
-from backend.erp.product.service import count_product_details, fetch_product_details, create_product_detail
+from backend.erp.product.service import count_product_join_rows, fetch_product_join_rows, create_product_detail
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 
@@ -89,6 +89,30 @@ def build_table_cell(
     )
 
 
+def _format_number(value):
+    if value in [None, ""]:
+        return ""
+
+    try:
+        if isinstance(value, bool):
+            return str(value)
+        return f"{int(value):,}"
+    except Exception:
+        return str(value)
+
+
+def _format_bool_text(value):
+    if value is True:
+        return "Y"
+    if value is False:
+        return "N"
+    if str(value).lower() == "true":
+        return "Y"
+    if str(value).lower() == "false":
+        return "N"
+    return str(value or "")
+
+
 def product_detail_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
@@ -97,23 +121,19 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
         rows.append(
             {
                 "no": str(index),
+                "product_id": row.get("product_id", ""),
                 "product_detail_id": row.get("product_detail_id", ""),
                 "type": row.get("type", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "function": row.get("function", ""),
-                "description": row.get("description", ""),
-                "crude_protein": row.get("crude_protein", ""),
-                "crude_fat": row.get("crude_fat", ""),
-                "calories": row.get("calories", ""),
-                "thumbnail": row.get("thumbnail", ""),
-                "kibble_size": row.get("kibble_size", ""),
-                "life": row.get("life", ""),
-                "protein_type": row.get("protein_type", ""),
                 "main_protein": row.get("main_protein", ""),
-                "certified": row.get("certified", ""),
-                "preservative": row.get("preservative", ""),
-                "feedshape": row.get("feedshape", ""),
+                "life": row.get("life", ""),
+                "weight": _format_number(row.get("weight", "")),
+                "retail_price": _format_number(row.get("retail_price", "")),
+                "quantity": _format_number(row.get("quantity", "")),
+                "is_sample": _format_bool_text(row.get("is_sample", "")),
+                "active": _format_bool_text(row.get("active", "")),
             }
         )
 
@@ -126,23 +146,19 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
 def product_detail_row_adapter(saved_data: dict, next_no: int):
     return {
         "no": str(next_no),
+        "product_id": "",
         "product_detail_id": "",
         "type": saved_data.get("type", ""),
         "brand": saved_data.get("brand", ""),
         "product_name": saved_data.get("product_name", ""),
         "function": saved_data.get("function", ""),
-        "description": saved_data.get("description", ""),
-        "crude_protein": saved_data.get("crude_protein", ""),
-        "crude_fat": saved_data.get("crude_fat", ""),
-        "calories": saved_data.get("calories", ""),
-        "thumbnail": saved_data.get("thumbnail", ""),
-        "kibble_size": saved_data.get("kibble_size", ""),
-        "life": saved_data.get("life", ""),
-        "protein_type": saved_data.get("protein_type", ""),
         "main_protein": saved_data.get("main_protein", ""),
-        "certified": saved_data.get("certified", ""),
-        "preservative": saved_data.get("preservative", ""),
-        "feedshape": saved_data.get("feedshape", ""),
+        "life": saved_data.get("life", ""),
+        "weight": "",
+        "retail_price": "",
+        "quantity": "",
+        "is_sample": "",
+        "active": "",
     }
 
 
@@ -156,27 +172,26 @@ def erp_product_detail_view():
         "brand": "브랜드",
         "function": "기능",
         "main_protein": "주원료",
+        "weight": "중량",
+        "retail_price": "판매가",
+        "quantity": "수량",
     }
 
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
+        {"key": "product_id", "label": "상품ID", "width": 80, "align_x": 1},
         {"key": "product_detail_id", "label": "상세ID", "width": 80, "align_x": 1},
         {"key": "type", "label": "타입", "width": 90, "align_x": -1},
-        {"key": "brand", "label": "브랜드", "width": 90, "align_x": -1},
-        {"key": "product_name", "label": "상품명", "width": 220, "align_x": -1},
-        {"key": "function", "label": "기능", "width": 220, "align_x": -1},
-        {"key": "description", "label": "설명", "width": 220, "align_x": -1},
-        {"key": "crude_protein", "label": "조단백", "width": 80, "align_x": 1},
-        {"key": "crude_fat", "label": "조지방", "width": 80, "align_x": 1},
-        {"key": "calories", "label": "칼로리", "width": 80, "align_x": 1},
-        {"key": "thumbnail", "label": "썸네일 URL", "width": 220, "align_x": -1},
-        {"key": "kibble_size", "label": "알갱이 크기", "width": 100, "align_x": -1},
-        {"key": "life", "label": "생애 주기", "width": 90, "align_x": -1},
-        {"key": "protein_type", "label": "단백질유형", "width": 100, "align_x": -1},
+        {"key": "brand", "label": "브랜드", "width": 100, "align_x": -1},
+        {"key": "product_name", "label": "상품명", "width": 250, "align_x": -1},
+        {"key": "function", "label": "기능", "width": 200, "align_x": -1},
         {"key": "main_protein", "label": "주원료", "width": 140, "align_x": -1},
-        {"key": "certified", "label": "인증", "width": 120, "align_x": -1},
-        {"key": "preservative", "label": "방부제", "width": 140, "align_x": -1},
-        {"key": "feedshape", "label": "사료 형태", "width": 90, "align_x": -1},
+        {"key": "life", "label": "생애주기", "width": 90, "align_x": -1},
+        {"key": "weight", "label": "중량(g)", "width": 90, "align_x": 1},
+        {"key": "retail_price", "label": "판매가", "width": 100, "align_x": 1},
+        {"key": "quantity", "label": "수량", "width": 70, "align_x": 1},
+        {"key": "is_sample", "label": "샘플", "width": 70, "align_x": 0},
+        {"key": "active", "label": "활성", "width": 70, "align_x": 0},
     ]
 
     pagination_state = {
@@ -334,7 +349,6 @@ def erp_product_detail_view():
             ),
         )
 
-
     def build_empty_row(message: str):
         total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1))
         return ft.Container(
@@ -363,9 +377,7 @@ def erp_product_detail_view():
         table_rows_holder.controls.clear()
 
         if not filtered_rows:
-            table_rows_holder.controls.append(
-                build_empty_row("일치하는 정보가 없습니다.")
-            )
+            table_rows_holder.controls.append(build_empty_row("일치하는 정보가 없습니다."))
             return
 
         for row in filtered_rows:
@@ -373,17 +385,17 @@ def erp_product_detail_view():
 
     # =========================================================
     # ☑️ SQLAlchemy ORM: 상품 상세 count/list 조회
-    # - SQL 문자열을 직접 실행하지 않고 ProductDetailModel 기반 ORM 함수 사용
+    # - OPD.product + OPD.product_detail JOIN 기반 조회
     # =========================================================
     def fetch_total_count(keyword=""):
-        return count_product_details(
+        return count_product_join_rows(
             search_type=search_type_value["value"],
             keyword=keyword,
         )
 
     def fetch_product_rows(keyword="", page_no=1):
         offset = (page_no - 1) * PAGE_SIZE
-        db_rows = fetch_product_details(
+        db_rows = fetch_product_join_rows(
             search_type=search_type_value["value"],
             keyword=keyword,
             limit=PAGE_SIZE,

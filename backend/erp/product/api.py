@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.erp.product.service import count_product_details, fetch_product_details
+from backend.erp.product.service import count_product_join_rows, fetch_product_join_rows
 
 router = APIRouter(
     prefix="/erp/products",
@@ -16,6 +16,9 @@ SEARCH_TYPE_LABELS = {
     "brand": "브랜드",
     "function": "기능",
     "main_protein": "주원료",
+    "weight": "중량",
+    "retail_price": "판매가",
+    "quantity": "수량",
 }
 
 
@@ -24,12 +27,22 @@ SEARCH_TYPE_LABELS = {
     summary="상품 상세 정보 관리 목록 조회",
     description=(
         "상품관리 > 상품 상세 정보 관리 화면에서 사용하는 목록 조회 API입니다. "
+        "OPD.product 와 OPD.product_detail 을 product_detail_id 로 JOIN 하여 "
         "검색 조건(search_type), 검색어(keyword), 페이지(page), 페이지 크기(size)를 받아 "
-        "OPD.product_detail 목록을 페이지네이션하여 반환합니다."
+        "페이지네이션된 목록을 반환합니다."
     ),
 )
 def get_product_detail_list(
-    search_type: Literal["product_name", "type", "brand", "function", "main_protein"] = Query(
+    search_type: Literal[
+        "product_name",
+        "type",
+        "brand",
+        "function",
+        "main_protein",
+        "weight",
+        "retail_price",
+        "quantity",
+    ] = Query(
         default="product_name",
         description="검색 조건",
         examples=["product_name"],
@@ -57,7 +70,7 @@ def get_product_detail_list(
         clean_search_type = (search_type or "product_name").strip()
         clean_keyword = (keyword or "").strip()
 
-        total_count = count_product_details(
+        total_count = count_product_join_rows(
             search_type=clean_search_type,
             keyword=clean_keyword,
         )
@@ -65,7 +78,7 @@ def get_product_detail_list(
         total_pages = max(1, ceil(total_count / size))
         offset = (page - 1) * size
 
-        items = fetch_product_details(
+        items = fetch_product_join_rows(
             search_type=clean_search_type,
             keyword=clean_keyword,
             limit=size,

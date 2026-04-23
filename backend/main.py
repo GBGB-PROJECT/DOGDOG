@@ -1,32 +1,22 @@
-import os
-import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# backend/main.py 상단
-current_dir = os.path.dirname(os.path.abspath(__file__)) # .../backend
-project_root = os.path.abspath(os.path.join(current_dir, "../")) # .../dogdog-project (부모 폴더)
 
-# 이 project_root가 sys.path의 0번(최우선) 순위로 잘 들어가 있어야 합니다.
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# Domain Routers
+from app.pets.api.pets_api import router as pets_router
+from app.users.users_api import router as users_router
+from app.auth.api.auth_api import router as auth_router
+from app.logs.api.poop_api import router as poop_router
+from app.home.api.dashboard_api import router as dashboard_router
+from app.logs.api.logs_api import router as logs_router
+from app.logs.api.weight_bcs_api import router as weight_bcs_router
+from app.logs.api.feeding_api import router as feeding_router
+from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
+from app.products.products_api import router as products_router
 
-# [2] 라우터 임포트 (건형님의 파일명에 맞게 조정했습니다)
-try:
-    from backend.erp.auth.api.erp_signinup_api import router as auth_router
-except ImportError:
-    # 혹시 폴더 구조가 다를 경우를 대비해 erp를 뺀 경로도 시도합니다.
-    from backend.erp.auth.api.erp_signinup_api import router as auth_router
-
-try:
-    from backend.erp.product.api import router as product_router
-except ImportError:
-    from erp.product.api import router as product_router
-
-# [3] FastAPI 앱 초기화
 app = FastAPI(
-    title="개밥개밥 ERP API",
-    description="사원 관리 및 인증 시스템을 위한 백엔드 서버",
+    title="DOGDOG API",
+    description="반려견 일상 기록 및 사료 관리 서비스를 위한 API",
     version="1.0.0",
 )
 
@@ -39,19 +29,62 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# [5] 라우터 등록
-app.include_router(auth_router)
-app.include_router(product_router)
 
-# [6] 서버 정상 작동 확인용 엔드포인트
-@app.get("/")
+# ----------------------------------------------------
+# Health Check 및 Root 엔드포인트
+# ----------------------------------------------------
+@app.get("/health", tags=["System"])
+def health_check():
+    """도커 및 로드밸런서의 상태 확인 엔드포인트입니다."""
+    return {"status": "ok"}
+
+
+@app.get("/", tags=["System"])
 def read_root():
     return {
-        "message": "개밥개밥 ERP 백엔드 서버가 정상 작동 중입니다.",
-        "status": "online"
+        "message": "DOGDOG 백엔드 서버가 정상 작동 중입니다.",
+        "schema": "Companion",
     }
+
+
+# ----------------------------------------------------
+# API Router 중앙화 및 버저닝 계층화 (API V1)
+# ----------------------------------------------------
+# (참고: 각 라우터 파일에 /api/v1 접두사가 포함되어 있으므로 이곳에서 이중으로 주입할 필요 없이 논리적 계층별로 결합합니다)
+
+# 1. Auth & Users 도메인
+app.include_router(auth_router)
+app.include_router(users_router)
+
+# 2. Pets 도메인
+app.include_router(pets_router)
+
+# 3. Logs & Dashboard 도메인
+app.include_router(dashboard_router)
+app.include_router(logs_router)
+app.include_router(feeding_router)
+app.include_router(poop_router)
+app.include_router(weight_bcs_router)
+
+# 4. calc_feeding 도메인
+app.include_router(calc_feeding_router)
+
+# 5. Products 도메인
+app.include_router(products_router)
+
 
 # [7] 실행 블록: 터미널에서 python main.py 로 직접 실행 가능하게 합니다.
 if __name__ == "__main__":
     import uvicorn
+
+    """
+    ========================================================================
+    [실행 가이드]
+    - DB 폴더 및 서버 파일들이 backend/ 안으로 일원화되었습니다.
+    - 터미널(터미널 창)을 열고, 최상위 루트가 아닌 반드시 'backend/' 폴더 경로로 이동(cd)한 후 
+    - 아래 명령어를 통해 서버를 실행해주세요.
+    
+    실행 명령어: uvicorn main:app --reload
+    ========================================================================
+    """
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

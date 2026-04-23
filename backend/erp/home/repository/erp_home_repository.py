@@ -4,7 +4,7 @@ from datetime import date
 from db.models import OpdSubsItem, OpdSalesOrderItem
 
 class DashboardRepo:
-    """home_view를 채우기 위한 데이터"""
+    """home_view의 매출 하이라트를 채우기 위한 데이터"""
 
     def __init__(self, db: Session): # db 연결
         self.db = db

@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-
 # Domain Routers
 from app.pets.api.pets_api import router as pets_router
 from app.users.users_api import router as users_router
@@ -13,20 +12,14 @@ from app.logs.api.weight_bcs_api import router as weight_bcs_router
 from app.logs.api.feeding_api import router as feeding_router
 from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
 from app.products.products_api import router as products_router
+
+# Erp router
 from erp.auth.api.erp_signinup_api import router as erp_employee_router
 from erp.home.api.erp_home_api import router as erp_home_router
+from erp.home.api.erp_home_inventory_api import router as erp_home_inventory_router
+from erp.product.api import router as erp_product_router
+from erp.customer.api import router as erp_customer_router
 
-# 🔥🔥🔥 추가: ERP 상품 상세 정보 관리 Swagger 라우터
-try:
-    from erp.product.api import router as erp_product_router
-except ImportError:
-    from erp.product.api import router as erp_product_router
-
-# 🔥🔥🔥 추가: ERP 고객관리 Swagger 라우터
-try:
-    from erp.customer.api import router as erp_customer_router
-except ImportError:
-    from erp.customer.api import router as erp_customer_router
 
 
 app = FastAPI(
@@ -69,6 +62,7 @@ def read_root():
 # 1. erp_employee(auth), home 도메인
 app.include_router(erp_employee_router)
 app.include_router(erp_home_router)
+app.include_router(erp_home_inventory_router)
 # 1. Auth & Users 도메인
 app.include_router(auth_router)
 app.include_router(users_router)

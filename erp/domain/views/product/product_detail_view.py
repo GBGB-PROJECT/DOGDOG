@@ -175,7 +175,7 @@ def erp_product_detail_view():
         {"key": "protein_type", "label": "단백질유형", "width": 100, "align_x": -1},
         {"key": "main_protein", "label": "주원료", "width": 140, "align_x": -1},
         {"key": "certified", "label": "인증", "width": 120, "align_x": -1},
-        {"key": "preservative", "label": "보존제", "width": 140, "align_x": -1},
+        {"key": "preservative", "label": "방부제", "width": 140, "align_x": -1},
         {"key": "feedshape", "label": "사료 형태", "width": 90, "align_x": -1},
     ]
 

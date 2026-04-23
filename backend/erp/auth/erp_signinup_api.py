@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from db.db import SessionLocal
+from backend.db.db import SessionLocal
 from erp.auth.erp_signinup_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["로그인 인증"])

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from db.models import ErpEmployee 
+from backend.db.models import ErpEmployee 
 """현재 table에서 account_id, email, password, active 을 가지고 옴"""
 
 class EmployeeRepository:

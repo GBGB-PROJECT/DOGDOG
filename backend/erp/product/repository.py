@@ -1,5 +1,5 @@
-from db.db import SessionLocal
-from db.models import OpdProductDetail
+from backend.db.db import SessionLocal
+from backend.db.models import OpdProductDetail
 from backend.erp.common.query_utils import model_to_dict, like_keyword
 
 

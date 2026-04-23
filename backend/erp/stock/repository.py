@@ -1,8 +1,8 @@
 from sqlalchemy import cast, func
 from sqlalchemy.types import String
 
-from db.db import SessionLocal
-from db.models import ErpStock
+from backend.db.db import SessionLocal
+from backend.db.models import ErpStock
 from backend.erp.common.query_utils import model_to_dict, like_keyword, parse_date
 
 

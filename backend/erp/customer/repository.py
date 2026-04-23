@@ -1,8 +1,8 @@
 from sqlalchemy import cast
 from sqlalchemy.types import String
 
-from db.db import SessionLocal
-from db.models import CompanionCustomer
+from backend.db.db import SessionLocal
+from backend.db.models import CompanionCustomer
 from backend.erp.common.query_utils import (
     model_to_dict,
     like_keyword,

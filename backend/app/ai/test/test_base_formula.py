@@ -1,4 +1,4 @@
-from ai.recommend import calculate_base_g
+from app.ai.recommend import calculate_base_g
 
 # weight = 7.5
 # age_m = 13 # 개월수

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.calc_feeding.calc_feeding_api import router as cal_feeding_router
+
 
 # Domain Routers
 from app.pets.api.pets_api import router as pets_router
@@ -12,6 +12,7 @@ from app.home.api.dashboard_api import router as dashboard_router
 from app.logs.api.logs_api import router as logs_router
 from app.logs.api.weight_bcs_api import router as weight_bcs_router
 from app.logs.api.feeding_api import router as feeding_router
+from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
 
 app = FastAPI(
     title="DOGDOG API",
@@ -19,18 +20,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS 보안 설정 강화 (운영 환경 및 개발 환경 허용 도메인 명시)
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://dogdog-production-domain.com",  # 추후 실 배포 도메인으로 변경 예정
-]
-
+# CORS 설정 (모든 허용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -51,7 +46,6 @@ def read_root():
         "schema": "Companion",
     }
 
-
 # ----------------------------------------------------
 # API Router 중앙화 및 버저닝 계층화 (API V1)
 # ----------------------------------------------------
@@ -70,6 +64,10 @@ app.include_router(logs_router)
 app.include_router(feeding_router)
 app.include_router(poop_router)
 app.include_router(weight_bcs_router)
+
+# 4. calc_feeding 도메인
+app.include_router(calc_feeding_router)
+
 
 
 if __name__ == "__main__":

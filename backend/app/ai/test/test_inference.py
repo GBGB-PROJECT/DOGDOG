@@ -1,4 +1,4 @@
-from ai.recommend import predict_recommend_g
+from app.ai.recommend import predict_recommend_g
 
 guide_feeding = predict_recommend_g(
     age = 23,

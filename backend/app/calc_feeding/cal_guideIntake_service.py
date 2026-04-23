@@ -4,15 +4,15 @@ from math import pow
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from backend.app.calc_feeding.repository.cal_guideIntake_repository import (
+from app.calc_feeding.repository.cal_guideIntake_repository import (
     get_cal_features,
     get_adult_stand_m,
     get_feeding_count,
     create_feeding_recommendation,
 )
 
-# from ai.inference.predictor import predict_recommend_g
-from ai.recommend import predict_recommend_g
+# from app.ai.inference.predictor import predict_recommend_g
+from app.ai.recommend import predict_recommend_g
 
 # 생일 -> 개월수
 def calculate_age_months(birth_day: date) -> int:

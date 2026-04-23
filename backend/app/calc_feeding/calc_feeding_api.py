@@ -1,27 +1,27 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.db import get_db
-from backend.app.calc_feeding.repository.guideIntake_repository import get_guide_intake, get_feeding_count
-from backend.dependencies import get_pet_by_id, check_pet_owner
+from app.calc_feeding.repository.guideIntake_repository import get_guide_intake, get_feeding_count
+from dependencies import get_pet_by_id, check_pet_owner, get_current_user
+from app.calc_feeding.cal_guideIntake_service import create_feeding_recommendation_service
+from app.calc_feeding.schemas import CalcFeedingRecommendationResponse, GuideIntakeResponse
 
-# from backend.app.feeding_recommendation.schema import (
-#     FeedingRecommendationCreateRequest,
-# )
-from backend.app.calc_feeding.cal_guideIntake_service import create_feeding_recommendation_service
-
-# 예시: 실제 프로젝트에 맞는 auth dependency로 교체
-# from backend.dependencies import get_current_customer_id
-
-router = APIRouter(tags=["calc_guide_feeding"])
+router = APIRouter(prefix="/api/v1/calc_feeding", tags=["Calc Feeding"])
 
 # 등록
-@router.post("/pets/{pet_id}/cal_feeding/guide")
+@router.post("/{pet_id}/guide", response_model=CalcFeedingRecommendationResponse, status_code=201)
 def create_feeding_recommendation_api(
     pet_id: int,
+    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not check_pet_owner(db, pet_id, customer_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다."
+        )
+
     result = create_feeding_recommendation_service(
         db=db,
         pet_id=pet_id,
@@ -53,10 +53,10 @@ def create_feeding_recommendation_api(
 '''
 
 # 조회
-@router.get("/pets/{pet_id}/cal_feeding/guide")
+@router.get("/{pet_id}/guide", response_model=GuideIntakeResponse)
 def read_guide_intake(
         pet_id: int,
-        customer_id: int,
+        customer_id: int = Depends(get_current_user),
         db: Session = Depends(get_db)
     ):
     try:
@@ -83,16 +83,10 @@ def read_guide_intake(
                 }
             )
         
-        # 해다 반려견 권한 확인
-        has_access = check_pet_owner(db=db, pet_id=pet_id, customer_id=customer_id)
-        if not has_access:
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "success": False,
-                    "error_code": "FORBIDDEN_PET_ACCESS",
-                    "message": "해당 반려견에 대한 권한이 없습니다."
-                }
+        # 반려견 권한 확인
+        if not check_pet_owner(db, pet_id, customer_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다."
             )
 
         # 추천 테이블 조회

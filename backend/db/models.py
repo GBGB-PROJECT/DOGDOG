@@ -13,6 +13,7 @@ from sqlalchemy import (
     CheckConstraint,
     UniqueConstraint,
     Computed,
+    FetchedValue,
     text,
 )
 from sqlalchemy.orm import declarative_base, relationship, foreign
@@ -62,7 +63,7 @@ class CompanionCustomerDetail(Base):
     __tablename__ = "customer_detail"
     __table_args__ = (
         CheckConstraint(
-            "oauth_type in ('google','kakao','naver')",
+            "oauth_type in ('google','kakao','naver','local')",
             name="ck_customer_detail_oauth_type",
         ),
         {"schema": "Companion"},
@@ -86,6 +87,8 @@ class CompanionCustomerDetail(Base):
     )
     memo = Column(Text)
     last_update = Column(DateTime, nullable=False, server_default=text("now()"))
+    refresh_token = Column(String(255))
+    refresh_token_exp = Column(DateTime)
 
     customer = relationship(
         "CompanionCustomer",
@@ -216,6 +219,7 @@ class CompanionPetLogBoolean(Base):
     )
     category = Column(String(18), nullable=False, index=True)
     is_status = Column(Boolean, nullable=False, server_default=text("true"))
+    active = Column(Boolean, default=True, server_default=text("true"))
     memo = Column(Text)
     log_date = Column(
         DateTime, primary_key=True, nullable=False, server_default=text("now()")
@@ -232,7 +236,7 @@ class CompanionPetLogNumeric(Base):
     __tablename__ = "pet_log_numeric"
     __table_args__ = {"schema": "Companion"}
 
-    pet_log_numeric_id = Column(Integer, primary_key=True)
+    pet_log_numeric_id = Column(Integer, primary_key=True, autoincrement=True, server_default=FetchedValue())
     pet_id = Column(
         Integer, ForeignKey("Companion.pet.pet_id"), nullable=False, index=True
     )
@@ -244,6 +248,7 @@ class CompanionPetLogNumeric(Base):
     )
     category = Column(String(18), nullable=False, index=True)
     log_status = Column(Numeric(5, 2))
+    active = Column(Boolean, default=True, server_default=text("true"))
     memo = Column(Text)
     log_date = Column(
         DateTime, primary_key=True, nullable=False, server_default=text("now()")
@@ -328,6 +333,7 @@ class CompanionPetFood(Base):
     food_type = Column(String(30), index=True)
     amount = Column(SmallInteger)
     calories = Column(SmallInteger)
+    active = Column(Boolean, default=True, server_default=text("true"))
     memo = Column(Text)
     feeding_date = Column(
         Date, primary_key=True, nullable=False, server_default=text("current_date")

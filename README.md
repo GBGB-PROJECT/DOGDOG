@@ -81,7 +81,7 @@ cd DOGDOG
 
 ### 2. 파이썬 가상환경 생성 및 활성화 (Virtual Environment)
 ```bash
-python -m .venv venv
+python -m venv .venv
 ```
 #### Windows:
 ```bash
@@ -123,8 +123,10 @@ SECRET_KEY=임의의_복잡한_문자열
 uvicorn main:app --reload
 
 # Flet 앱 실행
-flet run main.py
+flet run app/main.py
+flet run erp/main.py
 
 # Flet 브라우저 실행
-flet run --web main.py
+flet run --web app/main.py
+flet run --web erp/main.py
 ```

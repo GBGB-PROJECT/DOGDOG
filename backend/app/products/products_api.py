@@ -4,10 +4,14 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.db import get_db
+from app.products.repository.productsList_repository import get_product_list
 from app.products.repository.productsWeight_repository import get_product_weight
+from dependencies import get_current_user
 from app.products.product_service import get_product_detail_service, read_product_list
+from app.products.schemas import ProductListResponse, ProductWeightResponse
 
-router = APIRouter(tags=["products"])
+
+router = APIRouter(prefix="/api/v1/products", tags=["Products"])
 
 # 상품 목록 불러오기 ----------------------------------------------------------------------
 # 상품 썸네일, 가격, 이름
@@ -46,14 +50,13 @@ def get_products(
         )
 
 # 상품 무게
-@router.get("/products/weights")
+@router.get("/weights", response_model=ProductWeightResponse)
 def read_products_weights(
-        #/products/weights?product_detail_id=1
+        #/api/v1/products/weights?product_detail_id=1
         product_detail_id: int = Query(
-            # default=None,
-            # max_length=50,
             description="상품 디테일 ID"
         ),
+        customer_id: int = Depends(get_current_user),
         db: Session = Depends(get_db)
     ):
     try:
@@ -85,8 +88,7 @@ def read_products_weights(
                 "error_code": "PRODUCT_LIST_READ_FAILED",
                 "message": "상품 무게 조회에 실패했습니다."
             }
-        ) 
- 
+        )
     
 # 상품 상세정보 불러오기 ---------------------------------------------------------------------
 @router.get("/products/{product_id}")

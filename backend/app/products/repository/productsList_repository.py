@@ -8,9 +8,7 @@ def get_product_list(db: Session, keyword: str | None = None):
         select(OpdProductDetail.product_detail_id.label("product_detail_id"), 
                 OpdProductDetail.product_name.label("product_name"), 
                 )
-        # .options(joinedload(Product.product_detail))
-        # .join(Product_Detail, Product.product_detail_id == Product_Detail.product_detail_id)
-        # .where(Product.active == True)
+        .order_by(OpdProductDetail.product_name.asc())
     )
 
     if keyword is not None and keyword.strip() != "": # 키워드가 있을때

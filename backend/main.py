@@ -1,10 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.products.products_api import router as products_router
-
-
-
 
 # Domain Routers
 from app.pets.api.pets_api import router as pets_router
@@ -16,6 +12,7 @@ from app.logs.api.logs_api import router as logs_router
 from app.logs.api.weight_bcs_api import router as weight_bcs_router
 from app.logs.api.feeding_api import router as feeding_router
 from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
+from app.products.products_api import router as products_router
 
 app = FastAPI(
     title="DOGDOG API",
@@ -49,6 +46,7 @@ def read_root():
         "schema": "Companion",
     }
 
+
 # ----------------------------------------------------
 # API Router 중앙화 및 버저닝 계층화 (API V1)
 # ----------------------------------------------------
@@ -73,7 +71,6 @@ app.include_router(calc_feeding_router)
 
 # 5. Products 도메인
 app.include_router(products_router)
-
 
 
 if __name__ == "__main__":

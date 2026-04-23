@@ -1,4 +1,4 @@
-from backend.erp.product.repository import (
+from erp.product.repository import (
     count_product_details,
     fetch_product_details,
     count_product_join_rows,

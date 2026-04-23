@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.db.models import ErpEmployee 
+from db.models import ErpEmployee, ErpEmpPosition
 """현재 table에서 account_id, email, password, active 을 가지고 옴"""
 
 class EmployeeRepository:
@@ -18,8 +18,10 @@ class EmployeeRepository:
                 ErpEmployee.account_id, # account_id
                 ErpEmployee.email, # email
                 ErpEmployee.password, # password
-                ErpEmployee.username
+                ErpEmployee.username,
+                ErpEmpPosition.position_name
             )
+            .join(ErpEmpPosition, ErpEmployee.emp_position_id == ErpEmpPosition.emp_position_id)
             .filter(ErpEmployee.account_id == account_id)
             .first() # 조건에 맞는 사람 1명의 메모만 가져옵니다.
         )

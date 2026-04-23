@@ -126,8 +126,8 @@ def build_table_cell(
 
 
 def customer_row_adapter(saved_data: dict, next_no: int):
-    subscribed_raw = (saved_data.get("is_subscribed", "") or "").strip().lower()
-    active_raw = (saved_data.get("active", "") or "").strip().lower()
+    subscribed_raw = str(saved_data.get("is_subscribed", "") or "").strip().lower()
+    active_raw = str(saved_data.get("active", "") or "").strip().lower()
 
     subscribed_text = "Y" if subscribed_raw in ["true", "1", "y", "yes", "구독", "사용", "활성"] else "N"
     active_text = "활성" if active_raw in ["true", "1", "y", "yes", "활성", "사용"] else "비활성"
@@ -135,11 +135,14 @@ def customer_row_adapter(saved_data: dict, next_no: int):
     return {
         "no": str(next_no),
         "customer_id": saved_data.get("customer_id", ""),
+        "email": saved_data.get("email", ""),
+        "oauth_type": saved_data.get("oauth_type", ""),
+        "nickname": saved_data.get("nickname", ""),
+        "phone": saved_data.get("phone", ""),
         "is_subscribed": subscribed_text,
         "subs_count": saved_data.get("subs_count", ""),
-        "permission": saved_data.get("permission", ""),
         "active": active_text,
-        "last_update": "",
+        "create_date": saved_data.get("create_date", ""),
     }
 
 
@@ -152,11 +155,14 @@ def customer_db_row_adapter(db_rows: list, page_no: int):
             {
                 "no": str(index),
                 "customer_id": row.get("customer_id", ""),
+                "email": row.get("email", ""),
+                "oauth_type": row.get("oauth_type", ""),
+                "nickname": row.get("nickname", ""),
+                "phone": row.get("phone", ""),
                 "is_subscribed": "Y" if row.get("is_subscribed") else "N",
                 "subs_count": row.get("subs_count", ""),
-                "permission": row.get("permission", ""),
                 "active": "활성" if row.get("active") else "비활성",
-                "last_update": row.get("last_update", ""),
+                "create_date": row.get("create_date", ""),
             }
         )
 
@@ -186,7 +192,7 @@ def erp_customer_view():
     end_icon_holder = ft.Container(width=38, height=38)
 
     result_text = ft.Text(
-        value="조회 전입니다.",
+        value="불러오는 중입니다.",
         size=13,
         color=TEXT_SECONDARY,
     )
@@ -207,12 +213,16 @@ def erp_customer_view():
     )
 
     col_expand = {
-        "no": 4,
-        "customer_id": 8,
-        "is_subscribed": 8,
-        "subs_count": 8,
-        "permission": 7,
-        "active": 7,
+        "no": 3,
+        "customer_id": 6,
+        "email": 10,
+        "oauth_type": 6,
+        "nickname": 7,
+        "phone": 8,
+        "is_subscribed": 5,
+        "subs_count": 5,
+        "active": 5,
+        "create_date": 6,
     }
 
     row_spacing = 10
@@ -221,16 +231,32 @@ def erp_customer_view():
 
     search_type_labels = {
         "customer_id": "고객ID",
+        "email": "이메일",
+        "oauth_type": "OAuth유형",
+        "nickname": "닉네임",
+        "phone": "전화번호",
         "is_subscribed": "구독여부",
         "subs_count": "구독횟수",
-        "permission": "권한",
         "active": "상태",
+        "create_date": "가입일",
     }
 
     def format_date_text(value):
         if not value:
             return ""
         return value.strftime("%Y.%m.%d")
+
+    def get_selected_date_range():
+        start_date = None
+        end_date = None
+
+        if selected_start["value"]:
+            start_date = selected_start["value"].date()
+
+        if selected_end["value"]:
+            end_date = selected_end["value"].date()
+
+        return start_date, end_date
 
     def refresh_picker_fields():
         start_field_holder.content = date_value_box(
@@ -248,6 +274,7 @@ def erp_customer_view():
     def on_start_date_change(e):
         if e.control.value:
             corrected_date = e.control.value + datetime.timedelta(hours=9)
+            corrected_date = corrected_date.replace(tzinfo=None)
             selected_start["value"] = corrected_date
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
@@ -259,6 +286,7 @@ def erp_customer_view():
     def on_end_date_change(e):
         if e.control.value:
             corrected_date = e.control.value + datetime.timedelta(hours=9)
+            corrected_date = corrected_date.replace(tzinfo=None)
 
             if selected_start["value"] and corrected_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -340,7 +368,7 @@ def erp_customer_view():
         )
 
     search_type = ft.Container(
-        width=140,
+        width=160,
         height=38,
         bgcolor=FIELD_BG,
         border=ft.Border.all(1, FIELD_BORDER),
@@ -401,10 +429,14 @@ def erp_customer_view():
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
                     build_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("이메일", col_expand["email"], 0, ft.FontWeight.W_700),
+                    build_table_cell("OAuth유형", col_expand["oauth_type"], 0, ft.FontWeight.W_700),
+                    build_table_cell("닉네임", col_expand["nickname"], 0, ft.FontWeight.W_700),
+                    build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
                     build_table_cell("구독여부", col_expand["is_subscribed"], 0, ft.FontWeight.W_700),
                     build_table_cell("구독횟수", col_expand["subs_count"], 0, ft.FontWeight.W_700),
-                    build_table_cell("권한", col_expand["permission"], 0, ft.FontWeight.W_700),
                     build_table_cell("상태", col_expand["active"], 0, ft.FontWeight.W_700),
+                    build_table_cell("가입일", col_expand["create_date"], 0, ft.FontWeight.W_700),
                 ],
             ),
         )
@@ -429,6 +461,10 @@ def erp_customer_view():
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
                     build_table_cell(row.get("customer_id", ""), col_expand["customer_id"], 0),
+                    build_table_cell(row.get("email", ""), col_expand["email"], 0),
+                    build_table_cell(row.get("oauth_type", ""), col_expand["oauth_type"], 0),
+                    build_table_cell(row.get("nickname", ""), col_expand["nickname"], 0),
+                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
                     build_table_cell(
                         row.get("is_subscribed", ""),
                         col_expand["is_subscribed"],
@@ -437,7 +473,6 @@ def erp_customer_view():
                         subscribe_color,
                     ),
                     build_table_cell(row.get("subs_count", ""), col_expand["subs_count"], 0),
-                    build_table_cell(row.get("permission", ""), col_expand["permission"], 0),
                     build_table_cell(
                         row.get("active", ""),
                         col_expand["active"],
@@ -445,6 +480,7 @@ def erp_customer_view():
                         ft.FontWeight.W_700,
                         active_color,
                     ),
+                    build_table_cell(row.get("create_date", ""), col_expand["create_date"], 0),
                 ],
             ),
         )
@@ -455,66 +491,31 @@ def erp_customer_view():
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
-    def apply_date_filter(rows):
-        filtered_rows = []
-
-        for row in rows:
-            is_match = True
-            last_update_value = str(row.get("last_update", "")).strip()
-
-            if last_update_value:
-                try:
-                    date_text = last_update_value[:10]
-                    update_date_obj = datetime.datetime.strptime(date_text, "%Y-%m-%d")
-
-                    if (
-                        selected_start["value"]
-                        and update_date_obj < selected_start["value"].replace(
-                            hour=0,
-                            minute=0,
-                            second=0,
-                            microsecond=0,
-                        )
-                    ):
-                        is_match = False
-
-                    if (
-                        selected_end["value"]
-                        and update_date_obj > selected_end["value"].replace(
-                            hour=0,
-                            minute=0,
-                            second=0,
-                            microsecond=0,
-                        )
-                    ):
-                        is_match = False
-
-                except ValueError:
-                    pass
-
-            if is_match:
-                filtered_rows.append(row)
-
-        return filtered_rows
-
     # =========================================================
     # ☑️ SQLAlchemy ORM: 고객 count/list 조회
-    # - SQL 문자열을 직접 실행하지 않고 CustomerModel 기반 ORM 함수 사용
+    # - 날짜 필터를 repository로 내려서 count/fetch 기준을 통일
     # =========================================================
     def fetch_total_count(keyword=""):
+        start_date, end_date = get_selected_date_range()
+
         return count_customers(
             search_type=search_type_value["value"],
             keyword=keyword,
+            start_date=start_date,
+            end_date=end_date,
         )
 
     def fetch_customer_rows(keyword="", page_no=1):
         offset = (page_no - 1) * PAGE_SIZE
+        start_date, end_date = get_selected_date_range()
 
         db_rows = fetch_customers(
             search_type=search_type_value["value"],
             keyword=keyword,
             limit=PAGE_SIZE,
             offset=offset,
+            start_date=start_date,
+            end_date=end_date,
         )
 
         return customer_db_row_adapter(db_rows, page_no)
@@ -640,214 +641,174 @@ def erp_customer_view():
             ),
         )
 
+    def update_result_text():
+        start_text = format_date_text(selected_start["value"]) or "미선택"
+        end_text = format_date_text(selected_end["value"]) or "미선택"
+        search_label = search_type_labels.get(search_type_value["value"], "고객ID")
+        keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
+
+        result_text.value = (
+            f"기간: {start_text} ~ {end_text} / "
+            f"검색조건: {search_label} / "
+            f"검색어: {keyword_text} / "
+            f"전체 페이지 {pagination_state['total_count']}건 / "
+            f"현재 페이지 {len(rows_state)}건 / "
+            f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
+        )
+
     def reload_current_page():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]
 
-        fetched_rows = fetch_customer_rows(keyword, current_page)
-        filtered_rows = apply_date_filter(fetched_rows)
+        total_count = fetch_total_count(keyword=keyword)
+        total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
+
+        if current_page > total_pages:
+            current_page = total_pages
+            pagination_state["current_page"] = current_page
+
+        rows = fetch_customer_rows(keyword=keyword, page_no=current_page)
 
         rows_state.clear()
-        rows_state.extend(filtered_rows)
+        rows_state.extend(rows)
+
+        pagination_state["total_count"] = total_count
+        pagination_state["total_pages"] = total_pages
 
         refresh_table(rows_state)
         refresh_pagination()
+        update_result_text()
 
-        start_text = (
-            selected_start["value"].strftime("%Y-%m-%d")
-            if selected_start["value"]
-            else "미선택"
-        )
-        end_text = (
-            selected_end["value"].strftime("%Y-%m-%d")
-            if selected_end["value"]
-            else "미선택"
-        )
+    def on_search_click(e):
+        pagination_state["keyword"] = (search_field.value or "").strip()
+        pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = e.page
+        reload_current_page()
+        e.page.update()
 
-        result_text.value = (
-            f"기간: {start_text} ~ {end_text} / "
-            f"검색조건: {search_type_labels[search_type_value['value']]} / "
-            f"검색어: {keyword if keyword else '없음'} / "
-            f"전체 {pagination_state['total_count']}건 / "
-            f"현재 {len(rows_state)}건 / "
-            f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
-        )
+    def on_register_success(saved_data: dict):
+        created = create_customer(saved_data)
+        next_no = ((pagination_state["current_page"] - 1) * PAGE_SIZE) + len(rows_state) + 1
+        rows_state.append(customer_row_adapter(created, next_no))
 
-    def load_rows(page_ref: ft.Page | None = None):
         pagination_state["keyword"] = ""
+        search_field.value = ""
         pagination_state["current_page"] = 1
-        pagination_state["page_ref"] = page_ref
-        pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_count"] = fetch_total_count(keyword="")
+        pagination_state["total_pages"] = max(1, math.ceil(pagination_state["total_count"] / PAGE_SIZE))
 
         reload_current_page()
 
-    def run_search(page_ref: ft.Page | None = None):
-        keyword = (search_field.value or "").strip()
-
-        pagination_state["keyword"] = keyword
-        pagination_state["current_page"] = 1
-        pagination_state["page_ref"] = page_ref
-        pagination_state["total_count"] = fetch_total_count(keyword)
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
-
-        reload_current_page()
-
-    search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
-
-    def on_print(e):
-        result_text.value = "인쇄 기능은 아직 연결 전입니다."
-        e.page.update()
-
-    def on_download(e):
-        result_text.value = "다운로드 기능은 아직 연결 전입니다."
-        e.page.update()
-
-    def close_register_modal(e):
+    def close_popup(e=None):
         dim_bg.visible = False
         popup_layer.visible = False
         popup_layer.content = None
-        e.page.update()
-
-    def clear_register_session(page: ft.Page):
-        for field in CUSTOMER_FIELDS:
-            page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
-
-    def handle_register_success(saved_data: dict):
-        create_customer(saved_data)
-        pagination_state["current_page"] = 1
-        pagination_state["keyword"] = ""
-        pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
-        reload_current_page()
+        if e and e.page:
+            e.page.update()
 
     def open_register_modal(e):
-        clear_register_session(e.page)
-
-        popup_layer.content = build_modal(
+        modal = build_modal(
             page=e.page,
-            register_title="고객 등록",
+            register_title="고객 정보 등록",
             edit_title="고객 정보 수정",
             fields=CUSTOMER_FIELDS,
             session_prefix=SESSION_PREFIX,
-            close_handler=close_register_modal,
-            on_submit_success=handle_register_success,
+            close_handler=close_popup,
+            on_submit_success=on_register_success,
         )
+
         dim_bg.visible = True
         popup_layer.visible = True
+        popup_layer.content = modal
         e.page.update()
-
-    dim_bg.on_click = close_register_modal
 
     refresh_picker_fields()
 
-    action_controls = [
-        action_button(
-            "조회",
-            on_click=lambda e: (
-                load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
-                e.page.update(),
+    # =========================================================
+    # ☑️ 최초 진입 시 전체 고객 목록 자동 조회
+    # =========================================================
+    pagination_state["keyword"] = ""
+    pagination_state["current_page"] = 1
+    reload_current_page()
+
+    page_content = ft.Column(
+        expand=True,
+        spacing=0,
+        controls=[
+            ft.Container(
+                bgcolor="#F3F4F6",
+                padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
+                content=ft.Row(
+                    wrap=True,
+                    spacing=12,
+                    run_spacing=12,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        start_field_holder,
+                        start_icon_holder,
+                        ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+                        end_field_holder,
+                        end_icon_holder,
+                        search_type,
+                        search_field,
+                        action_button("조회", on_click=on_search_click),
+                        action_button("인쇄"),
+                        action_button("다운로드", width=92),
+                        action_button("등록", on_click=open_register_modal),
+                    ],
+                ),
             ),
-            width=78,
-        ),
-        action_button("인쇄", on_click=on_print, width=78),
-        action_button("다운로드", on_click=on_download, width=104),
-        action_button("등록", on_click=open_register_modal, width=78),
-    ]
-
-    filter_bar = ft.Container(
-        bgcolor=ft.Colors.WHITE,
-        padding=ft.Padding.only(left=20, right=20, top=12, bottom=12),
-        content=ft.Row(
-            spacing=10,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
-                start_field_holder,
-                start_icon_holder,
-                ft.Text(
-                    value="~",
-                    size=16,
-                    color="#374151",
-                    weight=ft.FontWeight.W_500,
-                ),
-                end_field_holder,
-                end_icon_holder,
-                search_type,
-                search_field,
-                *action_controls,
-            ],
-        ),
-    )
-
-    table_area = ft.Container(
-        expand=True,
-        border=ft.border.all(1, TABLE_BORDER),
-        border_radius=10,
-        bgcolor=CARD_BG,
-        content=ft.Column(
-            spacing=0,
-            controls=[
-                build_table_header(),
-                table_rows_holder,
-            ],
-        ),
-    )
-
-    main_content = ft.Container(
-        expand=True,
-        bgcolor=cm.PAGE_BG,
-        padding=0,
-        content=ft.Column(
-            spacing=0,
-            controls=[
-                filter_bar,
-                ft.Container(
-                    padding=20,
+            ft.Container(
+                expand=True,
+                bgcolor="#F5F5F5",
+                padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
+                content=ft.Column(
                     expand=True,
-                    content=ft.Column(
-                        spacing=14,
-                        scroll=ft.ScrollMode.AUTO,
-                        controls=[
-                            ft.Text(
-                                value=page_title,
-                                size=20,
-                                color=TEXT_PRIMARY,
-                                weight=ft.FontWeight.W_700,
+                    spacing=18,
+                    controls=[
+                        ft.Text(
+                            value=page_title,
+                            size=22,
+                            weight=ft.FontWeight.W_700,
+                            color=TEXT_PRIMARY,
+                        ),
+                        result_text,
+                        ft.Container(
+                            expand=True,
+                            bgcolor=CARD_BG,
+                            border_radius=10,
+                            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                            content=ft.Column(
+                                expand=True,
+                                spacing=0,
+                                controls=[
+                                    build_table_header(),
+                                    ft.Container(
+                                        expand=True,
+                                        content=ft.Column(
+                                            expand=True,
+                                            spacing=0,
+                                            scroll=ft.ScrollMode.AUTO,
+                                            controls=[table_rows_holder],
+                                        ),
+                                    ),
+                                ],
                             ),
-                            result_text,
-                            table_area,
-                            pagination_holder,
-                        ],
-                    ),
+                        ),
+                        pagination_holder,
+                    ],
                 ),
-            ],
-        ),
+            ),
+        ],
     )
 
-    root = ft.Container(
+    root = ft.Stack(
         expand=True,
-        content=ft.Stack(
-            expand=True,
-            controls=[
-                main_content,
-                dim_bg,
-                popup_layer,
-            ],
-        ),
+        controls=[
+            page_content,
+            dim_bg,
+            popup_layer,
+        ],
     )
-
-    try:
-        load_rows()
-    except Exception as exc:
-        result_text.value = f"DB 조회 실패: {exc}"
 
     return root

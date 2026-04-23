@@ -3,6 +3,7 @@ from .service import (
     fetch_product_details,
     count_product_join_rows,
     fetch_product_join_rows,
+    create_product_detail,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "fetch_product_details",
     "count_product_join_rows",
     "fetch_product_join_rows",
+    "create_product_detail",
 ]

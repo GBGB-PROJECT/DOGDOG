@@ -17,6 +17,7 @@ try:
 except ImportError:
     # 혹시 폴더 구조가 다를 경우를 대비해 erp를 뺀 경로도 시도합니다.
     from backend.erp.auth.api.erp_signinup_api import router as auth_router
+from backend.erp.home.api.erp_home_api import router as home_router
 
 # [3] FastAPI 앱 초기화
 app = FastAPI(
@@ -36,6 +37,7 @@ app.add_middleware(
 
 # [5] 라우터 등록
 app.include_router(auth_router)
+app.include_router(home_router)
 
 # [6] 서버 정상 작동 확인용 엔드포인트
 @app.get("/")

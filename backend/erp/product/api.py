@@ -1,4 +1,8 @@
+from math import ceil
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query
+
 from backend.erp.product.service import count_product_details, fetch_product_details
 
 router = APIRouter(
@@ -6,31 +10,26 @@ router = APIRouter(
     tags=["ERP 상품관리"],
 )
 
-ALLOWED_SEARCH_TYPES = {
+SEARCH_TYPE_LABELS = {
     "product_name": "상품명",
     "type": "타입",
     "brand": "브랜드",
     "function": "기능",
-    "life": "생애주기",
     "main_protein": "주원료",
 }
 
 
-def build_rows_with_no(items: list, page: int, size: int):
-    start_no = ((page - 1) * size) + 1
-    rows = []
-
-    for index, item in enumerate(items, start=start_no):
-        row = dict(item)
-        row["no"] = index
-        rows.append(row)
-
-    return rows
-
-
-@router.get("/details")
+@router.get(
+    "/details",
+    summary="상품 상세 정보 관리 목록 조회",
+    description=(
+        "상품관리 > 상품 상세 정보 관리 화면에서 사용하는 목록 조회 API입니다. "
+        "검색 조건(search_type), 검색어(keyword), 페이지(page), 페이지 크기(size)를 받아 "
+        "OPD.product_detail 목록을 페이지네이션하여 반환합니다."
+    ),
+)
 def get_product_detail_list(
-    search_type: str = Query(
+    search_type: Literal["product_name", "type", "brand", "function", "main_protein"] = Query(
         default="product_name",
         description="검색 조건",
         examples=["product_name"],
@@ -38,7 +37,7 @@ def get_product_detail_list(
     keyword: str = Query(
         default="",
         description="검색어",
-        examples=["하림"],
+        examples=["더리얼 독"],
     ),
     page: int = Query(
         default=1,
@@ -54,46 +53,60 @@ def get_product_detail_list(
         examples=[50],
     ),
 ):
-    search_type = (search_type or "product_name").strip()
-    keyword = (keyword or "").strip()
+    try:
+        clean_search_type = (search_type or "product_name").strip()
+        clean_keyword = (keyword or "").strip()
 
-    if search_type not in ALLOWED_SEARCH_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "success": False,
-                "error_code": "INVALID_QUERY_PARAMETER",
-                "message": f"search_type은 {', '.join(ALLOWED_SEARCH_TYPES.keys())} 중 하나여야 합니다.",
-            },
+        total_count = count_product_details(
+            search_type=clean_search_type,
+            keyword=clean_keyword,
         )
 
-    total_count = count_product_details(
-        search_type=search_type,
-        keyword=keyword,
-    )
+        total_pages = max(1, ceil(total_count / size))
+        offset = (page - 1) * size
 
-    total_pages = max(1, (total_count + size - 1) // size)
-    offset = (page - 1) * size
+        items = fetch_product_details(
+            search_type=clean_search_type,
+            keyword=clean_keyword,
+            limit=size,
+            offset=offset,
+        )
 
-    items = fetch_product_details(
-        search_type=search_type,
-        keyword=keyword,
-        limit=size,
-        offset=offset,
-    )
+        start_no = ((page - 1) * size) + 1
+        result_items = []
 
-    items = build_rows_with_no(items, page, size)
+        for index, item in enumerate(items, start=start_no):
+            row = dict(item)
+            row["no"] = index
+            result_items.append(row)
 
-    return {
-        "success": True,
-        "message": "상품 상세 정보 목록 조회에 성공했습니다.",
-        "data": {
-            "items": items,
-            "pagination": {
-                "page": page,
-                "size": size,
-                "total_count": total_count,
-                "total_pages": total_pages,
+        return {
+            "success": True,
+            "message": "상품 상세 정보 목록 조회에 성공했습니다.",
+            "data": {
+                "items": result_items,
+                "pagination": {
+                    "page": page,
+                    "size": size,
+                    "total_count": total_count,
+                    "total_pages": total_pages,
+                },
+                "search": {
+                    "search_type": clean_search_type,
+                    "search_type_label": SEARCH_TYPE_LABELS.get(clean_search_type, clean_search_type),
+                    "keyword": clean_keyword,
+                },
             },
-        },
-    }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "success": False,
+                "error_code": "INTERNAL_ERROR",
+                "message": f"상품 상세 정보 목록 조회 중 서버 오류가 발생했습니다. {exc}",
+            },
+        )

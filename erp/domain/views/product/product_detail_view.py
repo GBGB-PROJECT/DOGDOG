@@ -175,9 +175,6 @@ def erp_product_detail_view():
         "brand": "브랜드",
         "function": "기능",
         "main_protein": "주원료",
-        "weight": "중량",
-        "retail_price": "판매가",
-        "quantity": "수량",
     }
 
     columns = [

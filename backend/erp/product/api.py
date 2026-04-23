@@ -16,9 +16,6 @@ SEARCH_TYPE_LABELS = {
     "brand": "브랜드",
     "function": "기능",
     "main_protein": "주원료",
-    "weight": "중량",
-    "retail_price": "판매가",
-    "quantity": "수량",
 }
 
 
@@ -97,9 +94,6 @@ def get_product_detail_list(
         "brand",
         "function",
         "main_protein",
-        "weight",
-        "retail_price",
-        "quantity",
     ] = Query(
         default="product_name",
         description="검색 조건",

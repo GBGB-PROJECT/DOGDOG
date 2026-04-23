@@ -9,7 +9,6 @@ from domain.views.stock import stock_product_detail_view
 
 # 👊 추가: 상품관리 화면 연결
 from domain.views.product import product_view
-from domain.views.product import product_master_view
 from domain.views.product import product_detail_view
 
 # ☑️ 추가: 인사관리 화면 import
@@ -55,7 +54,7 @@ MENU_ITEMS = {
     "상품관리": product_view.erp_product_view,
 
     # 👊 추가: 상품관리 하위 메뉴 연결
-    "상품마스터정보관리": product_master_view.erp_product_master_view,
+    # "상품마스터정보관리": product_master_view.erp_product_master_view,
 
     "상품 상세 정보 관리": product_detail_view.erp_product_detail_view,
 
@@ -173,7 +172,7 @@ MENU_TO_ROUTE = {
     "구매관리": "/purchase",
     "상품관리": "/product",
     "상품카테고리관리": "/product/category",
-    "상품마스터정보관리": "/product/master",
+    # "상품마스터정보관리": "/product/master",
     "상품 상세 정보 관리": "/product/detail",
     "자재명세서": "/product/bom",
     "생산관리": "/production",

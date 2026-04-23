@@ -1,7 +1,7 @@
-from backend.db.db import SessionLocal
-from backend.db.models import OpdProduct, OpdProductDetail
-from backend.erp.common.query_utils import like_keyword, model_to_dict
-from backend.erp.common.mutation_utils import clean_text, to_float_or_none, require_text
+from db.db import SessionLocal
+from db.models import OpdProduct, OpdProductDetail
+from ..common.query_utils import like_keyword, model_to_dict
+from ..common.mutation_utils import clean_text, to_float_or_none, require_text
 from sqlalchemy import String
 
 

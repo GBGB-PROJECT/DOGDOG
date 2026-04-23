@@ -16,6 +16,13 @@ from app.products.products_api import router as products_router
 from erp.auth.api.erp_signinup_api import router as erp_employee_router
 from erp.home.api.erp_home_api import router as erp_home_router
 
+# 🔥🔥🔥 추가: ERP 상품 상세 정보 관리 Swagger 라우터
+try:
+    from erp.product.api import router as erp_product_router
+except ImportError:
+    from erp.product.api import router as erp_product_router
+
+
 app = FastAPI(
     title="DOGDOG API",
     description="반려견 일상 기록 및 사료 관리 서비스를 위한 API",
@@ -75,6 +82,9 @@ app.include_router(calc_feeding_router)
 
 # 5. Products 도메인
 app.include_router(products_router)
+
+# 🔥🔥🔥 추가: ERP 상품 상세 정보 관리 라우터 등록
+app.include_router(erp_product_router)
 
 
 # [7] 실행 블록: 터미널에서 python main.py 로 직접 실행 가능하게 합니다.

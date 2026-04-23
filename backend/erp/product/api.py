@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.erp.product.service import count_product_join_rows, fetch_product_join_rows
+from .service import count_product_join_rows, fetch_product_join_rows
 
 router = APIRouter(
     prefix="/erp/products",
@@ -16,20 +16,75 @@ SEARCH_TYPE_LABELS = {
     "brand": "브랜드",
     "function": "기능",
     "main_protein": "주원료",
-    "weight": "중량",
-    "retail_price": "판매가",
-    "quantity": "수량",
 }
+
+
+def _format_number(value):
+    if value in [None, ""]:
+        return ""
+
+    try:
+        if isinstance(value, bool):
+            return str(value)
+        return f"{int(value):,}"
+    except Exception:
+        return str(value)
+
+
+def _format_sale_status(value):
+    if value is True:
+        return "판매중"
+    if value is False:
+        return "판매중지"
+
+    lowered = str(value).lower()
+    if lowered == "true":
+        return "판매중"
+    if lowered == "false":
+        return "판매중지"
+
+    return str(value or "")
+
+
+def build_response_rows(items: list, page: int, size: int):
+    start_no = ((page - 1) * size) + 1
+    rows = []
+
+    for index, row in enumerate(items, start=start_no):
+        product_detail_id = row.get("product_detail_id", "")
+        product_id = row.get("product_id", "")
+
+        rows.append(
+            {
+                "no": index,
+                "product_display_id": (
+                    f"{product_detail_id}-{product_id}"
+                    if product_detail_id != "" and product_id != ""
+                    else ""
+                ),
+                "type": row.get("type", ""),
+                "brand": row.get("brand", ""),
+                "product_name": row.get("product_name", ""),
+                "function": row.get("function", ""),
+                "main_protein": row.get("main_protein", ""),
+                "life": row.get("life", ""),
+                "weight": _format_number(row.get("weight", "")),
+                "retail_price": _format_number(row.get("retail_price", "")),
+                "quantity": _format_number(row.get("quantity", "")),
+                "active": _format_sale_status(row.get("active", "")),
+            }
+        )
+
+    return rows
 
 
 @router.get(
     "/details",
     summary="상품 상세 정보 관리 목록 조회",
     description=(
-        "상품관리 > 상품 상세 정보 관리 화면에서 사용하는 목록 조회 API입니다. "
-        "OPD.product 와 OPD.product_detail 을 product_detail_id 로 JOIN 하여 "
-        "검색 조건(search_type), 검색어(keyword), 페이지(page), 페이지 크기(size)를 받아 "
-        "페이지네이션된 목록을 반환합니다."
+        "상품관리 > 상품 상세 정보 관리 화면에서 사용하는 JOIN 기반 목록 조회 API입니다. "
+        "OPD.product_detail 과 OPD.product 를 함께 조회하여 "
+        "상품ID, 타입, 브랜드, 상품명, 기능, 주원료, 생애주기, 중량, 판매가, 수량, 판매상태를 반환합니다."
     ),
 )
 def get_product_detail_list(
@@ -39,9 +94,6 @@ def get_product_detail_list(
         "brand",
         "function",
         "main_protein",
-        "weight",
-        "retail_price",
-        "quantity",
     ] = Query(
         default="product_name",
         description="검색 조건",
@@ -85,13 +137,7 @@ def get_product_detail_list(
             offset=offset,
         )
 
-        start_no = ((page - 1) * size) + 1
-        result_items = []
-
-        for index, item in enumerate(items, start=start_no):
-            row = dict(item)
-            row["no"] = index
-            result_items.append(row)
+        result_items = build_response_rows(items, page, size)
 
         if total_count == 0:
             return {
@@ -107,7 +153,9 @@ def get_product_detail_list(
                     },
                     "search": {
                         "search_type": clean_search_type,
-                        "search_type_label": SEARCH_TYPE_LABELS.get(clean_search_type, clean_search_type),
+                        "search_type_label": SEARCH_TYPE_LABELS.get(
+                            clean_search_type, clean_search_type
+                        ),
                         "keyword": clean_keyword,
                     },
                 },
@@ -126,7 +174,9 @@ def get_product_detail_list(
                 },
                 "search": {
                     "search_type": clean_search_type,
-                    "search_type_label": SEARCH_TYPE_LABELS.get(clean_search_type, clean_search_type),
+                    "search_type_label": SEARCH_TYPE_LABELS.get(
+                        clean_search_type, clean_search_type
+                    ),
                     "keyword": clean_keyword,
                 },
             },

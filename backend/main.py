@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.products.products_api import router as products_router
+
+
 
 
 # Domain Routers

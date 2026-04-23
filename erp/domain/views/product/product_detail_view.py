@@ -171,7 +171,7 @@ def erp_product_detail_view():
         {"key": "calories", "label": "칼로리", "width": 80, "align_x": 1},
         {"key": "thumbnail", "label": "썸네일 URL", "width": 220, "align_x": -1},
         {"key": "kibble_size", "label": "알갱이 크기", "width": 100, "align_x": -1},
-        {"key": "life", "label": "급여 단계", "width": 90, "align_x": -1},
+        {"key": "life", "label": "생애 주기", "width": 90, "align_x": -1},
         {"key": "protein_type", "label": "단백질유형", "width": 100, "align_x": -1},
         {"key": "main_protein", "label": "주원료", "width": 140, "align_x": -1},
         {"key": "certified", "label": "인증", "width": 120, "align_x": -1},

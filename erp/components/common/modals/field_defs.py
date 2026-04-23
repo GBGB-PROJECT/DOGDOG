@@ -8,7 +8,7 @@ PRODUCT_MASTER_FIELDS = [
     {"label": "브랜드", "key": "brand", "type": "text", "required": True, "max_length": 255},
     {"label": "상품명", "key": "product_name", "type": "text", "required": True, "max_length": 100},
     {
-        "label": "급여 단계",
+        "label": "생애주기",
         "key": "life",
         "type": "text",
         "required": True,
@@ -37,7 +37,7 @@ PRODUCT_DETAIL_FIELDS = [
     {"label": "썸네일 URL", "key": "thumbnail", "type": "url", "required": False, "max_length": 300},
     {"label": "알갱이 크기", "key": "kibble_size", "type": "text", "required": False, "max_length": 20},
     {
-        "label": "급여 단계",
+        "label": "생애주기",
         "key": "life",
         "type": "text",
         "required": True,

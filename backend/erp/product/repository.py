@@ -94,9 +94,9 @@ def fetch_product_details(search_type="product_name", keyword="", limit=50, offs
 def create_product_detail(data: dict):
     db = SessionLocal()
     try:
-        life = require_text(data.get("life"), "급여 단계")
+        life = require_text(data.get("life"), "생애주기")
         if life not in {"전연령", "퍼피", "어덜트", "시니어"}:
-            raise ValueError("급여 단계는 전연령, 퍼피, 어덜트, 시니어 중 하나여야 합니다.")
+            raise ValueError("생애주기는 전연령, 퍼피, 어덜트, 시니어 중 하나여야 합니다.")
 
         product_type = require_text(data.get("type"), "타입")
         brand = require_text(data.get("brand"), "브랜드")

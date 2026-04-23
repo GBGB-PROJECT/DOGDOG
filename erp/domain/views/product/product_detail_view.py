@@ -1,7 +1,7 @@
 import math
 import flet as ft
 from components import common as cm
-from backend.erp.product.service import count_product_details, fetch_product_details
+from backend.erp.product.service import count_product_details, fetch_product_details, create_product_detail
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 
@@ -171,7 +171,7 @@ def erp_product_detail_view():
         {"key": "calories", "label": "칼로리", "width": 80, "align_x": 1},
         {"key": "thumbnail", "label": "썸네일 URL", "width": 220, "align_x": -1},
         {"key": "kibble_size", "label": "알갱이 크기", "width": 100, "align_x": -1},
-        {"key": "life", "label": "급여 단계", "width": 90, "align_x": -1},
+        {"key": "life", "label": "생애 주기", "width": 90, "align_x": -1},
         {"key": "protein_type", "label": "단백질유형", "width": 100, "align_x": -1},
         {"key": "main_protein", "label": "주원료", "width": 140, "align_x": -1},
         {"key": "certified", "label": "인증", "width": 120, "align_x": -1},
@@ -541,10 +541,15 @@ def erp_product_detail_view():
             page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
 
     def handle_register_success(saved_data: dict):
-        next_no = len(rows_state) + 1
-        new_row = product_detail_row_adapter(saved_data, next_no)
-        rows_state.append(new_row)
-        refresh_table(rows_state)
+        create_product_detail(saved_data)
+        pagination_state["current_page"] = 1
+        pagination_state["keyword"] = ""
+        pagination_state["total_count"] = fetch_total_count("")
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
+        reload_current_page()
 
     def open_register_modal(e):
         clear_register_session(e.page)

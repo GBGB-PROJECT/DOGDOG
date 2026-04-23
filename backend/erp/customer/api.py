@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Query
 from .service import count_customers, fetch_customers, create_customer
 
 router = APIRouter(
-    prefix="/erp/customers",
-    tags=["ERP 고객관리"],
+    prefix="/erp/customer",
+    tags=["customer"],
 )
 
 SEARCH_TYPE_LABELS = {

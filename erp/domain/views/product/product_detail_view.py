@@ -334,8 +334,40 @@ def erp_product_detail_view():
             ),
         )
 
+
+    def build_empty_row(message: str):
+        total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1))
+        return ft.Container(
+            padding=ft.Padding.only(
+                left=row_padding_x,
+                right=row_padding_x,
+                top=28,
+                bottom=28,
+            ),
+            border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
+            bgcolor=CARD_BG,
+            content=ft.Container(
+                width=total_width,
+                alignment=ft.Alignment(0, 0),
+                content=ft.Text(
+                    value=message,
+                    size=14,
+                    color=TEXT_SECONDARY,
+                    weight=ft.FontWeight.W_500,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ),
+        )
+
     def refresh_table(filtered_rows):
         table_rows_holder.controls.clear()
+
+        if not filtered_rows:
+            table_rows_holder.controls.append(
+                build_empty_row("일치하는 정보가 없습니다.")
+            )
+            return
+
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
@@ -489,6 +521,14 @@ def erp_product_detail_view():
         rows_state.extend(fetched_rows)
         refresh_table(rows_state)
         refresh_pagination()
+
+        if pagination_state["total_count"] == 0:
+            result_text.value = (
+                f"검색조건: {search_type_labels[search_type_value['value']]} / "
+                f"검색어: {keyword if keyword else '없음'} / "
+                "일치하는 정보가 없습니다."
+            )
+            return
 
         result_text.value = (
             f"검색조건: {search_type_labels[search_type_value['value']]} / "

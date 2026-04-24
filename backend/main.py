@@ -22,6 +22,7 @@ from erp.customer.api import router as erp_customer_router
 
 # 🔥 추가: 고객 주문 관리 API router
 from erp.customer.order_api import router as customer_order_router
+from erp.customer.subscription_api import router as customer_subscription_router  # 🔥 추가
 
 from erp.employee.api import router as erp_employee_management_router
 
@@ -96,6 +97,8 @@ app.include_router(erp_customer_router)
 
 # 🔥 추가: 고객 주문 관리 API 등록
 app.include_router(customer_order_router)
+
+app.include_router(customer_subscription_router)  # 🔥 추가
 
 app.include_router(erp_employee_management_router)
 

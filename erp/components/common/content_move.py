@@ -19,6 +19,7 @@ from domain.views.customer import (
     erp_customer_view,
     erp_customer_info_view,
     erp_customer_order_view,  # 🔥 추가
+    erp_customer_subscription_view,  # 🔥 추가
 )
 
 from domain.views.production import production_view
@@ -84,11 +85,7 @@ MENU_ITEMS = {
     # 🔥 수정: 고객 주문 관리 실제 화면 연결
     "고객 주문 관리": erp_customer_order_view,
     
-    "고객 구독 관리": lambda: ft.Container(
-        expand=True,
-        alignment=ft.Alignment(0, 0),
-        content=ft.Text("고객 구독 관리 준비 중"),
-    ),
+    "고객 구독 관리": erp_customer_subscription_view,  # 🔥 수정: 고객 구독 관리 실제 화면 연결
     # "고객 문의 관리": lambda: ft.Container(
     #     expand=True,
     #     alignment=ft.Alignment(0, 0),

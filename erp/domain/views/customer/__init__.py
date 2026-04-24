@@ -3,3 +3,5 @@ from .customer_view import erp_customer_view
 from .customer_info_view import erp_customer_info_view
 
 from .customer_order_view import erp_customer_order_view  # 🔥 추가
+
+from .customer_subscription_view import erp_customer_subscription_view  # 🔥 추가

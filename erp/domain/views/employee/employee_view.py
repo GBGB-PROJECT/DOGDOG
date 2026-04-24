@@ -160,6 +160,7 @@ def employee_row_adapter(saved_data: dict, next_no: int):
         "hire_date": saved_data.get("hire_date", ""),
         "quit_date": saved_data.get("quit_date", ""),
         "emp_position_id": saved_data.get("emp_position_id", ""),
+        "position_name": saved_data.get("position_name", saved_data.get("emp_position_id", "")),
         "manager_id": saved_data.get("manager_id", ""),
         "email": saved_data.get("email", ""),
         "phone": saved_data.get("phone", ""),
@@ -187,6 +188,7 @@ def employee_db_row_adapter(db_rows: list, page_no: int):
                 "hire_date": row.get("hire_date", ""),
                 "quit_date": row.get("quit_date", ""),
                 "emp_position_id": row.get("emp_position_id", ""),
+                "position_name": row.get("position_name", row.get("emp_position_id", "")),
                 "manager_id": row.get("manager_id", ""),
                 "email": row.get("email", ""),
                 "phone": row.get("phone", ""),
@@ -252,7 +254,7 @@ def erp_employee_view():
         "username": 7,
         "hire_date": 7,
         "quit_date": 7,
-        "emp_position_id": 6,
+        "position_name": 7,
         "manager_id": 6,
         "email": 12,
         "phone": 10,
@@ -269,7 +271,7 @@ def erp_employee_view():
         "username": "이름",
         "employee_id": "사원ID",
         "account_id": "계정ID",
-        "emp_position_id": "직급ID",
+        "position_name": "직책",
         "phone": "전화번호",
         "email": "이메일",
     }
@@ -452,7 +454,7 @@ def erp_employee_view():
                     build_table_cell("이름", col_expand["username"], -1, ft.FontWeight.W_700),
                     build_table_cell("입사일", col_expand["hire_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("퇴사일", col_expand["quit_date"], 0, ft.FontWeight.W_700),
-                    build_table_cell("직급ID", col_expand["emp_position_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("직책", col_expand["position_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("관리자ID", col_expand["manager_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("이메일", col_expand["email"], -1, ft.FontWeight.W_700),
                     build_table_cell("전화번호", col_expand["phone"], -1, ft.FontWeight.W_700),
@@ -486,7 +488,7 @@ def erp_employee_view():
                     build_table_cell(row.get("username", ""), col_expand["username"], -1),
                     build_table_cell(row.get("hire_date", ""), col_expand["hire_date"], 0),
                     build_table_cell(row.get("quit_date", ""), col_expand["quit_date"], 0),
-                    build_table_cell(row.get("emp_position_id", ""), col_expand["emp_position_id"], 0),
+                    build_table_cell(row.get("position_name", ""), col_expand["position_name"], 0),
                     build_table_cell(row.get("manager_id", ""), col_expand["manager_id"], 0),
                     build_table_cell(row.get("email", ""), col_expand["email"], -1),
                     build_table_cell(row.get("phone", ""), col_expand["phone"], -1),
@@ -559,6 +561,8 @@ def erp_employee_view():
         return count_employees(
             search_type=search_type_value["value"],
             keyword=keyword,
+            start_date=selected_start["value"],
+            end_date=selected_end["value"],
         )
 
     def fetch_employee_rows(keyword="", page_no=1):
@@ -569,6 +573,8 @@ def erp_employee_view():
             keyword=keyword,
             limit=PAGE_SIZE,
             offset=offset,
+            start_date=selected_start["value"],
+            end_date=selected_end["value"],
         )
 
         return employee_db_row_adapter(db_rows, page_no)

@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Query
 from .service import count_customers, fetch_customers, create_customer
 
 router = APIRouter(
-    prefix="/erp/customer",
-    tags=["customer"],
+    prefix="/erp/customer/info",  # 🔥 수정: 고객 정보 관리 전용 API 경로로 변경
+    tags=["customer-info"],  # 🔥 수정: Swagger에서 고객 정보 관리 API로 분리 표시
 )
 
 SEARCH_TYPE_LABELS = {

@@ -19,8 +19,7 @@ def feeding_add_edit(page: ft.Page, view):
     # Test Dialog
     # ---------------------------------------------------------------------------------------------------
     def show_error(text:str): page.show_dialog(
-                ft.SnackBar(content=ft.Text(value=text), open=True
-                , behavior=ft.SnackBarBehavior.FLOATING))
+        ft.SnackBar(content=ft.Text(value=text), open=True, behavior=ft.SnackBarBehavior.FLOATING))
     # ---------------------------------------------------------------------------------------------------
     # Input Field Change Event
     # ---------------------------------------------------------------------------------------------------

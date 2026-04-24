@@ -13,6 +13,6 @@ from .common.field import picker_field
 from .common.image_circle import image_circle
 from .common.text import basic_text
 from .common.bottom_sheet import bottom_sheet
-from .common.content_box import content_container
+from .common.content_box import content_container , log_container
 from .common.style import Style, TextStyle
 from .common.button import flat_button , icon_flat_button , flat_icon_text_button

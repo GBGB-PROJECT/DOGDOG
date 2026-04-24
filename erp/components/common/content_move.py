@@ -15,7 +15,7 @@ from domain.views.product import product_detail_view
 from domain.views.employee import erp_employee_view
 
 # ☑️ 추가: 고객관리 화면 import
-from domain.views.customer import erp_customer_view
+from domain.views.customer import erp_customer_view, erp_customer_info_view  # 🔥 수정: 고객 정보 관리 화면 import 추가
 
 from domain.views.production import production_view
 
@@ -72,9 +72,32 @@ MENU_ITEMS = {
 
     "물류관리": lambda: ft.Container(content=ft.Text("물류관리 준비 중")),
 
-    # ☑️ 수정: 고객관리 실제 화면 연결
+    # 🔥 수정: 고객관리 대분류는 메인 텍스트 화면만 표시
     "고객관리": erp_customer_view,
-    
+
+    # 🔥 추가: 고객관리 하위 메뉴 화면 연결
+    "고객 정보 관리": erp_customer_info_view,
+    "고객 주문 관리": lambda: ft.Container(
+        expand=True,
+        alignment=ft.Alignment(0, 0),
+        content=ft.Text("고객 주문 관리 준비 중"),
+    ),
+    "고객 구독 관리": lambda: ft.Container(
+        expand=True,
+        alignment=ft.Alignment(0, 0),
+        content=ft.Text("고객 구독 관리 준비 중"),
+    ),
+    # "고객 문의 관리": lambda: ft.Container(
+    #     expand=True,
+    #     alignment=ft.Alignment(0, 0),
+    #     content=ft.Text("고객 문의 관리 준비 중"),
+    # ),
+    # "고객 센터 관리": lambda: ft.Container(
+    #     expand=True,
+    #     alignment=ft.Alignment(0, 0),
+    #     content=ft.Text("고객 센터 관리 준비 중"),
+    # ),
+
     "영업관리": lambda: ft.Container(content=ft.Text("영업관리 준비 중")),
     "회계관리": lambda: ft.Container(content=ft.Text("회계관리 준비 중")),
 
@@ -161,6 +184,25 @@ PRODUCTION_ALL_ITEMS = [
     "품질 및 이력 관리",
     "거래처 관리",
 ]
+
+# 🔥 추가: 고객관리 하위 메뉴
+CUSTOMER_MAIN_ITEMS = [
+    "고객 정보 관리",
+    "고객 주문 관리",
+    "고객 구독 관리",
+    "고객 문의 관리",
+    "고객 센터 관리",
+]
+
+# 🔥 추가: 고객관리 확장 사이드바 진입 조건 묶음
+CUSTOMER_ALL_ITEMS = [
+    "고객관리",
+    "고객 정보 관리",
+    "고객 주문 관리",
+    "고객 구독 관리",
+    "고객 문의 관리",
+    "고객 센터 관리",
+]
 '''==================== 상품관리 종료 ===================='''
 
 ## =============== 라우트 연결목적
@@ -191,6 +233,10 @@ MENU_TO_ROUTE = {
     "상품 부자재 관리": "/stock/sub-material",
     "물류관리": "/logistics",
     "고객관리": "/customer",
+    # 🔥 추가: 고객관리 하위 메뉴 route 연결
+    "고객 정보 관리": "/customer/info",
+    "고객 주문 관리": "/customer/order",
+    "고객 구독 관리": "/customer/subscription",
     "영업관리": "/business",
     "회계관리": "/accounting",
     "인사관리": "/employee",

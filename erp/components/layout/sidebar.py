@@ -209,6 +209,19 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             menu_controls=production_controls,
         )
 
+    # 🔥 추가: 고객관리 확장형
+    if selected_menu in com.CUSTOMER_ALL_ITEMS:
+        customer_controls = _build_expanded_menu_controls(
+            com.CUSTOMER_MAIN_ITEMS,
+            selected_menu,
+            on_menu_click,
+        )
+
+        return _build_expanded_sidebar(
+            header_control=_section_header("고객관리", on_menu_click),
+            menu_controls=customer_controls,
+        )
+
     menu_controls = [
         _menu_item(
             text=item,

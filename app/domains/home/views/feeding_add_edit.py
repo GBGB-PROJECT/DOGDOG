@@ -56,7 +56,7 @@ def feeding_add_edit(page: ft.Page, view):
                 {"customer_feeding_food_id": storage.get("select_customer_food_id")}
             )
             page.go("/feeding")
-            popup.show_event_popup_close(e)
+            popup.show_popup_close(e)
             storage.set(f"customer_feeding_{call}_data", data)
             show_error(
                 f"customer_feeding_{call}_data: {storage.get(f'customer_feeding_{call}_data')}"
@@ -64,13 +64,9 @@ def feeding_add_edit(page: ft.Page, view):
 
         # -----------------------------------------------------------------------------------------------
         if call == "delete":
-            popup.show_event_popup_open(
-                e=e,
-                title="제품 삭제",
-                text="등록하신 제품을 삭제하시겠습니까?",
-                focus=False,
-                on_click=lambda e: delete_event(e),
-            )
+            popup.show_popup_open(
+                e=e, case="event_popup", title="제품 삭제", text="등록하신 제품을 삭제하시겠습니까?", focus=False,
+                on_click=lambda e:delete_event(e))
         else:
             if storage.get("product_id"):
                 data.update({"product_id": storage.get("product_id")})
@@ -157,8 +153,6 @@ def feeding_add_edit(page: ft.Page, view):
             ),
         ]
         food_select_field.color = ft.Colors.BLACK
-        product_weight_field.hint_text = f"{feeding_data['total_weight']}g"
-        product_weight_field.hint_style = ft.TextStyle(color=ft.Colors.BLACK)
     # ---------------------------------------------------------------------------------------------------
     elif view == "add":
         column_text = "신규 등록 사료"

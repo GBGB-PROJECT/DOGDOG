@@ -27,14 +27,14 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
         ft.Image(src=feeding_data["thumbnail"], fit=ft.BoxFit.CONTAIN, expand=2),
         ft.Column(expand=3, spacing=0, alignment=ft.MainAxisAlignment.CENTER, controls=[
             dogdog.basic_text(value=feeding_data["brand"]),
-            dogdog.basic_text(value=feeding_data["product_name"], weight="bold", max_lines=2)
+            dogdog.basic_text(value=feeding_data["product_name"], weight="bold")
         ]),
         ft.Column(
             controls=[dogdog.flat_button(text="변경", on_click=feeding_edit_event ,disabled=False)]
     )] if feeding_data else [dogdog.basic_text(spans=[
         ft.TextSpan(" 등록된 제품이 없습니다."),
         # ft.TextSpan("\n제품을 등록하시겠습니까?")
-    ], color=ft.Colors.GREY_600, size=14, max_lines=None)], # type: ignore
+    ], color=ft.Colors.GREY_600, size=14)],
     alignment=ft.MainAxisAlignment.CENTER if not feeding_data else None # type: ignore
     )
 

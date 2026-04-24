@@ -2,8 +2,9 @@
 import flet as ft
 from flet import DeviceOrientation
 import domains
-import time
+import time , asyncio
 import components as dogdog
+from api.user_data import User
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
@@ -17,6 +18,7 @@ class Front_dogdog:
         # Default Page Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
+        self.storage = page.session.store
         page.title = "Dog Dog"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.fonts = {"Pretendard": "fonts/Pretendard-Regular.otf"}
@@ -38,17 +40,24 @@ class Front_dogdog:
         )
         page.on_route_change = self.on_route_change
         page.on_view_pop = self.handle_back
-        self.is_onboarding_complete = False
+        # -----------------------------------------------------------------------------------------------
+        # User Data Check
+        # -----------------------------------------------------------------------------------------------
+        if User.pet_list:
+            self.storage.set("pet_list", User.pet_list)
+            (self.storage.set("customer_detail", User.customer_food_detail)
+                if User.customer_food_detail else None)
+            self.storage.set("history", User.pet_log) if User.pet_log else None
+            self.is_onboarding_complete = True
+        else:
+            self.is_onboarding_complete = False
         # -----------------------------------------------------------------------------------------------
         # Init First View
         # -----------------------------------------------------------------------------------------------
         page.views.clear()
         target_route = "/home" if self.is_onboarding_complete else "/sign_up"
-        
-        if self.page.route == target_route:
-            self.routing_view(page_name=target_route)
-        else:
-            page.go(target_route)
+        if self.page.route == target_route: self.routing_view(page_name=target_route)
+        else: page.go(target_route)
     # ---------------------------------------------------------------------------------------------------
     # Route Change & Android OnBackPressedCallback Event
     # ---------------------------------------------------------------------------------------------------
@@ -75,7 +84,6 @@ class Front_dogdog:
             (ft.Icons.MESSENGER_OUTLINE_ROUNDED, "Contents", lambda _:self.page.go("/contents")),
             (ft.Icons.PERSON_OUTLINE, "MyPage", lambda _:self.page.go("/mypage")),
         ]
-
         if self.is_onboarding_complete == False:
             basic_content, focus_field = domains.on_boarding_tile(
                 page=self.page, content_page=page_name, change_page_callback=self.page.go
@@ -92,6 +100,16 @@ class Front_dogdog:
             new_view = ft.View(
                 route=page_name, padding=0, spacing=0, bgcolor="#FFFFFF", controls=[layout]
             )
+            if page_name == "/sign_up_success":
+                new_view.bgcolor = "#FEF3B9"
+                self.page.views.clear()
+                layout.on_click = lambda _:self.page.go("/home")
+                self.storage.clear()
+                self.storage.set("pet_list", User.pet_list)
+                (self.storage.set("customer_detail", User.customer_food_detail)
+                    if User.customer_food_detail else None)
+                self.storage.set("history", User.pet_log) if User.pet_log else None
+                self.is_onboarding_complete = True
         else:
             # print(len(self.page.views))
             if page_name == "/home":
@@ -108,16 +126,7 @@ class Front_dogdog:
                 route=page_name, padding=0, spacing=0, bgcolor="#FFFFFF", controls=[layout]
             )
             new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
-            
         self.page.views.append(new_view)
-        if page_name == "/sign_up_success":
-            new_view.bgcolor = ft.Colors.YELLOW
-            self.page.views.clear()
-            self.page.views.append(new_view)
-            time.sleep(1)
-            self.page.views.clear()
-            self.is_onboarding_complete = True
-            self.page.go("/home")
         self.page.update()
 # -------------------------------------------------------------------------------------------------------
 async def main(page: ft.Page): 

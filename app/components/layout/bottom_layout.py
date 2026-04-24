@@ -5,9 +5,9 @@ def continue_button(on_click=None):
     return ft.Container(
         expand=9,
         height=50,
+        ink=True,
         on_click=on_click,
-        bgcolor=ft.Colors.YELLOW,
-        border=ft.Border.all(1, ft.Colors.GREY_300),
+        bgcolor="#FEF3B9",
         border_radius=10,
         alignment=ft.Alignment.CENTER,
         content=ft.Text(

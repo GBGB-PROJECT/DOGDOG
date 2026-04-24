@@ -7,13 +7,16 @@ def input_textfield(
     if input_type == "int":
         text_filter = ft.InputFilter(regex_string=r"^[0-9]*$", replacement_string="")
         max_length = 6
-    if input_type == "password":
+    elif input_type == "float":
+        text_filter = ft.InputFilter(regex_string=r"^[0-9.]*$", replacement_string="")
+        max_length = 6
+    elif input_type == "password":
         text_filter = ft.InputFilter(
             regex_string=r"^[a-zA-Z0-9.~\!\@\#\$\%\^\&\*\_\-\=\+]*$", replacement_string=""
         )
         max_length = 20
         password = True
-    if input_type == "email":
+    elif input_type == "email":
         text_filter = ft.InputFilter(regex_string=r"^[a-zA-Z0-9@._\-\+]*$", replacement_string="")
     return ft.TextField(
         width=float('inf'),

@@ -3,15 +3,16 @@ import flet as ft
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
 def sign_up_view(page: ft.Page):
+    storage = page.session.store
     # -----------------------------------------------------------------------------------------------
     # Default Value
     # -----------------------------------------------------------------------------------------------
     def email_on_change(e):
-        page.session.store.set("user_email", e.control.value)
+        storage.set("user_email", e.control.value)
     def name_on_change(e):
-        page.session.store.set("user_name", e.control.value)
+        storage.set("user_name", e.control.value)
     def password_on_change(e):
-        page.session.store.set("user_password", e.control.value)
+        storage.set("user_password", e.control.value)
     email_input = dogdog.input_textfield(
         hint_text="example@gmail.com", max_length=None, # type: ignore
         on_change=email_on_change, input_type="email"
@@ -23,16 +24,17 @@ def sign_up_view(page: ft.Page):
         hint_text="비밀번호", max_length=None, # type: ignore
         on_change=password_on_change, input_type="password"
     )
-    if page.session.store.get("user_email"):
-        email_input.value = page.session.store.get("user_email") # type: ignore
-    if page.session.store.get("user_name"):
-        name_input.value = page.session.store.get("user_name") # type: ignore
-    if page.session.store.get("user_password"):
-        password_input.value = page.session.store.get("user_password") # type: ignore
+    if storage.get("user_email"):
+        email_input.value = storage.get("user_email") # type: ignore
+    if storage.get("user_name"):
+        name_input.value = storage.get("user_name") # type: ignore
+    if storage.get("user_password"):
+        password_input.value = storage.get("user_password") # type: ignore
     # ---------------------------------------------------------------------------------------------------
     # Sign Up Page
     # ---------------------------------------------------------------------------------------------------
     content_column = [
+        dogdog.basic_text(value="프로필을 완성하세요.", weight="bold", size=24),
         dogdog.basic_text(value="이메일", weight="bold"),
         email_input,
         ft.Container(height=10),

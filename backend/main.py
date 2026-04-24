@@ -13,6 +13,7 @@ from app.logs.api.weight_bcs_api import router as weight_bcs_router
 from app.logs.api.feeding_api import router as feeding_router
 from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
 from app.products.products_api import router as products_router
+from app.subscriptions.api.subscriptions_api import router as subscriptions_router
 
 app = FastAPI(
     title="DOGDOG API",
@@ -71,6 +72,9 @@ app.include_router(calc_feeding_router)
 
 # 5. Products 도메인
 app.include_router(products_router)
+
+# 6. Subscriptions 도메인
+app.include_router(subscriptions_router)
 
 
 if __name__ == "__main__":

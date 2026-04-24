@@ -4,6 +4,7 @@
 
 from math import ceil
 from typing import Literal
+from datetime import date  # 🔥 추가: Swagger UI에서 날짜 선택 형식으로 표시하기 위한 date 타입
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -20,6 +21,7 @@ SEARCH_TYPE_LABELS = {
     "customer_id": "고객ID",
     "recipient": "수령인",
     "phone": "전화번호",
+    "address": "배송지",  # 🔥 추가: repository/view와 검색조건 맞춤
     "product_id": "상품ID",
     "payment_billing_id": "결제ID",
     "order_date": "주문일",
@@ -40,6 +42,7 @@ def build_response_rows(items: list, page: int, size: int):
                 "customer_id": row.get("customer_id", ""),
                 "recipient": row.get("recipient", ""),
                 "phone": row.get("phone", ""),
+                "address": row.get("address", ""),  # 🔥 추가: 배송지 응답 포함
                 "product_id": row.get("product_id", ""),
                 "quantity": row.get("quantity", ""),
                 "total_amount": row.get("total_amount", ""),
@@ -65,6 +68,7 @@ def get_customer_orders(
         "customer_id",
         "recipient",
         "phone",
+        "address",  # 🔥 추가: 배송지 검색조건
         "product_id",
         "payment_billing_id",
         "order_date",
@@ -91,16 +95,16 @@ def get_customer_orders(
         description="페이지당 조회 건수",
         examples=[50],
     ),
-    start_date: str | None = Query(
+    start_date: date | None = Query(
         default=None,
-        description="주문일 시작일 (YYYY-MM-DD)",
+        description="주문일 시작일",
         examples=["2026-04-01"],
-    ),
-    end_date: str | None = Query(
+    ),  # 🔥 수정: str → date, Swagger UI 날짜 선택 형식
+    end_date: date | None = Query(
         default=None,
-        description="주문일 종료일 (YYYY-MM-DD)",
+        description="주문일 종료일",
         examples=["2026-04-30"],
-    ),
+    ),  # 🔥 수정: str → date, Swagger UI 날짜 선택 형식
 ):
     try:
         clean_search_type = (search_type or "order_number").strip()

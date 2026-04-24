@@ -1,5 +1,6 @@
 from math import ceil
 from typing import Literal
+from datetime import date  # 🔥 추가: Swagger UI에서 날짜 선택 형식으로 표시하기 위한 date 타입
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -96,16 +97,16 @@ def get_customer_list(
         description="페이지당 조회 건수",
         examples=[50],
     ),
-    start_date: str | None = Query(
+    start_date: date | None = Query(
         default=None,
-        description="가입일 시작일 (YYYY-MM-DD)",
+        description="가입일 시작일",
         examples=["2026-04-01"],
-    ),
-    end_date: str | None = Query(
+    ),  # 🔥 수정: str → date, Swagger UI 날짜 선택 형식
+    end_date: date | None = Query(
         default=None,
-        description="가입일 종료일 (YYYY-MM-DD)",
+        description="가입일 종료일",
         examples=["2026-04-30"],
-    ),
+    ),  # 🔥 수정: str → date, Swagger UI 날짜 선택 형식
 ):
     try:
         clean_search_type = (search_type or "customer_id").strip()

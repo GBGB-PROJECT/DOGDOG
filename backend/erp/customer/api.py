@@ -56,9 +56,9 @@ def build_response_rows(items: list, page: int, size: int):
 
 @router.get(
     "",
-    summary="고객관리 목록 조회",
+    summary="고객 정보 관리 목록 조회",
     description=(
-        "고객관리 화면에서 사용하는 목록 조회 API입니다. "
+        "고객 정보 관리 화면에서 사용하는 목록 조회 API입니다. "
         "검색 조건, 검색어, 날짜 범위, 페이지 정보를 받아 고객 목록을 반환합니다."
     ),
 )

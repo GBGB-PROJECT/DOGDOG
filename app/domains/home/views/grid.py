@@ -15,29 +15,10 @@ class StatusController:
         self.popup.event_popup.actions[1].content = "닫기" # type: ignore
         self.popup.event_popup.modal = False
         if self.storage.get("customer_food_id"): self.storage.remove("customer_food_id")
-        self.grid_bottom_sheet = ft.AlertDialog(
-            alignment=ft.Alignment(0, 1),
-            expand=True,
-            inset_padding=0,
-            content_padding=0,
-            action_button_padding=0,
-            actions_padding=0,
-            scrollable=True,
-            content=ft.Container(
-                width=3000,
-                padding=20,
-                bgcolor=ft.Colors.WHITE,
-                border_radius=ft.BorderRadius.only(
-                    top_left=20,
-                    top_right=20,
-                ),
-                content=ft.Column(
-                    tight=True,
-                    expand=True,
-                    spacing=10
-                )
-            )
-        )
+        # -----------------------------------------------------------------------------------------------
+        # Bottom Sheet
+        # -----------------------------------------------------------------------------------------------
+        self.grid_bottom_sheet = self.popup.bottom_sheet_popup
         self.bottom_sheet_contents = self.grid_bottom_sheet.content.content.controls # type: ignore
         # -----------------------------------------------------------------------------------------------
         self.date_picker = ft.DatePicker(
@@ -73,8 +54,12 @@ class StatusController:
             try: self.storage.set("customer_food_id", int(value))
             except ValueError: pass
         elif "weight" in change:
-            try: self.storage.set(change, int(value))
-            except ValueError: pass
+            if "_float_weight" in change:
+                try: self.storage.set(change, float(value))
+                except ValueError: pass
+            else:
+                try: self.storage.set(change, int(value))
+                except ValueError: pass
         elif "memo" in change:
             try: self.storage.set(change, value)
             except ValueError: pass
@@ -114,23 +99,26 @@ class StatusController:
                 if self.storage.get("customer_food_id"):
                     event_text.update({"customer_food_id":self.storage.get("customer_food_id")})
                 else:
-                    self.popup.show_event_popup_open(e=e, title=call_title, text=call_message)
+                    self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
                     return
             if self.storage.get(f"{call}_weight"):
                 event_text.update({f"{call}_weight":self.storage.get(f"{call}_weight")})
-            elif call in ("health_log","status_log"): pass
+            elif self.storage.get(f"{call}_float_weight"):
+                event_text.update({f"{call}_float_weight":self.storage.get(f"{call}_float_weight")})
+                event_text.update({f"{call}_bcs_weight":self.storage.get(f"{call}_bcs_weight")})
+            elif call == "status_log": pass
             else:
-                self.popup.show_event_popup_open(e=e, title=call_title, text=call_message)
+                self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
                 return
             if self.storage.get(f"{call}_memo"):
                 event_text.update({f"{call}_memo":self.storage.get("customer_food_id")})
             else:
-                if call in ("health_log","status_log"):
-                    self.popup.show_event_popup_open(e=e, title=call_title, text=call_message)
+                if call == "status_log":
+                    self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
                     return
             event_text.update({f"{call}_date":self.storage.get(f"{call}_date")})
             event_text.update({f"{call}_time":self.storage.get(f"{call}_time")})
-            self.popup.show_event_popup_open(e=e, title=call, text=event_text)
+            self.popup.show_popup_open(e=e, case="event_popup", title=call, text=event_text)
         elif content == "feeding_add": self.page.go("/feeding_add")
         elif content == "cancel": pass
         self.grid_bottom_sheet.open = False
@@ -138,11 +126,18 @@ class StatusController:
     # ---------------------------------------------------------------------------------------------------
     # Bottom Sheet Append Def
     # ---------------------------------------------------------------------------------------------------
-    def bottom_sheet_title(self, text):
-        self.bottom_sheet_contents.append(dogdog.basic_text(value=text, size=25, weight="bold"))
+    def bottom_sheet_title(self, text, link=None):
+        if link: 
+            self.bottom_sheet_contents.append(ft.Row(spacing=5, controls=[
+                dogdog.basic_text(value=text, size=25, weight="bold"),
+                ft.Container(scale=0.8,
+                    width=25, height=25, ink=True, on_click=link, border_radius=25, bgcolor=ft.Colors.GREY_300,
+                    content=ft.Icon(icon=ft.Icons.QUESTION_MARK, color=ft.Colors.WHITE, size=20))
+            ]))
+        else: self.bottom_sheet_contents.append(dogdog.basic_text(value=text, size=25, weight="bold"))
         self.bottom_sheet_contents.append(ft.Divider())
 # -------------------------------------------------------------------------------------------------------
-def bottom_sheet(e, page, call):
+def bottom_sheet(e, page: ft.Page, call):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
@@ -186,13 +181,11 @@ def bottom_sheet(e, page, call):
                         dogdog.basic_text(
                             value=f"오늘 {storage.get('customer_pet_name')}에게 딱 알맞는 1회 급여량은 ...",
                             size=16, weight="bold", color=ft.Colors.GREY_600)]),
-                    # ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                        ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                            ft.Image(src="speech_bubble.png", height=100, color="#FEF3B9"),
-                            dogdog.basic_text("40g", weight="bold", size=40),
-                        ], spacing=-90),
-                        ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20))
-                    # ])
+                    ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, controls=[
+                        ft.Image(src="speech_bubble.png", height=100, color="#FEF3B9"),
+                        dogdog.basic_text("40g", weight="bold", size=40),
+                    ], spacing=-90),
+                    ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20))
             ])
             food = [dogdog.dropdown_menu_option(
                 key=customer_food_id, text=f"{detail.get("brand")} {detail.get("product_name")}"
@@ -280,7 +273,7 @@ def bottom_sheet(e, page, call):
         s_control.bottom_sheet_contents.append(daily_walks_memo)
     # ---------------------------------------------------------------------------------------------------
     elif call == "hygiene_bowel":
-        s_control.bottom_sheet_title("위생/배변")
+        s_control.bottom_sheet_title("위생/배변", lambda _:page.go("/what_bowel_score"))
         hygiene_bowel_score = dogdog.dropdown_menu(
             label="배변 스코어를 선택해주세요.", options=[], 
             event=lambda e, change=f"{call}_weight": s_control.change_event(e, change)
@@ -297,13 +290,18 @@ def bottom_sheet(e, page, call):
         s_control.bottom_sheet_contents.append(hygiene_bowel_memo)
     # ---------------------------------------------------------------------------------------------------
     elif call == "health_log":
-        s_control.bottom_sheet_title("건강기록")
+        s_control.bottom_sheet_title("건강기록", lambda _:page.go("/what_bcs"))
         health_log = dogdog.input_textfield(
-            hint_text="건강상태를 작성해주세요.", text_filter=None, max_length=None, # type: ignore
-            on_change=lambda e, change=f"{call}_memo": s_control.change_event(e, change))
-        if storage.get(f"{call}_memo"): storage.remove(f"{call}_memo")
+            hint_text="몸무게를 적어주세요.", input_type="float", suffix="Kg", 
+            on_change=lambda e, change=f"{call}_float_weight": s_control.change_event(e, change))
+        if storage.get(f"{call}_float_weight"): storage.remove(f"{call}_float_weight")
+        health_bcs_log = dogdog.input_textfield(
+            hint_text="BCS를 적어주세요.", input_type="int", suffix="1 ~ 7", 
+            on_change=lambda e, change=f"{call}_bcs_weight": s_control.change_event(e, change))
+        if storage.get(f"{call}_bcs_weight"): storage.remove(f"{call}_bcs_weight")
         # -----------------------------------------------------------------------------------------------
         s_control.bottom_sheet_contents.append(health_log)
+        s_control.bottom_sheet_contents.append(health_bcs_log)
     # ---------------------------------------------------------------------------------------------------
     elif call == "status_log":
         s_control.bottom_sheet_title("상태기록")

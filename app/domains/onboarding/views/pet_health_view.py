@@ -3,12 +3,13 @@ import flet as ft
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
 def pet_health_view(page: ft.Page):
+    storage = page.session.store
     # ---------------------------------------------------------------------------------------------------
     # Pet Allergy Input Field and Radio
     # ---------------------------------------------------------------------------------------------------
     def on_allergy_change(e):
         try:
-            page.session.store.set(key="allergy", value=e.control.value)
+            storage.set(key="allergy", value=e.control.value)
         except:
             pass
     allergy = dogdog.input_textfield(
@@ -20,8 +21,8 @@ def pet_health_view(page: ft.Page):
             allergy.visible = True
         else:
             allergy.visible = False
-            if page.session.store.get(key="allergy"):
-                page.session.store.remove(key="allergy")
+            if storage.get(key="allergy"):
+                storage.remove(key="allergy")
     allergy_radio = dogdog.radio_group(
         value="no",
         on_change=on_allergy_radio_change,
@@ -30,17 +31,17 @@ def pet_health_view(page: ft.Page):
             ft.Radio(value="no", label="없어요"),
         ]
     )
-    if page.session.store.get(key="allergy"):
+    if storage.get(key="allergy"):
         allergy.visible = True
         allergy_radio.value = "yes"
-        allergy.value = page.session.store.get(key="allergy") # type: ignore
+        allergy.value = storage.get(key="allergy") # type: ignore
     else: allergy.visible = False
     # ---------------------------------------------------------------------------------------------------
     # Pet Disease Input Field and Radio
     # ---------------------------------------------------------------------------------------------------
     def on_disease_change(e):
         try:
-            page.session.store.set(key="disease", value=e.control.value)
+            storage.set(key="disease", value=e.control.value)
         except:
             pass
     disease = dogdog.input_textfield(
@@ -51,8 +52,8 @@ def pet_health_view(page: ft.Page):
             disease.visible = True
         else:
             disease.visible = False
-            if page.session.store.get(key="disease"):
-                page.session.store.remove(key="disease")
+            if storage.get(key="disease"):
+                storage.remove(key="disease")
     disease_radio = dogdog.radio_group(
         value="no",
         on_change=on_disease_radio_change,
@@ -61,10 +62,10 @@ def pet_health_view(page: ft.Page):
             ft.Radio(value="no", label="없어요"),
         ]
     )
-    if page.session.store.get(key="disease"):
+    if storage.get(key="disease"):
         disease.visible = True
         disease_radio.value = "yes"
-        disease.value = page.session.store.get(key="disease") # type: ignore
+        disease.value = storage.get(key="disease") # type: ignore
     else: disease.visible = False
     # ---------------------------------------------------------------------------------------------------
     # Pet Health Page

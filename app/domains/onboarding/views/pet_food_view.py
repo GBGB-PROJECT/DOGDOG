@@ -10,7 +10,7 @@ class PetfoodController:
         # Default Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
-        storage = page.session.store
+        self.storage = page.session.store
         # -----------------------------------------------------------------------------------------------
         # Food List Selected Picker and Bottom Sheet
         # -----------------------------------------------------------------------------------------------
@@ -39,9 +39,9 @@ class PetfoodController:
             on_click=self.open_food_bottom_sheet,
             icon=ft.Icons.KEYBOARD_ARROW_DOWN_ROUNDED,
         )
-        if storage.get(key="food_text"):
+        if self.storage.get(key="food_text"):
             self.food_picker_field.content.controls[0].value = ( # type: ignore
-                storage.get(key="food_text")
+                self.storage.get(key="food_text")
             )
         self.food_list = dogdog.update_item_list(
             list_column=self.food_list_column, 
@@ -55,12 +55,12 @@ class PetfoodController:
             event=self.food_product_weight_set,
             options=[]
         )
-        if storage.get(key="product_id"):
+        if self.storage.get(key="product_id"):
             self.product_weight_list.visible = True
             self.load_product_weight_list = dogdog.dropdown_list(
-                dropdown_menu=self.product_weight_list, search_data=ProductWeight.PRODUCT_WEIGHT_LIST, key=storage.get("food_id")
+                dropdown_menu=self.product_weight_list, search_data=ProductWeight.PRODUCT_WEIGHT_LIST, key=self.storage.get("food_id")
             )
-            self.product_weight_list.value = storage.get(key="product_id")
+            self.product_weight_list.value = self.storage.get(key="product_id")
         else: self.product_weight_list.visible = False
     # ---------------------------------------------------------------------------------------------------
     # Food List Picker Event
@@ -78,11 +78,10 @@ class PetfoodController:
             select_value=self.select_food, 
             keyword=e.control.value)
     def select_food(self, food_id, food_name):
-        storage = self.page.session.store
         self.selected_food_id = food_id
-        storage.set(key="food_id", value=food_id)
+        self.storage.set(key="food_id", value=food_id)
         self.food_picker_field.content.controls[0].value = food_name # type: ignore
-        storage.set(key="food_text", value=food_name)
+        self.storage.set(key="food_text", value=food_name)
         self.food_bottom_sheet.open = False
         self.page.update() # Overlay Error 방지
         self.product_weight_list.visible = True
@@ -90,10 +89,10 @@ class PetfoodController:
             dropdown_menu=self.product_weight_list, search_data=ProductWeight.PRODUCT_WEIGHT_LIST, key=food_id
         )
     def food_product_weight_set(self, e):
-        self.page.session.store.set(key="product_id", value=e.control.value)
+        self.storage.set(key="product_id", value=e.control.value)
         try:
             weight = e.control.text.split("g")[0]
-            self.page.session.store.set(key="product_weight", value=int(weight))
+            self.storage.set(key="product_weight", value=int(weight))
         except ValueError:
             pass
 # -------------------------------------------------------------------------------------------------------
@@ -102,20 +101,21 @@ def pet_food_view(page):
     # Default Value Class
     # ---------------------------------------------------------------------------------------------------
     pet_food_controller = PetfoodController(page=page)
+    storage = page.session.store
     # ---------------------------------------------------------------------------------------------------
     # Pet Food Weight Field
     # ---------------------------------------------------------------------------------------------------
     def on_food_weight_change(e):
         try:
-            page.session.store.set("food_weight", int(e.control.value))
+            storage.set("food_weight", int(e.control.value))
         except ValueError:
             pass
     selected_food_weight = dogdog.input_textfield(
         hint_text="현재 급여 중인 사료의 잔여량을 적어주세요", input_type="int", suffix="g",
         on_change=on_food_weight_change
     )
-    if page.session.store.get("food_weight"):
-        selected_food_weight.value = page.session.store.get("food_weight") # type: ignore
+    if storage.get("food_weight"):
+        selected_food_weight.value = storage.get("food_weight") # type: ignore
     # ---------------------------------------------------------------------------------------------------
     # Pet Feeding Food Page
     # ---------------------------------------------------------------------------------------------------

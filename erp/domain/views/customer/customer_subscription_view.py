@@ -10,10 +10,11 @@ from backend.erp.customer.subscription_service import (
 
 # =========================================================
 # 🔥 고객 구독 관리 화면
-# - OPD.subs + OPD.subs_plan + OPD.subs_detail JOIN 데이터 조회
-# - 구독ID / 고객ID / 구독시작일 / 구독플랜ID / 자동배송여부 / 구독상태
-# - 배송신청요일 / 배송주기 / 구독 회원 할인율 / 배송지 / 이름 / 전화번호
-# - 50개씩 페이지네이션
+# - 컬럼 순서 재배치
+# - 이름 / 구독ID / 고객ID / 플랜ID 같은 고객 관련 정보는 좌측
+# - 구독상태는 가장 우측
+# - 나머지 순서:
+#   신청요일 / 자동배송 / 배송주기 / 할인율 / 배송지 / 전화번호 / 구독시작일
 # =========================================================
 
 FIELD_BG = ft.Colors.WHITE
@@ -117,7 +118,6 @@ def build_table_cell(text, expand, align_x=0, weight=ft.FontWeight.W_400, color=
 def format_datetime_text(value):
     if not value:
         return ""
-
     return str(value)[:19]
 
 
@@ -129,18 +129,18 @@ def customer_subscription_db_row_adapter(db_rows: list, page_no: int):
         rows.append(
             {
                 "no": str(index),
+                "name": row.get("name", ""),                    # 🔥 좌측 배치
                 "subs_id": row.get("subs_id", ""),
                 "customer_id": row.get("customer_id", ""),
-                "subs_date": format_datetime_text(row.get("subs_date", "")),
                 "subs_plan_id": row.get("subs_plan_id", ""),
-                "is_auto_delivery": row.get("is_auto_delivery", ""),
-                "is_subs_status": row.get("is_subs_status", ""),
                 "subs_day": row.get("subs_day", ""),
+                "is_auto_delivery": row.get("is_auto_delivery", ""),
                 "delivery_cycle": row.get("delivery_cycle", ""),
                 "subs_sale": row.get("subs_sale", ""),
                 "address": row.get("address", ""),
-                "name": row.get("name", ""),
                 "phone": row.get("phone", ""),
+                "subs_date": format_datetime_text(row.get("subs_date", "")),
+                "is_subs_status": row.get("is_subs_status", ""),  # 🔥 극우측 배치
             }
         )
 
@@ -178,33 +178,33 @@ def erp_customer_subscription_view():
     pagination_holder = ft.Container()
 
     # =========================================================
-    # 🔥 고객 구독 관리 컬럼 비율
+    # 🔥 수정: 컬럼 순서 변경에 맞춰 비율 재조정
     # =========================================================
     col_expand = {
         "no": 3,
-        "subs_id": 5,
-        "customer_id": 5,
+        "name": 6,
+        "subs_id": 4,
+        "customer_id": 4,
+        "subs_plan_id": 4,
+        "subs_day": 5,
+        "is_auto_delivery": 4,
+        "delivery_cycle": 4,
+        "subs_sale": 4,
+        "address": 10,
+        "phone": 7,
         "subs_date": 8,
-        "subs_plan_id": 5,
-        "is_auto_delivery": 5,
         "is_subs_status": 5,
-        "subs_day": 6,
-        "delivery_cycle": 5,
-        "subs_sale": 5,
-        "address": 12,
-        "name": 5,
-        "phone": 8,
     }
 
     search_type_labels = {
         "subs_id": "구독ID",
         "customer_id": "고객ID",
-        "subs_plan_id": "구독플랜ID",
-        "is_auto_delivery": "자동배송여부",
+        "subs_plan_id": "플랜ID",
+        "is_auto_delivery": "자동배송",
         "is_subs_status": "구독상태",
-        "subs_day": "배송신청요일",
+        "subs_day": "신청요일",
         "delivery_cycle": "배송주기",
-        "subs_sale": "구독 회원 할인율",
+        "subs_sale": "할인율",
         "address": "배송지",
         "name": "이름",
         "phone": "전화번호",
@@ -214,13 +214,11 @@ def erp_customer_subscription_view():
     def format_date_text(value):
         if not value:
             return ""
-
         return value.strftime("%Y.%m.%d")
 
     def get_selected_date_range():
         start_date = selected_start["value"].date() if selected_start["value"] else None
         end_date = selected_end["value"].date() if selected_end["value"] else None
-
         return start_date, end_date
 
     def refresh_picker_fields():
@@ -228,17 +226,13 @@ def erp_customer_subscription_view():
             text=format_date_text(selected_start["value"]),
             on_click=open_start_picker,
         )
-        start_icon_holder.content = calendar_icon_box(
-            on_click=open_start_picker,
-        )
+        start_icon_holder.content = calendar_icon_box(on_click=open_start_picker)
 
         end_field_holder.content = date_value_box(
             text=format_date_text(selected_end["value"]),
             on_click=open_end_picker,
         )
-        end_icon_holder.content = calendar_icon_box(
-            on_click=open_end_picker,
-        )
+        end_icon_holder.content = calendar_icon_box(on_click=open_end_picker)
 
     def on_start_date_change(e):
         if e.control.value:
@@ -378,41 +372,31 @@ def erp_customer_subscription_view():
         border_color=FIELD_BORDER,
         border_radius=6,
         bgcolor=FIELD_BG,
-        content_padding=ft.Padding.only(
-            left=12,
-            right=12,
-            top=0,
-            bottom=0,
-        ),
+        content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
     )
 
     def build_table_header():
         return ft.Container(
             bgcolor=TABLE_HEADER_BG,
-            padding=ft.Padding.only(
-                left=14,
-                right=14,
-                top=14,
-                bottom=14,
-            ),
+            padding=ft.Padding.only(left=14, right=14, top=14, bottom=14),
             content=ft.Row(
                 expand=True,
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
+                    build_table_cell("이름", col_expand["name"], 0, ft.FontWeight.W_700),
                     build_table_cell("구독ID", col_expand["subs_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독시작일", col_expand["subs_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("플랜ID", col_expand["subs_plan_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("자동배송", col_expand["is_auto_delivery"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독상태", col_expand["is_subs_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("신청요일", col_expand["subs_day"], 0, ft.FontWeight.W_700),
+                    build_table_cell("자동배송", col_expand["is_auto_delivery"], 0, ft.FontWeight.W_700),
                     build_table_cell("배송주기", col_expand["delivery_cycle"], 0, ft.FontWeight.W_700),
                     build_table_cell("할인율", col_expand["subs_sale"], 0, ft.FontWeight.W_700),
                     build_table_cell("배송지", col_expand["address"], 0, ft.FontWeight.W_700),
-                    build_table_cell("이름", col_expand["name"], 0, ft.FontWeight.W_700),
                     build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
+                    build_table_cell("구독시작일", col_expand["subs_date"], 0, ft.FontWeight.W_700),
+                    build_table_cell("구독상태", col_expand["is_subs_status"], 0, ft.FontWeight.W_700),
                 ],
             ),
         )
@@ -421,15 +405,8 @@ def erp_customer_subscription_view():
         status_color = "#059669" if row.get("is_subs_status") == "구독중" else "#F97316"
 
         return ft.Container(
-            padding=ft.Padding.only(
-                left=14,
-                right=14,
-                top=14,
-                bottom=14,
-            ),
-            border=ft.border.only(
-                bottom=ft.BorderSide(1, TABLE_BORDER),
-            ),
+            padding=ft.Padding.only(left=14, right=14, top=14, bottom=14),
+            border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
             content=ft.Row(
                 expand=True,
@@ -437,11 +414,17 @@ def erp_customer_subscription_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
+                    build_table_cell(row.get("name", ""), col_expand["name"], 0),
                     build_table_cell(row.get("subs_id", ""), col_expand["subs_id"], 0),
                     build_table_cell(row.get("customer_id", ""), col_expand["customer_id"], 0),
-                    build_table_cell(row.get("subs_date", ""), col_expand["subs_date"], 0),
                     build_table_cell(row.get("subs_plan_id", ""), col_expand["subs_plan_id"], 0),
+                    build_table_cell(row.get("subs_day", ""), col_expand["subs_day"], 0),
                     build_table_cell(row.get("is_auto_delivery", ""), col_expand["is_auto_delivery"], 0),
+                    build_table_cell(row.get("delivery_cycle", ""), col_expand["delivery_cycle"], 0),
+                    build_table_cell(row.get("subs_sale", ""), col_expand["subs_sale"], 0),
+                    build_table_cell(row.get("address", ""), col_expand["address"], 0),
+                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
+                    build_table_cell(row.get("subs_date", ""), col_expand["subs_date"], 0),
                     build_table_cell(
                         row.get("is_subs_status", ""),
                         col_expand["is_subs_status"],
@@ -449,12 +432,6 @@ def erp_customer_subscription_view():
                         ft.FontWeight.W_700,
                         status_color,
                     ),
-                    build_table_cell(row.get("subs_day", ""), col_expand["subs_day"], 0),
-                    build_table_cell(row.get("delivery_cycle", ""), col_expand["delivery_cycle"], 0),
-                    build_table_cell(row.get("subs_sale", ""), col_expand["subs_sale"], 0),
-                    build_table_cell(row.get("address", ""), col_expand["address"], 0),
-                    build_table_cell(row.get("name", ""), col_expand["name"], 0),
-                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
                 ],
             ),
         )
@@ -539,11 +516,7 @@ def erp_customer_subscription_view():
         page_controls = []
 
         page_controls.append(
-            build_page_button(
-                "<",
-                current_page - 1,
-                disabled=(current_page == 1),
-            )
+            build_page_button("<", current_page - 1, disabled=(current_page == 1))
         )
 
         start_page = max(1, current_page - 2)
@@ -559,11 +532,7 @@ def erp_customer_subscription_view():
             )
 
         page_controls.append(
-            build_page_button(
-                ">",
-                current_page + 1,
-                disabled=(current_page == total_pages),
-            )
+            build_page_button(">", current_page + 1, disabled=(current_page == total_pages))
         )
 
         pagination_holder.content = ft.Container(
@@ -603,10 +572,7 @@ def erp_customer_subscription_view():
             current_page = total_pages
             pagination_state["current_page"] = current_page
 
-        rows = fetch_customer_subscription_rows(
-            keyword=keyword,
-            page_no=current_page,
-        )
+        rows = fetch_customer_subscription_rows(keyword=keyword, page_no=current_page)
 
         rows_state.clear()
         rows_state.extend(rows)
@@ -636,12 +602,7 @@ def erp_customer_subscription_view():
         controls=[
             ft.Container(
                 bgcolor="#F3F4F6",
-                padding=ft.Padding.only(
-                    left=24,
-                    right=24,
-                    top=18,
-                    bottom=14,
-                ),
+                padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
                 content=ft.Row(
                     wrap=True,
                     spacing=12,
@@ -669,12 +630,7 @@ def erp_customer_subscription_view():
             ft.Container(
                 expand=True,
                 bgcolor="#F5F5F5",
-                padding=ft.Padding.only(
-                    left=24,
-                    right=24,
-                    top=26,
-                    bottom=18,
-                ),
+                padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
                 content=ft.Column(
                     expand=True,
                     spacing=18,

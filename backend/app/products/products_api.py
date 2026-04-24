@@ -21,7 +21,7 @@ class ProductSort(str, Enum):
     weight_desc = "weight_desc" 
     weight_asc = "weight_asc" 
 
-@router.get("/products")
+@router.get("")
 def get_products(
     keyword: str | None = Query(default=None, description="검색 키워드"),
     sort: ProductSort | None = Query(default=None, description="정렬 조건"),
@@ -91,7 +91,7 @@ def read_products_weights(
         )
     
 # 상품 상세정보 불러오기 ---------------------------------------------------------------------
-@router.get("/products/{product_id}")
+@router.get("/{product_id}")
 def read_product_detail(
     product_id: int,
     db: Session = Depends(get_db),

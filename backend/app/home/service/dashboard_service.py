@@ -61,10 +61,30 @@ class DashboardService:
             "left_intake": float(left_intake) if left_intake else 0,
             "total_weight": float(product_weight) if product_weight else 0,
             "left_food_count": float(left_food_count) if left_food_count else 0,
+            "expected_exdate": (
+                customer_food.expected_exdate.strftime("%Y-%m-%d")
+                if hasattr(customer_food, "expected_exdate") and customer_food.expected_exdate
+                else None
+            ),
         }
+
+        # 4. 반려동물 프로필 정보 조회
+        DEFAULT_PROFILE_IMAGE = "app/assets/dogclay.png"
+        pet = self.repo.get_pet_profile(pet_id)
+        pet_info = {
+            "nickname": pet.nickname if pet else "알 수 없음",
+            "profile_image": (
+                pet.profile_image if pet and pet.profile_image else DEFAULT_PROFILE_IMAGE
+            ),
+        }
+
+        # 5. 오늘자 활동량 통계 (물, 산책) 집계
+        activity_stats = self.repo.get_daily_activity_stats(pet_id, target_date)
 
         return {
             "query_date": target_date.strftime("%Y-%m-%d"),
+            "pet_info": pet_info,
             "feeding_stats": feeding_stats,
-            "food_inventory": food_inventory
+            "food_inventory": food_inventory,
+            "activity_stats": activity_stats,
         }

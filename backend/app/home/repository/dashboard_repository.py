@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 from datetime import date
 from db.models import (
     CompanionCustomerFood,
+    CompanionPet,
+    CompanionPetLogNumeric,
     CompanionPetProductFeeding,
     CompanionPetFood,
     OpdProduct,
@@ -76,3 +78,53 @@ class DashboardRepository:
             .first()
         )
         return result
+
+    def get_pet_profile(self, pet_id: int):
+        """반려동물의 닉네임과 프로필 이미지를 조회합니다.
+
+        Args:
+            pet_id: 대상 반려견 ID
+
+        Returns:
+            CompanionPet 인스턴스 또는 None
+        """
+        return (
+            self.db.query(CompanionPet)
+            .filter(CompanionPet.pet_id == pet_id, CompanionPet.active == True)
+            .first()
+        )
+
+    def get_daily_activity_stats(self, pet_id: int, target_date: date) -> dict:
+        """특정 날짜의 활동량(물 섭취, 산책) 통계를 집계합니다.
+
+        Args:
+            pet_id: 대상 반려견 ID
+            target_date: 조회 날짜
+
+        Returns:
+            water_total과 walk_total을 포함한 딕셔너리
+        """
+        result = (
+            self.db.query(
+                CompanionPetLogNumeric.category,
+                func.coalesce(func.sum(CompanionPetLogNumeric.log_status), 0).label("total"),
+            )
+            .filter(
+                CompanionPetLogNumeric.pet_id == pet_id,
+                cast(CompanionPetLogNumeric.log_date, Date) == target_date,
+                CompanionPetLogNumeric.active == True,
+                CompanionPetLogNumeric.category.in_(["water", "walk"]),
+            )
+            .group_by(CompanionPetLogNumeric.category)
+            .all()
+        )
+
+        stats = {"water_total": 0, "walk_total": 0}
+        for row in result:
+            if row.category == "water":
+                stats["water_total"] = float(row.total)
+            elif row.category == "walk":
+                stats["walk_total"] = float(row.total)
+
+        return stats
+

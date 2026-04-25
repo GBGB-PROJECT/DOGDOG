@@ -8,12 +8,13 @@ from db.db import get_db
 from dependencies import check_pet_owner, get_current_user
 from app.home.service.dashboard_service import DashboardService
 from app.home.repository.dashboard_repository import DashboardRepository
+from app.home.api.schemas import DashboardResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/home", tags=["Home Dashboard"])
 
-@router.get("/dashboard/{pet_id}")
+@router.get("/dashboard/{pet_id}", response_model=DashboardResponse)
 def get_daily_dashboard_summary(
     pet_id: int,
     query_date: Optional[date] = Query(None, alias="date", description="조회할 날짜 (기본값: 오늘)"),

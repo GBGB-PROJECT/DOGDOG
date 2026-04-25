@@ -4,6 +4,10 @@ import flet as ft
 # ☑️ 추가: 폭 설정
 BASE_SIDEBAR_WIDTH = 220
 
+# 🔥 수정: topbar.py의 height=68과 정확히 동일하게 맞춤
+SIDEBAR_HEADER_HEIGHT = 68
+
+
 # ☑️ 수정: 기존 함수 확장
 def _menu_item(
     text: str,
@@ -21,33 +25,35 @@ def _menu_item(
     return ft.Container(
         width=BASE_SIDEBAR_WIDTH,
         bgcolor=active_bgcolor if is_selected else ft.Colors.TRANSPARENT,
-        on_click=lambda e, menu=text: on_menu_click(menu), 
+        on_click=lambda e, menu=text: on_menu_click(menu),
         content=ft.Container(
             padding=ft.padding.only(left=left_padding, top=10, bottom=10, right=12),
             content=ft.Text(
                 value=text,
                 size=14,
                 weight=selected_weight if is_selected else ft.FontWeight.W_600,
-                color=active_color if is_selected else text_color, # 🔥
+                color=active_color if is_selected else text_color,
             ),
         ),
     )
 
-# ☑️ 추가: 기본 파란 로고 영역
+
+# 🔥 수정: 파란 로고 영역 높이를 오른쪽 topbar 높이와 동일하게 맞춤
 def _sidebar_brand_header():
     return ft.Container(
+        height=SIDEBAR_HEADER_HEIGHT,
+        width=BASE_SIDEBAR_WIDTH,
         bgcolor=com.MAIN_COLOR,
-        padding=ft.padding.only(top=18, bottom=18),
-        content=ft.Container(
-            padding=ft.padding.only(left=22),
-            content=ft.Text(
-                value="GAEBOBGAEBOB",
-                size=22,
-                weight=ft.FontWeight.BOLD,
-                color=ft.Colors.WHITE,
-            ),
+        padding=ft.padding.only(left=22),
+        alignment=ft.Alignment(-1, 0),
+        content=ft.Text(
+            value="GAEBOBGAEBOB",
+            size=22,
+            weight=ft.FontWeight.BOLD,
+            color=ft.Colors.WHITE,
         ),
     )
+
 
 # ☑️ 추가: 확장 패널 헤더
 def _section_header(title: str, on_menu_click):
@@ -77,21 +83,28 @@ def _section_header(title: str, on_menu_click):
         ),
     )
 
-# ☑️ 추가: 확장형 공통 렌더
+
+# 🔥 수정: 확장형 공통 렌더 - 오른쪽 흰 화면 시작선과 회색 패널 시작선 일치
 def _build_expanded_sidebar(header_control, menu_controls):
     return ft.Container(
         width=BASE_SIDEBAR_WIDTH,
         bgcolor=com.MAIN_COLOR,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Column(
             spacing=0,
+            expand=True,
             controls=[
                 _sidebar_brand_header(),
+
+                # 🔥 수정: topbar 높이 68px 이후부터 회색 패널 시작
                 ft.Container(
                     expand=True,
+                    width=BASE_SIDEBAR_WIDTH,
                     bgcolor=com.EXPANDED_PANEL_BG,
-                    padding=ft.padding.only(top=18, bottom=20),
+                    padding=ft.padding.only(top=22, bottom=20),
                     content=ft.Column(
                         spacing=4,
+                        expand=True,
                         controls=[
                             header_control,
                             ft.Container(height=8),
@@ -102,6 +115,7 @@ def _build_expanded_sidebar(header_control, menu_controls):
             ],
         ),
     )
+
 
 # ☑️ 추가: 확장 메뉴 공통 생성
 def _build_expanded_menu_controls(items, selected_menu, on_menu_click):
@@ -116,6 +130,7 @@ def _build_expanded_menu_controls(items, selected_menu, on_menu_click):
         )
         for item in items
     ]
+
 
 def build_erp_sidebar(selected_menu: str, on_menu_click):
     # ☑️ 추가: 재고관리 확장형
@@ -225,30 +240,35 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
     menu_controls = [
         _menu_item(
             text=item,
-            selected_menu=selected_menu, 
+            selected_menu=selected_menu,
             on_menu_click=on_menu_click,
         )
         for item in com.ERP_MAIN_MENU_ITEMS
     ]
 
     return ft.Container(
-        width=220,
+        width=BASE_SIDEBAR_WIDTH,
         bgcolor=com.MAIN_COLOR,
-        padding=ft.padding.only(top=18, bottom=20),
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Column(
-            spacing=4,
+            spacing=0,
+            expand=True,
             controls=[
+                # 🔥 수정: 기본 사이드바도 확장 사이드바와 같은 높이 사용
+                _sidebar_brand_header(),
+
                 ft.Container(
-                    padding=ft.padding.only(left=22, bottom=18),
-                    content=ft.Text(
-                        value="GAEBOBGAEBOB",
-                        size=22,
-                        weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.WHITE,
+                    expand=True,
+                    width=BASE_SIDEBAR_WIDTH,
+                    bgcolor=com.MAIN_COLOR,
+                    padding=ft.padding.only(top=12, bottom=20),
+                    content=ft.Column(
+                        spacing=4,
+                        controls=[
+                            *menu_controls,
+                        ],
                     ),
                 ),
-                ft.Container(height=8),
-                *menu_controls,
             ],
         ),
     )

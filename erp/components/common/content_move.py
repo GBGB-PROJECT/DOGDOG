@@ -27,6 +27,7 @@ from domain.views.production import production_view
 from domain.views.production import purchase_order_view
 
 from domain.views.production import production_supplier_view
+from domain.views.inbound import inbound_view  # 🔥 추가: 생산입고 화면
 
 
 ## ============= 페이지 이동 (실질)
@@ -64,6 +65,7 @@ MENU_ITEMS = {
     "상품 상세 정보 관리": product_detail_view.erp_product_detail_view,
 
     "생산관리": production_view.erp_production_view,
+    "생산입고": inbound_view.erp_inbound_view,  # 🔥 추가: 생산입고 실제 입고 현황 화면 연결
     "발주 관리": purchase_order_view.erp_purchase_order_view,
     "거래처 관리": production_supplier_view.erp_production_supplier_view,
 

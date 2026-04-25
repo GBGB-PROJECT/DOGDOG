@@ -25,6 +25,7 @@ from erp.customer.order_api import router as customer_order_router
 from erp.customer.subscription_api import router as customer_subscription_router  # 🔥 추가
 
 from erp.employee.api import router as erp_employee_management_router
+from erp.inbound.api import router as erp_inbound_router  # 🔥 추가: 생산입고 API
 
 
 
@@ -101,6 +102,7 @@ app.include_router(customer_order_router)
 app.include_router(customer_subscription_router)  # 🔥 추가
 
 app.include_router(erp_employee_management_router)
+app.include_router(erp_inbound_router)  # 🔥 추가: 생산입고 API 등록
 
 # [7] 실행 블록: 터미널에서 python main.py 로 직접 실행 가능하게 합니다.
 if __name__ == "__main__":

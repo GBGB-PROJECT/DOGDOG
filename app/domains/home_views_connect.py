@@ -47,9 +47,9 @@ def home_tile(page: ft.Page, content_page:str, change_page_callback=None):
             hour = time[0] if int(time[0]) < 12 else int(time[0]) - 12
             if hour == 0: hour = 12
             message = (
-                f"물을 {details["log_status"]}ml를 마셨습니다." if details["category"] == "음수량" else 
-                f"사료를 {details["log_status"]}g을 먹었습니다." if details["category"] == "급여량" else 
-                f"산책을 {details["log_status"]}분 했습니다." if details["category"] == "산책" else None
+                f"물을 {details['log_status']}ml를 마셨습니다." if details["category"] == "음수량" else 
+                f"사료를 {details['log_status']}g을 먹었습니다." if details["category"] == "급여량" else 
+                f"산책을 {details['log_status']}분 했습니다." if details["category"] == "산책" else None
             )
             log_time = f"{ampm} {hour}:{time[1]}"
             print(message, log_time)

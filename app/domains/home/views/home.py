@@ -80,19 +80,51 @@ def feeding_food_count(page: ft.Page):
     # Default Value
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
-    customer_detail = (storage.get("customer_detail"))
-    first_customer_detail = customer_detail.get(next(iter(customer_detail.keys()))) if customer_detail else None
-    feeding_food_count = first_customer_detail.get("left_food_count") if customer_detail else 0 # type: ignore
+    customer_detail = storage.get("customer_detail") or {}
+    
+    # dashboard_sync 경로 또는 기존 구조 양쪽 호환
+    dash_data = customer_detail.get("dashboard_sync", {})
+    if dash_data:
+        first_customer_detail = dash_data
+    elif customer_detail:
+        first_key = next(iter(customer_detail.keys()), None)
+        first_customer_detail = customer_detail.get(first_key, {}) if first_key else {}
+    else:
+        first_customer_detail = {}
+    
+    # 안전한 데이터 추출 (None 방어 + int 형변환)
+    raw_food_count = first_customer_detail.get("left_food_count")
+    try:
+        feeding_food_count = int(raw_food_count) if raw_food_count is not None else 0
+    except (ValueError, TypeError):
+        feeding_food_count = 0
+    
     now = datetime.datetime.now()
-    days = datetime.timedelta(days=feeding_food_count) if customer_detail else 0
-    last_feeding_food_count = (now+days).strftime("%Y.%m.%d") if days != 0 else "????.??.??"
-    left_intake = first_customer_detail.get("left_intake") if customer_detail else 0 # type: ignore
-    g_product_weight = first_customer_detail.get("total_weight") if customer_detail else 5 # type: ignore
+    if feeding_food_count > 0:
+        days = datetime.timedelta(days=feeding_food_count)
+        last_feeding_food_count = (now + days).strftime("%Y.%m.%d")
+    else:
+        last_feeding_food_count = "????.??.??"
+    
+    raw_left_intake = first_customer_detail.get("left_intake")
+    try:
+        left_intake = int(raw_left_intake) if raw_left_intake is not None else 0
+    except (ValueError, TypeError):
+        left_intake = 0
+    
+    raw_total_weight = first_customer_detail.get("total_weight")
+    try:
+        g_product_weight = int(raw_total_weight) if raw_total_weight is not None else 5
+    except (ValueError, TypeError):
+        g_product_weight = 5
+    if g_product_weight == 0:
+        g_product_weight = 5  # 0으로 나누기 방지
+    
     kg_product_weight = float(g_product_weight / 1000)
     view_product_weight = (
         f"{kg_product_weight}Kg" if len(str(kg_product_weight).replace(".0", "")) > 2 
             else f"{g_product_weight}g"
-    ) if customer_detail else "???Kg"
+    ) if g_product_weight > 5 else "???Kg"
     # ---------------------------------------------------------------------------------------------------
     # Feeding List First Product View
     # ---------------------------------------------------------------------------------------------------

@@ -11,7 +11,7 @@ class PetService:
 
     def register_pet(self, customer_id: int, request: PetRegisterRequest) -> dict:
         # 1. 폼 데이터
-        pet_data = request.model_dump()
+        pet_data = request.model_dump(mode='json')
         
         # 2. 품종 확인
         if not self.repo.check_breed_exists(pet_data["breed_id"]):

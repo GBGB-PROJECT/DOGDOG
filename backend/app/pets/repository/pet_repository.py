@@ -50,10 +50,10 @@ class PetRepository:
                 feeding_count=len(pet_data.get("feeding_count", [])),
                 feeding_intake=pet_data.get("feeding_intake"),
                 water_intake=pet_data.get("water_intake"),
-                supps=json.dumps(pet_data.get("supps", []), ensure_ascii=False),
-                medication=json.dumps(pet_data.get("medication", []), ensure_ascii=False),
-                allergies=json.dumps(pet_data.get("allergies", []), ensure_ascii=False),
-                diseases=json.dumps(pet_data.get("diseases", []), ensure_ascii=False),
+                supps=",".join(pet_data.get("supps", [])),
+                medication=",".join(pet_data.get("medication", [])),
+                allergies=",".join(pet_data.get("allergies", [])),
+                diseases=",".join(pet_data.get("diseases", [])),
                 active=True
             )
             

@@ -152,14 +152,51 @@ def _format_subs_day(value):
         "sunday": "일요일",
         "mon": "월요일",
         "tue": "화요일",
+        "tues": "화요일",
         "wed": "수요일",
         "thu": "목요일",
+        "thur": "목요일",
+        "thurs": "목요일",
         "fri": "금요일",
         "sat": "토요일",
         "sun": "일요일",
+        "월": "월요일",
+        "화": "화요일",
+        "수": "수요일",
+        "목": "목요일",
+        "금": "금요일",
+        "토": "토요일",
+        "일": "일요일",
     }
 
     return mapping.get(day, str(value))
+
+
+# =========================================================
+# 🔥 추가: 요일 검색어 정규화
+# - DB에는 monday/tuesday처럼 영문으로 들어있는데
+# - 화면/Swagger에서는 월, 화, 화요일처럼 한글로 검색하기 때문에
+# - subs_day 검색 시 한글/영문/약어를 모두 OR 조건으로 검색한다.
+# =========================================================
+def _subs_day_search_values(keyword):
+    clean = str(keyword or "").strip()
+    lowered = clean.lower()
+
+    day_groups = {
+        "monday": ["월", "월요일", "mon", "monday"],
+        "tuesday": ["화", "화요일", "tue", "tues", "tuesday"],
+        "wednesday": ["수", "수요일", "wed", "wednesday"],
+        "thursday": ["목", "목요일", "thu", "thur", "thurs", "thursday"],
+        "friday": ["금", "금요일", "fri", "friday"],
+        "saturday": ["토", "토요일", "sat", "saturday"],
+        "sunday": ["일", "일요일", "sun", "sunday"],
+    }
+
+    for values in day_groups.values():
+        if clean in values or lowered in values:
+            return values
+
+    return [clean]
 
 
 def _apply_filter(query, search_type, keyword):
@@ -263,8 +300,16 @@ def _apply_filter(query, search_type, keyword):
         )
 
     if search_type == "subs_day":
+        day_values = _subs_day_search_values(clean)
+
         return query.filter(
-            cast(OpdSubs.subs_day, String).ilike(like_keyword(clean))
+            or_(
+                *[
+                    cast(OpdSubs.subs_day, String).ilike(like_keyword(day_value))
+                    for day_value in day_values
+                    if day_value
+                ]
+            )
         )
 
     if search_type == "delivery_cycle":

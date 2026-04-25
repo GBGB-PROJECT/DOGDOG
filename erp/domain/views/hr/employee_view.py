@@ -5,7 +5,7 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import EMPLOYEE_FIELDS
-from backend.erp.employee.service import count_employees, fetch_employees, create_employee
+from backend.erp.hr.service import count_employees, fetch_employees, create_employee
 
 
 # =========================================================

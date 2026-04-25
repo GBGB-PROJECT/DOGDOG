@@ -8,11 +8,11 @@ from domain.views.stock import stock_status_view
 from domain.views.stock import stock_product_detail_view
 
 # 👊 추가: 상품관리 화면 연결
-from domain.views.product import product_view
-from domain.views.product import product_detail_view
+from domain.views.merchandise import product_view
+from domain.views.merchandise import product_detail_view
 
 # ☑️ 추가: 인사관리 화면 import
-from domain.views.employee import erp_employee_view
+from domain.views.hr import erp_employee_view
 
 # ☑️ 추가: 고객관리 화면 import
 from domain.views.customer import (

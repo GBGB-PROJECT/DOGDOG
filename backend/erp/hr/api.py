@@ -12,8 +12,8 @@ from .service import (
 
 
 router = APIRouter(
-    prefix="/erp/employee",
-    tags=["employee"],
+    prefix="/erp/hr",
+    tags=["hr"],
 )
 
 

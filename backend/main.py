@@ -17,14 +17,14 @@ from app.products.products_api import router as products_router
 from erp.auth.api.erp_signinup_api import router as erp_employee_router
 from erp.home.api.erp_home_api import router as erp_home_router
 from erp.home.api.erp_home_inventory_api import router as erp_home_inventory_router
-from erp.product.api import router as erp_product_router
+from erp.merchandise.api import router as erp_merchandise_router
 from erp.customer.api import router as erp_customer_router
 
 # 🔥 추가: 고객 주문 관리 API router
 from erp.customer.order_api import router as customer_order_router
 from erp.customer.subscription_api import router as customer_subscription_router  # 🔥 추가
 
-from erp.employee.api import router as erp_employee_management_router
+from erp.hr.api import router as erp_hr_router
 from erp.inbound.api import router as erp_inbound_router  # 🔥 추가: 생산입고 API
 from erp.stock.api import router as erp_stock_router  # 🔥 추가: 상품별 재고 상세 API
 
@@ -92,7 +92,7 @@ app.include_router(calc_feeding_router)
 app.include_router(products_router)
 
 # 🔥🔥🔥 추가: ERP 상품 상세 정보 관리 라우터 등록
-app.include_router(erp_product_router)
+app.include_router(erp_merchandise_router)
 
 # 🔥🔥🔥 추가: ERP 고객관리 라우터 등록
 app.include_router(erp_customer_router)
@@ -102,7 +102,7 @@ app.include_router(customer_order_router)
 
 app.include_router(customer_subscription_router)  # 🔥 추가
 
-app.include_router(erp_employee_management_router)
+app.include_router(erp_hr_router)
 app.include_router(erp_inbound_router)  # 🔥 추가: 생산입고 API 등록
 app.include_router(erp_stock_router)  # 🔥 추가: 상품별 재고 상세 API 등록
 

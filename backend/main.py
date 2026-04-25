@@ -20,10 +20,12 @@ from erp.home.api.erp_home_inventory_api import router as erp_home_inventory_rou
 from erp.merchandise.api import router as erp_merchandise_router
 from erp.customer.api import router as erp_customer_router
 
+
 # 🔥 추가: 고객 주문 관리 API router
 from erp.customer.order_api import router as customer_order_router
 from erp.customer.subscription_api import router as customer_subscription_router  # 🔥 추가
 
+from erp.production.api import router as erp_supplier_router
 from erp.hr.api import router as erp_hr_router
 from erp.inbound.api import router as erp_inbound_router  # 🔥 추가: 생산입고 API
 from erp.stock.api import router as erp_stock_router  # 🔥 추가: 상품별 재고 상세 API
@@ -102,6 +104,7 @@ app.include_router(customer_order_router)
 
 app.include_router(customer_subscription_router)  # 🔥 추가
 
+app.include_router(erp_supplier_router)  # 🔥 추가: 거래처 관리 API 등록
 app.include_router(erp_hr_router)
 app.include_router(erp_inbound_router)  # 🔥 추가: 생산입고 API 등록
 app.include_router(erp_stock_router)  # 🔥 추가: 상품별 재고 상세 API 등록

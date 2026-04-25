@@ -2,14 +2,14 @@ from sqlalchemy import cast, func
 from sqlalchemy.types import String
 from db.db import SessionLocal
 from db.models import ErpSupplier, ErpEmployee, ErpPurchaseOrder, ErpPurchaseOrderItem, OpdProduct, OpdProductDetail
-from backend.erp.common.query_utils import (
+from ..common.query_utils import (
     model_to_dict,
     like_keyword,
     normalize_bool_keyword,
     parse_date,
     to_plain_value,
 )
-from backend.erp.common.mutation_utils import (
+from ..common.mutation_utils import (
     clean_text,
     to_int_or_none,
     require_int,

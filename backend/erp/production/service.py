@@ -1,4 +1,4 @@
-from backend.erp.production.repository import (
+from .repository import (
     count_suppliers,
     fetch_suppliers,
     create_supplier,

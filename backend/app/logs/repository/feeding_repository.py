@@ -127,6 +127,23 @@ class FeedingRepository:
         # guide_intake가 없으면 0을 반환. (칼로리 산출은 사료 g당 칼로리와 곱해야 함)
         return guide.guide_intake if guide and guide.guide_intake else 0
 
+    def get_guide_intake(self, pet_id: int) -> float:
+        """최신 하루 권장 섭취량(guide_intake)을 조회합니다.
+
+        Args:
+            pet_id: 대상 반려견 ID
+
+        Returns:
+            guide_intake(float) 또는 데이터 없을 시 0.0
+        """
+        guide = (
+            self.db.query(CompanionFeedingGuide)
+            .filter(CompanionFeedingGuide.pet_id == pet_id)
+            .order_by(CompanionFeedingGuide.guide_date.desc())
+            .first()
+        )
+        return float(guide.guide_intake) if guide and guide.guide_intake else 0.0
+
     def add_log(self, log: CompanionPetFood):
         self.db.add(log)
 

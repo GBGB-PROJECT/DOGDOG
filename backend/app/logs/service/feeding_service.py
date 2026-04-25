@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from db.models import CompanionPetFood
 
 
@@ -83,14 +83,42 @@ class FeedingService:
                     f"사료 잔여량보다 많은 양은 입력 불가합니다. (현재 남은 양: {inventory.left_intake}g)"
                 )
 
+    # 잔여 일수 및 예상 소진일 통합 계산 헬퍼
+    def _recalculate_remaining(self, pet_id: int, inventory):
+        """남은 사료량 기반으로 expected_exdate를 계산·저장합니다.
+
+        left_intake, left_food_count는 DB의 Generated Always 컬럼이므로
+        직접 쓰지 않고, 로컬 변수로만 계산에 활용합니다.
+
+        Args:
+            pet_id: 대상 반려견 ID
+            inventory: 업데이트된 CompanionCustomerFood 인스턴스
+        """
+        guide_intake = self.repo.get_guide_intake(pet_id)
+
+        # ZeroDivisionError 방어: guide_intake가 0이면 계산 스킵
+        if not guide_intake or guide_intake <= 0:
+            return
+
+        # left_intake를 로컬에서 계산 (DB Generated 컬럼에 직접 쓰지 않음)
+        total_weight = int(inventory.total_weight) if inventory.total_weight else 0
+        total_intake = int(inventory.total_intake) if inventory.total_intake else 0
+        local_left_intake = max(total_weight - total_intake, 0)
+
+        # 남은 일수를 로컬 변수로만 계산 (left_food_count도 DB Generated이므로 쓰지 않음)
+        local_left_food_count = int(local_left_intake // guide_intake)
+
+        # expected_exdate만 DB에 저장
+        inventory.expected_exdate = date.today() + timedelta(days=local_left_food_count)
+
     # 급여 기록 등록
     def register_feeding(
         self, customer_id: int, pet_id: int, amount: int, feeding_date=None, memo=None
     ):
+        """[등록] 새로운 급여 기록을 등록하고 사료 재고 및 예상 소진일을 업데이트합니다."""
         if amount <= 0:
             raise ValueError("급여량은 0보다 커야 합니다.")
 
-        """[등록] 새로운 급여 기록을 등록하고 사료 재고를 업데이트합니다."""
         if not feeding_date:
             feeding_date = date.today()  # 디폴트: 오늘
 
@@ -98,7 +126,19 @@ class FeedingService:
         self._validate_feeding_input(pet_id, amount, feeding_date)
 
         cal, f_type = self._get_feeding_info(pet_id, amount)
+
+        # total_intake / food_count 누적 업데이트 (기존 로직 유지)
+        # → DB가 left_intake를 자동 재계산함 (Generated Always)
         inven = self._update_inventory_logic(pet_id, amount, count_diff=1)
+
+        if inven:
+            # feeding_start가 None이면 최초 급여일로 현재 급여 날짜 세팅
+            # (새 사료 등록/교체 시 feeding_start가 Null로 초기화된다는 전제)
+            if inven.feeding_start is None:
+                inven.feeding_start = feeding_date
+
+            # expected_exdate 통합 재계산
+            self._recalculate_remaining(pet_id, inven)
 
         log = CompanionPetFood(
             pet_id=pet_id,

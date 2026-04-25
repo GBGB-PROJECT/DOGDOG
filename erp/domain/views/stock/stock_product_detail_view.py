@@ -1,6 +1,6 @@
 import math
-import flet as ft
 import datetime
+import flet as ft
 
 from components import common as cm
 from backend.erp.stock.service import count_stocks, fetch_stocks
@@ -26,12 +26,20 @@ TEXT_ROW = "#374151"
 PAGE_SIZE = 50
 
 
+# =========================================================
+# 🔥 상품별 재고 상세 View
+# - stock이 주인공인 화면
+# - 중량/수량/판매가/샘플/활성/상세ID/발주ID 제거
+# - 브랜드 뒤에 stock 관련 컬럼 배치
+# =========================================================
+
+
 def build_text(
     value,
     size=12,
     color=TEXT_PRIMARY,
     weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.LEFT,
+    text_align=ft.TextAlign.CENTER,
     max_lines=1,
 ):
     return ft.Text(
@@ -53,13 +61,14 @@ def date_value_box(text, on_click=None):
         border=ft.Border.all(1, FIELD_BORDER),
         border_radius=6,
         padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
+        alignment=ft.Alignment(0, 0),
         on_click=on_click,
         content=ft.Text(
             value=text,
             size=13,
             color=FIELD_TEXT,
             weight=ft.FontWeight.W_500,
+            text_align=ft.TextAlign.CENTER,
         ),
     )
 
@@ -95,6 +104,7 @@ def action_button(text, on_click=None, width=78):
             size=13,
             color=BUTTON_TEXT,
             weight=ft.FontWeight.W_500,
+            text_align=ft.TextAlign.CENTER,
         ),
     )
 
@@ -102,7 +112,7 @@ def action_button(text, on_click=None, width=78):
 def build_table_cell(
     text,
     width,
-    align_x=-1,
+    align_x=0,
     weight=ft.FontWeight.W_400,
     color=TEXT_ROW,
     size=12,
@@ -115,10 +125,22 @@ def build_table_cell(
             size=size,
             color=color,
             weight=weight,
-            text_align=ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT,
+            text_align=ft.TextAlign.CENTER,
             max_lines=2,
         ),
     )
+
+
+def _format_number(value):
+    if value in [None, ""]:
+        return ""
+
+    try:
+        if isinstance(value, bool):
+            return str(value)
+        return f"{int(value):,}"
+    except Exception:
+        return str(value)
 
 
 def stock_db_row_adapter(db_rows: list, page_no: int):
@@ -130,12 +152,15 @@ def stock_db_row_adapter(db_rows: list, page_no: int):
             {
                 "no": str(index),
                 "product_id": row.get("product_id", ""),
-                "inbound_id": row.get("inbound_id", ""),
-                "save_stock": row.get("save_stock", ""),
-                "sale_stock": row.get("sale_stock", ""),
-                "scrap_stock": row.get("scrap_stock", ""),
-                "stock_available": row.get("stock_available", ""),
+                "brand": row.get("brand", ""),
+                "product_name": row.get("product_name", ""),
                 "expiration_date": row.get("expiration_date", ""),
+                "inbound_id": row.get("inbound_id", ""),
+                "inbound_status": row.get("inbound_status", ""),
+                "save_stock": _format_number(row.get("save_stock", "")),
+                "sale_stock": _format_number(row.get("sale_stock", "")),
+                "stock_available": _format_number(row.get("stock_available", "")),
+                "scrap_stock": _format_number(row.get("scrap_stock", "")),
                 "last_update": row.get("last_update", ""),
             }
         )
@@ -147,30 +172,14 @@ def normalize_to_date(value):
     if not value:
         return None
 
+    # 🔥 +9 / -9 시간 보정 없이 DatePicker 선택값 그대로 사용
     if isinstance(value, datetime.datetime):
-        corrected_value = value + datetime.timedelta(hours=9)
-        return corrected_value.date()
+        return value.date()
 
     if isinstance(value, datetime.date):
         return value
 
     return None
-
-
-def parse_row_date(value):
-    if not value:
-        return None
-
-    value_text = str(value).strip()
-    if not value_text:
-        return None
-
-    date_text = value_text[:10]
-
-    try:
-        return datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
-    except ValueError:
-        return None
 
 
 def erp_stock_product_detail_view():
@@ -179,9 +188,13 @@ def erp_stock_product_detail_view():
     selected_start = {"value": None}
     selected_end = {"value": None}
     search_type_value = {"value": "product_id"}
+
     search_type_labels = {
         "product_id": "상품ID",
+        "brand": "브랜드",
+        "product_name": "상품명",
         "inbound_id": "입고ID",
+        "inbound_status": "입고상태",
         "save_stock": "보관재고",
         "sale_stock": "판매재고",
         "scrap_stock": "폐기재고",
@@ -189,16 +202,24 @@ def erp_stock_product_detail_view():
         "expiration_date": "유통기한",
     }
 
+    # =========================================================
+    # 🔥 컬럼 순서 수정
+    # - stock이 주인공이라 브랜드 뒤에 stock 관련 컬럼 배치
+    # - 상세ID / 발주ID / 중량 / 수량 / 판매가 / 샘플 / 활성 제거
+    # =========================================================
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product_id", "label": "상품ID", "width": 100, "align_x": 1},
-        {"key": "inbound_id", "label": "입고ID", "width": 100, "align_x": 1},
-        {"key": "save_stock", "label": "보관재고", "width": 120, "align_x": 1},
-        {"key": "sale_stock", "label": "판매재고", "width": 120, "align_x": 1},
-        {"key": "scrap_stock", "label": "폐기재고", "width": 120, "align_x": 1},
-        {"key": "stock_available", "label": "가용재고", "width": 120, "align_x": 1},
-        {"key": "expiration_date", "label": "유통기한", "width": 140, "align_x": 0},
-        {"key": "last_update", "label": "최종수정일", "width": 190, "align_x": 0},
+        {"key": "product_id", "label": "상품ID", "width": 90, "align_x": 0},
+        {"key": "brand", "label": "브랜드", "width": 130, "align_x": 0},
+        {"key": "product_name", "label": "상품명", "width": 260, "align_x": 0},
+        {"key": "expiration_date", "label": "유통기한", "width": 120, "align_x": 0},
+        {"key": "inbound_id", "label": "입고ID", "width": 90, "align_x": 0},
+        {"key": "inbound_status", "label": "입고상태", "width": 110, "align_x": 0},
+        {"key": "save_stock", "label": "보관재고", "width": 100, "align_x": 0},
+        {"key": "sale_stock", "label": "판매재고", "width": 100, "align_x": 0},
+        {"key": "stock_available", "label": "가용재고", "width": 100, "align_x": 0},
+        {"key": "scrap_stock", "label": "폐기재고", "width": 100, "align_x": 0},
+        {"key": "last_update", "label": "최종수정일", "width": 170, "align_x": 0},
     ]
 
     pagination_state = {
@@ -238,6 +259,7 @@ def erp_stock_product_detail_view():
         border_radius=6,
         bgcolor=FIELD_BG,
         content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
+        text_align=ft.TextAlign.CENTER,
     )
 
     def format_date_text(value):
@@ -340,6 +362,7 @@ def erp_stock_product_detail_view():
         size=13,
         color=FIELD_TEXT,
         weight=ft.FontWeight.W_500,
+        text_align=ft.TextAlign.CENTER,
     )
 
     rows_state = []
@@ -354,12 +377,13 @@ def erp_stock_product_detail_view():
             height=34,
             content=ft.Container(
                 padding=ft.Padding.only(left=2, right=2),
-                alignment=ft.Alignment(-1, 0),
+                alignment=ft.Alignment(0, 0),
                 content=ft.Text(
                     value=label,
                     size=13,
                     color=FIELD_TEXT,
                     weight=ft.FontWeight.W_500,
+                    text_align=ft.TextAlign.CENTER,
                 ),
             ),
             on_click=lambda e: set_search_type(value),
@@ -376,7 +400,11 @@ def erp_stock_product_detail_view():
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                search_type_text,
+                ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
+                    content=search_type_text,
+                ),
                 ft.PopupMenuButton(
                     tooltip="검색 조건 선택",
                     content=ft.Container(
@@ -445,8 +473,36 @@ def erp_stock_product_detail_view():
             ),
         )
 
+    def build_empty_row(message: str):
+        total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1))
+        return ft.Container(
+            padding=ft.Padding.only(
+                left=row_padding_x,
+                right=row_padding_x,
+                top=28,
+                bottom=28,
+            ),
+            border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
+            bgcolor=CARD_BG,
+            content=ft.Container(
+                width=total_width,
+                alignment=ft.Alignment(0, 0),
+                content=ft.Text(
+                    value=message,
+                    size=14,
+                    color=TEXT_SECONDARY,
+                    weight=ft.FontWeight.W_500,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ),
+        )
+
     def refresh_table(filtered_rows):
         table_rows_holder.controls.clear()
+
+        if not filtered_rows:
+            table_rows_holder.controls.append(build_empty_row("일치하는 정보가 없습니다."))
+            return
 
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
@@ -456,21 +512,12 @@ def erp_stock_product_detail_view():
             return None
         return value.strftime("%Y-%m-%d")
 
-    def get_target_date_field():
-        if search_type_value["value"] == "expiration_date":
-            return "expiration_date"
-        return "last_update"
-
-    # =========================================================
-    # ☑️ SQLAlchemy ORM: stock count/list 조회
-    # =========================================================
     def fetch_total_count(keyword=""):
         return count_stocks(
             search_type=search_type_value["value"],
             keyword=keyword,
             start_date=get_selected_date_text(selected_start["value"]),
             end_date=get_selected_date_text(selected_end["value"]),
-            date_field=get_target_date_field(),
         )
 
     def fetch_stock_rows(keyword="", page_no=1):
@@ -483,7 +530,6 @@ def erp_stock_product_detail_view():
             offset=offset,
             start_date=get_selected_date_text(selected_start["value"]),
             end_date=get_selected_date_text(selected_end["value"]),
-            date_field=get_target_date_field(),
         )
 
         return stock_db_row_adapter(db_rows, page_no)
@@ -592,6 +638,7 @@ def erp_stock_product_detail_view():
                             size=18,
                             color="#0F172A",
                             weight=ft.FontWeight.W_700,
+                            text_align=ft.TextAlign.CENTER,
                         ),
                     )
                 )
@@ -645,6 +692,15 @@ def erp_stock_product_detail_view():
             if selected_end["value"]
             else "미선택"
         )
+
+        if pagination_state["total_count"] == 0:
+            result_text.value = (
+                f"기간: {start_text} ~ {end_text} / "
+                f"검색조건: {search_type_labels[search_type_value['value']]} / "
+                f"검색어: {keyword if keyword else '없음'} / "
+                "일치하는 정보가 없습니다."
+            )
+            return
 
         result_text.value = (
             f"기간: {start_text} ~ {end_text} / "

@@ -2,15 +2,20 @@ from pydantic import BaseModel, HttpUrl, Field, field_validator
 from typing import List, Optional
 from datetime import datetime
 
+
 class PetRegisterRequest(BaseModel):
-    nickname: str = Field(..., min_length=1, max_length=10, description="1-10자, 공백만 있는 문자열 차단")
+    nickname: str = Field(
+        ..., min_length=1, max_length=10, description="1-10자, 공백만 있는 문자열 차단"
+    )
     birth_day: str = Field(..., description="YYYY-MM-DD 또는 YYYY-MM")
     profile_image: Optional[HttpUrl] = Field(None, description="프로필 이미지 URL")
     breed_id: int = Field(..., gt=0, description="1 이상의 양수 품종 아이디")
-    sex_and_neuter: int = Field(..., ge=1, le=4, description="1:M/F, 2:M/T, 3:F/F, 4:F/T")
+    sex_and_neuter: int = Field(
+        ..., ge=1, le=4, description="1:M/F, 2:M/T, 3:F/F, 4:F/T"
+    )
     weight: float = Field(..., gt=0, lt=200, description="0 초과 200 미만 (kg)")
     bcs: int = Field(..., ge=1, le=9, description="1-9 사이의 정수 입력")
-    daily_walk: int = Field(..., ge=0, le=2, description="산책 지표 0, 1, 2")
+    daily_walks: int = Field(..., ge=0, le=3, description="산책 지표 1, 2, 3")
     feeding_count: List[str] = Field(..., description="급여 시점 배열")
     feeding_intake: Optional[int] = Field(None)
     water_intake: Optional[int] = Field(None)
@@ -41,12 +46,14 @@ class PetRegisterRequest(BaseModel):
             return []
         return v
 
+
 class PetRegisterData(BaseModel):
     pet_id: int
     nickname: str
     breed_id: int
     create_date: str
     self: str
+
 
 class PetRegisterResponse(BaseModel):
     success: bool

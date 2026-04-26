@@ -46,7 +46,7 @@ class PetRepository:
                 is_neutered=is_neutered_val,
                 weight=pet_data["weight"],
                 bcs=pet_data["bcs"],
-                daily_walks=pet_data["daily_walk"], 
+                daily_walks=pet_data["daily_walks"], 
                 feeding_count=len(pet_data.get("feeding_count", [])),
                 feeding_intake=pet_data.get("feeding_intake"),
                 water_intake=pet_data.get("water_intake"),

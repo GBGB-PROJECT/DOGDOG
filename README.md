@@ -120,7 +120,7 @@ SECRET_KEY=임의의_복잡한_문자열
 ```bash
 # uvicorn을 사용하여 서버 가동 (main.py 위치 기준)
 # http://127.0.0.1:8000/docs
-uvicorn backend.main:app --reload
+uvicorn main:app --reload
 
 
 # Flet 앱 실행

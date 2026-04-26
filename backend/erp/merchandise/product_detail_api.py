@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 
-from .merchandise_detail_service import count_product_join_rows, fetch_product_join_rows
+from .product_detail_service import count_product_join_rows, fetch_product_join_rows
 
 router = APIRouter(
     prefix="/erp/merchandise",

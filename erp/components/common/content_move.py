@@ -27,7 +27,7 @@ from domain.views.production import production_view
 from domain.views.production import purchase_order_view
 
 from domain.views.production import production_supplier_view
-from domain.views.inbound import inbound_view  # 🔥 추가: 생산입고 화면
+from domain.views.production import inbound_view  # 🔥 수정: 생산입고현황조회 화면
 
 
 ## ============= 페이지 이동 (실질)

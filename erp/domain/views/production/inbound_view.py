@@ -1,6 +1,6 @@
 # =========================================================
 # 🔥 생산입고 > 입고 현황 조회 화면
-# - backend/erp/inbound/service.py 직접 호출
+# - backend/erp/production/inbound_service.py 직접 호출
 # - ERP.inbound + ERP.inbound_status JOIN 결과 표시
 # - 입고 상태는 숫자 ID가 아니라 상태명 문자로 표시
 # - 50개씩 페이지네이션
@@ -11,7 +11,7 @@ import math
 import datetime
 import flet as ft
 
-from backend.erp.inbound.service import count_inbounds, fetch_inbounds
+from backend.erp.production.inbound_service import count_inbounds, fetch_inbounds
 
 
 FIELD_BG = ft.Colors.WHITE
@@ -149,10 +149,10 @@ def inbound_db_row_adapter(db_rows: list, page_no: int):
 
 
 # =========================================================
-# 🔥 생산입고 화면 본체
+# 🔥 생산입고현황조회 화면 본체
 # =========================================================
 def erp_inbound_view():
-    page_title = "생산관리 > 생산입고"
+    page_title = "생산관리 > 생산입고현황조회"
 
     rows_state = []
 

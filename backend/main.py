@@ -27,7 +27,7 @@ from erp.customer.subscription_api import router as customer_subscription_router
 
 from erp.production.api import router as erp_supplier_router
 from erp.hr.api import router as erp_hr_router
-from erp.inbound.api import router as erp_inbound_router  # 🔥 추가: 생산입고 API
+from erp.production.inbound_api import router as erp_inbound_router  # 🔥 수정: 생산입고현황조회 API
 from erp.stock.api import router as erp_stock_router  # 🔥 추가: 상품별 재고 상세 API
 
 

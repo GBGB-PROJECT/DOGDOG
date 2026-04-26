@@ -17,3 +17,8 @@ __all__ = [
     "fetch_purchase_order_detail",
     "fetch_purchase_order_items",
 ]
+
+from .inbound_service import (
+    count_inbounds,
+    fetch_inbounds,
+)

@@ -14,7 +14,7 @@ from .service import count_suppliers, fetch_suppliers, create_supplier
 
 router = APIRouter(
     prefix="/erp/production/supplier",
-    tags=["supplier"],
+    tags=["production"],
 )
 
 SEARCH_TYPE_LABELS = {

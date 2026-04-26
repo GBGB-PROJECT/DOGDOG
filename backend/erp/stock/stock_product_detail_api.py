@@ -10,7 +10,7 @@ from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query
 
-from .service import count_stocks, fetch_stocks
+from .stock_product_detail_service import count_stocks, fetch_stocks
 
 router = APIRouter(
     prefix="/erp/stock",

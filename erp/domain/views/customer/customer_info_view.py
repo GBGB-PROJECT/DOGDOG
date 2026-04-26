@@ -5,7 +5,7 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import CUSTOMER_FIELDS
-from backend.erp.customer.service import count_customers, fetch_customers, create_customer
+from backend.erp.customer.customer_info_service import count_customers, fetch_customers, create_customer
 
 
 # =========================================================

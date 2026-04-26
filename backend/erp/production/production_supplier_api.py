@@ -10,7 +10,7 @@ from datetime import date
 
 from fastapi import APIRouter, Body, HTTPException, Query
 
-from .service import count_suppliers, fetch_suppliers, create_supplier
+from .production_supplier_service import count_suppliers, fetch_suppliers, create_supplier
 
 router = APIRouter(
     prefix="/erp/production/supplier",

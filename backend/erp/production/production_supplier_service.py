@@ -1,4 +1,4 @@
-from .repository import (
+from .production_supplier_repository import (
     count_suppliers,
     fetch_suppliers,
     create_supplier,

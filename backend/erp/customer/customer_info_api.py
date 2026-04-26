@@ -4,7 +4,7 @@ from datetime import date  # 🔥 추가: Swagger UI에서 날짜 선택 형식�
 
 from fastapi import APIRouter, HTTPException, Query
 
-from .service import count_customers, fetch_customers, create_customer
+from .customer_info_service import count_customers, fetch_customers, create_customer
 
 router = APIRouter(
     prefix="/erp/customer/info",  # 🔥 수정: 고객 정보 관리 전용 API 경로로 변경

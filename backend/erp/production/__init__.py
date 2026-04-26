@@ -1,4 +1,4 @@
-from .service import (
+from .production_supplier_service import (
     count_suppliers,
     fetch_suppliers,
     create_supplier,

@@ -17,18 +17,34 @@ from app.products.products_api import router as products_router
 from erp.auth.api.erp_signinup_api import router as erp_employee_router
 from erp.home.api.erp_home_api import router as erp_home_router
 from erp.home.api.erp_home_inventory_api import router as erp_home_inventory_router
-from erp.merchandise.api import router as erp_merchandise_router
-from erp.customer.api import router as erp_customer_router
+
+# 🔥 상품 상세 정보 관리 API
+from erp.merchandise.product_detail_api import router as erp_merchandise_router
 
 
-# 🔥 추가: 고객 주문 관리 API router
+# 🔥 고객 정보 관리 API
+from erp.customer.customer_info_api import router as erp_customer_router
+
+# 🔥 고객 주문/구독 관리 API
 from erp.customer.order_api import router as customer_order_router
-from erp.customer.subscription_api import router as customer_subscription_router  # 🔥 추가
+from erp.customer.subscription_api import router as customer_subscription_router
 
-from erp.production.api import router as erp_supplier_router
-from erp.hr.api import router as erp_hr_router
+# 🔥 생산입고현황조회 API
+from erp.production.inbound_api import router as erp_inbound_router
+
+# 🔥 생산 거래처 관리 API
+from erp.production.production_supplier_api import router as erp_supplier_router
+
+# 🔥 상품별 재고 상세 API
+from erp.stock.stock_product_detail_api import router as erp_stock_router
+
+# 🔥 사원 정보 관리 API
+from erp.hr.employee_api import router as erp_hr_router
+
 from erp.production.inbound_api import router as erp_inbound_router  # 🔥 수정: 생산입고현황조회 API
-from erp.stock.api import router as erp_stock_router  # 🔥 추가: 상품별 재고 상세 API
+
+# 🔥 상품별 재고 상세 API
+from erp.stock.stock_product_detail_api import router as erp_stock_router
 
 
 

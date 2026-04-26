@@ -1,4 +1,4 @@
-from .repository import count_stocks, fetch_stocks
+from .stock_product_detail_repository import count_stocks, fetch_stocks
 
 
 # =========================================================

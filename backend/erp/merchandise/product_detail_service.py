@@ -1,4 +1,4 @@
-from .repository import (
+from .product_detail_repository import (
     count_product_details,
     fetch_product_details,
     count_product_join_rows,

@@ -4,7 +4,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 
-from .service import (
+from .employee_service import (
     count_employees,
     fetch_employees,
     create_employee,

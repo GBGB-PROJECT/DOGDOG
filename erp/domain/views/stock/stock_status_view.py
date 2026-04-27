@@ -2,8 +2,8 @@ import flet as ft
 from components import common as cm
 from components.common.charts.twin_chart import build_stock_twin_chart
 
-# 🔥 재고 현황 대시보드 DB 조회 service
-from backend.erp.stock.dashboard_service import fetch_stock_dashboard
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import fetch_stock_dashboard
 
 
 # ==============================

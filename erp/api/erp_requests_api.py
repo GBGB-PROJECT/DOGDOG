@@ -348,6 +348,21 @@ def fetch_production_dashboard(year=None, month=None):
 
     return _get("/erp/production/dashboard", params=params)
 
+# =========================================================
+# ☑️ 재고 현황 대시보드
+# =========================================================
+
+def fetch_stock_dashboard(year=None, month=None):
+    params = {}
+
+    if year:
+        params["year"] = year
+
+    if month:
+        params["month"] = month
+
+    return _get("/erp/stock/dashboard", params=params)
+
 
 # =========================================================
 # ☑️ 발주관리

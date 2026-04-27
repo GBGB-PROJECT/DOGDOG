@@ -2,7 +2,8 @@ import flet as ft
 from components import common as cm
 from components.common.charts.twin_chart import build_production_twin_chart
 
-from components.common.modals.purchase_order import PurchaseOrderDialog
+# 🔥 추가: 생산관리 메인 대시보드 DB 조회 service
+from backend.erp.production.dashboard_service import fetch_production_dashboard
 
 
 # ==============================
@@ -19,65 +20,75 @@ TEXT_ROW = "#374151"
 ACTION_BLUE = "#2563EB"
 
 
+# ==============================
+# 🔥 DB 오류/빈 데이터 fallback
+# - DB 연결 실패로 화면 자체가 죽는 것 방지
+# ==============================
+def _empty_dashboard_data():
+    return {
+        "current_month_text": "생산 현황",
+        "status_box_data": [
+            {
+                "title": "생산 입고",
+                "count_text": "0건",
+                "subtitle": "최근 생산 내역",
+                "rows": [],
+            },
+            {
+                "title": "불량 내역",
+                "count_text": "0건",
+                "subtitle": "최근 불량 내역",
+                "rows": [],
+            },
+        ],
+        "chart_data": [(f"{month}월", 0, 0) for month in range(1, 13)],
+        "top_production_section_data": {
+            "title": "최근 발주 내역",
+            "items": [],
+        },
+    }
+
+
+# ==============================
+# 🔥 생산관리 화면 본체
+# ==============================
 def erp_production_view():
     # ==============================
-    # ☑️ 데이터 영역
+    # 🔥 데이터 영역
+    # - 기존 더미 데이터 제거
+    # - backend/erp/production/dashboard_service.py에서 실제 DB 데이터 조회
     # ==============================
     page_title = "생산관리"
-    current_month_text = "2026년 4월"
 
-    status_box_data = [
-        {
-            "title": "생산 입고",
-            "count_text": "100건",
-            "subtitle": "최근 생산 내역",
-            "rows": [
-                ["26.04.08", "생산", "하림가맛시", "1,000 ea", "1,000만원"],
-                ["26.04.08", "생산", "하림가맛시", "1,000 ea", "1,000만원"],
-                ["26.04.08", "생산", "하림가맛시", "1,000 ea", "1,000만원"],
-                ["26.04.08", "생산", "하림가맛시", "1,000 ea", "1,000만원"],
-                ["26.04.08", "생산", "하림가맛시", "1,000 ea", "1,000만원"],
-            ],
-        },
-        {
-            "title": "불량 내역",
-            "count_text": "100건",
-            "subtitle": "최근 불량 내역",
-            "rows": [
-                ["26.04.08", "불량", "하림가맛시", "1,000 ea", "1,000만원"],
-                ["26.04.08", "불량", "하림가맛시", "1,000 ea", "1,000만원"],
-                ["26.04.08", "불량", "하림가맛시", "1,000 ea", "1,000만원"],
-                ["26.04.08", "불량", "하림가맛시", "1,000 ea", "1,000만원"],
-                ["26.04.08", "불량", "하림가맛시", "1,000 ea", "1,000만원"],
-            ],
-        },
-    ]
+    try:
+        dashboard_data = fetch_production_dashboard()
+    except Exception as exc:
+        print(f"생산관리 대시보드 조회 실패: {exc}")
+        dashboard_data = _empty_dashboard_data()
 
-    top_production_item_template = {
-        "name": "GAEBOB_260407",
-        "action_text": "상세 내역",
-        "rows": [
-            ("발주 일자", "2026.04.07"),
-            ("현 재고량", "1000 ea"),
-            ("입고 예정일", "2026.04.21"),
-        ],
-    }
+    current_month_text = dashboard_data.get("current_month_text", "생산 현황")
+    status_box_data = dashboard_data.get("status_box_data", [])
+    chart_data = dashboard_data.get("chart_data", [])
+    top_production_section_data = dashboard_data.get(
+        "top_production_section_data",
+        {"title": "최근 발주 내역", "items": []},
+    )
 
     def open_purchase_order_page(e):
         e.page.go("/production/order")
 
-    def generate_top_production_items(count=5):
-        return [
-            {
-                **top_production_item_template,
-                "on_action_click": lambda e, idx=i: print(f"{idx + 1}번째 클릭"),
-            }
-            for i in range(count)
-        ]
+    # 🔥 최근 발주 카드의 상세 내역 클릭 시 발주관리 화면으로 이동
+    def attach_purchase_item_click(items):
+        new_items = []
+        for item in items:
+            copied = dict(item)
+            copied["on_action_click"] = open_purchase_order_page
+            new_items.append(copied)
+        return new_items
 
     top_production_section_data = {
-        "title": "최근 발주 내역",
-        "items": generate_top_production_items(5),
+        **top_production_section_data,
+        "items": attach_purchase_item_click(top_production_section_data.get("items", [])),
     }
 
     # ==============================
@@ -91,11 +102,13 @@ def erp_production_view():
         text_align: ft.TextAlign | None = None,
     ):
         return ft.Text(
-            value=value,
+            value=str(value or ""),
             size=size,
             color=color,
             weight=weight,
             text_align=text_align,
+            max_lines=1,
+            overflow=ft.TextOverflow.ELLIPSIS,
         )
 
     def build_base_box(
@@ -176,20 +189,34 @@ def erp_production_view():
             ],
         )
 
+    def build_empty_message(message="표시할 데이터가 없습니다."):
+        return ft.Container(
+            height=142,
+            alignment=ft.Alignment(0, 0),
+            content=build_text(message, size=13, color=TEXT_SECONDARY),
+        )
+
     def build_status_box(box_data):
+        rows = box_data.get("rows", [])
+
+        if rows:
+            row_area = ft.Column(
+                spacing=10,
+                controls=[build_five_text_row(row) for row in rows],
+            )
+        else:
+            row_area = build_empty_message()
+
         return build_base_box(
             expand=1,
             height=260,
             content=ft.Column(
                 spacing=12,
                 controls=[
-                    build_box_header(box_data["title"], box_data["count_text"]),
-                    build_text(box_data["subtitle"], size=13, color=TEXT_SECONDARY),
+                    build_box_header(box_data.get("title", ""), box_data.get("count_text", "0건")),
+                    build_text(box_data.get("subtitle", ""), size=13, color=TEXT_SECONDARY),
                     ft.Divider(height=1, color=BORDER_COLOR),
-                    ft.Column(
-                        spacing=10,
-                        controls=[build_five_text_row(row) for row in box_data["rows"]],
-                    ),
+                    row_area,
                 ],
             ),
         )
@@ -209,7 +236,7 @@ def erp_production_view():
                         alignment=ft.MainAxisAlignment.END,
                         controls=[
                             build_text(
-                                item_data["name"],
+                                item_data.get("name", ""),
                                 size=12,
                                 color=TEXT_TERTIARY,
                             )
@@ -219,7 +246,7 @@ def erp_production_view():
                         alignment=ft.MainAxisAlignment.END,
                         controls=[
                             ft.TextButton(
-                                item_data["action_text"],
+                                item_data.get("action_text", "상세 내역"),
                                 on_click=item_data.get("on_action_click"),
                                 style=ft.ButtonStyle(
                                     padding=0,
@@ -233,12 +260,28 @@ def erp_production_view():
                         ],
                     ),
                     ft.Divider(height=1, color=BORDER_COLOR),
-                    *[build_info_row(left, right) for left, right in item_data["rows"]],
+                    *[
+                        build_info_row(left, right)
+                        for left, right in item_data.get("rows", [])
+                    ],
                 ],
             ),
         )
 
     def build_recent_purchase_box(section_data):
+        items = section_data.get("items", [])
+
+        if items:
+            item_area = ft.Row(
+                spacing=12,
+                controls=[
+                    build_recent_purchase_item_box(item)
+                    for item in items
+                ],
+            )
+        else:
+            item_area = build_empty_message("최근 발주 내역이 없습니다.")
+
         return build_base_box(
             expand=1,
             padding=20,
@@ -247,18 +290,12 @@ def erp_production_view():
                 spacing=16,
                 controls=[
                     build_text(
-                        section_data["title"],
+                        section_data.get("title", "최근 발주 내역"),
                         size=18,
                         color=TEXT_PRIMARY,
                         weight=ft.FontWeight.W_700,
                     ),
-                    ft.Row(
-                        spacing=12,
-                        controls=[
-                            build_recent_purchase_item_box(item)
-                            for item in section_data["items"]
-                        ],
-                    ),
+                    item_area,
                 ],
             ),
         )
@@ -308,41 +345,42 @@ def erp_production_view():
                     spacing=16,
                     controls=[build_status_box(box) for box in status_box_data],
                 ),
-                build_production_twin_chart(),
+                # 🔥 수정: 실제 DB chart_data 전달
+                build_production_twin_chart(chart_data=chart_data),
                 ft.Row(
                     spacing=6,
                     controls=[
                         ft.Container(
-                        width=180,
-                        height=260,
-                        bgcolor=CARD_BG,
-                        border_radius=12,
-                        padding=12,
-                        border=ft.border.all(1, BORDER_COLOR),
-                        ink=True,
-                        on_click=open_purchase_order_page,
-                        content=ft.Column(
-                            controls=[
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                    vertical_alignment=ft.CrossAxisAlignment.START,
-                                    controls=[
-                                        ft.Text(
-                                            "발주관리",
-                                            size=16,
-                                            weight=ft.FontWeight.W_700,
-                                            color=TEXT_PRIMARY,
-                                        ),
-                                        ft.Icon(
-                                            ft.Icons.CHEVRON_RIGHT,
-                                            size=18,
-                                            color=TEXT_TERTIARY,
-                                        ),
-                                    ],
-                                ),
-                            ],
+                            width=180,
+                            height=260,
+                            bgcolor=CARD_BG,
+                            border_radius=12,
+                            padding=12,
+                            border=ft.border.all(1, BORDER_COLOR),
+                            ink=True,
+                            on_click=open_purchase_order_page,
+                            content=ft.Column(
+                                controls=[
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                        vertical_alignment=ft.CrossAxisAlignment.START,
+                                        controls=[
+                                            ft.Text(
+                                                "발주관리",
+                                                size=16,
+                                                weight=ft.FontWeight.W_700,
+                                                color=TEXT_PRIMARY,
+                                            ),
+                                            ft.Icon(
+                                                ft.Icons.CHEVRON_RIGHT,
+                                                size=18,
+                                                color=TEXT_TERTIARY,
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
                         ),
-                    ),
                         build_recent_purchase_box(top_production_section_data),
                     ],
                 ),

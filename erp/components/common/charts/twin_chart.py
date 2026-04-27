@@ -1,3 +1,4 @@
+import math
 import flet as ft
 
 CARD_BG = "#FFFFFF"
@@ -10,12 +11,47 @@ CHART_GRID_COLOR = "#E5E7EB"
 BAR_PRIMARY = "#0B4F8A"
 BAR_SECONDARY = "#AFAFAF"
 
+# ☑️ 기본 최대값
 CHART_MAX_Y = 100
 
 # ☑️ 전체 차트 높이/플롯 높이 분리
 PLOT_HEIGHT = 300          # 실제 막대와 그리드가 그려지는 높이
 BOTTOM_LABEL_AREA = 34     # 하단 월 라벨 영역 높이
 CHART_HEIGHT = PLOT_HEIGHT + BOTTOM_LABEL_AREA
+
+
+# =========================================================
+# 🔥 차트 최대값 자동 계산
+# - DB 금액이 100k를 넘어가도 막대가 화면 밖으로 튀지 않게 처리
+# =========================================================
+def _calc_chart_max_y(chart_data):
+    max_value = 0
+
+    for _, v1, v2 in chart_data:
+        try:
+            max_value = max(max_value, float(v1 or 0), float(v2 or 0))
+        except (TypeError, ValueError):
+            continue
+
+    if max_value <= CHART_MAX_Y:
+        return CHART_MAX_Y
+
+    # 🔥 20 단위로 보기 좋게 올림
+    return int(math.ceil(max_value / 20) * 20)
+
+
+# =========================================================
+# 🔥 Y축 라벨 생성
+# =========================================================
+def _build_y_axis_labels(max_y):
+    step = max_y / 5
+    labels = []
+
+    for index in range(5, 0, -1):
+        value = int(step * index)
+        labels.append(f"{value:,}k")
+
+    return labels
 
 
 # =========================================================
@@ -38,8 +74,14 @@ def build_twin_chart(
             ("6월", 35, 55),
         ]
 
-    # ☑️ 수정: 0은 따로 그릴 거라서 여기서는 제외
-    y_axis_labels = ["100k", "80k", "60k", "40k", "20k"]
+    # 🔥 DB 데이터가 tuple/list 섞여 들어와도 안전하게 처리
+    chart_data = [
+        (str(item[0]), item[1] or 0, item[2] or 0)
+        for item in chart_data
+    ]
+
+    chart_max_y = _calc_chart_max_y(chart_data)
+    y_axis_labels = _build_y_axis_labels(chart_max_y)
     y_step = PLOT_HEIGHT / 5
 
     # ☑️ Y축
@@ -63,7 +105,7 @@ def build_twin_chart(
                     )
                     for label in y_axis_labels
                 ] + [
-                    # ☑️ 수정: 0은 바닥선 기준에 한 번만 출력
+                    # ☑️ 0은 바닥선 기준에 한 번만 출력
                     ft.Container(
                         height=BOTTOM_LABEL_AREA,
                         alignment=ft.Alignment(1, -1),
@@ -80,8 +122,18 @@ def build_twin_chart(
 
     # ☑️ 막대 1쌍
     def build_bar_pair(label, v1, v2):
-        h1 = max((v1 / CHART_MAX_Y) * PLOT_HEIGHT, 4)
-        h2 = max((v2 / CHART_MAX_Y) * PLOT_HEIGHT, 4)
+        try:
+            safe_v1 = float(v1 or 0)
+        except (TypeError, ValueError):
+            safe_v1 = 0
+
+        try:
+            safe_v2 = float(v2 or 0)
+        except (TypeError, ValueError):
+            safe_v2 = 0
+
+        h1 = max((safe_v1 / chart_max_y) * PLOT_HEIGHT, 4) if safe_v1 > 0 else 4
+        h2 = max((safe_v2 / chart_max_y) * PLOT_HEIGHT, 4) if safe_v2 > 0 else 4
 
         return ft.Container(
             expand=True,
@@ -136,7 +188,7 @@ def build_twin_chart(
     def build_chart_area():
         grid_controls = []
 
-        # ☑️ 수정: 100,80,60,40,20 라인
+        # ☑️ 5개 구간 라인
         for _ in range(5):
             grid_controls.append(
                 ft.Container(
@@ -147,7 +199,7 @@ def build_twin_chart(
                 )
             )
 
-        # ☑️ 수정: 0 기준선
+        # ☑️ 0 기준선
         grid_controls.append(
             ft.Container(
                 height=0,
@@ -283,22 +335,25 @@ def build_twin_chart(
 # =========================================================
 # ☑️ 재고 현황 전용 차트
 # =========================================================
-def build_stock_twin_chart():
+def build_stock_twin_chart(chart_data=None):
     return build_twin_chart(
         title="입출고 현황",
         legend_primary="입고",
         legend_secondary="출고",
         unit_text="단위: 천원",
+        chart_data=chart_data,
     )
 
 
 # =========================================================
-# ☑️ 생산관리 전용 차트
+# 🔥 생산관리 전용 차트
+# - production_view.py에서 DB chart_data를 넘겨받음
 # =========================================================
-def build_production_twin_chart():
+def build_production_twin_chart(chart_data=None):
     return build_twin_chart(
         title="생산 실적",
         legend_primary="생산",
         legend_secondary="불량",
         unit_text="단위: 천원",
+        chart_data=chart_data,
     )

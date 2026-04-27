@@ -35,6 +35,35 @@ ACTION_RED = "#EF4444"
 
 
 # ==============================
+# 🔥 생산관리 월 상태 유지용 전역값
+# - 생산입고/발주관리로 이동 후 다시 돌아와도 마지막 선택 월 유지
+# - on_mount 사용 안 함
+# ==============================
+_PRODUCTION_DASHBOARD_MONTH_STATE = {
+    "year": None,
+    "month": None,
+}
+
+
+def set_production_dashboard_month_state(year=None, month=None):
+    if year is None or month is None:
+        return
+
+    _PRODUCTION_DASHBOARD_MONTH_STATE["year"] = int(year)
+    _PRODUCTION_DASHBOARD_MONTH_STATE["month"] = int(month)
+
+
+def get_production_dashboard_month_state():
+    year = _PRODUCTION_DASHBOARD_MONTH_STATE.get("year")
+    month = _PRODUCTION_DASHBOARD_MONTH_STATE.get("month")
+
+    if year is None or month is None:
+        return None, None
+
+    return int(year), int(month)
+
+
+# ==============================
 # 🔥 DB 오류/빈 데이터 fallback
 # - DB 연결 실패로 화면 자체가 죽는 것 방지
 # ==============================
@@ -85,27 +114,47 @@ def _move_month(year: int, month: int, diff: int):
 def erp_production_view():
     page_title = "생산관리"
 
+    saved_year, saved_month = get_production_dashboard_month_state()
+
     try:
-        initial_data = fetch_production_dashboard()
+        # 🔥 저장된 월이 있으면 그 월로 다시 조회
+        # - 예: 2026년 2월에서 발주관리/생산입고 갔다가 돌아오면 2026년 2월 유지
+        if saved_year and saved_month:
+            initial_data = fetch_production_dashboard(
+                year=saved_year,
+                month=saved_month,
+            )
+        else:
+            initial_data = fetch_production_dashboard()
     except Exception as exc:
         print(f"생산관리 대시보드 조회 실패: {exc}")
-        initial_data = _empty_dashboard_data()
+        initial_data = _empty_dashboard_data(
+            saved_year or 2026,
+            saved_month or 4,
+        )
 
     state = {
-        "year": int(initial_data.get("current_year") or 2026),
-        "month": int(initial_data.get("current_month") or 4),
+        "year": int(initial_data.get("current_year") or saved_year or 2026),
+        "month": int(initial_data.get("current_month") or saved_month or 4),
         "data": initial_data,
     }
+
+    # 🔥 최초 진입 시에도 현재 월 저장
+    set_production_dashboard_month_state(state["year"], state["month"])
 
     month_navigation_holder = ft.Container()
     status_box_holder = ft.Container()
     chart_holder = ft.Container()
     recent_purchase_holder = ft.Container()
 
+    # 🔥 발주관리 상자 우측 최하단 월 표시용 holder
+    purchase_month_text_holder = ft.Container()
+
     def open_purchase_order_page(e):
-        # 🔥 현재 생산관리 대시보드 월 기준으로 발주관리 화면에 필터 전달
-        # - 발주일자(contract_date)가 현재 월 안에 들어오는 발주만 조회
         data = state["data"]
+
+        # 🔥 이동 직전 현재 월 저장
+        set_production_dashboard_month_state(state["year"], state["month"])
 
         set_purchase_order_prefilter(
             start_date=data.get("month_start"),
@@ -117,11 +166,16 @@ def erp_production_view():
 
     def open_month_inbound_page(e):
         data = state["data"]
+
+        # 🔥 이동 직전 현재 월 저장
+        set_production_dashboard_month_state(state["year"], state["month"])
+
         set_production_inbound_prefilter(
             start_date=data.get("month_start"),
             end_date=data.get("month_end"),
             search_type="inbound_complete",
         )
+
         e.page.go("/production/inbound")
 
     # 🔥 최근 발주 카드의 상세내역 클릭 시 바로 발주서 모달 열기
@@ -139,8 +193,10 @@ def erp_production_view():
                 return
 
             dialog = PurchaseOrderDialog(e.page)
+
             if hasattr(dialog, "set_order_data"):
                 dialog.set_order_data(order_data, item_rows)
+
             dialog.open()
 
         except Exception as exc:
@@ -148,6 +204,7 @@ def erp_production_view():
 
     def attach_purchase_item_click(items):
         new_items = []
+
         for item in items:
             copied = dict(item)
             purchase_order_id = copied.get("purchase_order_id")
@@ -155,6 +212,7 @@ def erp_production_view():
                 lambda e, po_id=purchase_order_id: open_purchase_order_detail(e, po_id)
             )
             new_items.append(copied)
+
         return new_items
 
     # ==============================
@@ -311,7 +369,11 @@ def erp_production_view():
                         box_data.get("count_text", "0건"),
                         on_click=header_click,
                     ),
-                    build_text(box_data.get("subtitle", ""), size=13, color=TEXT_SECONDARY),
+                    build_text(
+                        box_data.get("subtitle", ""),
+                        size=13,
+                        color=TEXT_SECONDARY,
+                    ),
                     ft.Divider(height=1, color=BORDER_COLOR),
                     row_area,
                 ],
@@ -319,9 +381,6 @@ def erp_production_view():
         )
 
     def build_recent_purchase_item_box(item_data):
-        # 🔥 기존 카드 프레임 유지
-        # - 카드 크기/라운드/배경은 기존 ERP 대시보드 스타일 유지
-        # - 안쪽 내용만 디자인 예시처럼 GAEBOB 코드 + 상세내역 + 발주 정보로 변경
         return ft.Container(
             width=220,
             height=220,
@@ -369,9 +428,6 @@ def erp_production_view():
         )
 
     def build_recent_purchase_box(section_data):
-        # 🔥 외곽 프레임은 기존 스타일 유지
-        # - rounded box / CARD_BG / padding / height 되돌림
-        # - 안쪽 카드 내용만 발주서 요약 형태로 변경
         items = section_data.get("items", [])[:5]
 
         if items:
@@ -424,6 +480,66 @@ def erp_production_view():
             ),
         )
 
+    # ==============================
+    # 🔥 발주관리 왼쪽 상자 하단 월 표시 생성
+    # ==============================
+    def build_purchase_month_text():
+        month_text = state["data"].get(
+            "current_month_text",
+            f"{state['year']}년 {state['month']}월",
+        )
+
+        return ft.Container(
+            expand=True,
+            alignment=ft.Alignment(1, 1),
+            padding=ft.Padding.only(right=0, bottom=0),
+            content=ft.Text(
+                value=month_text,
+                size=16,
+                weight=ft.FontWeight.W_700,
+                color=TEXT_PRIMARY,
+                text_align=ft.TextAlign.RIGHT,
+            ),
+        )
+
+    def build_purchase_menu_box():
+        return ft.Container(
+            width=180,
+            height=260,
+            bgcolor=CARD_BG,
+            border_radius=12,
+            padding=12,
+            border=ft.border.all(1, BORDER_COLOR),
+            ink=True,
+            on_click=open_purchase_order_page,
+            content=ft.Stack(
+                expand=True,
+                controls=[
+                    ft.Container(
+                        alignment=ft.Alignment(0, -1),
+                        content=ft.Row(
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.START,
+                            controls=[
+                                ft.Text(
+                                    "발주관리",
+                                    size=16,
+                                    weight=ft.FontWeight.W_700,
+                                    color=TEXT_PRIMARY,
+                                ),
+                                ft.Icon(
+                                    ft.Icons.CHEVRON_RIGHT,
+                                    size=18,
+                                    color=TEXT_TERTIARY,
+                                ),
+                            ],
+                        ),
+                    ),
+                    purchase_month_text_holder,
+                ],
+            ),
+        )
+
     def reload_dashboard(page=None):
         try:
             dashboard_data = fetch_production_dashboard(
@@ -437,6 +553,10 @@ def erp_production_view():
         state["data"] = dashboard_data
         state["year"] = int(dashboard_data.get("current_year") or state["year"])
         state["month"] = int(dashboard_data.get("current_month") or state["month"])
+
+        # 🔥 현재 월 상태 저장
+        # - 생산입고/발주관리 이동 후 다시 돌아와도 이 월로 재조회
+        set_production_dashboard_month_state(state["year"], state["month"])
 
         section_data = dashboard_data.get(
             "top_production_section_data",
@@ -464,13 +584,20 @@ def erp_production_view():
 
         recent_purchase_holder.content = build_recent_purchase_box(section_data)
 
+        purchase_month_text_holder.content = build_purchase_month_text()
+
         if page:
             page.update()
 
     def move_dashboard_month(diff: int, e):
         new_year, new_month = _move_month(state["year"], state["month"], diff)
+
         state["year"] = new_year
         state["month"] = new_month
+
+        # 🔥 CHEVRON으로 월 이동하는 순간에도 저장
+        set_production_dashboard_month_state(new_year, new_month)
+
         reload_dashboard(e.page)
 
     def build_month_navigation():
@@ -526,37 +653,7 @@ def erp_production_view():
                     spacing=6,
                     vertical_alignment=ft.CrossAxisAlignment.START,
                     controls=[
-                        ft.Container(
-                            width=180,
-                            height=260,
-                            bgcolor=CARD_BG,
-                            border_radius=12,
-                            padding=12,
-                            border=ft.border.all(1, BORDER_COLOR),
-                            ink=True,
-                            on_click=open_purchase_order_page,
-                            content=ft.Column(
-                                controls=[
-                                    ft.Row(
-                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                        vertical_alignment=ft.CrossAxisAlignment.START,
-                                        controls=[
-                                            ft.Text(
-                                                "발주관리",
-                                                size=16,
-                                                weight=ft.FontWeight.W_700,
-                                                color=TEXT_PRIMARY,
-                                            ),
-                                            ft.Icon(
-                                                ft.Icons.CHEVRON_RIGHT,
-                                                size=18,
-                                                color=TEXT_TERTIARY,
-                                            ),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                        ),
+                        build_purchase_menu_box(),
                         recent_purchase_holder,
                     ],
                 ),

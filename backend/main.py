@@ -73,7 +73,7 @@ app.include_router(calc_feeding_router)
 # 5. Products 도메인
 app.include_router(products_router)
 
-# 6. Subscriptions 도메인
+# 7. Subscriptions 도메인
 app.include_router(subscriptions_router)
 
 

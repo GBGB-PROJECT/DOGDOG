@@ -23,7 +23,7 @@ class PetCreate(BaseModel):
 class FoodCreate(BaseModel):
     product_id: int
     total_weight: int = Field(..., description="사료 총 용량(g)")
-    one_gram_calories: Optional[float] = Field(None, description="1g당 칼로리")
+    #one_gram_calories: Optional[float] = Field(None, description="1g당 칼로리")
 
 class OnboardingRequest(BaseModel):
     user: UserCreate

@@ -19,7 +19,6 @@ def read_products(
             max_length=50,
             description="상품명 검색어"
         ),
-        customer_id: int = Depends(get_current_user),
         db: Session = Depends(get_db)
     ):
     try:
@@ -60,7 +59,6 @@ def read_products_weights(
         product_detail_id: int = Query(
             description="상품 디테일 ID"
         ),
-        customer_id: int = Depends(get_current_user),
         db: Session = Depends(get_db)
     ):
     try:

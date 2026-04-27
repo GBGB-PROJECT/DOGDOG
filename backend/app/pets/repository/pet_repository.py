@@ -29,7 +29,7 @@ class PetRepository:
         )
         return count
 
-    def create_pet_and_butler(self, customer_id: int, pet_data: dict) -> CompanionPet:
+    def create_pet_and_butler(self, customer_id: int, pet_data: dict, commit: bool = True) -> CompanionPet:
         try:
             # Parse sex_and_neuter
             sn = pet_data["sex_and_neuter"]
@@ -75,15 +75,19 @@ class PetRepository:
             
             self.db.add(butler)
             
-            # 4. 단 한 번의 단일 트랜잭션으로 pet과 butler를 동시에 영구 저장
-            self.db.commit()
-            
-            # commit 후 pet 객체를 서비스 계층에서 안전하게 다루기 위해 refresh 수행
-            self.db.refresh(pet)
+            # 4. 단 한 번의 단일 트랜잭션으로 pet과 butler를 동시에 영구 저장 (commit=True일 때만)
+            if commit:
+                self.db.commit()
+                # commit 후 pet 객체를 서비스 계층에서 안전하게 다루기 위해 refresh 수행
+                self.db.refresh(pet)
+            else:
+                # commit을 안 하더라도 ID 등은 세션에 반영되어야 하므로 flush
+                self.db.flush()
             
             return pet
             
         except Exception as e:
-            # 예외 발생 시 반드시 롤백하여 DB의 부분 저장 원천 차단
-            self.db.rollback()
+            # 예외 발생 시 반드시 롤백하여 DB의 부분 저장 원천 차단 (commit=True일 때만)
+            if commit:
+                self.db.rollback()
             raise Exception(f"DATABASE_ERROR: {str(e)}")

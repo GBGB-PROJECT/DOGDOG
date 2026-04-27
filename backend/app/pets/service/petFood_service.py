@@ -16,6 +16,7 @@ def create_pet_food(
     pet_id: int,
     product_id: int | None,
     total_weight: int | None,
+    commit: bool = True,
 ):
     """
     반려견의 현재 급여 사료를 등록한다.
@@ -94,7 +95,11 @@ def create_pet_food(
         total_weight=total_weight
     )
 
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
+
     db.refresh(new_CustomerFood)
     db.refresh(new_PetProductFeeding)
 

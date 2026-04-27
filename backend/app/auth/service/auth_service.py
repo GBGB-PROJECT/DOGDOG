@@ -37,7 +37,12 @@ class AuthService:
         encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
         return encoded_jwt, expire
 
-    def register_user(self, request: EmailSignupRequest):
+    def check_email_duplicate(self, email: str) -> bool:
+        """이메일 중복 여부를 확인합니다."""
+        user = self.repo.get_customer_by_email(email)
+        return user is not None
+
+    def register_user(self, request: EmailSignupRequest, commit: bool = True):
         """
         이메일 회원가입 요청을 처리합니다.
         1. 이메일 중복 확인
@@ -81,8 +86,9 @@ class AuthService:
             # DB Schema (DateTime)와 호환되도록 tzinfo 제거
             detail.refresh_token_exp = refresh_exp.replace(tzinfo=None)
 
-            # 6. 최종 커밋 (두 테이블 모두 성공 시)
-            self.repo.commit()
+            # 6. 최종 커밋 (commit=True일 때만)
+            if commit:
+                self.repo.commit()
 
             return {
                 "customer": detail,
@@ -91,8 +97,9 @@ class AuthService:
                 "expires_in": JWT_ACCESS_EXPIRE_MINUTES
             }
         except Exception as e:
-            # 실패 시 전체 롤백 처리를 진행
-            self.repo.rollback()
+            # 실패 시 전체 롤백 처리를 진행 (commit=True일 때만)
+            if commit:
+                self.repo.rollback()
             raise e
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:

@@ -43,12 +43,15 @@ class PetService:
                     months += 12
                 age_korean = f"{years}년 {months}개월"
 
-            # 3. 최종 결과물 조립
+            # 3. 최종 결과물 조립 (프론트엔드 HomeController가 기대하는 필드 추가)
             results.append({
                 "pet_id": butler.pet_id,
                 "nickname": pet.nickname,
                 "pet_profile": profile,
-                "pet_age": age_korean
+                "pet_age": age_korean,
+                "birth_day": str(pet.birth_day) if pet.birth_day else None,
+                "sex": pet.sex,
+                "profile_image": pet.profile_image
             })
         
         return results

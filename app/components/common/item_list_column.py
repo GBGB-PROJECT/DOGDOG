@@ -16,13 +16,31 @@ import pg8000.dbapi as psycopg2
 #         conn = None
 #     return conn
 
+import inspect  # 💡 파일 맨 위에 추가해주세요!
+
+
 def item(list_key, list_value, select_key, select_value):
+    """
+    사료 검색(비동기)과 일반 리스트(동기)를 모두 처리하는 만능 아이템
+    """
     is_checked = select_key == list_key
+
+    # 💡 클릭 시 실행될 똑똑한 핸들러
+    async def handle_click(e):
+        # 1. 넘겨받은 select_value가 async def(비동기)인지 확인
+        if inspect.iscoroutinefunction(select_value):
+            await select_value(list_key, list_value)
+        else:
+            # 2. 일반 함수라면 그냥 실행
+            select_value(list_key, list_value)
+            e.page.update()
+
     return ft.Container(
         padding=ft.Padding.symmetric(vertical=14, horizontal=10),
         border_radius=10,
         bgcolor=ft.Colors.OUTLINE_VARIANT if is_checked else ft.Colors.WHITE,
-        on_click=lambda e, list_key=list_key, list_value=list_value: select_value(list_key, list_value),
+        on_click=handle_click,  # 💡 중복 정의된 lambda 대신 이 핸들러가 돌아야 합니다!
+        ink=True,  # 클릭 시 물결 효과
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
@@ -31,13 +49,37 @@ def item(list_key, list_value, select_key, select_value):
                     ft.Icons.CHECK,
                     color=ft.Colors.BLACK if is_checked else ft.Colors.TRANSPARENT,
                     size=18,
-                )
-            ]
-        )
+                ),
+            ],
+        ),
     )
 
+
+# def item(list_key, list_value, select_key, select_value):
+#     is_checked = select_key == list_key
+#     return ft.Container(
+#         padding=ft.Padding.symmetric(vertical=14, horizontal=10),
+#         border_radius=10,
+#         bgcolor=ft.Colors.OUTLINE_VARIANT if is_checked else ft.Colors.WHITE,
+#         on_click=lambda e, list_key=list_key, list_value=list_value: select_value(
+#             list_key, list_value
+#         ),
+#         content=ft.Row(
+#             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+#             controls=[
+#                 dogdog.basic_text(value=list_value, weight="bold"),
+#                 ft.Icon(
+#                     ft.Icons.CHECK,
+#                     color=ft.Colors.BLACK if is_checked else ft.Colors.TRANSPARENT,
+#                     size=18,
+#                 ),
+#             ],
+#         ),
+#     )
+
+
 def update_item_list(list_column, search_data, select_key, select_value, keyword=""):
-    conn: psycopg2.Connection | None= None
+    conn: psycopg2.Connection | None = None
     try:
         # conn = db_connect()
         # cursor = conn.cursor()
@@ -48,21 +90,29 @@ def update_item_list(list_column, search_data, select_key, select_value, keyword
         # rows = cursor.fetchall()
         # conn.commit()
         # cursor.close()
-        
-        rows = [
-            b for b in search_data if keyword.strip().lower() in b[1].lower()
-        ] if keyword.strip() else search_data
+
+        rows = (
+            [b for b in search_data if keyword.strip().lower() in b[1].lower()]
+            if keyword.strip()
+            else search_data
+        )
 
         list_column.controls.clear()
         if rows:
             for row in rows:
                 list_column.controls.append(
-                    item(list_key=row[0], list_value=row[1],
-                        select_key=select_key, select_value=select_value)
+                    item(
+                        list_key=row[0],
+                        list_value=row[1],
+                        select_key=select_key,
+                        select_value=select_value,
+                    )
                 )
         else:
             list_column.controls = [
-                ft.Container(content=dogdog.basic_text(value=f"검색 결과가 없습니다.", size=14))
+                ft.Container(
+                    content=dogdog.basic_text(value=f"검색 결과가 없습니다.", size=14)
+                )
             ]
     except Exception as e:
         if conn:
@@ -73,13 +123,16 @@ def update_item_list(list_column, search_data, select_key, select_value, keyword
                 ft.Container(
                     alignment=ft.Alignment(0, 0),
                     content=dogdog.basic_text(
-                        value="\n\n서버에 접속할 수 없습니다.\n잠시 후 다시 시도해주세요.", weight="bold", size=14
-                    )
+                        value="\n\n서버에 접속할 수 없습니다.\n잠시 후 다시 시도해주세요.",
+                        weight="bold",
+                        size=14,
+                    ),
                 )
             ]
 
+
 def dropdown_list(dropdown_menu, search_data, key):
-    conn: psycopg2.Connection | None= None
+    conn: psycopg2.Connection | None = None
     try:
         # conn = db_connect()
         # cursor = conn.cursor()
@@ -95,7 +148,7 @@ def dropdown_list(dropdown_menu, search_data, key):
                 if row[0] == key:
                     dropdown_menu.options.append(
                         dogdog.dropdown_menu_option(key=row[0], text=f"{row[1]}g"),
-                    )               
+                    )
         else:
             dropdown_menu.options.append(
                 dogdog.dropdown_menu_option(text="조회되는 내용이 없습니다."),

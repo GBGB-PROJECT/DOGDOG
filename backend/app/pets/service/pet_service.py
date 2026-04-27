@@ -9,7 +9,7 @@ class PetService:
         self.db = db
         self.repo = PetRepository(db)
 
-    def register_pet(self, customer_id: int, request: PetRegisterRequest) -> dict:
+    def register_pet(self, customer_id: int, request: PetRegisterRequest, commit: bool = True) -> dict:
         # 1. 폼 데이터
         pet_data = request.model_dump(mode='json')
         
@@ -26,7 +26,7 @@ class PetService:
         
         # 4. 저장 (Transaction)
         try:
-            pet = self.repo.create_pet_and_butler(customer_id, pet_data)
+            pet = self.repo.create_pet_and_butler(customer_id, pet_data, commit=commit)
         except Exception as e:
             error_msg = str(e)
             if "DATABASE_ERROR" in error_msg:

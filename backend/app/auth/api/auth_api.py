@@ -11,6 +11,15 @@ logger = logging.getLogger(__name__)
 
 # 라우터 내부에 prefix와 tags 선언
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
+ 
+ 
+@router.get("/check-email")
+def check_email(email: str, db: Session = Depends(get_db)):
+    """[중복 확인] 이메일이 이미 존재하는지 확인합니다."""
+    repo = AuthRepository(db)
+    service = AuthService(repo)
+    is_duplicate = service.check_email_duplicate(email)
+    return {"is_duplicate": is_duplicate}
 
 
 @router.post(

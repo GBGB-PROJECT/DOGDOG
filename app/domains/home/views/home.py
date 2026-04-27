@@ -5,45 +5,42 @@ import datetime
 # -------------------------------------------------------------------------------------------------------
 def now_history(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
-    # Now History View (제작중)
+    # 데이터 추출 및 초기화
     # ---------------------------------------------------------------------------------------------------
+    storage = page.session.store
+    customer_detail = storage.get("customer_detail") or {}
+    dash_data = customer_detail.get("dashboard_sync", {})
+
+    # [1] 오늘의 기록 상단 데이터
+    query_date = dash_data.get("query_date", datetime.datetime.now().strftime("%Y-%m-%d"))
+    query_date_formatted = str(query_date).replace("-", ".")
+
+    feeding_stats = dash_data.get("feeding_stats", {})
+    activity_stats = dash_data.get("activity_stats", {})
+
+    current_amount = feeding_stats.get("current_amount", 0)
+    water_total = activity_stats.get("water_total", 0)
+    walk_total = activity_stats.get("walk_total", 0)
+
+    # [2] 목표 칼로리 데이터
+    current_kcal = feeding_stats.get("current_kcal", 0)
+    target_kcal = feeding_stats.get("target_kcal", 0)
+    # progress_rate가 100분율(예: 78)로 올 경우 대비하여 100으로 나눔
+    progress_rate = feeding_stats.get("progress_rate", 0)
+    kcal_progress_value = float(progress_rate) / 100 if progress_rate > 1 else float(progress_rate)
+
     content_column = [
         ft.Row([
-                dogdog.basic_text(value="오늘의 기록", size=18, weight="bold"),
-                dogdog.basic_text(value=datetime.datetime.now().strftime("%Y.%m.%d"), size=14, weight="bold", color=ft.Colors.GREY_700),
+            dogdog.basic_text(value="오늘의 기록", size=18, weight="bold"),
+            dogdog.basic_text(value=query_date_formatted, size=14, weight="bold", color=ft.Colors.GREY_700),
         ]),
         ft.Row(
             spacing=0,
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
-                dogdog.flat_button("급여량: 100g"),
-                dogdog.flat_button("음수량: 100ml"),
-                dogdog.flat_button("산책: 60분"),
-        ]),
-        ft.Row(
-            vertical_alignment=ft.CrossAxisAlignment.START,
-            controls=[
-                dogdog.basic_text(value="목표 활동량", size=14, color=ft.Colors.GREY_700, weight="bold"),
-                ft.Column(
-                    spacing=0,
-                    expand=True,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        ft.ProgressBar(
-                            height=20,
-                            value=45 / 90 if 90 else 0,
-                            bgcolor=ft.Colors.GREY_300,
-                            color=ft.Colors.YELLOW_600,
-                            border_radius=10,
-                        ),
-                        dogdog.basic_text(
-                            value=f"{45}/{90}{'분'}",
-                            size=12,
-                            color=ft.Colors.GREY_500,
-                            weight="bold",
-                        ),
-                    ],
-                ),
+                dogdog.flat_button(f"급여량: {current_amount}g"),
+                dogdog.flat_button(f"음수량: {water_total}ml"),
+                dogdog.flat_button(f"산책: {walk_total}분"),
             ]
         ),
         ft.Row(
@@ -57,13 +54,13 @@ def now_history(page: ft.Page):
                     controls=[
                         ft.ProgressBar(
                             height=20,
-                            value=150 / 310 if 310 else 0,
+                            value=kcal_progress_value,
                             bgcolor=ft.Colors.GREY_300,
                             color=ft.Colors.YELLOW_600,
                             border_radius=10,
                         ),
                         dogdog.basic_text(
-                            value=f"{150}/{310}{'kcal'}",
+                            value=f"{current_kcal} / {target_kcal}kcal",
                             size=12,
                             color=ft.Colors.GREY_500,
                             weight="bold",
@@ -77,78 +74,52 @@ def now_history(page: ft.Page):
 
 def feeding_food_count(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
-    # Default Value
+    # 데이터 추출 및 초기화
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
     customer_detail = storage.get("customer_detail") or {}
-    
-    # dashboard_sync 경로 또는 기존 구조 양쪽 호환
     dash_data = customer_detail.get("dashboard_sync", {})
-    if dash_data:
-        first_customer_detail = dash_data
-    elif customer_detail:
-        first_key = next(iter(customer_detail.keys()), None)
-        first_customer_detail = customer_detail.get(first_key, {}) if first_key else {}
-    else:
-        first_customer_detail = {}
     
-    # 안전한 데이터 추출 (None 방어 + int 형변환)
-    raw_food_count = first_customer_detail.get("left_food_count")
-    try:
-        feeding_food_count = int(raw_food_count) if raw_food_count is not None else 0
-    except (ValueError, TypeError):
-        feeding_food_count = 0
+    inventory = dash_data.get("food_inventory", {})
     
-    now = datetime.datetime.now()
-    if feeding_food_count > 0:
-        days = datetime.timedelta(days=feeding_food_count)
-        last_feeding_food_count = (now + days).strftime("%Y.%m.%d")
-    else:
-        last_feeding_food_count = "????.??.??"
+    # [1] 사료 잔여량 데이터
+    left_intake = inventory.get("left_intake", 0)
+    total_weight_g = inventory.get("total_weight", 0)
+    # 1600g -> 1.6Kg 변환
+    total_weight_kg = round(float(total_weight_g) / 1000, 1)
     
-    raw_left_intake = first_customer_detail.get("left_intake")
-    try:
-        left_intake = int(raw_left_intake) if raw_left_intake is not None else 0
-    except (ValueError, TypeError):
-        left_intake = 0
+    left_percent = inventory.get("left_percent", 0)
+    progress_value = float(left_percent) / 100 if left_percent > 1 else float(left_percent)
     
-    raw_total_weight = first_customer_detail.get("total_weight")
-    try:
-        g_product_weight = int(raw_total_weight) if raw_total_weight is not None else 5
-    except (ValueError, TypeError):
-        g_product_weight = 5
-    if g_product_weight == 0:
-        g_product_weight = 5  # 0으로 나누기 방지
+    # [2] 남은 일수 및 소진일
+    left_days = inventory.get("left_food_count", 0)
+    expected_exdate = inventory.get("expected_exdate", "????-??-??")
+    expected_exdate_formatted = str(expected_exdate).replace("-", ".")
     
-    kg_product_weight = float(g_product_weight / 1000)
-    view_product_weight = (
-        f"{kg_product_weight}Kg" if len(str(kg_product_weight).replace(".0", "")) > 2 
-            else f"{g_product_weight}g"
-    ) if g_product_weight > 5 else "???Kg"
     # ---------------------------------------------------------------------------------------------------
-    # Feeding List First Product View
+    # UI 조립
     # ---------------------------------------------------------------------------------------------------
     content_column = [
         dogdog.basic_text(value="급여 중인 사료 잔여량", size=17, weight="bold"),
         ft.Row(
             controls=[
                 dogdog.basic_text(spans=[
-                    ft.TextSpan(f"{left_intake if left_intake != 0 else '???'}g", style=dogdog.TextStyle(size=16)),
-                    ft.TextSpan(f" / {view_product_weight}")
+                    ft.TextSpan(f"{left_intake}g", style=dogdog.TextStyle(size=16)),
+                    ft.TextSpan(f" / {total_weight_kg}Kg")
                 ], color=ft.Colors.GREY_400, weight="bold", size=16),
-                dogdog.flat_button(f"{feeding_food_count if feeding_food_count else '?'} 일치 남음", scale=0.7),
+                dogdog.flat_button(f"{round(left_days, 1)} 일치 남음", scale=0.7),
             ],
         ),
         ft.ProgressBar(
             height=10,
-            value=left_intake / g_product_weight,
+            value=progress_value,
             bgcolor=ft.Colors.GREY_300,
             color=ft.Colors.YELLOW_600,
             border_radius=10,
         ),
         dogdog.basic_text(spans=[
             ft.TextSpan("예상 소진일 "),
-            ft.TextSpan(last_feeding_food_count)
+            ft.TextSpan(expected_exdate_formatted)
         ], size=12, color=ft.Colors.GREY_600),
     ]
 

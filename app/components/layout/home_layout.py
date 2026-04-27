@@ -3,12 +3,13 @@ import flet as ft
 import components as dogdog
 import datetime
 # -------------------------------------------------------------------------------------------------------
-def home_layout(page, view=None, text=None):
+def home_layout(page, view=None, text=None, pet_list=None):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
-    pet_list = storage.get("pet_list")
+    if pet_list is None:
+        pet_list = storage.get("pet_list")
     # ---------------------------------------------------------------------------------------------------    
     # OnBackPressedCallback
     # ---------------------------------------------------------------------------------------------------
@@ -40,6 +41,13 @@ def home_layout(page, view=None, text=None):
     # Dropdown Menu Helper Test Change Def
     # ---------------------------------------------------------------------------------------------------        
     def pet_dropdown_list_helper_text(birth_day, sex):
+        if not birth_day:
+            return "(생일 정보 없음)"
+        
+        # [방어 코드] 백엔드에서 타임스탬프 포함된 문자열(T00:00:00)을 보낼 경우 대비
+        # T를 기준으로 잘라내어 순수 날짜(YYYY-MM-DD)만 취득합니다.
+        birth_day = str(birth_day).split("T")[0]
+        
         birth = datetime.datetime.strptime(birth_day, "%Y-%m-%d")
         now = datetime.datetime.now()
         years = now.year - birth.year
@@ -68,18 +76,29 @@ def home_layout(page, view=None, text=None):
     if view == "home":
         background_height = 160
         home_background.height = background_height
-        first_pet_id = next(iter(pet_list.keys()))
-        first_pet_birth_day = pet_list.get(first_pet_id).get("birth_day") # type: ignore
-        first_pet_birth_sex = pet_list.get(first_pet_id).get("sex") # type: ignore
-        first_pet_profile_image = (
-            pet_list.get(first_pet_id).get("profile_image") # type: ignore
-            if pet_list.get(first_pet_id).get("profile_image") else "dogclay.png") # type: ignore
+        
+        # [방어 코드] pet_list가 유효한지 가장 먼저 체크합니다.
+        if pet_list:
+            first_pet_id = next(iter(pet_list.keys()))
+            first_pet_birth_day = pet_list.get(first_pet_id).get("birth_day") or None # type: ignore
+            first_pet_birth_sex = pet_list.get(first_pet_id).get("sex") # type: ignore
+            first_pet_profile_image = (
+                pet_list.get(first_pet_id).get("profile_image") # type: ignore
+                if pet_list.get(first_pet_id).get("profile_image") else "dogclay.png") # type: ignore
 
-        pet_list_name = [
-            ft.DropdownOption(
-                key=f"{row_id}", text=row.get("nickname"), style=dogdog.Style.DropdownOptionStyle
-            ) for row_id , row in pet_list.items()
-        ]
+            # 드롭다운 목록 생성
+            pet_list_name = [
+                ft.DropdownOption(
+                    key=f"{row_id}", text=row.get("nickname"), style=dogdog.Style.DropdownOptionStyle
+                ) for row_id , row in pet_list.items()
+            ]
+        else:
+            # 강아지 정보가 아예 없을 때의 기본값 처리
+            first_pet_id = "none"
+            first_pet_birth_day = str(datetime.date.today())
+            first_pet_birth_sex = "1"
+            first_pet_profile_image = "dogclay.png"
+            pet_list_name = [ft.DropdownOption(key="none", text="등록된 강아지가 없습니다.")]
 
         pet_dropdown_list = ft.Dropdown(
             content_padding=0,
@@ -92,16 +111,19 @@ def home_layout(page, view=None, text=None):
             text_style=dogdog.TextStyle(),
             trailing_icon=ft.Icons.KEYBOARD_ARROW_DOWN,
             selected_trailing_icon=ft.Icons.KEYBOARD_ARROW_UP,
-            value=f"{first_pet_id}",
+            value=str(first_pet_id), # 타입 일관성을 위해 str로 변환
             menu_style=ft.MenuStyle(bgcolor="#DBD19F", padding=0),
             border_width=0,
             options=pet_list_name
         )
         
-        storage.set("customer_pet_id", pet_dropdown_list.value)
-        for row_id , row in pet_list.items():
-            if int(row_id) == int(pet_dropdown_list.value): # type: ignore
-                storage.set("customer_pet_name", row.get("nickname"))
+        # [방어 코드] pet_list가 있을 때만 루프를 실행하여 세션에 이름 저장
+        if pet_list:
+            storage.set("customer_pet_id", pet_dropdown_list.value)
+            for row_id , row in pet_list.items():
+                # [수정 지침] 데이터 타입을 str로 일치시켜 안전하게 비교
+                if str(row_id) == str(pet_dropdown_list.value):
+                    storage.set("customer_pet_name", row.get("nickname"))
         
         left_header_image = dogdog.image_circle(src=first_pet_profile_image, event=None, size=80, shadow=False)
         

@@ -2,7 +2,7 @@
 import flet as ft
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
-def sign_up_view(page: ft.Page):
+def sign_up_view(page: ft.Page, check_email_callback=None):
     storage = page.session.store
     # -----------------------------------------------------------------------------------------------
     # Default Value
@@ -13,9 +13,25 @@ def sign_up_view(page: ft.Page):
         storage.set("user_name", e.control.value)
     def password_on_change(e):
         storage.set("user_password", e.control.value)
+
+# 이메일 확인 버튼 (suffix) - 크기 붕괴 방지용 명시적 사이즈 할당
+    email_suffix = None
+    if check_email_callback:
+        email_suffix = ft.Container(
+            width=75,
+            height=30,
+            # ft.Colors.BLACK 대신 헥스 코드나 기본 색상을 사용하여 버전 충돌 원천 차단
+            content=ft.Text(value="이메일 확인", size=11, weight="bold", color="#222222"),
+            bgcolor="#EEEEEE", # 예쁜 연그레이 색상 헥스코드
+            border_radius=10,
+            alignment=ft.Alignment(0, 0), # 정중앙 정렬의 가장 안전한 클래스 문법
+            on_click=check_email_callback,
+        )
+
     email_input = dogdog.input_textfield(
         hint_text="example@gmail.com", max_length=None, # type: ignore
-        on_change=email_on_change, input_type="email"
+        on_change=email_on_change, input_type="email",
+        suffix=email_suffix
     )
     name_input = dogdog.input_textfield(
         hint_text="닉네임", on_change=name_on_change

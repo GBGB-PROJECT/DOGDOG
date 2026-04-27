@@ -109,7 +109,7 @@ class CompanionCustomerFood(Base):
         index=True,
     )
     total_weight = Column(SmallInteger, nullable=False)
-    feeding_start = Column(Date, nullable=False)
+    feeding_start = Column(Date)
     total_intake = Column(SmallInteger, server_default=text("0"))
     food_count = Column(SmallInteger, server_default=text("0"))
     left_food_count = Column(
@@ -127,8 +127,28 @@ class CompanionCustomerFood(Base):
         )
     )
     last_update = Column(DateTime, nullable=False, server_default=text("now()"))
+    expected_exdate = Column(Date)
 
     pet = relationship("CompanionPet", back_populates="customer_food")
+
+
+class CompanionCustomerNotiSettings(Base):
+    __tablename__ = "customer_noti_settings"
+    __table_args__ = {"schema": "Companion"}
+
+    customer_noti_settings_id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(
+        Integer,
+        ForeignKey("Companion.customer.customer_id"),
+        nullable=False,
+        index=True,
+    )
+    category = Column(String(18), nullable=False)
+    noti_option1 = Column(Boolean, nullable=False, server_default=text("false"))
+    noti_option2 = Column(Boolean, nullable=False, server_default=text("false"))
+    last_update = Column(DateTime, nullable=False, server_default=text("now()"))
+
+    customer = relationship("CompanionCustomer")
 
 
 class CompanionButler(Base):

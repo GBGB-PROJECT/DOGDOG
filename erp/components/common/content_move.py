@@ -8,20 +8,26 @@ from domain.views.stock import stock_status_view
 from domain.views.stock import stock_product_detail_view
 
 # 👊 추가: 상품관리 화면 연결
-from domain.views.product import product_view
-from domain.views.product import product_detail_view
+from domain.views.merchandise import product_view
+from domain.views.merchandise import product_detail_view
 
 # ☑️ 추가: 인사관리 화면 import
-from domain.views.employee import erp_employee_view
+from domain.views.hr import erp_employee_view
 
 # ☑️ 추가: 고객관리 화면 import
-from domain.views.customer import erp_customer_view
+from domain.views.customer import (
+    erp_customer_view,
+    erp_customer_info_view,
+    erp_customer_order_view,  # 🔥 추가
+    erp_customer_subscription_view,  # 🔥 추가
+)
 
 from domain.views.production import production_view
 
 from domain.views.production import purchase_order_view
 
 from domain.views.production import production_supplier_view
+from domain.views.production import inbound_view  # 🔥 수정: 생산입고현황조회 화면
 
 
 ## ============= 페이지 이동 (실질)
@@ -59,6 +65,7 @@ MENU_ITEMS = {
     "상품 상세 정보 관리": product_detail_view.erp_product_detail_view,
 
     "생산관리": production_view.erp_production_view,
+    "생산입고": inbound_view.erp_inbound_view,  # 🔥 추가: 생산입고 실제 입고 현황 화면 연결
     "발주 관리": purchase_order_view.erp_purchase_order_view,
     "거래처 관리": production_supplier_view.erp_production_supplier_view,
 
@@ -72,9 +79,26 @@ MENU_ITEMS = {
 
     "물류관리": lambda: ft.Container(content=ft.Text("물류관리 준비 중")),
 
-    # ☑️ 수정: 고객관리 실제 화면 연결
+    # 🔥 수정: 고객관리 대분류는 메인 텍스트 화면만 표시
     "고객관리": erp_customer_view,
+
+    # 🔥 추가: 고객관리 하위 메뉴 화면 연결
+    "고객 정보 관리": erp_customer_info_view,
+    # 🔥 수정: 고객 주문 관리 실제 화면 연결
+    "고객 주문 관리": erp_customer_order_view,
     
+    "고객 구독 관리": erp_customer_subscription_view,  # 🔥 수정: 고객 구독 관리 실제 화면 연결
+    # "고객 문의 관리": lambda: ft.Container(
+    #     expand=True,
+    #     alignment=ft.Alignment(0, 0),
+    #     content=ft.Text("고객 문의 관리 준비 중"),
+    # ),
+    # "고객 센터 관리": lambda: ft.Container(
+    #     expand=True,
+    #     alignment=ft.Alignment(0, 0),
+    #     content=ft.Text("고객 센터 관리 준비 중"),
+    # ),
+
     "영업관리": lambda: ft.Container(content=ft.Text("영업관리 준비 중")),
     "회계관리": lambda: ft.Container(content=ft.Text("회계관리 준비 중")),
 
@@ -161,6 +185,25 @@ PRODUCTION_ALL_ITEMS = [
     "품질 및 이력 관리",
     "거래처 관리",
 ]
+
+# 🔥 추가: 고객관리 하위 메뉴
+CUSTOMER_MAIN_ITEMS = [
+    "고객 정보 관리",
+    "고객 주문 관리",
+    "고객 구독 관리",
+    "고객 문의 관리",
+    "고객 센터 관리",
+]
+
+# 🔥 추가: 고객관리 확장 사이드바 진입 조건 묶음
+CUSTOMER_ALL_ITEMS = [
+    "고객관리",
+    "고객 정보 관리",
+    "고객 주문 관리",
+    "고객 구독 관리",
+    "고객 문의 관리",
+    "고객 센터 관리",
+]
 '''==================== 상품관리 종료 ===================='''
 
 ## =============== 라우트 연결목적
@@ -170,11 +213,10 @@ MENU_TO_ROUTE = {
     "매출관리": "/sales",
     "원가관리": "/cost",
     "구매관리": "/purchase",
-    "상품관리": "/product",
-    "상품카테고리관리": "/product/category",
-    # "상품마스터정보관리": "/product/master",
-    "상품 상세 정보 관리": "/product/detail",
-    "자재명세서": "/product/bom",
+    "상품관리": "/merchandise",
+    "상품카테고리관리": "/merchandise/category",
+    "상품 상세 정보 관리": "/merchandise/detail",
+    "자재명세서": "/merchandise/bom",
     "생산관리": "/production",
     "생산실적": "/production/performance",
     "생산입고": "/production/inbound",
@@ -191,9 +233,13 @@ MENU_TO_ROUTE = {
     "상품 부자재 관리": "/stock/sub-material",
     "물류관리": "/logistics",
     "고객관리": "/customer",
+    # 🔥 추가: 고객관리 하위 메뉴 route 연결
+    "고객 정보 관리": "/customer/info",
+    "고객 주문 관리": "/customer/order",
+    "고객 구독 관리": "/customer/subscription",
     "영업관리": "/business",
     "회계관리": "/accounting",
-    "인사관리": "/employee",
+    "인사관리": "/hr",
     "시스템관리": "/system",
 }
 

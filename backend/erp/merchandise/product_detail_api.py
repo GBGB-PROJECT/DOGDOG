@@ -3,7 +3,8 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 
-from .service import count_product_join_rows, fetch_product_join_rows
+from .product_detail_service import count_product_join_rows, fetch_product_join_rows
+from .product_detail_schema import ErpMerchandiseDetailListResponse
 
 router = APIRouter(
     prefix="/erp/merchandise",
@@ -86,6 +87,7 @@ def build_response_rows(items: list, page: int, size: int):
         "OPD.product_detail 과 OPD.product 를 함께 조회하여 "
         "상품ID, 타입, 브랜드, 상품명, 기능, 주원료, 생애주기, 중량, 판매가, 수량, 판매상태를 반환합니다."
     ),
+    response_model=ErpMerchandiseDetailListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
 def get_product_detail_list(
     search_type: Literal[

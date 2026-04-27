@@ -1,4 +1,4 @@
-from .service import (
+from .production_supplier_service import (
     count_suppliers,
     fetch_suppliers,
     create_supplier,
@@ -17,3 +17,8 @@ __all__ = [
     "fetch_purchase_order_detail",
     "fetch_purchase_order_items",
 ]
+
+from .inbound_service import (
+    count_inbounds,
+    fetch_inbounds,
+)

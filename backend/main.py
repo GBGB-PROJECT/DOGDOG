@@ -18,8 +18,18 @@ from erp.auth.api.erp_signinup_api import router as erp_employee_router
 from erp.home.api.erp_home_api import router as erp_home_router
 from erp.home.api.erp_home_inventory_api import router as erp_home_inventory_router
 from erp.home.api.erp_home_chart_api import router as erp_home_chart_router
-from erp.product.api import router as erp_product_router
-from erp.customer.api import router as erp_customer_router
+from erp.merchandise.product_detail_api import router as erp_merchandise_router
+from erp.customer.customer_info_api import router as erp_customer_router
+from erp.customer.order_api import router as customer_order_router
+from erp.customer.subscription_api import router as customer_subscription_router
+from erp.production.inbound_api import router as erp_inbound_router
+from erp.production.production_supplier_api import router as erp_supplier_router
+from erp.stock.stock_product_detail_api import router as erp_stock_router
+from erp.hr.employee_api import router as erp_hr_router
+from erp.production.inbound_api import router as erp_inbound_router  # 🔥 수정: 생산입고현황조회 API
+from erp.stock.stock_product_detail_api import router as erp_stock_router
+from erp.production.dashboard_api import router as erp_production_dashboard_router
+
 
 
 
@@ -86,11 +96,21 @@ app.include_router(calc_feeding_router)
 app.include_router(products_router)
 
 # 🔥🔥🔥 추가: ERP 상품 상세 정보 관리 라우터 등록
-app.include_router(erp_product_router)
+app.include_router(erp_merchandise_router)
 
 # 🔥🔥🔥 추가: ERP 고객관리 라우터 등록
 app.include_router(erp_customer_router)
 
+# 🔥 추가: 고객 주문 관리 API 등록
+app.include_router(customer_order_router)
+
+app.include_router(customer_subscription_router)  # 🔥 추가
+
+app.include_router(erp_supplier_router)  # 🔥 추가: 거래처 관리 API 등록
+app.include_router(erp_hr_router)
+app.include_router(erp_inbound_router)  # 🔥 추가: 생산입고 API 등록
+app.include_router(erp_stock_router)  # 🔥 추가: 상품별 재고 상세 API 등록
+app.include_router(erp_production_dashboard_router)
 
 # [7] 실행 블록: 터미널에서 python main.py 로 직접 실행 가능하게 합니다.
 if __name__ == "__main__":

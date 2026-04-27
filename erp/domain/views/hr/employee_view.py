@@ -1,11 +1,16 @@
 import math
-import datetime
 import flet as ft
+import datetime
 
 from components import common as cm
-from backend.erp.stock.stock_product_detail_service import count_stocks, fetch_stocks
+from components.common.modals.modal import build_modal
+from components.common.modals.field_defs import EMPLOYEE_FIELDS
+from backend.erp.hr.employee_service import count_employees, fetch_employees, create_employee
 
 
+# =========================================================
+# ☑️ product_master_view 스타일 참고용 공통 색상
+# =========================================================
 FIELD_BG = ft.Colors.WHITE
 FIELD_BORDER = "#D1D5DB"
 FIELD_TEXT = "#222222"
@@ -23,24 +28,19 @@ TEXT_PRIMARY = "#111827"
 TEXT_SECONDARY = "#6B7280"
 TEXT_ROW = "#374151"
 
+SESSION_PREFIX = "employee"
 PAGE_SIZE = 50
 
 
 # =========================================================
-# 🔥 상품별 재고 상세 View
-# - stock이 주인공인 화면
-# - 중량/수량/판매가/샘플/활성/상세ID/발주ID 제거
-# - 브랜드 뒤에 stock 관련 컬럼 배치
+# ☑️ 공통 텍스트
 # =========================================================
-
-
 def build_text(
     value,
     size=12,
     color=TEXT_PRIMARY,
     weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.CENTER,
-    max_lines=1,
+    text_align=ft.TextAlign.LEFT,
 ):
     return ft.Text(
         value=str(value or ""),
@@ -48,11 +48,14 @@ def build_text(
         color=color,
         weight=weight,
         text_align=text_align,
-        max_lines=max_lines,
+        max_lines=1,
         overflow=ft.TextOverflow.ELLIPSIS,
     )
 
 
+# =========================================================
+# ☑️ 날짜 표시 필드
+# =========================================================
 def date_value_box(text, on_click=None):
     return ft.Container(
         width=138,
@@ -61,18 +64,20 @@ def date_value_box(text, on_click=None):
         border=ft.Border.all(1, FIELD_BORDER),
         border_radius=6,
         padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(0, 0),
+        alignment=ft.Alignment(-1, 0),
         on_click=on_click,
         content=ft.Text(
             value=text,
             size=13,
             color=FIELD_TEXT,
             weight=ft.FontWeight.W_500,
-            text_align=ft.TextAlign.CENTER,
         ),
     )
 
 
+# =========================================================
+# ☑️ 달력 버튼
+# =========================================================
 def calendar_icon_box(on_click=None):
     return ft.Container(
         width=38,
@@ -90,6 +95,9 @@ def calendar_icon_box(on_click=None):
     )
 
 
+# =========================================================
+# ☑️ 공통 액션 버튼
+# =========================================================
 def action_button(text, on_click=None, width=78):
     return ft.Container(
         width=width,
@@ -104,46 +112,69 @@ def action_button(text, on_click=None, width=78):
             size=13,
             color=BUTTON_TEXT,
             weight=ft.FontWeight.W_500,
-            text_align=ft.TextAlign.CENTER,
         ),
     )
 
 
+# =========================================================
+# ☑️ 테이블 셀 공통
+# =========================================================
 def build_table_cell(
     text,
-    width,
-    align_x=0,
+    expand,
+    align_x=-1,
     weight=ft.FontWeight.W_400,
     color=TEXT_ROW,
     size=12,
 ):
     return ft.Container(
-        width=width,
+        expand=expand,
         alignment=ft.Alignment(align_x, 0),
         content=build_text(
             value=text,
             size=size,
             color=color,
             weight=weight,
-            text_align=ft.TextAlign.CENTER,
-            max_lines=2,
+            text_align=ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT,
         ),
     )
 
 
-def _format_number(value):
-    if value in [None, ""]:
-        return ""
+# =========================================================
+# ☑️ 저장 데이터 -> 사원 테이블 row 변환
+# - EMPLOYEE_FIELDS 실제 key 기준
+# =========================================================
+def employee_row_adapter(saved_data: dict, next_no: int):
+    active_raw = (saved_data.get("active", "") or "").strip().lower()
 
-    try:
-        if isinstance(value, bool):
-            return str(value)
-        return f"{int(value):,}"
-    except Exception:
-        return str(value)
+    if active_raw in ["true", "1", "y", "yes", "재직", "활성", "사용"]:
+        active_text = "재직"
+    else:
+        active_text = "비활성"
+
+    return {
+        "no": str(next_no),
+        "employee_id": saved_data.get("employee_id", ""),
+        "account_id": saved_data.get("account_id", ""),
+        "username": saved_data.get("username", ""),
+        "hire_date": saved_data.get("hire_date", ""),
+        "quit_date": saved_data.get("quit_date", ""),
+        "emp_position_id": saved_data.get("emp_position_id", ""),
+        "position_name": saved_data.get("position_name", saved_data.get("emp_position_id", "")),
+        "manager_id": saved_data.get("manager_id", ""),
+        "email": saved_data.get("email", ""),
+        "phone": saved_data.get("phone", ""),
+        "address": saved_data.get("address", ""),
+        "postal_code": saved_data.get("postal_code", ""),
+        "active": active_text,
+    }
 
 
-def stock_db_row_adapter(db_rows: list, page_no: int):
+# =========================================================
+# ☑️ DB row -> 사원 테이블 row 변환
+# - EmployeeModel 결과 기준
+# =========================================================
+def employee_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
@@ -151,76 +182,36 @@ def stock_db_row_adapter(db_rows: list, page_no: int):
         rows.append(
             {
                 "no": str(index),
-                "product_id": row.get("product_id", ""),
-                "brand": row.get("brand", ""),
-                "product_name": row.get("product_name", ""),
-                "expiration_date": row.get("expiration_date", ""),
-                "inbound_id": row.get("inbound_id", ""),
-                "inbound_status": row.get("inbound_status", ""),
-                "save_stock": _format_number(row.get("save_stock", "")),
-                "sale_stock": _format_number(row.get("sale_stock", "")),
-                "stock_available": _format_number(row.get("stock_available", "")),
-                "scrap_stock": _format_number(row.get("scrap_stock", "")),
-                "last_update": row.get("last_update", ""),
+                "employee_id": row.get("employee_id", ""),
+                "account_id": row.get("account_id", ""),
+                "username": row.get("username", ""),
+                "hire_date": row.get("hire_date", ""),
+                "quit_date": row.get("quit_date", ""),
+                "emp_position_id": row.get("emp_position_id", ""),
+                "position_name": row.get("position_name", row.get("emp_position_id", "")),
+                "manager_id": row.get("manager_id", ""),
+                "email": row.get("email", ""),
+                "phone": row.get("phone", ""),
+                "address": row.get("address", ""),
+                "postal_code": row.get("postal_code", ""),
+                "active": "재직" if row.get("active") else "비활성",
             }
         )
 
     return rows
 
 
-def normalize_to_date(value):
-    if not value:
-        return None
+# =========================================================
+# ☑️ 인사관리 화면
+# =========================================================
+def erp_employee_view():
+    page_title = "인사관리"
 
-    # 🔥 +9 / -9 시간 보정 없이 DatePicker 선택값 그대로 사용
-    if isinstance(value, datetime.datetime):
-        return value.date()
-
-    if isinstance(value, datetime.date):
-        return value
-
-    return None
-
-
-def erp_stock_product_detail_view():
-    page_title = "재고관리 > 상품별 재고 상세"
+    rows_state = []
 
     selected_start = {"value": None}
     selected_end = {"value": None}
-    search_type_value = {"value": "product_id"}
-
-    search_type_labels = {
-        "product_id": "상품ID",
-        "brand": "브랜드",
-        "product_name": "상품명",
-        "inbound_id": "입고ID",
-        "inbound_status": "입고상태",
-        "save_stock": "보관재고",
-        "sale_stock": "판매재고",
-        "scrap_stock": "폐기재고",
-        "stock_available": "가용재고",
-        "expiration_date": "유통기한",
-    }
-
-    # =========================================================
-    # 🔥 컬럼 순서 수정
-    # - stock이 주인공이라 브랜드 뒤에 stock 관련 컬럼 배치
-    # - 상세ID / 발주ID / 중량 / 수량 / 판매가 / 샘플 / 활성 제거
-    # =========================================================
-    columns = [
-        {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product_id", "label": "상품ID", "width": 90, "align_x": 0},
-        {"key": "brand", "label": "브랜드", "width": 130, "align_x": 0},
-        {"key": "product_name", "label": "상품명", "width": 260, "align_x": 0},
-        {"key": "expiration_date", "label": "유통기한", "width": 120, "align_x": 0},
-        {"key": "inbound_id", "label": "입고ID", "width": 90, "align_x": 0},
-        {"key": "inbound_status", "label": "입고상태", "width": 110, "align_x": 0},
-        {"key": "save_stock", "label": "보관재고", "width": 100, "align_x": 0},
-        {"key": "sale_stock", "label": "판매재고", "width": 100, "align_x": 0},
-        {"key": "stock_available", "label": "가용재고", "width": 100, "align_x": 0},
-        {"key": "scrap_stock", "label": "폐기재고", "width": 100, "align_x": 0},
-        {"key": "last_update", "label": "최종수정일", "width": 170, "align_x": 0},
-    ]
+    search_type_value = {"value": "username"}
 
     pagination_state = {
         "current_page": 1,
@@ -244,23 +235,46 @@ def erp_stock_product_detail_view():
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
 
+    dim_bg = ft.Container(
+        visible=False,
+        expand=True,
+        bgcolor=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
+    )
+
+    popup_layer = ft.Container(
+        visible=False,
+        expand=True,
+        alignment=ft.Alignment(0, 0),
+    )
+
+    col_expand = {
+        "no": 3,
+        "employee_id": 5,
+        "account_id": 7,
+        "username": 7,
+        "hire_date": 7,
+        "quit_date": 7,
+        "position_name": 7,
+        "manager_id": 6,
+        "email": 12,
+        "phone": 10,
+        "address": 12,
+        "postal_code": 6,
+        "active": 5,
+    }
+
     row_spacing = 10
     row_padding_x = 14
     row_padding_y = 14
 
-    search_field = ft.TextField(
-        width=220,
-        height=38,
-        value="",
-        hint_text="검색어",
-        hint_style=ft.TextStyle(size=13, color=HINT_TEXT),
-        text_size=13,
-        border_color=FIELD_BORDER,
-        border_radius=6,
-        bgcolor=FIELD_BG,
-        content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
-        text_align=ft.TextAlign.CENTER,
-    )
+    search_type_labels = {
+        "username": "이름",
+        "employee_id": "사원ID",
+        "account_id": "계정ID",
+        "position_name": "직책",
+        "phone": "전화번호",
+        "email": "이메일",
+    }
 
     def format_date_text(value):
         if not value:
@@ -282,7 +296,8 @@ def erp_stock_product_detail_view():
 
     def on_start_date_change(e):
         if e.control.value:
-            selected_start["value"] = normalize_to_date(e.control.value)
+            corrected_date = e.control.value + datetime.timedelta(hours=9)
+            selected_start["value"] = corrected_date
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -292,12 +307,12 @@ def erp_stock_product_detail_view():
 
     def on_end_date_change(e):
         if e.control.value:
-            selected_date = normalize_to_date(e.control.value)
+            corrected_date = e.control.value + datetime.timedelta(hours=9)
 
-            if selected_start["value"] and selected_date < selected_start["value"]:
+            if selected_start["value"] and corrected_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
             else:
-                selected_end["value"] = selected_date
+                selected_end["value"] = corrected_date
 
         refresh_picker_fields()
         e.page.update()
@@ -321,10 +336,7 @@ def erp_stock_product_detail_view():
             page.overlay.append(start_date_picker)
 
         if selected_start["value"]:
-            start_date_picker.value = datetime.datetime.combine(
-                selected_start["value"],
-                datetime.time.min,
-            )
+            start_date_picker.value = selected_start["value"]
 
         start_date_picker.open = True
         page.update()
@@ -336,23 +348,14 @@ def erp_stock_product_detail_view():
             page.overlay.append(end_date_picker)
 
         if selected_start["value"]:
-            end_date_picker.first_date = datetime.datetime.combine(
-                selected_start["value"],
-                datetime.time.min,
-            )
+            end_date_picker.first_date = selected_start["value"]
         else:
             end_date_picker.first_date = datetime.datetime(2000, 1, 1)
 
         if selected_end["value"]:
-            end_date_picker.value = datetime.datetime.combine(
-                selected_end["value"],
-                datetime.time.min,
-            )
+            end_date_picker.value = selected_end["value"]
         elif selected_start["value"]:
-            end_date_picker.value = datetime.datetime.combine(
-                selected_start["value"],
-                datetime.time.min,
-            )
+            end_date_picker.value = selected_start["value"]
 
         end_date_picker.open = True
         page.update()
@@ -362,10 +365,7 @@ def erp_stock_product_detail_view():
         size=13,
         color=FIELD_TEXT,
         weight=ft.FontWeight.W_500,
-        text_align=ft.TextAlign.CENTER,
     )
-
-    rows_state = []
 
     def set_search_type(value: str):
         search_type_value["value"] = value
@@ -377,20 +377,19 @@ def erp_stock_product_detail_view():
             height=34,
             content=ft.Container(
                 padding=ft.Padding.only(left=2, right=2),
-                alignment=ft.Alignment(0, 0),
+                alignment=ft.Alignment(-1, 0),
                 content=ft.Text(
                     value=label,
                     size=13,
                     color=FIELD_TEXT,
                     weight=ft.FontWeight.W_500,
-                    text_align=ft.TextAlign.CENTER,
                 ),
             ),
             on_click=lambda e: set_search_type(value),
         )
 
     search_type = ft.Container(
-        width=150,
+        width=140,
         height=38,
         bgcolor=FIELD_BG,
         border=ft.Border.all(1, FIELD_BORDER),
@@ -400,11 +399,7 @@ def erp_stock_product_detail_view():
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                ft.Container(
-                    expand=True,
-                    alignment=ft.Alignment(0, 0),
-                    content=search_type_text,
-                ),
+                search_type_text,
                 ft.PopupMenuButton(
                     tooltip="검색 조건 선택",
                     content=ft.Container(
@@ -426,6 +421,19 @@ def erp_stock_product_detail_view():
         ),
     )
 
+    search_field = ft.TextField(
+        width=220,
+        height=38,
+        value="",
+        hint_text="검색어",
+        hint_style=ft.TextStyle(size=13, color=HINT_TEXT),
+        text_size=13,
+        border_color=FIELD_BORDER,
+        border_radius=6,
+        bgcolor=FIELD_BG,
+        content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
+    )
+
     def build_table_header():
         return ft.Container(
             bgcolor=TABLE_HEADER_BG,
@@ -436,21 +444,30 @@ def erp_stock_product_detail_view():
                 bottom=row_padding_y,
             ),
             content=ft.Row(
+                expand=True,
                 spacing=row_spacing,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    build_table_cell(
-                        col["label"],
-                        col["width"],
-                        col["align_x"],
-                        ft.FontWeight.W_700,
-                        TEXT_PRIMARY,
-                    )
-                    for col in columns
+                    build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
+                    build_table_cell("사원ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("계정ID", col_expand["account_id"], -1, ft.FontWeight.W_700),
+                    build_table_cell("이름", col_expand["username"], -1, ft.FontWeight.W_700),
+                    build_table_cell("입사일", col_expand["hire_date"], 0, ft.FontWeight.W_700),
+                    build_table_cell("퇴사일", col_expand["quit_date"], 0, ft.FontWeight.W_700),
+                    build_table_cell("직책", col_expand["position_name"], 0, ft.FontWeight.W_700),
+                    build_table_cell("관리자ID", col_expand["manager_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("이메일", col_expand["email"], -1, ft.FontWeight.W_700),
+                    build_table_cell("전화번호", col_expand["phone"], -1, ft.FontWeight.W_700),
+                    build_table_cell("주소", col_expand["address"], -1, ft.FontWeight.W_700),
+                    build_table_cell("우편번호", col_expand["postal_code"], 0, ft.FontWeight.W_700),
+                    build_table_cell("상태", col_expand["active"], 0, ft.FontWeight.W_700),
                 ],
             ),
         )
 
     def build_table_row(row):
+        active_color = "#166534" if row.get("active") == "재직" else "#991B1B"
+
         return ft.Container(
             padding=ft.Padding.only(
                 left=row_padding_x,
@@ -461,78 +478,106 @@ def erp_stock_product_detail_view():
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
             content=ft.Row(
+                expand=True,
                 spacing=row_spacing,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
+                    build_table_cell(row.get("no", ""), col_expand["no"], 0),
+                    build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
+                    build_table_cell(row.get("account_id", ""), col_expand["account_id"], -1),
+                    build_table_cell(row.get("username", ""), col_expand["username"], -1),
+                    build_table_cell(row.get("hire_date", ""), col_expand["hire_date"], 0),
+                    build_table_cell(row.get("quit_date", ""), col_expand["quit_date"], 0),
+                    build_table_cell(row.get("position_name", ""), col_expand["position_name"], 0),
+                    build_table_cell(row.get("manager_id", ""), col_expand["manager_id"], 0),
+                    build_table_cell(row.get("email", ""), col_expand["email"], -1),
+                    build_table_cell(row.get("phone", ""), col_expand["phone"], -1),
+                    build_table_cell(row.get("address", ""), col_expand["address"], -1),
+                    build_table_cell(row.get("postal_code", ""), col_expand["postal_code"], 0),
                     build_table_cell(
-                        row.get(col["key"], ""),
-                        col["width"],
-                        col["align_x"],
-                    )
-                    for col in columns
+                        row.get("active", ""),
+                        col_expand["active"],
+                        0,
+                        ft.FontWeight.W_700,
+                        active_color,
+                    ),
                 ],
-            ),
-        )
-
-    def build_empty_row(message: str):
-        total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1))
-        return ft.Container(
-            padding=ft.Padding.only(
-                left=row_padding_x,
-                right=row_padding_x,
-                top=28,
-                bottom=28,
-            ),
-            border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
-            bgcolor=CARD_BG,
-            content=ft.Container(
-                width=total_width,
-                alignment=ft.Alignment(0, 0),
-                content=ft.Text(
-                    value=message,
-                    size=14,
-                    color=TEXT_SECONDARY,
-                    weight=ft.FontWeight.W_500,
-                    text_align=ft.TextAlign.CENTER,
-                ),
             ),
         )
 
     def refresh_table(filtered_rows):
         table_rows_holder.controls.clear()
 
-        if not filtered_rows:
-            table_rows_holder.controls.append(build_empty_row("일치하는 정보가 없습니다."))
-            return
-
         for row in filtered_rows:
             table_rows_holder.controls.append(build_table_row(row))
 
-    def get_selected_date_text(value):
-        if not value:
-            return None
-        return value.strftime("%Y-%m-%d")
+    def apply_date_filter(rows):
+        filtered_rows = []
 
+        for row in rows:
+            is_match = True
+            hire_date_value = str(row.get("hire_date", "")).strip()
+
+            if hire_date_value:
+                try:
+                    date_text = hire_date_value[:10]
+                    hire_date_obj = datetime.datetime.strptime(date_text, "%Y-%m-%d")
+
+                    if (
+                        selected_start["value"]
+                        and hire_date_obj < selected_start["value"].replace(
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            microsecond=0,
+                        )
+                    ):
+                        is_match = False
+
+                    if (
+                        selected_end["value"]
+                        and hire_date_obj > selected_end["value"].replace(
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            microsecond=0,
+                        )
+                    ):
+                        is_match = False
+
+                except ValueError:
+                    pass
+
+            if is_match:
+                filtered_rows.append(row)
+
+        return filtered_rows
+
+    # =========================================================
+    # ☑️ SQLAlchemy ORM: 사원 count/list 조회
+    # - SQL 문자열을 직접 실행하지 않고 EmployeeModel 기반 ORM 함수 사용
+    # =========================================================
     def fetch_total_count(keyword=""):
-        return count_stocks(
+        return count_employees(
             search_type=search_type_value["value"],
             keyword=keyword,
-            start_date=get_selected_date_text(selected_start["value"]),
-            end_date=get_selected_date_text(selected_end["value"]),
+            start_date=selected_start["value"],
+            end_date=selected_end["value"],
         )
 
-    def fetch_stock_rows(keyword="", page_no=1):
+    def fetch_employee_rows(keyword="", page_no=1):
         offset = (page_no - 1) * PAGE_SIZE
 
-        db_rows = fetch_stocks(
+        db_rows = fetch_employees(
             search_type=search_type_value["value"],
             keyword=keyword,
             limit=PAGE_SIZE,
             offset=offset,
-            start_date=get_selected_date_text(selected_start["value"]),
-            end_date=get_selected_date_text(selected_end["value"]),
+            start_date=selected_start["value"],
+            end_date=selected_end["value"],
         )
 
-        return stock_db_row_adapter(db_rows, page_no)
+        return employee_db_row_adapter(db_rows, page_no)
 
     def move_page(page_no: int, page: ft.Page):
         if page_no < 1:
@@ -608,23 +653,9 @@ def erp_stock_product_detail_view():
             if current_page <= 3:
                 page_numbers = [1, 2, 3, 4, None, total_pages]
             elif current_page >= total_pages - 2:
-                page_numbers = [
-                    1,
-                    None,
-                    total_pages - 3,
-                    total_pages - 2,
-                    total_pages - 1,
-                    total_pages,
-                ]
+                page_numbers = [1, None, total_pages - 3, total_pages - 2, total_pages - 1, total_pages]
             else:
-                page_numbers = [
-                    1,
-                    current_page - 1,
-                    current_page,
-                    current_page + 1,
-                    None,
-                    total_pages,
-                ]
+                page_numbers = [1, current_page - 1, current_page, current_page + 1, None, total_pages]
 
         for page_no in page_numbers:
             if page_no is None:
@@ -638,7 +669,6 @@ def erp_stock_product_detail_view():
                             size=18,
                             color="#0F172A",
                             weight=ft.FontWeight.W_700,
-                            text_align=ft.TextAlign.CENTER,
                         ),
                     )
                 )
@@ -674,10 +704,11 @@ def erp_stock_product_detail_view():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]
 
-        fetched_rows = fetch_stock_rows(keyword, current_page)
+        fetched_rows = fetch_employee_rows(keyword, current_page)
+        filtered_rows = apply_date_filter(fetched_rows)
 
         rows_state.clear()
-        rows_state.extend(fetched_rows)
+        rows_state.extend(filtered_rows)
 
         refresh_table(rows_state)
         refresh_pagination()
@@ -692,15 +723,6 @@ def erp_stock_product_detail_view():
             if selected_end["value"]
             else "미선택"
         )
-
-        if pagination_state["total_count"] == 0:
-            result_text.value = (
-                f"기간: {start_text} ~ {end_text} / "
-                f"검색조건: {search_type_labels[search_type_value['value']]} / "
-                f"검색어: {keyword if keyword else '없음'} / "
-                "일치하는 정보가 없습니다."
-            )
-            return
 
         result_text.value = (
             f"기간: {start_text} ~ {end_text} / "
@@ -737,15 +759,54 @@ def erp_stock_product_detail_view():
 
         reload_current_page()
 
-    def on_download(e):
-        result_text.value = "다운로드 기능은 아직 연결 전입니다."
-        e.page.update()
+    search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
 
     def on_print(e):
         result_text.value = "인쇄 기능은 아직 연결 전입니다."
         e.page.update()
 
-    search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
+    def on_download(e):
+        result_text.value = "다운로드 기능은 아직 연결 전입니다."
+        e.page.update()
+
+    def close_register_modal(e):
+        dim_bg.visible = False
+        popup_layer.visible = False
+        popup_layer.content = None
+        e.page.update()
+
+    def clear_register_session(page: ft.Page):
+        for field in EMPLOYEE_FIELDS:
+            page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
+
+    def handle_register_success(saved_data: dict):
+        create_employee(saved_data)
+        pagination_state["current_page"] = 1
+        pagination_state["keyword"] = ""
+        pagination_state["total_count"] = fetch_total_count("")
+        pagination_state["total_pages"] = max(
+            1,
+            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
+        )
+        reload_current_page()
+
+    def open_register_modal(e):
+        clear_register_session(e.page)
+
+        popup_layer.content = build_modal(
+            page=e.page,
+            register_title="사원 등록",
+            edit_title="사원 정보 수정",
+            fields=EMPLOYEE_FIELDS,
+            session_prefix=SESSION_PREFIX,
+            close_handler=close_register_modal,
+            on_submit_success=handle_register_success,
+        )
+        dim_bg.visible = True
+        popup_layer.visible = True
+        e.page.update()
+
+    dim_bg.on_click = close_register_modal
 
     refresh_picker_fields()
 
@@ -753,6 +814,20 @@ def erp_stock_product_detail_view():
         load_rows()
     except Exception as exc:
         result_text.value = f"DB 조회 실패: {exc}"
+
+    action_controls = [
+        action_button(
+            "조회",
+            on_click=lambda e: (
+                load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
+                e.page.update(),
+            ),
+            width=78,
+        ),
+        action_button("인쇄", on_click=on_print, width=78),
+        action_button("다운로드", on_click=on_download, width=104),
+        action_button("등록", on_click=open_register_modal, width=78),
+    ]
 
     filter_bar = ft.Container(
         bgcolor=ft.Colors.WHITE,
@@ -763,32 +838,19 @@ def erp_stock_product_detail_view():
             controls=[
                 start_field_holder,
                 start_icon_holder,
+                ft.Text(
+                    value="~",
+                    size=16,
+                    color="#374151",
+                    weight=ft.FontWeight.W_500,
+                ),
                 end_field_holder,
                 end_icon_holder,
                 search_type,
                 search_field,
-                action_button(
-                    "조회",
-                    on_click=lambda e: (
-                        load_rows(e.page)
-                        if not (search_field.value or "").strip()
-                        else run_search(e.page),
-                        e.page.update(),
-                    ),
-                    width=78,
-                ),
-                action_button("인쇄", on_click=on_print, width=78),
-                action_button("다운로드", on_click=on_download, width=104),
+                *action_controls,
             ],
         ),
-    )
-
-    table_content = ft.Column(
-        spacing=0,
-        controls=[
-            build_table_header(),
-            table_rows_holder,
-        ],
     )
 
     table_area = ft.Container(
@@ -796,11 +858,11 @@ def erp_stock_product_detail_view():
         border=ft.border.all(1, TABLE_BORDER),
         border_radius=10,
         bgcolor=CARD_BG,
-        clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        content=ft.Row(
-            scroll=ft.ScrollMode.AUTO,
+        content=ft.Column(
+            spacing=0,
             controls=[
-                ft.Container(content=table_content),
+                build_table_header(),
+                table_rows_holder,
             ],
         ),
     )
@@ -838,5 +900,12 @@ def erp_stock_product_detail_view():
 
     return ft.Container(
         expand=True,
-        content=main_content,
+        content=ft.Stack(
+            expand=True,
+            controls=[
+                main_content,
+                dim_bg,
+                popup_layer,
+            ],
+        ),
     )

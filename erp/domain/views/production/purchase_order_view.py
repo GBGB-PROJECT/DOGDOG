@@ -3,7 +3,7 @@ import flet as ft
 
 from components import common as cm
 from components.common.modals.purchase_order import PurchaseOrderDialog
-from backend.erp.production.service import (
+from backend.erp.production.production_supplier_service import (
     count_purchase_orders,
     fetch_purchase_orders,
     fetch_purchase_order_detail,

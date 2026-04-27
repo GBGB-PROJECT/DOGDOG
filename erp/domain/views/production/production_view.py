@@ -28,6 +28,7 @@ TEXT_SECONDARY = "#6B7280"
 TEXT_TERTIARY = "#9CA3AF"
 TEXT_ROW = "#374151"
 ACTION_BLUE = "#2563EB"
+ACTION_RED = "#EF4444"
 
 
 # ==============================
@@ -110,8 +111,7 @@ def erp_production_view():
         )
         e.page.go("/production/inbound")
 
-    # 🔥 최근 발주 카드의 상세 내역 클릭 시 바로 발주서 모달 열기
-    # - 월 이동 기능과 충돌하지 않게 reload_dashboard()에서 매번 다시 바인딩함
+    # 🔥 최근 발주 카드의 상세내역 클릭 시 바로 발주서 모달 열기
     def open_purchase_order_detail(e, purchase_order_id):
         try:
             if not purchase_order_id:
@@ -153,6 +153,7 @@ def erp_production_view():
         color: str = TEXT_PRIMARY,
         weight=ft.FontWeight.W_400,
         text_align: ft.TextAlign | None = None,
+        max_lines: int = 1,
     ):
         return ft.Text(
             value=str(value or ""),
@@ -160,7 +161,7 @@ def erp_production_view():
             color=color,
             weight=weight,
             text_align=text_align,
-            max_lines=1,
+            max_lines=max_lines,
             overflow=ft.TextOverflow.ELLIPSIS,
         )
 
@@ -188,9 +189,14 @@ def erp_production_view():
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Container(
-                    width=76,
+                    width=78,
                     alignment=ft.Alignment(-1, 0),
-                    content=build_text(left_text, size=13, color=TEXT_SECONDARY),
+                    content=build_text(
+                        left_text,
+                        size=13,
+                        color=TEXT_PRIMARY,
+                        weight=ft.FontWeight.W_700,
+                    ),
                 ),
                 ft.Container(
                     expand=True,
@@ -199,7 +205,7 @@ def erp_production_view():
                         right_text,
                         size=13,
                         color=TEXT_PRIMARY,
-                        weight=ft.FontWeight.W_600,
+                        weight=ft.FontWeight.W_700,
                         text_align=ft.TextAlign.RIGHT,
                     ),
                 ),
@@ -252,7 +258,9 @@ def erp_production_view():
             controls=[
                 ft.Container(
                     expand=1,
-                    alignment=ft.Alignment(-1, 0) if i < len(row_items) - 1 else ft.Alignment(1, 0),
+                    alignment=ft.Alignment(-1, 0)
+                    if i < len(row_items) - 1
+                    else ft.Alignment(1, 0),
                     content=build_text(item, size=13, color=TEXT_ROW),
                 )
                 for i, item in enumerate(row_items)
@@ -285,7 +293,11 @@ def erp_production_view():
             content=ft.Column(
                 spacing=12,
                 controls=[
-                    build_box_header(title, box_data.get("count_text", "0건"), on_click=header_click),
+                    build_box_header(
+                        title,
+                        box_data.get("count_text", "0건"),
+                        on_click=header_click,
+                    ),
                     build_text(box_data.get("subtitle", ""), size=13, color=TEXT_SECONDARY),
                     ft.Divider(height=1, color=BORDER_COLOR),
                     row_area,
@@ -294,9 +306,12 @@ def erp_production_view():
         )
 
     def build_recent_purchase_item_box(item_data):
+        # 🔥 기존 카드 프레임 유지
+        # - 카드 크기/라운드/배경은 기존 ERP 대시보드 스타일 유지
+        # - 안쪽 내용만 디자인 예시처럼 GAEBOB 코드 + 상세내역 + 발주 정보로 변경
         return ft.Container(
-            width=220,  # 🔥 수정: 5개 카드가 모두 같은 폭으로 보이도록 고정
-            height=210,
+            width=220,
+            height=220,
             padding=16,
             border_radius=12,
             bgcolor=CARD_INNER_BG,
@@ -306,26 +321,27 @@ def erp_production_view():
                 controls=[
                     ft.Container(
                         height=34,
-                        alignment=ft.Alignment(1, 0),
+                        alignment=ft.Alignment(-1, 0),
                         content=build_text(
                             item_data.get("name", ""),
-                            size=12,
-                            color=TEXT_TERTIARY,
-                            text_align=ft.TextAlign.RIGHT,
+                            size=13,
+                            color=TEXT_PRIMARY,
+                            weight=ft.FontWeight.W_700,
+                            text_align=ft.TextAlign.LEFT,
                         ),
                     ),
                     ft.Container(
                         height=28,
                         alignment=ft.Alignment(1, 0),
                         content=ft.TextButton(
-                            item_data.get("action_text", "상세 내역"),
+                            item_data.get("action_text", "상세내역"),
                             on_click=item_data.get("on_action_click"),
                             style=ft.ButtonStyle(
                                 padding=0,
-                                color=ACTION_BLUE,
+                                color=ACTION_RED,
                                 text_style=ft.TextStyle(
-                                    size=13,
-                                    weight=ft.FontWeight.W_600,
+                                    size=12,
+                                    weight=ft.FontWeight.W_500,
                                 ),
                             ),
                         ),
@@ -340,19 +356,19 @@ def erp_production_view():
         )
 
     def build_recent_purchase_box(section_data):
-        # 🔥 최근 발주 카드는 5개 모두 같은 크기로 고정
-        # - expand=1 방식은 긴 상품명이 있는 카드가 더 넓어져서 월마다 카드 폭이 흔들릴 수 있음
-        # - width=220 고정 카드 5개를 Row에 배치해서 모든 월에서 같은 모양 유지
+        # 🔥 외곽 프레임은 기존 스타일 유지
+        # - rounded box / CARD_BG / padding / height 되돌림
+        # - 안쪽 카드 내용만 발주서 요약 형태로 변경
         items = section_data.get("items", [])[:5]
 
         if items:
             item_area = ft.Container(
-                height=226,  # 🔥 수정: 가로 스크롤바가 들어갈 여유 높이 확보
+                height=238,
                 clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 content=ft.Row(
                     spacing=12,
-                    scroll=ft.ScrollMode.AUTO,  # 🔥 수정: 카드 5개가 화면을 넘으면 가로 스크롤 가능
-                    alignment=ft.MainAxisAlignment.START,  # 🔥 수정: 잘림 없이 첫 카드부터 고정 배치
+                    scroll=ft.ScrollMode.AUTO,
+                    alignment=ft.MainAxisAlignment.START,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         build_recent_purchase_item_box(item)
@@ -362,16 +378,21 @@ def erp_production_view():
             )
         else:
             item_area = ft.Container(
-                height=210,
+                height=220,
                 alignment=ft.Alignment(0, 0),
-                content=build_text("최근 발주 내역이 없습니다.", size=13, color=TEXT_SECONDARY),
+                content=build_text(
+                    "최근 발주 내역이 없습니다.",
+                    size=13,
+                    color=TEXT_SECONDARY,
+                ),
             )
 
         return build_base_box(
             expand=1,
-            height=298,  # 🔥 수정: 카드 영역 + 가로 스크롤바 높이까지 포함
+            height=310,
             padding=20,
             border_radius=16,
+            bgcolor=CARD_BG,
             content=ft.Column(
                 spacing=16,
                 controls=[
@@ -415,6 +436,7 @@ def erp_production_view():
         }
 
         month_navigation_holder.content = build_month_navigation()
+
         status_box_holder.content = ft.Row(
             spacing=16,
             controls=[
@@ -422,9 +444,11 @@ def erp_production_view():
                 for box in dashboard_data.get("status_box_data", [])
             ],
         )
+
         chart_holder.content = build_production_twin_chart(
             chart_data=dashboard_data.get("chart_data", [])
         )
+
         recent_purchase_holder.content = build_recent_purchase_box(section_data)
 
         if page:
@@ -447,7 +471,10 @@ def erp_production_view():
                     on_click=lambda e: move_dashboard_month(-1, e),
                 ),
                 build_text(
-                    state["data"].get("current_month_text", f"{state['year']}년 {state['month']}월"),
+                    state["data"].get(
+                        "current_month_text",
+                        f"{state['year']}년 {state['month']}월",
+                    ),
                     size=18,
                     color="#222222",
                     weight=ft.FontWeight.W_700,
@@ -484,6 +511,7 @@ def erp_production_view():
                 chart_holder,
                 ft.Row(
                     spacing=6,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
                     controls=[
                         ft.Container(
                             width=180,

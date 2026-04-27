@@ -8,9 +8,10 @@ from math import ceil
 from typing import Literal
 from datetime import date
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from .production_supplier_service import count_suppliers, fetch_suppliers, create_supplier
+from .production_supplier_service import count_suppliers, fetch_suppliers
+from .production_supplier_schema import ErpProductionSupplierListResponse
 
 router = APIRouter(
     prefix="/erp/production/supplier",
@@ -74,6 +75,7 @@ def build_response_rows(items: list, page: int, size: int):
         "생산관리 > 거래처 관리 화면에서 사용하는 목록 조회 API입니다. "
         "ERP.supplier 테이블 기준으로 검색 조건, 검색어, 최종수정일 날짜 범위, 페이지 정보를 받아 거래처 목록을 반환합니다."
     ),
+    response_model=ErpProductionSupplierListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
 def get_suppliers(
     search_type: Literal[
@@ -155,54 +157,4 @@ def get_suppliers(
                 "error_code": "SUPPLIER_LIST_FAILED",
                 "message": f"거래처 목록 조회 중 서버 오류가 발생했습니다. {exc}",
             },
-        )
-
-
-@router.post(
-    "",
-    summary="거래처 등록",
-    description=(
-        "ERP.supplier 테이블에 거래처를 등록합니다. "
-        "거래처명, 사업자번호, 연락상태, 지정결제일, 예정결제일, 담당자ID, 담당자명, 전화번호를 입력합니다."
-    ),
-)
-def post_supplier(
-    payload: dict = Body(
-        ...,
-        examples={
-            "example": {
-                "summary": "거래처 등록 예시",
-                "value": {
-                    "supplier_name": "하림펫푸드",
-                    "brn": "1234567890",
-                    "is_contact_status": "Y",
-                    "designated_payment_date": 25,
-                    "scheduled_payment_date": "2026-04-30",
-                    "employee_id": 1,
-                    "memo": "신규 거래처",
-                    "sup_manager": "홍길동",
-                    "phone": "01012345678",
-                },
-            }
-        },
-    )
-):
-    try:
-        created = create_supplier(payload)
-        return {
-            "success": True,
-            "message": "거래처 등록에 성공했습니다.",
-            "data": {"item": {**created, "is_contact_status": _format_contact_status(created.get("is_contact_status", ""))}},
-        }
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail={"success": False, "error_code": "SUPPLIER_CREATE_VALIDATION_FAILED", "message": str(exc)},
-        )
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail={"success": False, "error_code": "SUPPLIER_CREATE_FAILED", "message": f"거래처 등록 중 서버 오류가 발생했습니다. {exc}"},
         )

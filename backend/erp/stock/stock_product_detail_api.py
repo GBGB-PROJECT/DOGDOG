@@ -11,6 +11,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 
 from .stock_product_detail_service import count_stocks, fetch_stocks
+from .stock_product_detail_schema import ErpStockProductDetailListResponse
 
 router = APIRouter(
     prefix="/erp/stock",
@@ -76,6 +77,7 @@ def build_response_rows(items: list, page: int, size: int):
         "ERP.stock을 중심으로 OPD.product, OPD.product_detail, ERP.inbound, ERP.inbound_status를 조인합니다. "
         "화면에서는 stock 중심 컬럼만 반환하며 중복 ID와 상품 판매 옵션 컬럼은 제외합니다."
     ),
+    response_model=ErpStockProductDetailListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
 def get_stock_product_detail_list(
     search_type: Literal[

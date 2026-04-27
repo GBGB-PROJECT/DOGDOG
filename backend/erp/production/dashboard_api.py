@@ -7,6 +7,7 @@
 from fastapi import APIRouter, HTTPException, Query
 
 from .dashboard_service import fetch_production_dashboard
+from .dashboard_schema import ErpProductionDashboardResponse
 
 
 router = APIRouter(
@@ -23,6 +24,7 @@ router = APIRouter(
         "월별 생산/불량 실적 차트, 최근 발주 카드 데이터를 반환합니다. "
         "year/month를 넘기면 해당 월 기준으로 카드와 최근 내역을 필터링합니다."
     ),
+    response_model=ErpProductionDashboardResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
 def get_production_dashboard(
     year: int | None = Query(

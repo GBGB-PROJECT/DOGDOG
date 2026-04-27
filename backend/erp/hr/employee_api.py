@@ -1,14 +1,12 @@
-from typing import Optional, Literal
+from typing import Literal
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, ConfigDict
-
 from .employee_service import (
     count_employees,
     fetch_employees,
-    create_employee,
 )
+from .employee_schema import ErpHrEmployeeListResponse
 
 
 router = APIRouter(
@@ -28,23 +26,6 @@ SEARCH_TYPE_LABELS = {
 }
 
 
-class EmployeeCreateRequest(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    employee_id: int
-    account_id: str
-    password: str
-    username: str
-    hire_date: str
-    quit_date: Optional[str] = None
-    emp_position_id: Optional[int] = None
-    manager_id: Optional[int] = None
-    email: str
-    phone: str
-    address: str
-    postal_code: str
-    active: bool | str = True
-
 
 @router.get(
     "",
@@ -53,6 +34,7 @@ class EmployeeCreateRequest(BaseModel):
         "인사관리 화면에서 사용하는 사원 목록 조회 API입니다. "
         "employee와 emp_position을 JOIN하여 직책명을 함께 반환합니다."
     ),
+    response_model=ErpHrEmployeeListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
 def get_employees(
     # 🔥 수정: Swagger에서 검색조건이 맨 위에 오도록 page/size보다 먼저 배치
@@ -152,27 +134,3 @@ def get_employees(
                 "message": f"사원 목록 조회 중 서버 오류가 발생했습니다. {exc}",
             },
         )
-
-
-@router.post(
-    "",
-    summary="사원 등록",
-    description="인사관리 화면의 등록 모달에서 사용하는 사원 등록 API입니다.",
-)
-def post_employee(payload: EmployeeCreateRequest):
-    try:
-        created = create_employee(payload.model_dump())
-        return {
-            "success": True,
-            "message": "사원 정보가 등록되었습니다.",
-            "data": created,
-        }
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "success": False,
-                "error_code": "EMPLOYEE_CREATE_FAILED",
-                "message": str(exc),
-            },
-        ) from exc

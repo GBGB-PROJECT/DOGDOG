@@ -12,6 +12,7 @@ from .subscription_service import (
     count_customer_subscriptions,
     fetch_customer_subscriptions,
 )
+from .subscription_schema import ErpCustomerSubscriptionListResponse
 
 
 router = APIRouter(
@@ -69,6 +70,7 @@ def build_response_rows(items: list, page: int, size: int):
         "고객 구독 관리 화면에서 사용하는 목록 조회 API입니다. "
         "OPD.subs, OPD.subs_plan, OPD.subs_detail을 JOIN하여 구독 목록을 반환합니다."
     ),
+    response_model=ErpCustomerSubscriptionListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
 def get_customer_subscription_list(
     search_type: Literal[

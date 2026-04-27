@@ -11,6 +11,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 
 from .inbound_service import count_inbounds, fetch_inbounds
+from .inbound_schema import ErpProductionInboundListResponse
 
 
 router = APIRouter(
@@ -75,6 +76,7 @@ def build_response_rows(items: list, page: int, size: int):
         "생산관리 > 생산입고현황조회 화면에서 사용하는 입고 현황 조회 API입니다. "
         "ERP.inbound와 ERP.inbound_status를 JOIN하여 입고상태 ID가 아닌 상태명을 반환합니다."
     ),
+    response_model=ErpProductionInboundListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
 def get_inbound_list(
     search_type: Literal[

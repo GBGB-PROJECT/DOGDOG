@@ -11,22 +11,21 @@ class DashboardRepo:
 
     def get_sale_hightlight(self, target_year: int):
         
-        # ==========================================
+    # ==========================================
         # [1] 올해 (target_year) 장부 조회
         # ==========================================
         subs_data = self.db.query(
-            func.coalesce(func.sum(OpdSubsItem.final_amount * OpdSubsItem.quantity), 0).label("subs_amount"),
+            func.coalesce(func.sum(OpdSubsItem.final_amount), 0).label("subs_amount"), # 수정됨 (* quantity 제거)
             func.coalesce(func.sum(OpdSubsItem.quantity), 0).label("subs_qty")
         ).filter(extract('year', OpdSubsItem.last_update) == target_year).first()
 
         sales_data = self.db.query(
-            func.coalesce(func.sum(OpdSalesOrderItem.total_amount * OpdSalesOrderItem.quantity), 0).label("sales_amount"),
+            func.coalesce(func.sum(OpdSalesOrderItem.total_amount), 0).label("sales_amount"), # 수정됨 (* quantity 제거)
             func.coalesce(func.sum(OpdSalesOrderItem.quantity), 0).label("sales_qty")
         ).filter(extract('year', OpdSalesOrderItem.last_update) == target_year).first()
 
-        # 올해 실적 결합
-        total_amount = subs_data.subs_amount + sales_data.sales_amount # 총 매출 (올해)
-        total_qty = subs_data.subs_qty + sales_data.sales_qty # 총 판매량수 (올해)
+        total_amount = subs_data.subs_amount + sales_data.sales_amount
+        total_qty = subs_data.subs_qty + sales_data.sales_qty
 
         # ==========================================
         # [2] 작년 (target_year - 1) 장부 조회
@@ -35,11 +34,11 @@ class DashboardRepo:
 
         # 작년은 '성장률' 계산을 위해 '매출액'만 필요하므로 금액만 가져옵니다.
         subs_data_last_year = self.db.query(
-            func.coalesce(func.sum(OpdSubsItem.final_amount * OpdSubsItem.quantity), 0).label("subs_amount")
+            func.coalesce(func.sum(OpdSubsItem.final_amount), 0).label("subs_amount")
         ).filter(extract('year', OpdSubsItem.last_update) == last_year).first()
 
         sales_data_last_year = self.db.query(
-            func.coalesce(func.sum(OpdSalesOrderItem.total_amount * OpdSalesOrderItem.quantity), 0).label("sales_amount")
+            func.coalesce(func.sum(OpdSalesOrderItem.total_amount), 0).label("sales_amount")
         ).filter(extract('year', OpdSalesOrderItem.last_update) == last_year).first()
 
         # 작년 실적 결합
@@ -64,7 +63,7 @@ class DashboardRepo:
         """
         # 1. 구독 상품 (시작일 ~ 종료일 사이의 매출 합산)
         subs_data = self.db.query(
-            func.coalesce(func.sum(OpdSubsItem.final_amount * OpdSubsItem.quantity), 0).label("subs_amount")
+            func.coalesce(func.sum(OpdSubsItem.final_amount), 0).label("subs_amount")
         ).filter(
             OpdSubsItem.last_update >= start_date,
             OpdSubsItem.last_update <= end_date
@@ -72,7 +71,7 @@ class DashboardRepo:
 
         # 2. 일반 판매 상품 (시작일 ~ 종료일 사이의 매출 합산)
         sales_data = self.db.query(
-            func.coalesce(func.sum(OpdSalesOrderItem.total_amount * OpdSalesOrderItem.quantity), 0).label("sales_amount")
+            func.coalesce(func.sum(OpdSalesOrderItem.total_amount), 0).label("sales_amount")
         ).filter(
             OpdSalesOrderItem.last_update >= start_date,
             OpdSalesOrderItem.last_update <= end_date

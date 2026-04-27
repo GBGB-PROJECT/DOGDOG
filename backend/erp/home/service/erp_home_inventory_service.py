@@ -6,18 +6,16 @@ class InvenDashboardService:
     def __init__(self, db: Session):
         self.repo = InvenDashboardRepo(db)
 
-    # 콜론(:)을 추가하여 함수를 올바르게 열어줍니다.
     def get_invendashboard_highlight(self):
         
-        # 1. 창고지기에게 전달할 3월의 시작일과 종료일을 지정합니다.
-        # (기존 매출 하이라이트 API와 동일하게 2026년을 기준으로 잡았습니다.)
-        start_date = datetime.date(2026, 3, 1)
-        end_date = datetime.date(2026, 3, 31)
-        target_year = 2026
+        # [수정됨] 창고지기가 알아서 오늘 날짜 기준으로 계산하므로,
+        # Service단에서 억지로 2026년 4월 등 하드코딩된 날짜를 만들 필요가 없습니다.
+        # 기존의 start_date, end_date, target_year 변수 선언부는 모두 삭제합니다.
 
         try:
             # 2. 창고지기(Repo)를 호출하여 데이터를 가져옵니다.
-            inventory_data = self.repo.get_inventory_highlight(start_date, end_date, target_year)
+            # [수정됨] 이제 메모지(인자) 없이 가볍게 빈 괄호로만 호출합니다.
+            inventory_data = self.repo.get_inventory_highlight()
             
         except Exception as e:
             # [핵심] 에러가 났을 때 원인을 파악하기 위해 터미널에 프린트합니다.

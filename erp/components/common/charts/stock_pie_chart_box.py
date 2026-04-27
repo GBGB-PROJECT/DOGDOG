@@ -1,5 +1,5 @@
 import flet as ft
-from backend.api.erp_home_view_api import get_home_view_data
+from erp.domain.controller.home.erp_home_input import get_home_view_data
 from components import common as cm
 import flet_charts as fch
 

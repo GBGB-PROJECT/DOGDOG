@@ -1,5 +1,5 @@
 import flet as ft
-from backend.api.erp_home_view_api import *
+from erp.domain.controller.home.erp_home_input import *
 from components import common as cm
 
 def _vertical_progress(value: float):

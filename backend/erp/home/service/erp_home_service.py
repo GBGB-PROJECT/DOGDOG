@@ -36,19 +36,19 @@ class DashboardService:
         # [계산 2] 연간 목표대비 달성률 (%)
         # 공식: (올해 매출 / 연간 목표액) * 100
         # ==========================================
-        # (임시) 목표액을 100억(10,000,000,000)으로 가정했습니다.
-        yearly_target_amount = 10000000000 
+        # (임시) 목표액을 60억으로 가정했습니다.
+        yearly_target_amount = 600000000 
         monthly_target = yearly_target_amount / 12  # 월간 목표
         weekly_target = monthly_target / 4 # 주간 목표
 
       # 월간 (4월 1일 ~ 4월 30일)
-        month_start = datetime.date(2026, 3, 1)
-        month_end = datetime.date(2026, 3, 31)
+        month_start = datetime.date(2026, 4, 1)
+        month_end = datetime.date(2026, 4, 30)
         monthly_amount = self.repo.get_sales_by_period(month_start, month_end)
 
-        # 주간 (4월 20일 ~ 4월 26일)
-        week_start = datetime.date(2026, 3, 20)
-        week_end = datetime.date(2026, 3, 26)
+        # 주간 (5月 3日 - 5月 9日)
+        week_start = datetime.date(2026, 5, 3)
+        week_end = datetime.date(2026, 5, 9)
         weekly_amount = self.repo.get_sales_by_period(week_start, week_end)
 
 

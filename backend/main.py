@@ -17,6 +17,7 @@ from app.products.products_api import router as products_router
 from erp.auth.api.erp_signinup_api import router as erp_employee_router
 from erp.home.api.erp_home_api import router as erp_home_router
 from erp.home.api.erp_home_inventory_api import router as erp_home_inventory_router
+from erp.home.api.erp_home_chart_api import router as erp_home_chart_router
 from erp.product.api import router as erp_product_router
 from erp.customer.api import router as erp_customer_router
 
@@ -63,6 +64,7 @@ def read_root():
 app.include_router(erp_employee_router)
 app.include_router(erp_home_router)
 app.include_router(erp_home_inventory_router)
+app.include_router(erp_home_chart_router)
 # 1. Auth & Users 도메인
 app.include_router(auth_router)
 app.include_router(users_router)

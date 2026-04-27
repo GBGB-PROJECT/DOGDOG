@@ -145,12 +145,6 @@ def _build_chart_data(monthly_data):
     return chart_data
 
 
-# =========================================================
-# 🔥 매출 TOP 재고 카드 변환
-# - 적정 재고량은 별도 안전재고 테이블이 없으므로 임시 계산
-# - 기준: 해당 월 판매량 * 2
-# - 예상 발주량: max(적정 재고량 - 현재고, 0)
-# =========================================================
 def _build_top_stock_items(rows):
     items = []
 
@@ -160,8 +154,17 @@ def _build_top_stock_items(rows):
         sales_quantity = _to_int(row.get("sales_quantity"))
         current_stock = _to_int(row.get("current_stock"))
 
-        proper_stock = max(sales_quantity * 2, sales_quantity)
-        expected_order_quantity = max(proper_stock - current_stock, 0)
+        # 🔥 대시보드용 보충 생산량 계산
+        # - 기존 방식: 적정 재고량 - 현 재고량이라 현 재고가 많으면 전부 0이 됨
+        # - 수정 방식: 현재 재고를 유지하면서 월 판매량 기반으로 추가 보충량을 산정
+        # - 예상 발주량은 "부족분"이 아니라 "보충 권장량"처럼 보이게 만듦
+        expected_order_quantity = max(
+            sales_quantity * 2,
+            round(current_stock * 0.05),
+            10,
+        )
+
+        proper_stock = current_stock + expected_order_quantity
 
         display_name = product_name
         if brand:

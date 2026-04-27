@@ -282,7 +282,8 @@ class OnboardingController:
                 success = await auth_ctrl.complete_relay(auth_data, new_pet_id, customer_id=customer_id)
                 
                 if success:
-                    self.show_error(text="DOGDOG에 오신 것을 환영합니다!")
+                    # self.show_error(text="DOGDOG에 오신 것을 환영합니다!") # 스낵바 대신 성공 화면으로 이동
+                    self.change_page_callback("/sign_up_success")
                 else:
                     self.show_error(text="세션 동기화 중 오류가 발생했습니다.")
             else:

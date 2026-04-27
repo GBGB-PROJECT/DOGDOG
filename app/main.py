@@ -6,7 +6,7 @@ import time
 import asyncio
 import components as dogdog
 
-#테스트 아이디(test7)로 테스트 설정
+# 테스트 아이디(test7)로 테스트 설정
 IS_TEST_MODE = True
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
@@ -195,7 +195,7 @@ class Front_dogdog:
             self.is_onboarding_complete = True
 
             if self.page.route == "/home":
-                self.routing_view(page_name="/home")
+                await self.routing_view(page_name="/home")
             else:
                 self.page.go("/home")
 
@@ -204,15 +204,16 @@ class Front_dogdog:
         except Exception as e:
             print(f"[DEV] Error during auto relay: {e}")
 
-            # 화면에 에러 표시 및 3초 대기
+            # 화면에 에러 표시 및 3초 대기 후 가입 화면으로 이동
             if hasattr(self, "loading_text"):
-                self.loading_text.value = f"오류 발생: {e}"
+                self.loading_text.value = f"테스트 계정 정보를 불러올 수 없습니다.\n(에러: {e})"
                 self.loading_text.color = ft.Colors.RED
                 self.page.update()
                 await asyncio.sleep(3)
 
             self.is_onboarding_complete = False
             self.page.go("/sign_up")
+            self.page.update()
 
     # ---------------------------------------------------------------------------------------------------
     # Route Change & Android OnBackPressedCallback Event
@@ -223,6 +224,8 @@ class Front_dogdog:
             self.page.views.pop()
             self.page.update()
         elif len(self.page.views) == 0 or self.page.views[-1].route != route:
+            # 새 페이지로 이동 시 기존 뷰 스택을 비워 메모리 누수 및 잔상 방지
+            self.page.views.clear()
             await self.routing_view(page_name=route)
 
     def handle_back(self, e=None):
@@ -239,14 +242,23 @@ class Front_dogdog:
             (ft.Icons.HOME, "Home", lambda _: self.page.go("/home")),
             (ft.Icons.CALENDAR_MONTH, "Log", lambda _: self.page.go("/log")),
             ("skeleton.png", None, lambda _: self.page.go("/shop")),
-            (ft.Icons.MESSENGER_OUTLINE_ROUNDED, "Contents", lambda _: self.page.go("/contents")),
+            (
+                ft.Icons.MESSENGER_OUTLINE_ROUNDED,
+                "Contents",
+                lambda _: self.page.go("/contents"),
+            ),
             (ft.Icons.PERSON_OUTLINE, "MyPage", lambda _: self.page.go("/mypage")),
         ]
 
         # 2. 라우트 성격 분류
         onboarding_routes = [
-            "/sign_up", "/pet_info", "/pet_obesity", "/pet_activity", 
-            "/pet_health", "/pet_food", "/sign_up_success"
+            "/sign_up",
+            "/pet_info",
+            "/pet_obesity",
+            "/pet_activity",
+            "/pet_health",
+            "/pet_food",
+            "/sign_up_success",
         ]
 
         # 3. [교통 정리] 온보딩 라우트와 일반(홈) 라우트를 명확히 분리
@@ -295,7 +307,7 @@ class Front_dogdog:
             # --- 일반 서비스 뷰 생성 (Home Tile) ---
             if page_name == "/home":
                 self.page.views.clear()
-                self.page.update() # 뷰를 비운 직후 즉시 갱신하여 로딩 화면처럼 보이게 함
+                self.page.update()  # 뷰를 비운 직후 즉시 갱신하여 로딩 화면처럼 보이게 함
 
             home_background, main_container_content = await domains.home_tile(
                 page=self.page,
@@ -319,7 +331,7 @@ class Front_dogdog:
             new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
 
         self.page.views.append(new_view)
-        self.page.update() # 최종 뷰 추가 후 갱신
+        self.page.update()  # 최종 뷰 추가 후 갱신
 
 
 # -------------------------------------------------------------------------------------------------------

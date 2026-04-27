@@ -120,6 +120,17 @@ def on_boarding_tile(page: ft.Page, content_page: str, change_page_callback):
         )
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/sign_up_success":
+        # 1.5초 후 자동으로 홈 화면으로 이동하는 비동기 태스크 정의
+        async def auto_redirect_to_home():
+            import asyncio
+            await asyncio.sleep(1.5)
+            # 이미 다른 페이지로 이동했거나 페이지가 닫힌 경우를 대비한 방어 코드
+            if page.route == "/sign_up_success":
+                page.go("/home")
+
+        # 화면이 렌더링됨과 동시에 비동기 태스크 실행
+        page.run_task(auto_redirect_to_home)
+
         basic_content = ft.Row(
             expand=True,
             controls=[
@@ -131,7 +142,7 @@ def on_boarding_tile(page: ft.Page, content_page: str, change_page_callback):
                 )
             ],
         )
-        focus_field = None
+        focus_field = ft.Container() # None 대신 빈 위젯 반환하여 "None" 글자 노출 방지
         return basic_content, focus_field
     # ---------------------------------------------------------------------------------------------------
     # On Boarding Content and Dummy Focus Field Change

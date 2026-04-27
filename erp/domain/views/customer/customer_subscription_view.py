@@ -2,10 +2,8 @@ import math
 import datetime
 import flet as ft
 
-from backend.erp.customer.subscription_service import (
-    count_customer_subscriptions,
-    fetch_customer_subscriptions,
-)
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import count_customer_subscriptions, fetch_customer_subscriptions
 
 
 # =========================================================

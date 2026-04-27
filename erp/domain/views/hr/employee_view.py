@@ -5,7 +5,8 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import EMPLOYEE_FIELDS
-from backend.erp.hr.employee_service import count_employees, fetch_employees, create_employee
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import count_employees, fetch_employees, create_employee
 
 
 # =========================================================

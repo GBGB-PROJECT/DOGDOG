@@ -2,8 +2,8 @@ import flet as ft
 from components import common as cm
 from components.common.charts.twin_chart import build_production_twin_chart
 
-# 🔥 생산관리 메인 대시보드 DB 조회 service
-from backend.erp.production.dashboard_service import fetch_production_dashboard
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import fetch_production_dashboard
 
 # 🔥 생산 입고 count 클릭 시 입고 화면에 해당 월 필터 전달
 from domain.views.production.inbound_view import set_production_inbound_prefilter
@@ -11,11 +11,13 @@ from domain.views.production.inbound_view import set_production_inbound_prefilte
 # 🔥 발주관리 상자 클릭 시 해당 월 발주 목록 필터 전달
 from domain.views.production.purchase_order_view import set_purchase_order_prefilter
 
-# 🔥 최근 발주 카드 상세 내역 모달 조회
-from backend.erp.production.production_supplier_service import (
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import (
+    fetch_production_dashboard,
     fetch_purchase_order_detail,
     fetch_purchase_order_items,
 )
+
 from components.common.modals.purchase_order import PurchaseOrderDialog
 
 

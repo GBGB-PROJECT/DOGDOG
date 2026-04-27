@@ -12,7 +12,8 @@ import math
 import datetime
 import flet as ft
 
-from backend.erp.production.inbound_service import count_inbounds, fetch_inbounds
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import count_inbounds, fetch_inbounds
 
 
 FIELD_BG = ft.Colors.WHITE

@@ -5,7 +5,8 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import SUPPLIER_FIELDS
-from backend.erp.production.production_supplier_service import count_suppliers, fetch_suppliers, create_supplier, create_supplier
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import count_suppliers, fetch_suppliers, create_supplier
 
 
 # =========================================================

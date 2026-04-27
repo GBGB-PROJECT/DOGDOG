@@ -5,7 +5,8 @@ import flet as ft
 from components import common as cm
 from components.common.modals.purchase_order import PurchaseOrderDialog
 # API client import
-from backend.api.production_purchase_order_client import (
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import (
     count_purchase_orders,
     fetch_purchase_orders,
     fetch_purchase_order_detail,
@@ -201,10 +202,29 @@ def build_table_cell(
 
 
 def normalize_cancel_text(value):
-    # 🔥 is_purchase_order_cancel
-    # - False: 정상 발주
-    # - True : 취소 발주
-    return "취소" if value else "정상"
+    # 🔥 requests 방식에서는 API가 이미 "정상" / "취소" 문자열로 내려줄 수 있다.
+    # - True / "true" / "1" / "y"  → 취소
+    # - False / "false" / "0" / "n" → 정상
+    # - "정상" / "취소" 문자열은 그대로 유지
+
+    if value in [None, ""]:
+        return ""
+
+    if value is True:
+        return "취소"
+
+    if value is False:
+        return "정상"
+
+    clean = str(value).strip().lower()
+
+    if clean in {"취소", "true", "1", "y", "yes"}:
+        return "취소"
+
+    if clean in {"정상", "false", "0", "n", "no"}:
+        return "정상"
+
+    return str(value)
 
 
 def normalize_pay_status(value):
@@ -226,7 +246,7 @@ def purchase_order_db_row_adapter(db_rows: list, page_no: int):
     for index, row in enumerate(db_rows, start=start_no):
         rows.append(
             {
-                "no": str(index),
+                "no": str(row.get("no", index)),  # 🔥 API에서 내려준 no 우선 사용
                 "purchase_order_id": row.get("purchase_order_id", ""),
                 "supplier_id": row.get("supplier_id", ""),
                 "supplier_name": row.get("supplier_name", ""),

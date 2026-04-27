@@ -2,10 +2,8 @@
 import flet as ft
 import domains as domains
 import components as dogdog
-import datetime
 # -------------------------------------------------------------------------------------------------------
-def home_tile(page: ft.Page, content_page:str, change_page_callback=None):
-    popup = dogdog.Popup(page=page)
+def home_tile(page: ft.Page, popup, content_page:str, change_page_callback=None):
     # ---------------------------------------------------------------------------------------------------
     # Default Layout
     # ---------------------------------------------------------------------------------------------------
@@ -25,13 +23,9 @@ def home_tile(page: ft.Page, content_page:str, change_page_callback=None):
         main_container_content.append(top_banner)
         main_container_content.append(body_column)
         # -----------------------------------------------------------------------------------------------
-        now_history = popup.bottom_sheet_popup
-        domains.history_bottom.now_log(page, popup, now_history)
-        body_column.controls.append(
-            dogdog.content_container(
-                content_list=domains.home.now_history(page=page),
-                on_click=lambda e:popup.show_popup_open(e, "bottom_sheet")
-        ))
+        # now_history = popup.bottom_sheet_popup
+        # domains.history_bottom.now_log(page, popup, now_history)
+        body_column.controls.append(domains.home.now_history(page=page, popup=popup))
         body_column.expand = False
         body_column.margin = None
         # -----------------------------------------------------------------------------------------------
@@ -41,11 +35,14 @@ def home_tile(page: ft.Page, content_page:str, change_page_callback=None):
                 content_list=domains.home.feeding_food_count(page=page),
                 on_click=lambda e:appbar_on_change(e, "/feeding")
         ))
-        body_scroll_column.controls.append(domains.grid.status_update_menu(page=page))
+        body_scroll_column.controls.append(domains.grid.status_update_menu(page=page, popup=popup))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/log":
         home_background , top_banner = dogdog.home_layout(page=page, text="Log")
         main_container_content.append(top_banner)
+        main_container_content.append(body_scroll_column)
+        body_scroll_column.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+        body_scroll_column.controls = domains.log.log_view(page)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/shop":
         home_background , top_banner = dogdog.home_layout(page=page, text="Shop Test")
@@ -56,8 +53,10 @@ def home_tile(page: ft.Page, content_page:str, change_page_callback=None):
         main_container_content.append(top_banner)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/mypage":
-        home_background , top_banner = dogdog.home_layout(page=page, text="My Page")
+        home_background , top_banner = dogdog.home_layout(page=page, text="마이페이지")
         main_container_content.append(top_banner)
+        main_container_content.append(body_scroll_column)
+        body_scroll_column.controls = domains.mypage_view.mypage_view(page)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/history":
         home_background , top_banner = dogdog.home_layout(page=page, text="오늘의 기록")
@@ -82,19 +81,13 @@ def home_tile(page: ft.Page, content_page:str, change_page_callback=None):
     elif content_page == "/notification":
         home_background , top_banner = dogdog.home_layout(page=page, text="알림")
         main_container_content.append(top_banner)
+        main_container_content.append(body_scroll_column)
+        body_scroll_column.controls.append(domains.notification.notification_dummy(page))
     # ---------------------------------------------------------------------------------------------------
-    elif content_page == "/what_bowel_score":
-        home_background , top_banner = dogdog.home_layout(page=page, text="배변 스코어란?")
+    elif content_page == "/notification_setting":
+        home_background , top_banner = dogdog.home_layout(page=page, text="알림 설정")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
-        body_scroll_column.margin = ft.margin.only(top=20, bottom=20)
-        body_scroll_column.controls.append(domains.guide.what_guide(page=page, content=content_page))
-    # ---------------------------------------------------------------------------------------------------
-    elif content_page == "/what_bcs":
-        home_background , top_banner = dogdog.home_layout(page=page, text="BCS 란?")
-        main_container_content.append(top_banner)
-        main_container_content.append(body_scroll_column)
-        body_scroll_column.margin = ft.margin.only(top=20, bottom=20)
-        body_scroll_column.controls.append(domains.guide.what_guide(page=page, content=content_page))
+        body_scroll_column.controls.append(domains.notification.notification_setting(page))
     # ---------------------------------------------------------------------------------------------------
     return home_background , main_container_content

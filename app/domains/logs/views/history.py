@@ -6,7 +6,27 @@ import domains
 def history_view(page: ft.Page):
     popup = dogdog.Popup(page)
     storage = page.session.store
-    if storage.get("select_log"): storage.remove("select_log")
+    now = datetime.datetime.now()
+    if storage.get("select_log_date"):
+        date = storage.get("select_log_date")
+        view_date = storage.get("select_log_date")
+        storage.remove("select_log_date")
+    elif storage.get("select_log_week"):
+        date = storage.get("select_log_week")
+        view_date = [
+            now.strftime("%Y.%m.%d"),
+            (now-datetime.timedelta(days=1)).strftime("%Y.%m.%d"),
+            (now-datetime.timedelta(days=2)).strftime("%Y.%m.%d"),
+            (now-datetime.timedelta(days=3)).strftime("%Y.%m.%d"),
+            (now-datetime.timedelta(days=4)).strftime("%Y.%m.%d"),
+            (now-datetime.timedelta(days=5)).strftime("%Y.%m.%d"),
+            (now-datetime.timedelta(days=6)).strftime("%Y.%m.%d"),
+        ]
+        storage.remove("select_log_week")
+    else:
+        date = now.strftime("%Y.%m.%d")
+        view_date = now.strftime("%Y.%m.%d")
+
     user_logs = storage.get("history")
 
     def insert_event(e):
@@ -28,17 +48,17 @@ def history_view(page: ft.Page):
         )
     )
 
-    insert_grid = domains.grid.status_update_menu(page=page)
+    insert_grid = domains.grid.status_update_menu(page=page, popup=popup)
     insert_grid.visible = False
     insert_grid.margin = ft.margin.only(bottom=10)
-
-    storage = page.session.store
     all_log = []
     feeding_log = []
     watering_log = []
     daily_work_log = []
     for pet_log_numeric_id , details in user_logs.items(): # type: ignore
-        # if details["log_date"].split()[0] == datetime.datetime.now().strftime("%Y-%m-%d"):
+        log_date = (details["log_date"].split()[0]).split("-")
+        view_log_date = f"{log_date[0]}.{log_date[1]}.{log_date[2]}"
+        if view_log_date in view_date: # type: ignore
             all_log.append(
                 dogdog.log_container(page, pet_log_numeric_id, details))
             if details["category"] == "급여량": 
@@ -70,15 +90,34 @@ def history_view(page: ft.Page):
             storage.remove("select_log")
     
     def setting_content(visible):
+        delete_popup = popup.event_popup
+        delete_popup.title = dogdog.basic_text("오늘의 기록")
+        delete_popup.content = dogdog.basic_text("선택하신 기록을 삭제하시겠습니까?")
+        delete_popup.actions = [
+            ft.TextButton("네", on_click=lambda e: delete_popup_close(e, options=True)),
+            ft.TextButton("아니요", on_click=lambda e: delete_popup_close(e))
+        ]
+
+        def delete_popup_close(e, options=None):
+            delete_popup.open = False
+            if options: print(e)
+            page.update()
+
+        def history_delete(e):
+            if delete_popup not in page.overlay:
+                page.overlay.append(delete_popup)
+            else:
+                page.overlay.clear()
+                page.overlay.append(delete_popup)
+            delete_popup.open = True
+            page.update()
+
         return ft.Row(
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
                 dogdog.flat_button(
                     "삭제", disabled=False, scale=1, visible=visible,
-                    on_click=lambda e:popup.show_popup_open(
-                        e, case="event_popup", title="오늘의 기록", text="선택하신 기록을 삭제하시겠습니까?", focus=False,
-                        on_click=lambda e:delete_popup(e)
-                    )),
+                    on_click=lambda e:history_delete(e)),
                 dogdog.flat_button(
                     "수정", disabled=False, scale=1, bgcolor="#FEF3B9", visible=visible, # type: ignore
                     on_click=None),
@@ -102,7 +141,7 @@ def history_view(page: ft.Page):
             spacing=0,
             controls=[
                 ft.Row(margin=ft.margin.only(left=10, right=10, bottom=10), alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                    dogdog.basic_text(datetime.datetime.now().strftime("%Y.%m.%d"), weight="bold", size=18),
+                    dogdog.basic_text(date, weight="bold", size=18), # type: ignore
                     insert_log
                 ]),
                 insert_grid,

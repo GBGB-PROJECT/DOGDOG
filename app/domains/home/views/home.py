@@ -3,23 +3,77 @@ import flet as ft
 import components as dogdog
 import datetime
 # -------------------------------------------------------------------------------------------------------
-def now_history(page: ft.Page):
+def now_history(page: ft.Page, popup):
+    # ---------------------------------------------------------------------------------------------------
+    # Default Value
+    # ---------------------------------------------------------------------------------------------------
+    storage = page.session.store
+    now = datetime.datetime.now().strftime("%Y-%m-%d")
+    # ---------------------------------------------------------------------------------------------------
+    # Popup Bottom Sheet
+    # ---------------------------------------------------------------------------------------------------
+    now_log_bottom_sheet = popup.bottom_sheet_popup
+    now_log_bottom_sheet_contents = popup.bottom_sheet_controls
+    # ---------------------------------------------------------------------------------------------------
+    # Route Change Event
+    # ---------------------------------------------------------------------------------------------------
+    def history_event(e):
+        now_log_bottom_sheet.open = False
+        if storage.get("select_log_date"):
+            storage.remove("select_log_date")
+        page.go("/history")
+    # ---------------------------------------------------------------------------------------------------
+    # History Bottom Sheet Open
+    # ---------------------------------------------------------------------------------------------------
+    def now_history_open(e):
+        now_log_bottom_sheet_contents.clear()
+        history_title = dogdog.basic_text(f"오늘의 기록 : {now}", size=18, weight="bold")
+        now_log_bottom_sheet_contents.append(history_title)
+        now_log_bottom_sheet_contents.append(ft.Divider())
+        for pet_log_numeric_id , details in list(storage.get("history").items()): # type: ignore
+            if details["log_date"].split()[0] == now:
+                now_log_bottom_sheet_contents.append(
+                    dogdog.log_container(page, pet_log_numeric_id, details=details))
+        if len(now_log_bottom_sheet_contents) - 2 <= 0:
+            now_log_bottom_sheet_contents.append(ft.Container(
+                padding=ft.Padding.only(right=10, left=10),
+                width=3000,
+                ink=True,
+                height=50,
+                border_radius=10,
+                border=ft.Border.all(width=1, color=ft.Colors.GREY_300),
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                    dogdog.basic_text("오늘의 기록이 없어요 ㅠㅠ", size=14, color=ft.Colors.GREY_700),
+            ])))
+        history_page = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
+            ft.TextButton(
+                content=dogdog.basic_text(
+                    "더보기", size=14,color=ft.Colors.GREY_500), on_click=lambda e:history_event(e))
+        ])
+        now_log_bottom_sheet_contents.append(history_page)
+        # ---------------------------------------------------------------------------------------------------
+        if now_log_bottom_sheet not in page.overlay:
+            page.overlay.append(now_log_bottom_sheet)
+        else:
+            page.overlay.clear()
+            page.overlay.append(now_log_bottom_sheet)
+        now_log_bottom_sheet.open = True
+        page.update()
     # ---------------------------------------------------------------------------------------------------
     # Now History View (제작중)
     # ---------------------------------------------------------------------------------------------------
     content_column = [
-        ft.Row([
-                dogdog.basic_text(value="오늘의 기록", size=18, weight="bold"),
-                dogdog.basic_text(value=datetime.datetime.now().strftime("%Y.%m.%d"), size=14, weight="bold", color=ft.Colors.GREY_700),
-        ]),
+        ft.Row([dogdog.basic_text(value="오늘의 기록", size=18, weight="bold"),
+                dogdog.basic_text(value=now, size=14, weight="bold", color=ft.Colors.GREY_700)]),
         ft.Row(
             spacing=0,
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
                 dogdog.flat_button("급여량: 100g"),
                 dogdog.flat_button("음수량: 100ml"),
-                dogdog.flat_button("산책: 60분"),
-        ]),
+                dogdog.flat_button("산책: 60분")]),
         ft.Row(
             vertical_alignment=ft.CrossAxisAlignment.START,
             controls=[
@@ -73,7 +127,10 @@ def now_history(page: ft.Page):
             ]
         )
     ]
-    return content_column
+    # ---------------------------------------------------------------------------------------------------
+    return dogdog.content_container(
+        content_list=content_column,
+        on_click=lambda e: now_history_open(e))
 
 def feeding_food_count(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
@@ -119,5 +176,5 @@ def feeding_food_count(page: ft.Page):
             ft.TextSpan(last_feeding_food_count)
         ], size=12, color=ft.Colors.GREY_600),
     ]
-
+    # ---------------------------------------------------------------------------------------------------
     return content_column

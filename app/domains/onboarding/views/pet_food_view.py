@@ -5,35 +5,33 @@ import api.product_data as Product
 import api.product_weight_data as ProductWeight
 # -------------------------------------------------------------------------------------------------------
 class PetfoodController:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, popup):
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
+        self.popup = popup
         self.storage = page.session.store
         # -----------------------------------------------------------------------------------------------
         # Food List Selected Picker and Bottom Sheet
         # -----------------------------------------------------------------------------------------------
         self.selected_food_id = None
         self.food_list_column = ft.Column(
-            expand=True,
+            height=(self.page.height/7)*2, # type: ignore
             spacing=6,
             scroll=ft.ScrollMode.AUTO,
         )
         self.food_search_field = dogdog.list_input_textfield(
             hint_text="Search", on_change=self.on_food_search_change
         )
-        # self.food_search_field.autofocus = True
-        self.food_bottom_sheet = dogdog.bottom_sheet(
-            content=[
-                dogdog.basic_text(value="사료 검색", size=25, weight="bold"),
-                ft.Divider(),
-                self.food_search_field,
-                self.food_list_column
-            ]
-        )
-        if self.food_bottom_sheet not in page.overlay:
-            page.overlay.append(self.food_bottom_sheet)
+        self.food_search_field.autofocus = True
+        self.food_bottom_sheet = self.popup.bottom_sheet_popup
+        self.food_bottom_sheet_contents = self.popup.bottom_sheet_controls
+        self.food_bottom_sheet_contents.clear()
+        self.food_bottom_sheet_contents.append(dogdog.basic_text(value="사료 검색", size=25, weight="bold"))
+        self.food_bottom_sheet_contents.append(ft.Divider())
+        self.food_bottom_sheet_contents.append(self.food_search_field)
+        self.food_bottom_sheet_contents.append(self.food_list_column)
         self.food_picker_field = dogdog.picker_field(
             text="현재 급여 중인 사료를 선택해주세요.",
             on_click=self.open_food_bottom_sheet,
@@ -68,8 +66,13 @@ class PetfoodController:
     def open_food_bottom_sheet(self, e):
         self.food_search_field.value = ""
         self.food_list
+        if self.food_bottom_sheet not in self.page.overlay:
+            self.page.overlay.append(self.food_bottom_sheet)
+        else:
+            self.page.overlay.clear()
+            self.page.overlay.append(self.food_bottom_sheet)
         self.food_bottom_sheet.open = True
-        self.page.update() # Overlay Error 방지
+        self.page.update()
     def on_food_search_change(self, e):
         self.food_list = dogdog.update_item_list(
             list_column=self.food_list_column,
@@ -96,11 +99,11 @@ class PetfoodController:
         except ValueError:
             pass
 # -------------------------------------------------------------------------------------------------------
-def pet_food_view(page):
+def pet_food_view(page: ft.Page, popup):
     # ---------------------------------------------------------------------------------------------------
     # Default Value Class
     # ---------------------------------------------------------------------------------------------------
-    pet_food_controller = PetfoodController(page=page)
+    pet_food_controller = PetfoodController(page=page, popup=popup)
     storage = page.session.store
     # ---------------------------------------------------------------------------------------------------
     # Pet Food Weight Field

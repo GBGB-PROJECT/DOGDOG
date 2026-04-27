@@ -15,17 +15,17 @@ def content_container(content_list, on_click=None):
         )
     )
 
-select_log = {}
+# select_log = {}
 def log_container(page: ft.Page, pet_log_numeric_id, details):
-    select_log.clear()
-    storage = page.session.store
+    # select_log.clear()
+    # storage = page.session.store
     bgcolor = None
     def click_test(e):
         content.bgcolor = ft.Colors.GREY_300 if content.bgcolor == None else None
-        if not select_log.get(pet_log_numeric_id):
-            select_log.update({pet_log_numeric_id:pet_log_numeric_id})
-        else: select_log.pop(pet_log_numeric_id,None)
-        storage.set("select_log",select_log)
+        # if not select_log.get(pet_log_numeric_id):
+        #     select_log.update({pet_log_numeric_id:pet_log_numeric_id})
+        # else: select_log.pop(pet_log_numeric_id,None)
+        # storage.set("select_log",select_log)
     time = details["log_date"].split()[1].split(":")
     ampm = "오전" if int(time[0]) < 12 else "오후"
     hour = time[0] if int(time[0]) < 12 else int(time[0]) - 12

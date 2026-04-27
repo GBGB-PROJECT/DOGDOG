@@ -5,11 +5,12 @@ import api.breed_data as Breed
 import datetime
 # -------------------------------------------------------------------------------------------------------
 class PetInfoController:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, popup):
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
+        self.popup = popup
         self.storage = page.session.store
         # -----------------------------------------------------------------------------------------------
         # Image View and Selected Picker
@@ -34,24 +35,19 @@ class PetInfoController:
         # -----------------------------------------------------------------------------------------------
         self.selected_breed_id = None
         self.breed_list_column = ft.Column(
-            expand=True,
+            height=(self.page.height/7)*2, # type: ignore
             spacing=6,
-            scroll=ft.ScrollMode.AUTO,
-        )
+            scroll=ft.ScrollMode.HIDDEN)
         self.breed_search_field = dogdog.list_input_textfield(
-            hint_text="견종 검색", on_change=self.on_breed_search_change
-        )
-        # self.breed_search_field.autofocus = True
-        self.breed_bottom_sheet = dogdog.bottom_sheet(
-            content=[
-                dogdog.basic_text(value="우리 아이의 견종은?", size=25, weight="bold"),
-                ft.Divider(),
-                self.breed_search_field,
-                self.breed_list_column
-            ]
-        )
-        if self.breed_bottom_sheet not in page.overlay:
-            page.overlay.append(self.breed_bottom_sheet)
+            hint_text="견종 검색", on_change=self.on_breed_search_change)
+        self.breed_search_field.autofocus = True
+        self.breed_bottom_sheet = self.popup.bottom_sheet_popup
+        self.breed_bottom_sheet_contents = self.popup.bottom_sheet_controls
+        self.breed_bottom_sheet_contents.clear()
+        self.breed_bottom_sheet_contents.append(dogdog.basic_text(value="우리 아이의 견종은?", size=25, weight="bold"))
+        self.breed_bottom_sheet_contents.append(ft.Divider())
+        self.breed_bottom_sheet_contents.append(self.breed_search_field)
+        self.breed_bottom_sheet_contents.append(self.breed_list_column)
         self.breed_picker_field = dogdog.picker_field(
             text="반려동물 품종을 선택해주세요.",
             on_click=self.open_breed_bottom_sheet,
@@ -163,8 +159,13 @@ class PetInfoController:
     def open_breed_bottom_sheet(self, e):
         self.breed_search_field.value = ""
         self.breed_list
+        if self.breed_bottom_sheet not in self.page.overlay:
+            self.page.overlay.append(self.breed_bottom_sheet)
+        else:
+            self.page.overlay.clear()
+            self.page.overlay.append(self.breed_bottom_sheet)
         self.breed_bottom_sheet.open = True
-        self.page.update() # Overlay Error 방지
+        self.page.update()
     def on_breed_search_change(self, e):
         self.breed_list = dogdog.update_item_list(
             list_column=self.breed_list_column, 
@@ -214,11 +215,11 @@ class PetInfoController:
 # -------------------------------------------------------------------------------------------------------
 
 
-def pet_info_view(page):
+def pet_info_view(page: ft.Page, popup):
     # ---------------------------------------------------------------------------------------------------
     # Default Value Class
     # ---------------------------------------------------------------------------------------------------
-    pet_info_controller = PetInfoController(page=page)
+    pet_info_controller = PetInfoController(page=page, popup=popup)
     storage = page.session.store
     # ---------------------------------------------------------------------------------------------------
     # Pet Name Input Field
@@ -227,7 +228,7 @@ def pet_info_view(page):
         storage.set("pet_name", e.control.value)
     pet_name_field = dogdog.input_textfield(hint_text="이름을 입력해주세요.", on_change=petname_on_change)
     if storage.get("pet_name"):
-        pet_name_field.value = storage.get("pet_name")
+        pet_name_field.value = storage.get("pet_name") # type: ignore
     # --------------------------------------------------------------------------------------------------- 
     # Pet Gender Dropdown Menu
     # ---------------------------------------------------------------------------------------------------

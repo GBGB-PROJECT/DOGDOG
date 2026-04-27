@@ -9,11 +9,10 @@ import components as dogdog
 class Api_push_Data:
     data = {}
 # -------------------------------------------------------------------------------------------------------
-def on_boarding_tile(page: ft.Page, content_page:str, change_page_callback):
+def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callback):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
-    popop = dogdog.Popup(page=page)
     storage = page.session.store
     def show_error(text:str):
         page.show_dialog(ft.SnackBar(content=ft.Text(value=text), open=True, behavior=ft.SnackBarBehavior.FLOATING))
@@ -105,7 +104,7 @@ def on_boarding_tile(page: ft.Page, content_page:str, change_page_callback):
             else:
                 show_error(text="이름, 품종, 생년월일, 성별, 무게를 모두 입력해주세요.")
                 return
-        content = domains.pet_info_view(page=page)
+        content = domains.pet_info_view(page=page, popup=popup)
         bottom = ft.Row(controls=[
             dogdog.arrow_back(on_click=lambda e: change_page_callback("/sign_up")),
             dogdog.continue_button(on_click=pet_info_next),
@@ -174,19 +173,19 @@ def on_boarding_tile(page: ft.Page, content_page:str, change_page_callback):
                 await focus_field.focus()
                 page.update()
                 try:
-                    await popop.show_api_insert_open(e)
+                    await popup.show_loading_open(e)
                     storage.set("api_insert_data", Api_push_Data.data)
                     # -----------------------------------------------------------------------------------
                     # API Insert [page.session.store.get("api_insert_data")]
                     # -----------------------------------------------------------------------------------
                     change_page_callback("/sign_up_success")
                 except:
-                    await popop.show_api_insert_close(e)
+                    popup.show_popup_close(e)
                     show_error(text=f"서버에 접속할 수 없습니다.\n잠시 후 다시 시도해주세요.\n{e}")
             else:
                 show_error(text="현재 급여 중인 사료와 용량, 잔여량을 선택/입력해주세요.")
                 return
-        content = domains.pet_food_view(page=page)
+        content = domains.pet_food_view(page=page, popup=popup)
         bottom = ft.Row(controls=[
             dogdog.arrow_back(on_click=lambda e: change_page_callback("/pet_health")),
             dogdog.continue_button(on_click=pet_food_next),

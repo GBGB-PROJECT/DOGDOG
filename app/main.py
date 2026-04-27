@@ -1,10 +1,9 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
-from flet import DeviceOrientation
 import domains
-import time , asyncio
 import components as dogdog
 from api.user_data import User
+# -------------------------------------------------------------------------------------------------------
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
@@ -18,6 +17,7 @@ class Front_dogdog:
         # Default Page Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
+        self.popup = dogdog.Popup(page)
         self.storage = page.session.store
         page.title = "Dog Dog"
         page.theme_mode = ft.ThemeMode.LIGHT
@@ -55,19 +55,21 @@ class Front_dogdog:
         # Init First View
         # -----------------------------------------------------------------------------------------------
         page.views.clear()
-        target_route = "/home" if self.is_onboarding_complete else "/sign_up"
+        target_route = "/home" if self.is_onboarding_complete else "/pet_food"
         if self.page.route == target_route: self.routing_view(page_name=target_route)
         else: page.go(target_route)
     # ---------------------------------------------------------------------------------------------------
     # Route Change & Android OnBackPressedCallback Event
     # ---------------------------------------------------------------------------------------------------
     def on_route_change(self, e):
+        # print(len(self.page.views))
         route = e.route
-        if len(self.page.views) > 1 and self.page.views[-2].route == route:
+        # self.page.overlay.clear()
+        if len(self.page.views) > 1 and self.page.views[-2].route == route and route != "/history":
             self.page.views.pop()
-            self.page.update()
         elif len(self.page.views) == 0 or self.page.views[-1].route != route:
             self.routing_view(page_name=route)
+        self.page.update()
     def handle_back(self, e=None):
         if len(self.page.views) > 1:
             self.page.views.pop()
@@ -86,12 +88,10 @@ class Front_dogdog:
         ]
         if self.is_onboarding_complete == False:
             basic_content, focus_field = domains.on_boarding_tile(
-                page=self.page, content_page=page_name, change_page_callback=self.page.go
+                page=self.page, popup=self.popup, content_page=page_name, change_page_callback=self.page.go
             )
-            async def view_click(e):
-                if focus_field:
-                    await focus_field.focus()
-                    self.page.update()
+            async def view_click(e): 
+                if focus_field: await focus_field.focus()
             main_column = ft.Column(
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
                 expand=True, controls=basic_content # type: ignore
@@ -112,13 +112,18 @@ class Front_dogdog:
                 self.is_onboarding_complete = True
         else:
             # print(len(self.page.views))
-            if page_name == "/home":
-                self.page.views.clear()
+            new_view = ft.View(
+                route=page_name, padding=0, spacing=0, bgcolor="#000000", opacity=0.8, controls=[
+                    ft.Row(alignment=ft.MainAxisAlignment.CENTER,
+                    width=20, controls=[ft.ProgressRing(color=ft.Colors.BLUE_400)])
+                ]
+            )
+            if page_name == "/home": self.page.views.clear()
             home_background , main_container_content = domains.home_tile(
-                page=self.page, content_page=page_name, change_page_callback=self.page.go
+                page=self.page, popup=self.popup, content_page=page_name, change_page_callback=self.page.go
             )
             main_container = ft.Container(expand=True, padding=ft.Padding.only(left=10, right=10), 
-            content=ft.Column(
+                content=ft.Column(
                 expand=True,
                 controls=main_container_content))
             layout = ft.Stack(expand=True, controls=[home_background, main_container])
@@ -127,12 +132,11 @@ class Front_dogdog:
             )
             new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
         self.page.views.append(new_view)
-        self.page.update()
 # -------------------------------------------------------------------------------------------------------
 async def main(page: ft.Page): 
     front_end = Front_dogdog(page=page)
     if page.platform == ft.PagePlatform.ANDROID:
-        await page.set_allowed_device_orientations([DeviceOrientation.PORTRAIT_UP])
+        await page.set_allowed_device_orientations([ft.DeviceOrientation.PORTRAIT_UP])
 # -------------------------------------------------------------------------------------------------------
 if test_page == "Browser":
     import logging, warnings
@@ -143,6 +147,6 @@ if test_page == "Browser":
         import webbrowser, os
         if os.getenv(key="FLET_NO_BROWSER"):
             webbrowser.open = lambda *args: None
-        ft.run(main=main, assets_dir="assets", view=ft.AppView.WEB_BROWSER, port=34636)
+        ft.run(main=main, assets_dir="assets", view=ft.AppView.WEB_BROWSER, port=34636, web_renderer=ft.WebRenderer.CANVAS_KIT)
 else:
-    if __name__ == "__main__": ft.run(main=main, assets_dir="assets")
+    if __name__ == "__main__": ft.run(main=main, assets_dir="assets", web_renderer=ft.WebRenderer.CANVAS_KIT)

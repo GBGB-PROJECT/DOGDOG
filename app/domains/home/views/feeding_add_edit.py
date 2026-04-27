@@ -21,6 +21,20 @@ def feeding_add_edit(page: ft.Page, view):
     def show_error(text:str): page.show_dialog(
         ft.SnackBar(content=ft.Text(value=text), open=True, behavior=ft.SnackBarBehavior.FLOATING))
     # ---------------------------------------------------------------------------------------------------
+    # Test Dialog
+    # ---------------------------------------------------------------------------------------------------        
+    delete_popup = popup.event_popup
+    delete_popup.title = dogdog.basic_text("제품 삭제")
+    delete_popup.content = dogdog.basic_text("등록하신 제품을 삭제하시겠습니까?")
+    delete_popup.actions = [
+        ft.TextButton("네", on_click=lambda e: delete_popup_close(e, options=True)),
+        ft.TextButton("아니요", on_click=lambda e: delete_popup_close(e))
+    ]
+    def delete_popup_close(e, options=None):
+        delete_popup.open = False
+        if options: print(e)
+        page.update()
+    # ---------------------------------------------------------------------------------------------------
     # Input Field Change Event
     # ---------------------------------------------------------------------------------------------------
     def on_change(e):
@@ -42,9 +56,12 @@ def feeding_add_edit(page: ft.Page, view):
             show_error(f"customer_feeding_{call}_data: {storage.get(f"customer_feeding_{call}_data")}")
         # -----------------------------------------------------------------------------------------------
         if call == "delete":
-            popup.show_popup_open(
-                e=e, case="event_popup", title="제품 삭제", text="등록하신 제품을 삭제하시겠습니까?", focus=False,
-                on_click=lambda e:delete_event(e))
+            if delete_popup not in page.overlay:
+                page.overlay.append(delete_popup)
+            else:
+                page.overlay.clear()
+                page.overlay.append(delete_popup)
+            delete_popup.open = True
         else:
             if storage.get("product_id"): data.update({"product_id": storage.get("product_id")})
             else:
@@ -81,7 +98,7 @@ def feeding_add_edit(page: ft.Page, view):
             ]
         )
     # ---------------------------------------------------------------------------------------------------
-    food_controller = pet_food_view.PetfoodController(page=page)
+    food_controller = pet_food_view.PetfoodController(page=page, popup=popup)
     food_select_field = food_controller.food_picker_field.content.controls[0] # type: ignore
     product_weight_field = food_controller.product_weight_list
     # ---------------------------------------------------------------------------------------------------

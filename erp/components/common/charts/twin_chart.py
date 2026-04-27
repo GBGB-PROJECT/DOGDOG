@@ -14,17 +14,57 @@ BAR_SECONDARY = "#AFAFAF"
 # ☑️ 기본 최대값
 CHART_MAX_Y = 100
 
+# 🔥 생산관리 차트 고정 최대값
+# - chart_data는 service에서 이미 "천원" 단위로 넘어옴
+# - 100,000 = 100K로 표시
+# - 월 이동해도 Y축 기준이 흔들리지 않게 고정
+PRODUCTION_FIXED_MAX_Y = 80000
+
 # ☑️ 전체 차트 높이/플롯 높이 분리
-PLOT_HEIGHT = 300          # 실제 막대와 그리드가 그려지는 높이
-BOTTOM_LABEL_AREA = 34     # 하단 월 라벨 영역 높이
+PLOT_HEIGHT = 300
+BOTTOM_LABEL_AREA = 34
 CHART_HEIGHT = PLOT_HEIGHT + BOTTOM_LABEL_AREA
 
+# 🔥 Y축 구간 수
+# - 80K 기준일 때 80K / 60K / 40K / 20K / 0 으로 보이게 4등분
+Y_AXIS_DIVISIONS = 4
+
 
 # =========================================================
-# 🔥 차트 최대값 자동 계산
-# - DB 금액이 100k를 넘어가도 막대가 화면 밖으로 튀지 않게 처리
+# 🔥 보기 좋은 축 최대값 계산
+# - 고정 최대값이 없을 때만 사용
 # =========================================================
-def _calc_chart_max_y(chart_data):
+def _nice_ceil(value):
+    try:
+        value = float(value or 0)
+    except (TypeError, ValueError):
+        value = 0
+
+    if value <= 0:
+        return CHART_MAX_Y
+
+    exponent = math.floor(math.log10(value))
+    base = 10 ** exponent
+    fraction = value / base
+
+    if fraction <= 1:
+        nice_fraction = 1
+    elif fraction <= 2:
+        nice_fraction = 2
+    elif fraction <= 5:
+        nice_fraction = 5
+    else:
+        nice_fraction = 10
+
+    return int(nice_fraction * base)
+
+
+# =========================================================
+# 🔥 차트 최대값 계산
+# - fixed_max_y가 있으면 무조건 그 기준 사용
+# - 단, 실제 데이터가 fixed_max_y를 넘으면 막대가 잘리지 않게 자동 확장
+# =========================================================
+def _calc_chart_max_y(chart_data, fixed_max_y=None):
     max_value = 0
 
     for _, v1, v2 in chart_data:
@@ -33,23 +73,51 @@ def _calc_chart_max_y(chart_data):
         except (TypeError, ValueError):
             continue
 
+    if fixed_max_y:
+        fixed_max_y = int(fixed_max_y)
+
+        if max_value <= fixed_max_y:
+            return fixed_max_y
+
+        # 🔥 고정 기준보다 큰 데이터가 생긴 경우만 50K 단위로 확장
+        return int(math.ceil(max_value / 50000) * 50000)
+
     if max_value <= CHART_MAX_Y:
         return CHART_MAX_Y
 
-    # 🔥 20 단위로 보기 좋게 올림
-    return int(math.ceil(max_value / 20) * 20)
+    return _nice_ceil(max_value)
+
+
+# =========================================================
+# 🔥 Y축 라벨 표시
+# - 단위는 무조건 K
+# - 100,000 -> 100K
+# - 80,000 -> 80K
+# =========================================================
+def _format_y_axis_value(value):
+    try:
+        value = int(round(float(value or 0)))
+    except (TypeError, ValueError):
+        value = 0
+
+    k_value = value / 1000
+
+    if k_value.is_integer():
+        return f"{int(k_value):,}K"
+
+    return f"{k_value:,.1f}K"
 
 
 # =========================================================
 # 🔥 Y축 라벨 생성
 # =========================================================
 def _build_y_axis_labels(max_y):
-    step = max_y / 5
+    step = max_y / Y_AXIS_DIVISIONS
     labels = []
 
-    for index in range(5, 0, -1):
-        value = int(step * index)
-        labels.append(f"{value:,}k")
+    for index in range(Y_AXIS_DIVISIONS, 0, -1):
+        value = step * index
+        labels.append(_format_y_axis_value(value))
 
     return labels
 
@@ -61,8 +129,9 @@ def build_twin_chart(
     title="입출고 현황",
     legend_primary="입고",
     legend_secondary="출고",
-    unit_text="단위: 천원",
+    unit_text="단위: K",
     chart_data=None,
+    fixed_max_y=None,
 ):
     if chart_data is None:
         chart_data = [
@@ -80,9 +149,9 @@ def build_twin_chart(
         for item in chart_data
     ]
 
-    chart_max_y = _calc_chart_max_y(chart_data)
+    chart_max_y = _calc_chart_max_y(chart_data, fixed_max_y=fixed_max_y)
     y_axis_labels = _build_y_axis_labels(chart_max_y)
-    y_step = PLOT_HEIGHT / 5
+    y_step = PLOT_HEIGHT / Y_AXIS_DIVISIONS
 
     # ☑️ Y축
     def build_y_axis():
@@ -105,7 +174,6 @@ def build_twin_chart(
                     )
                     for label in y_axis_labels
                 ] + [
-                    # ☑️ 0은 바닥선 기준에 한 번만 출력
                     ft.Container(
                         height=BOTTOM_LABEL_AREA,
                         alignment=ft.Alignment(1, -1),
@@ -188,8 +256,7 @@ def build_twin_chart(
     def build_chart_area():
         grid_controls = []
 
-        # ☑️ 5개 구간 라인
-        for _ in range(5):
+        for _ in range(Y_AXIS_DIVISIONS):
             grid_controls.append(
                 ft.Container(
                     height=y_step,
@@ -199,7 +266,6 @@ def build_twin_chart(
                 )
             )
 
-        # ☑️ 0 기준선
         grid_controls.append(
             ft.Container(
                 height=0,
@@ -340,20 +406,22 @@ def build_stock_twin_chart(chart_data=None):
         title="입출고 현황",
         legend_primary="입고",
         legend_secondary="출고",
-        unit_text="단위: 천원",
+        unit_text="단위: K",
         chart_data=chart_data,
+        fixed_max_y=None,
     )
 
 
 # =========================================================
 # 🔥 생산관리 전용 차트
-# - production_view.py에서 DB chart_data를 넘겨받음
+# - 월 이동해도 기준이 흔들리지 않도록 Y축 100K 고정
 # =========================================================
 def build_production_twin_chart(chart_data=None):
     return build_twin_chart(
         title="생산 실적",
         legend_primary="생산",
         legend_secondary="불량",
-        unit_text="단위: 천원",
+        unit_text="단위: K",
         chart_data=chart_data,
+        fixed_max_y=PRODUCTION_FIXED_MAX_Y,
     )

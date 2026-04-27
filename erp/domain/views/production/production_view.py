@@ -8,6 +8,9 @@ from backend.erp.production.dashboard_service import fetch_production_dashboard
 # 🔥 생산 입고 count 클릭 시 입고 화면에 해당 월 필터 전달
 from domain.views.production.inbound_view import set_production_inbound_prefilter
 
+# 🔥 발주관리 상자 클릭 시 해당 월 발주 목록 필터 전달
+from domain.views.production.purchase_order_view import set_purchase_order_prefilter
+
 # 🔥 최근 발주 카드 상세 내역 모달 조회
 from backend.erp.production.production_supplier_service import (
     fetch_purchase_order_detail,
@@ -100,6 +103,16 @@ def erp_production_view():
     recent_purchase_holder = ft.Container()
 
     def open_purchase_order_page(e):
+        # 🔥 현재 생산관리 대시보드 월 기준으로 발주관리 화면에 필터 전달
+        # - 발주일자(contract_date)가 현재 월 안에 들어오는 발주만 조회
+        data = state["data"]
+
+        set_purchase_order_prefilter(
+            start_date=data.get("month_start"),
+            end_date=data.get("month_end"),
+            date_type="contract_date",
+        )
+
         e.page.go("/production/order")
 
     def open_month_inbound_page(e):

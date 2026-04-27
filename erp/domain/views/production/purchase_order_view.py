@@ -33,6 +33,37 @@ ERROR_RED = "#DC2626"
 PAGE_SIZE = 50
 
 
+# =========================================================
+# 🔥 생산관리 대시보드 → 발주관리 월 필터 전달용
+# - production_view.py에서 발주관리 상자 클릭 시 설정
+# - erp_purchase_order_view()가 열릴 때 이 값을 읽어서 자동 조회
+# =========================================================
+_PURCHASE_ORDER_PREFILTER = {
+    "enabled": False,
+    "start_date": None,
+    "end_date": None,
+    "date_type": "contract_date",
+}
+
+
+def set_purchase_order_prefilter(
+    start_date=None,
+    end_date=None,
+    date_type="contract_date",
+):
+    _PURCHASE_ORDER_PREFILTER["enabled"] = True
+    _PURCHASE_ORDER_PREFILTER["start_date"] = start_date
+    _PURCHASE_ORDER_PREFILTER["end_date"] = end_date
+    _PURCHASE_ORDER_PREFILTER["date_type"] = date_type or "contract_date"
+
+
+def clear_purchase_order_prefilter():
+    _PURCHASE_ORDER_PREFILTER["enabled"] = False
+    _PURCHASE_ORDER_PREFILTER["start_date"] = None
+    _PURCHASE_ORDER_PREFILTER["end_date"] = None
+    _PURCHASE_ORDER_PREFILTER["date_type"] = "contract_date"
+
+
 def build_text(
     value,
     size=12,
@@ -180,6 +211,9 @@ def erp_purchase_order_view():
         "keyword": "",
         "page_ref": None,
     }
+
+    prefilter_state = dict(_PURCHASE_ORDER_PREFILTER)
+    clear_purchase_order_prefilter()
 
     result_text = ft.Text(
         value="DB 조회 전입니다.",
@@ -382,6 +416,9 @@ def erp_purchase_order_view():
         return count_purchase_orders(
             search_type=search_type_value["value"],
             keyword=keyword,
+            start_date=prefilter_state.get("start_date") if prefilter_state.get("enabled") else None,
+            end_date=prefilter_state.get("end_date") if prefilter_state.get("enabled") else None,
+            date_type=prefilter_state.get("date_type", "contract_date"),
         )
 
     def fetch_purchase_order_rows(keyword="", page_no=1):
@@ -392,6 +429,9 @@ def erp_purchase_order_view():
             keyword=keyword,
             limit=PAGE_SIZE,
             offset=offset,
+            start_date=prefilter_state.get("start_date") if prefilter_state.get("enabled") else None,
+            end_date=prefilter_state.get("end_date") if prefilter_state.get("enabled") else None,
+            date_type=prefilter_state.get("date_type", "contract_date"),
         )
 
         return purchase_order_db_row_adapter(db_rows, page_no)
@@ -529,9 +569,17 @@ def erp_purchase_order_view():
         refresh_table(rows_state)
         refresh_pagination()
 
+        date_filter_text = ""
+
+        if prefilter_state.get("enabled"):
+            start_date = prefilter_state.get("start_date") or ""
+            end_date = prefilter_state.get("end_date") or ""
+            date_filter_text = f" / 발주일자: {start_date} ~ {end_date}"
+
         result_text.value = (
             f"검색조건: {search_type_labels[search_type_value['value']]} / "
-            f"검색어: {keyword if keyword else '없음'} / "
+            f"검색어: {keyword if keyword else '없음'}"
+            f"{date_filter_text} / "
             f"전체 {pagination_state['total_count']}건 / "
             f"현재 {len(rows_state)}건 / "
             f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"

@@ -156,7 +156,39 @@ def _apply_purchase_order_filter(query, search_type: str, keyword: str):
     return query
 
 
-def count_purchase_orders(search_type="purchase_order_id", keyword=""):
+def _apply_purchase_order_date_range(
+    query,
+    start_date=None,
+    end_date=None,
+    date_type="contract_date",
+):
+    if not start_date and not end_date:
+        return query
+
+    if date_type == "inbound_scheduled_date":
+        date_column = ErpPurchaseOrder.inbound_scheduled_date
+    else:
+        date_column = ErpPurchaseOrder.contract_date
+
+    parsed_start = parse_date(start_date)
+    parsed_end = parse_date(end_date)
+
+    if parsed_start:
+        query = query.filter(date_column >= parsed_start)
+
+    if parsed_end:
+        query = query.filter(date_column <= parsed_end)
+
+    return query
+
+
+def count_purchase_orders(
+    search_type="purchase_order_id",
+    keyword="",
+    start_date=None,
+    end_date=None,
+    date_type="contract_date",
+):
     db = SessionLocal()
     try:
         query = (
@@ -165,12 +197,26 @@ def count_purchase_orders(search_type="purchase_order_id", keyword=""):
             .outerjoin(ErpPurchaseOrderItem, ErpPurchaseOrder.purchase_order_id == ErpPurchaseOrderItem.purchase_order_id)
         )
         query = _apply_purchase_order_filter(query, search_type, keyword)
+        query = _apply_purchase_order_date_range(
+            query,
+            start_date=start_date,
+            end_date=end_date,
+            date_type=date_type,
+        )
         return query.distinct().count()
     finally:
         db.close()
 
 
-def fetch_purchase_orders(search_type="purchase_order_id", keyword="", limit=50, offset=0):
+def fetch_purchase_orders(
+    search_type="purchase_order_id",
+    keyword="",
+    limit=50,
+    offset=0,
+    start_date=None,
+    end_date=None,
+    date_type="contract_date",
+):
     db = SessionLocal()
     try:
         final_amount_expr = func.coalesce(ErpPurchaseOrderItem.final_amount, ErpPurchaseOrderItem.total_amount, 0)
@@ -194,6 +240,12 @@ def fetch_purchase_orders(search_type="purchase_order_id", keyword="", limit=50,
             .outerjoin(ErpPurchaseOrderItem, ErpPurchaseOrder.purchase_order_id == ErpPurchaseOrderItem.purchase_order_id)
         )
         query = _apply_purchase_order_filter(query, search_type, keyword)
+        query = _apply_purchase_order_date_range(
+            query,
+            start_date=start_date,
+            end_date=end_date,
+            date_type=date_type,
+        )
         rows = (
             query.group_by(
                 ErpPurchaseOrder.purchase_order_id,
@@ -208,7 +260,7 @@ def fetch_purchase_orders(search_type="purchase_order_id", keyword="", limit=50,
                 ErpPurchaseOrder.order_form_file_path,
                 ErpPurchaseOrder.last_update,
             )
-            .order_by(ErpPurchaseOrder.purchase_order_id.asc())
+            .order_by(ErpPurchaseOrder.contract_date.desc().nullslast(), ErpPurchaseOrder.purchase_order_id.desc())
             .limit(limit)
             .offset(offset)
             .all()

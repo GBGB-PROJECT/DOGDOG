@@ -7,7 +7,6 @@ class ErpProductionInboundItem(BaseModel):
 
     no: int | None = None
     inbound_id: Any = None
-    purchase_order_id: Any = None
     supplier_id: Any = None
     supplier_name: Any = None
     inbound_status: Any = None

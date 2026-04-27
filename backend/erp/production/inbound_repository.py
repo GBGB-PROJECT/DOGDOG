@@ -105,7 +105,6 @@ def _base_query(db):
     return (
         db.query(
             ErpInbound.inbound_id.label("inbound_id"),
-            ErpInbound.purchase_order_id.label("purchase_order_id"),
             ErpPurchaseOrder.supplier_id.label("supplier_id"),
             ErpSupplier.supplier_name.label("supplier_name"),
             ErpInboundStatus.status.label("inbound_status"),  # 🔥 숫자 ID 대신 상태명 반환

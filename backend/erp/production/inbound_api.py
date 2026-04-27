@@ -24,7 +24,6 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "inbound_id": "입고ID",
-    "purchase_order_id": "발주ID",
     "supplier_id": "거래처ID",
     "supplier_name": "거래처명",
     "inbound_status": "입고상태",
@@ -60,7 +59,6 @@ def build_response_rows(items: list, page: int, size: int):
             {
                 "no": index,
                 "inbound_id": row.get("inbound_id", ""),
-                "purchase_order_id": row.get("purchase_order_id", ""),
                 "supplier_id": row.get("supplier_id", ""),
                 "supplier_name": row.get("supplier_name", ""),
                 "inbound_status": row.get("inbound_status", ""),  # 🔥 상태명 문자
@@ -73,7 +71,8 @@ def build_response_rows(items: list, page: int, size: int):
                 "expiration_date": _format_date(row.get("expiration_date", "")),
                 "inbound_scheduled_date": _format_date(row.get("inbound_scheduled_date", "")),
                 "inbound_start": _format_datetime(row.get("inbound_start", "")),
-                "inbound_complete": _format_datetime(row.get("inbound_complete", "")),
+                # 🔥 입고완료일은 시간 없이 날짜만 반환
+                "inbound_complete": _format_date(row.get("inbound_complete", "")),
                 "employee_id": row.get("employee_id", ""),
                 "last_update": _format_datetime(row.get("last_update", "")),
             }
@@ -95,7 +94,6 @@ def build_response_rows(items: list, page: int, size: int):
 def get_inbound_list(
     search_type: Literal[
         "inbound_id",
-        "purchase_order_id",
         "supplier_id",
         "supplier_name",
         "inbound_status",

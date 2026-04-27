@@ -186,7 +186,6 @@ def inbound_db_row_adapter(db_rows: list, page_no: int):
             {
                 "no": str(index),
                 "inbound_id": row.get("inbound_id", ""),
-                "purchase_order_id": row.get("purchase_order_id", ""),
                 "supplier_id": row.get("supplier_id", ""),
                 "supplier_name": row.get("supplier_name", ""),
                 "inbound_status": row.get("inbound_status", ""),  # 🔥 상태명 문자
@@ -199,7 +198,8 @@ def inbound_db_row_adapter(db_rows: list, page_no: int):
                 "expiration_date": format_date_text_from_value(row.get("expiration_date", "")),
                 "inbound_scheduled_date": format_date_text_from_value(row.get("inbound_scheduled_date", "")),
                 "inbound_start": format_datetime_text(row.get("inbound_start", "")),
-                "inbound_complete": format_datetime_text(row.get("inbound_complete", "")),
+                # 🔥 입고완료일은 시간 없이 날짜만 표시
+                "inbound_complete": format_date_text_from_value(row.get("inbound_complete", "")),
                 "employee_id": row.get("employee_id", ""),
                 "last_update": format_datetime_text(row.get("last_update", "")),
             }
@@ -219,7 +219,6 @@ def erp_inbound_view():
     initial_search_type = initial_prefilter.get("search_type") or "inbound_id"
     if initial_search_type not in {
         "inbound_id",
-        "purchase_order_id",
         "supplier_id",
         "supplier_name",
         "inbound_status",
@@ -261,25 +260,24 @@ def erp_inbound_view():
     # =========================================================
     col_expand = {
         "no": 3,
+        # 🔥 컬럼 순서 변경: No 다음 상품ID, 그 다음 입고ID
+        "product_id": 5,
         "inbound_id": 5,
-        "purchase_order_id": 5,
         "supplier_name": 7,
         "inbound_status": 6,
-        "product_id": 5,
         "brand": 7,
         "product_name": 10,
         "save_stock": 5,
         "purchase_price": 6,
         "inbound_amount": 7,
         "expiration_date": 7,
-        "inbound_complete": 8,
+        "inbound_complete": 7,
         "employee_id": 5,
         "last_update": 8,
     }
 
     search_type_labels = {
         "inbound_id": "입고ID",
-        "purchase_order_id": "발주ID",
         "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
         "inbound_status": "입고상태",
@@ -450,16 +448,16 @@ def erp_inbound_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
+                    build_table_cell("상품ID", col_expand["product_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고ID", col_expand["inbound_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("발주ID", col_expand["purchase_order_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상품ID", col_expand["product_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("브랜드", col_expand["brand"], 0, ft.FontWeight.W_700),
                     build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고수량", col_expand["save_stock"], 0, ft.FontWeight.W_700),
                     build_table_cell("구매단가", col_expand["purchase_price"], 0, ft.FontWeight.W_700),
-                    build_table_cell("입고금액", col_expand["inbound_amount"], 0, ft.FontWeight.W_700),
+                    # 🔥 입고금액은 단가가 아니라 입고수량 * 구매단가의 총액이라 헤더명을 명확히 변경
+                    build_table_cell("입고총액", col_expand["inbound_amount"], 0, ft.FontWeight.W_700),
                     build_table_cell("유통기한", col_expand["expiration_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고완료일", col_expand["inbound_complete"], 0, ft.FontWeight.W_700),
                     build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
@@ -479,8 +477,8 @@ def erp_inbound_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
+                    build_table_cell(row.get("product_id", ""), col_expand["product_id"], 0),
                     build_table_cell(row.get("inbound_id", ""), col_expand["inbound_id"], 0),
-                    build_table_cell(row.get("purchase_order_id", ""), col_expand["purchase_order_id"], 0),
                     build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),
                     build_table_cell(
                         row.get("inbound_status", ""),
@@ -489,7 +487,6 @@ def erp_inbound_view():
                         ft.FontWeight.W_700,
                         ACTION_BLUE,
                     ),
-                    build_table_cell(row.get("product_id", ""), col_expand["product_id"], 0),
                     build_table_cell(row.get("brand", ""), col_expand["brand"], 0),
                     build_table_cell(row.get("product_name", ""), col_expand["product_name"], 0),
                     build_table_cell(row.get("save_stock", ""), col_expand["save_stock"], 0),

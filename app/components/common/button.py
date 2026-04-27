@@ -2,8 +2,9 @@ import flet as ft
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
 
-def flat_button(text, scale=0.8, icon=None, size=None, expand=None, on_click=None, disabled=True, bgcolor=ft.Colors.GREY_100):
+def flat_button(text, scale=0.8, icon=None, size=None, expand=None, on_click=None, disabled=True, bgcolor=ft.Colors.GREY_100, visible=True):
     return ft.Button(
+        visible=visible,
         icon=icon,
         width=size,
         height=size,
@@ -20,7 +21,7 @@ def flat_button(text, scale=0.8, icon=None, size=None, expand=None, on_click=Non
         )
     )
 
-def icon_flat_button(text, icon, on_click=None):
+def icon_flat_button(text, icon:str, on_click=None):
     return ft.Container(
         expand=True,
         height=90,

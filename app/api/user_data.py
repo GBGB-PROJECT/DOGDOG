@@ -95,4 +95,13 @@ class User:
         352:{"category":"산책",
             "log_status":"30",
             "log_date":"2026-02-15 18:41:30.000"},
+        474:{"category":"음수량",
+            "log_status":"13",
+            "log_date":"2026-04-24 15:41:30.000"},
+        484:{"category":"급여량",
+            "log_status":"111",
+            "log_date":"2026-04-24 16:41:30.000"},
+        498:{"category":"산책",
+            "log_status":"30",
+            "log_date":"2026-04-24 18:41:30.000"},
     }

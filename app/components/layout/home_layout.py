@@ -68,7 +68,8 @@ def home_layout(page, view=None, text=None, pet_list=None):
     center_header = ft.Container()
     right_header = ft.IconButton(
         icon=ft.Icons.NOTIFICATIONS_NONE, icon_color=ft.Colors.GREY_500, 
-        icon_size=26, on_click=lambda _: page.go("/notification"))
+        icon_size=26, on_click=lambda _: page.go("/notification")
+    ) if not (text == "알림" or text == "알림 설정") else ft.Container(width=26)
     header_container_padding = 40
     # ---------------------------------------------------------------------------------------------------
     # Page Top Banner Edit

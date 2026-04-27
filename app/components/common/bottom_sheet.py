@@ -4,7 +4,7 @@ def bottom_sheet(content:list):
     return ft.BottomSheet(
         open=False,
         draggable=True,
-        fullscreen=True,
+        # fullscreen=True,
         maintain_bottom_view_insets_padding=True,
         content=ft.Container(
             padding=20,
@@ -20,7 +20,7 @@ def bottom_sheet(content:list):
                 offset=ft.Offset(0, -4),
             ),
             content=ft.Column(
-                expand=True,
+                # expand=True,
                 spacing=10,
                 controls=content
             )

@@ -16,11 +16,10 @@ class Api_push_Data:
 
 
 # -------------------------------------------------------------------------------------------------------
-def on_boarding_tile(page: ft.Page, content_page: str, change_page_callback):
+def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callback):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
-    popop = dogdog.Popup(page=page)
     storage = page.session.store
     content = []
     bottom = ft.Container() # [방어 코드] UnboundLocalError 방지를 위한 초기화

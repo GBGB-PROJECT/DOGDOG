@@ -1,6 +1,5 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
-from flet import DeviceOrientation
 import domains
 import time
 import asyncio
@@ -23,6 +22,7 @@ class Front_dogdog:
         # Default Page Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
+        self.popup = dogdog.Popup(page)
         self.storage = page.session.store
         page.title = "Dog Dog"
         page.theme_mode = ft.ThemeMode.LIGHT
@@ -220,9 +220,9 @@ class Front_dogdog:
     # ---------------------------------------------------------------------------------------------------
     async def on_route_change(self, e):
         route = e.route
-        if len(self.page.views) > 1 and self.page.views[-2].route == route:
+        # self.page.overlay.clear()
+        if len(self.page.views) > 1 and self.page.views[-2].route == route and route != "/history":
             self.page.views.pop()
-            self.page.update()
         elif len(self.page.views) == 0 or self.page.views[-1].route != route:
             # 새 페이지로 이동 시 기존 뷰 스택을 비워 메모리 누수 및 잔상 방지
             self.page.views.clear()
@@ -338,9 +338,7 @@ class Front_dogdog:
 async def main(page: ft.Page):
     front_end = Front_dogdog(page=page)
     if page.platform == ft.PagePlatform.ANDROID:
-        await page.set_allowed_device_orientations([DeviceOrientation.PORTRAIT_UP])
-
-
+        await page.set_allowed_device_orientations([ft.DeviceOrientation.PORTRAIT_UP])
 # -------------------------------------------------------------------------------------------------------
 if test_page == "Browser":
     import logging, warnings
@@ -353,7 +351,7 @@ if test_page == "Browser":
 
         if os.getenv(key="FLET_NO_BROWSER"):
             webbrowser.open = lambda *args: None
-        ft.run(main=main, assets_dir="assets", view=ft.AppView.WEB_BROWSER, port=34636)
+        ft.run(main=main, assets_dir="assets", view=ft.AppView.WEB_BROWSER, port=34636, web_renderer=ft.WebRenderer.CANVAS_KIT)
 else:
     if __name__ == "__main__":
         ft.run(main=main, assets_dir="assets")

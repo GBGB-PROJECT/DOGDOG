@@ -15,10 +15,17 @@ BAR_SECONDARY = "#AFAFAF"
 CHART_MAX_Y = 100
 
 # 🔥 생산관리 차트 고정 최대값
+# - 생산 실적 화면 전용
 # - chart_data는 service에서 이미 "천원" 단위로 넘어옴
-# - 100,000 = 100K로 표시
+# - 80,000 = 80K로 표시
 # - 월 이동해도 Y축 기준이 흔들리지 않게 고정
 PRODUCTION_FIXED_MAX_Y = 80000
+
+# 🔥 재고현황 차트 고정 최대값
+# - 재고 현황 화면 전용
+# - 입출고 현황도 80K / 60K / 40K / 20K / 0 기준으로 고정
+# - 생산 실적 화면에는 영향 없음
+STOCK_FIXED_MAX_Y = 80000
 
 # ☑️ 전체 차트 높이/플롯 높이 분리
 PLOT_HEIGHT = 300
@@ -79,8 +86,9 @@ def _calc_chart_max_y(chart_data, fixed_max_y=None):
         if max_value <= fixed_max_y:
             return fixed_max_y
 
-        # 🔥 고정 기준보다 큰 데이터가 생긴 경우만 50K 단위로 확장
-        return int(math.ceil(max_value / 50000) * 50000)
+        # 🔥 고정 기준보다 큰 데이터가 생긴 경우만 20K 단위로 확장
+        # - 80K 초과 시 100K, 120K, 140K처럼 깔끔하게 확장
+        return int(math.ceil(max_value / 20000) * 20000)
 
     if max_value <= CHART_MAX_Y:
         return CHART_MAX_Y
@@ -91,8 +99,8 @@ def _calc_chart_max_y(chart_data, fixed_max_y=None):
 # =========================================================
 # 🔥 Y축 라벨 표시
 # - 단위는 무조건 K
-# - 100,000 -> 100K
 # - 80,000 -> 80K
+# - 60,000 -> 60K
 # =========================================================
 def _format_y_axis_value(value):
     try:
@@ -408,13 +416,13 @@ def build_stock_twin_chart(chart_data=None):
         legend_secondary="출고",
         unit_text="단위: K",
         chart_data=chart_data,
-        fixed_max_y=None,
+        fixed_max_y=STOCK_FIXED_MAX_Y,  # 🔥 재고현황에만 적용
     )
 
 
 # =========================================================
 # 🔥 생산관리 전용 차트
-# - 월 이동해도 기준이 흔들리지 않도록 Y축 100K 고정
+# - 기존 생산 실적 화면 기준 유지
 # =========================================================
 def build_production_twin_chart(chart_data=None):
     return build_twin_chart(

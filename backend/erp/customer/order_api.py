@@ -12,7 +12,7 @@ from .order_service import count_customer_orders, fetch_customer_orders
 
 router = APIRouter(
     prefix="/erp/customer/order",
-    tags=["customer-order"],
+    tags=["customer"],
 )
 
 SEARCH_TYPE_LABELS = {

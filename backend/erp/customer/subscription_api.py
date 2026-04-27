@@ -16,7 +16,7 @@ from .subscription_service import (
 
 router = APIRouter(
     prefix="/erp/customer/subscription",
-    tags=["customer-subscription"],
+    tags=["customer"],
 )
 
 

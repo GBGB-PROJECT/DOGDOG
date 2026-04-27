@@ -90,7 +90,7 @@ def build_erp_topbar(on_top_menu_click=None):
                             weight=ft.FontWeight.W_700,
                         ),
                         ft.Text(
-                            value="lmlmjang@gmail.com",
+                            value="lmTimjang@gmail.com",
                             color=c.SUBTEXT_COLOR,
                             size=10,
                         ),

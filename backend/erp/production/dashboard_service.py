@@ -4,7 +4,7 @@
 # - 월 이동용 year/month 필터 지원
 # =========================================================
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .dashboard_repository import (
     count_defective_rows,
@@ -44,16 +44,19 @@ def _format_full_date(value):
         return clean.replace("-", ".")
 
 
-def _format_api_date(value):
-    if not value:
-        return ""
+def _build_order_display_code(contract_date):
+    """
+    🔥 디자인 예시에 맞춘 발주 카드용 표시 코드
+    - DB에 발주코드 컬럼이 따로 없으므로 발주일자 기준으로 화면용 코드 생성
+    - 예: 2026-04-07 -> GAEBOB_260407
+    """
+    clean = str(contract_date or "")[:10]
 
-    clean = str(value)[:10]
     try:
         parsed = datetime.strptime(clean, "%Y-%m-%d")
-        return parsed.strftime("%Y-%m-%d")
+        return f"GAEBOB_{parsed.strftime('%y%m%d')}"
     except ValueError:
-        return clean
+        return "GAEBOB_ORDER"
 
 
 # =========================================================
@@ -82,15 +85,12 @@ def _format_money_to_manwon(value):
     return f"{manwon:,}만원"
 
 
-def _format_stock(value):
-    return f"{_to_int(value):,} ea"
-
-
 # =========================================================
 # 🔥 최근 생산/불량 박스 row 변환
 # =========================================================
 def _build_recent_production_screen_rows(rows):
     screen_rows = []
+
     for row in rows:
         screen_rows.append(
             [
@@ -101,11 +101,13 @@ def _build_recent_production_screen_rows(rows):
                 _format_money_to_manwon(row.get("production_amount")),
             ]
         )
+
     return screen_rows
 
 
 def _build_recent_defective_screen_rows(rows):
     screen_rows = []
+
     for row in rows:
         screen_rows.append(
             [
@@ -116,6 +118,7 @@ def _build_recent_defective_screen_rows(rows):
                 _format_money_to_manwon(row.get("defective_amount")),
             ]
         )
+
     return screen_rows
 
 
@@ -132,6 +135,7 @@ def _build_chart_data(monthly_rows):
     }
 
     chart_data = []
+
     for month in range(1, 13):
         row = month_map.get(month, {})
         production_amount = _to_int(row.get("production_amount"))
@@ -150,27 +154,35 @@ def _build_chart_data(monthly_rows):
 
 # =========================================================
 # 🔥 최근 발주 카드 변환
+# - 디자인 예시 기준으로 발주서 단위 카드 표시
+# - 상단: GAEBOB_YYMMDD
+# - 본문: 발주일자 / 총발주량 / 입고예정일
 # =========================================================
 def _build_purchase_card_items(rows):
     items = []
-    for row in rows:
-        product_name = row.get("represent_product_name") or row.get("supplier_name") or "발주 상품"
-        item_count = _to_int(row.get("item_count"), 1)
 
-        if item_count > 1:
-            card_name = f"{product_name} 외 {item_count - 1}건"
-        else:
-            card_name = product_name
+    for row in rows:
+        purchase_order_id = row.get("purchase_order_id", "")
+        purchase_quantity_sum = _to_int(row.get("purchase_quantity_sum"), 0)
+        order_display_code = _build_order_display_code(row.get("contract_date"))
 
         items.append(
             {
-                "name": card_name,
-                "action_text": "상세 내역",
-                "purchase_order_id": row.get("purchase_order_id", ""),
+                # 🔥 카드 상단 표기
+                "name": order_display_code,
+                "order_display_code": order_display_code,
+
+                # 🔥 상세 모달 조회용 실제 PK
+                "purchase_order_id": purchase_order_id,
+
+                # 🔥 버튼 문구
+                "action_text": "상세내역",
+
+                # 🔥 디자인 예시 기준 row
                 "rows": [
-                    ("발주 일자", _format_full_date(row.get("contract_date"))),
-                    ("현 재고량", _format_stock(row.get("stock_available_sum"))),
-                    ("입고 예정일", _format_full_date(row.get("inbound_scheduled_date"))),
+                    ("발주일자", _format_full_date(row.get("contract_date"))),
+                    ("총발주량", _format_quantity(purchase_quantity_sum)),
+                    ("입고예정일", _format_full_date(row.get("inbound_scheduled_date"))),
                 ],
             }
         )
@@ -188,8 +200,6 @@ def _build_month_range(year: int, month: int):
     if month == 12:
         end = f"{year:04d}-12-31"
     else:
-        # 🔥 날짜 계산을 단순하게 하기 위해 datetime 표준 방식 사용
-        from datetime import timedelta
         end_dt = datetime(year, month + 1, 1) - timedelta(days=1)
         end = end_dt.strftime("%Y-%m-%d")
 
@@ -201,16 +211,42 @@ def _build_month_range(year: int, month: int):
 # =========================================================
 def fetch_production_dashboard(year=None, month=None):
     base_year, base_month = fetch_dashboard_base_year_month()
+
     target_year = int(year or base_year)
     target_month = int(month or base_month)
 
-    production_rows = fetch_recent_production_rows(limit=5, year=target_year, month=target_month)
-    defective_rows = fetch_recent_defective_rows(limit=5, year=target_year, month=target_month)
-    monthly_rows = fetch_monthly_production_chart(year=target_year)
-    purchase_card_rows = fetch_recent_purchase_cards(limit=5, year=target_year, month=target_month)
+    production_rows = fetch_recent_production_rows(
+        limit=5,
+        year=target_year,
+        month=target_month,
+    )
 
-    production_count = count_production_rows(year=target_year, month=target_month)
-    defective_count = count_defective_rows(year=target_year, month=target_month)
+    defective_rows = fetch_recent_defective_rows(
+        limit=5,
+        year=target_year,
+        month=target_month,
+    )
+
+    monthly_rows = fetch_monthly_production_chart(
+        year=target_year,
+    )
+
+    purchase_card_rows = fetch_recent_purchase_cards(
+        limit=5,
+        year=target_year,
+        month=target_month,
+    )
+
+    production_count = count_production_rows(
+        year=target_year,
+        month=target_month,
+    )
+
+    defective_count = count_defective_rows(
+        year=target_year,
+        month=target_month,
+    )
+
     month_start, month_end = _build_month_range(target_year, target_month)
 
     status_box_data = [

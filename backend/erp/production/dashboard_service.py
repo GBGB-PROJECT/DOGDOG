@@ -1,14 +1,15 @@
 # =========================================================
 # 🔥 생산관리 메인 대시보드 Service
 # - Repository의 raw DB 값을 Flet 화면에서 바로 쓰기 좋은 구조로 변환
+# - 월 이동용 year/month 필터 지원
 # =========================================================
 
-from datetime import date, datetime
+from datetime import datetime
 
 from .dashboard_repository import (
     count_defective_rows,
     count_production_rows,
-    fetch_dashboard_base_year,
+    fetch_dashboard_base_year_month,
     fetch_monthly_production_chart,
     fetch_recent_defective_rows,
     fetch_recent_production_rows,
@@ -41,6 +42,18 @@ def _format_full_date(value):
         return parsed.strftime("%Y.%m.%d")
     except ValueError:
         return clean.replace("-", ".")
+
+
+def _format_api_date(value):
+    if not value:
+        return ""
+
+    clean = str(value)[:10]
+    try:
+        parsed = datetime.strptime(clean, "%Y-%m-%d")
+        return parsed.strftime("%Y-%m-%d")
+    except ValueError:
+        return clean
 
 
 # =========================================================
@@ -166,29 +179,52 @@ def _build_purchase_card_items(rows):
 
 
 # =========================================================
+# 🔥 월 시작/끝 날짜
+# - 생산 입고 화면 이동 시 해당 월 입고완료일 필터에 사용
+# =========================================================
+def _build_month_range(year: int, month: int):
+    start = f"{year:04d}-{month:02d}-01"
+
+    if month == 12:
+        end = f"{year:04d}-12-31"
+    else:
+        # 🔥 날짜 계산을 단순하게 하기 위해 datetime 표준 방식 사용
+        from datetime import timedelta
+        end_dt = datetime(year, month + 1, 1) - timedelta(days=1)
+        end = end_dt.strftime("%Y-%m-%d")
+
+    return start, end
+
+
+# =========================================================
 # 🔥 생산관리 메인 대시보드 전체 조회
 # =========================================================
-def fetch_production_dashboard(year=None):
-    target_year = int(year or fetch_dashboard_base_year())
+def fetch_production_dashboard(year=None, month=None):
+    base_year, base_month = fetch_dashboard_base_year_month()
+    target_year = int(year or base_year)
+    target_month = int(month or base_month)
 
-    production_rows = fetch_recent_production_rows(limit=5)
-    defective_rows = fetch_recent_defective_rows(limit=5)
+    production_rows = fetch_recent_production_rows(limit=5, year=target_year, month=target_month)
+    defective_rows = fetch_recent_defective_rows(limit=5, year=target_year, month=target_month)
     monthly_rows = fetch_monthly_production_chart(year=target_year)
-    purchase_card_rows = fetch_recent_purchase_cards(limit=5)
+    purchase_card_rows = fetch_recent_purchase_cards(limit=5, year=target_year, month=target_month)
 
-    production_count = count_production_rows()
-    defective_count = count_defective_rows()
+    production_count = count_production_rows(year=target_year, month=target_month)
+    defective_count = count_defective_rows(year=target_year, month=target_month)
+    month_start, month_end = _build_month_range(target_year, target_month)
 
     status_box_data = [
         {
             "title": "생산 입고",
             "count_text": _format_count_text(production_count),
+            "count": _to_int(production_count),
             "subtitle": "최근 생산 내역",
             "rows": _build_recent_production_screen_rows(production_rows),
         },
         {
             "title": "불량 내역",
             "count_text": _format_count_text(defective_count),
+            "count": _to_int(defective_count),
             "subtitle": "최근 불량 내역",
             "rows": _build_recent_defective_screen_rows(defective_rows),
         },
@@ -200,7 +236,11 @@ def fetch_production_dashboard(year=None):
     }
 
     return {
-        "current_month_text": f"{target_year}년 {date.today().month}월",
+        "current_year": target_year,
+        "current_month": target_month,
+        "current_month_text": f"{target_year}년 {target_month}월",
+        "month_start": month_start,
+        "month_end": month_end,
         "status_box_data": status_box_data,
         "chart_data": _build_chart_data(monthly_rows),
         "top_production_section_data": top_production_section_data,

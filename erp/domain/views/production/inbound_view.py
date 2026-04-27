@@ -36,6 +36,48 @@ PAGE_SIZE = 50
 
 
 # =========================================================
+# 🔥 생산관리 대시보드 → 생산입고 화면 월 필터 전달용
+# - production_view.py에서 count 영역을 클릭하면 여기로 필터를 임시 저장
+# - inbound_view 진입 시 한 번 읽고 바로 비움
+# =========================================================
+_PRODUCTION_INBOUND_PREFILTER = {"value": None}
+
+
+def set_production_inbound_prefilter(start_date=None, end_date=None, search_type="inbound_complete"):
+    _PRODUCTION_INBOUND_PREFILTER["value"] = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "search_type": search_type or "inbound_complete",
+    }
+
+
+def _consume_production_inbound_prefilter():
+    value = _PRODUCTION_INBOUND_PREFILTER.get("value")
+    _PRODUCTION_INBOUND_PREFILTER["value"] = None
+    return value or {}
+
+
+def _parse_prefilter_date(value):
+    if not value:
+        return None
+
+    if isinstance(value, datetime.datetime):
+        return value.replace(tzinfo=None)
+
+    if isinstance(value, datetime.date):
+        return datetime.datetime(value.year, value.month, value.day)
+
+    clean = str(value).strip()[:10]
+    try:
+        return datetime.datetime.strptime(clean, "%Y-%m-%d")
+    except ValueError:
+        try:
+            return datetime.datetime.strptime(clean.replace(".", "-"), "%Y-%m-%d")
+        except ValueError:
+            return None
+
+
+# =========================================================
 # 🔥 공통 텍스트
 # =========================================================
 def build_text(value, size=12, color=TEXT_PRIMARY, weight=ft.FontWeight.W_400):
@@ -154,11 +196,27 @@ def inbound_db_row_adapter(db_rows: list, page_no: int):
 def erp_inbound_view():
     page_title = "생산관리 > 생산입고현황조회"
 
+    # 🔥 생산관리 메인에서 넘어온 월 필터가 있으면 입고완료일 기준으로 바로 조회
+    initial_prefilter = _consume_production_inbound_prefilter()
+    initial_search_type = initial_prefilter.get("search_type") or "inbound_id"
+    if initial_search_type not in {
+        "inbound_id",
+        "purchase_order_id",
+        "supplier_id",
+        "supplier_name",
+        "inbound_status",
+        "employee_id",
+        "inbound_scheduled_date",
+        "inbound_start",
+        "inbound_complete",
+    }:
+        initial_search_type = "inbound_id"
+
     rows_state = []
 
-    selected_start = {"value": None}
-    selected_end = {"value": None}
-    search_type_value = {"value": "inbound_id"}
+    selected_start = {"value": _parse_prefilter_date(initial_prefilter.get("start_date"))}
+    selected_end = {"value": _parse_prefilter_date(initial_prefilter.get("end_date"))}
+    search_type_value = {"value": initial_search_type}
 
     pagination_state = {
         "current_page": 1,

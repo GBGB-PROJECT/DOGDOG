@@ -1,9 +1,9 @@
 # =========================================================
 # 🔥 생산관리 메인 대시보드 Repository
-# - 업로드한 실제 테이블 구조 기준으로 다시 작성
 # - ERP.inbound / ERP.inbound_status / ERP.stock
 # - ERP.purchase_order / ERP.purchase_order_item / ERP.supplier
 # - OPD.product / OPD.product_detail JOIN
+# - 월 이동용 year/month 필터 지원
 # =========================================================
 
 from datetime import date
@@ -51,6 +51,33 @@ def _dashboard_date_expr():
         ErpInbound.inbound_complete,
         ErpInbound.inbound_start,
     )
+
+
+# =========================================================
+# 🔥 year/month 필터
+# =========================================================
+def _apply_dashboard_month_filter(query, year=None, month=None):
+    dashboard_date = _dashboard_date_expr()
+
+    if year is not None:
+        query = query.filter(func.extract("year", dashboard_date) == int(year))
+
+    if month is not None:
+        query = query.filter(func.extract("month", dashboard_date) == int(month))
+
+    return query
+
+
+def _apply_purchase_month_filter(query, year=None, month=None):
+    target_date = ErpPurchaseOrder.contract_date
+
+    if year is not None:
+        query = query.filter(func.extract("year", target_date) == int(year))
+
+    if month is not None:
+        query = query.filter(func.extract("month", target_date) == int(month))
+
+    return query
 
 
 # =========================================================
@@ -189,35 +216,50 @@ def _base_defective_query(db):
 
 
 # =========================================================
-# 🔥 대시보드 기준 연도
-# - API나 화면에서 연도를 넘기지 않으면 DB의 최신 입고완료 연도를 사용
+# 🔥 대시보드 기준 연월
+# - API나 화면에서 연월을 넘기지 않으면 DB의 최신 입고완료 연월을 사용
 # =========================================================
-def fetch_dashboard_base_year():
+def fetch_dashboard_base_year_month():
     db = SessionLocal()
     try:
         dashboard_date = _dashboard_date_expr()
-        latest_year = (
-            db.query(func.extract("year", dashboard_date).label("year"))
+        row = (
+            db.query(
+                func.extract("year", dashboard_date).label("year"),
+                func.extract("month", dashboard_date).label("month"),
+            )
             .select_from(ErpInbound)
             .filter(dashboard_date.isnot(None))
             .order_by(dashboard_date.desc())
             .limit(1)
-            .scalar()
+            .first()
         )
-        return int(latest_year or date.today().year)
+
+        if not row:
+            today = date.today()
+            return today.year, today.month
+
+        return int(row.year or date.today().year), int(row.month or date.today().month)
     finally:
         db.close()
+
+
+def fetch_dashboard_base_year():
+    year, _ = fetch_dashboard_base_year_month()
+    return year
 
 
 # =========================================================
 # 🔥 최근 생산 입고 내역 5건
 # =========================================================
-def fetch_recent_production_rows(limit=5):
+def fetch_recent_production_rows(limit=5, year=None, month=None):
     db = SessionLocal()
     try:
+        query = _base_stock_production_query(db)
+        query = _apply_dashboard_month_filter(query, year=year, month=month)
+
         rows = (
-            _base_stock_production_query(db)
-            .order_by(_dashboard_date_expr().desc().nullslast(), ErpInbound.inbound_id.desc())
+            query.order_by(_dashboard_date_expr().desc().nullslast(), ErpInbound.inbound_id.desc())
             .limit(limit)
             .all()
         )
@@ -229,12 +271,14 @@ def fetch_recent_production_rows(limit=5):
 # =========================================================
 # 🔥 최근 불량 내역 5건
 # =========================================================
-def fetch_recent_defective_rows(limit=5):
+def fetch_recent_defective_rows(limit=5, year=None, month=None):
     db = SessionLocal()
     try:
+        query = _base_defective_query(db)
+        query = _apply_dashboard_month_filter(query, year=year, month=month)
+
         rows = (
-            _base_defective_query(db)
-            .order_by(_dashboard_date_expr().desc().nullslast(), ErpInbound.inbound_id.desc())
+            query.order_by(_dashboard_date_expr().desc().nullslast(), ErpInbound.inbound_id.desc())
             .limit(limit)
             .all()
         )
@@ -246,10 +290,12 @@ def fetch_recent_defective_rows(limit=5):
 # =========================================================
 # 🔥 생산 입고 건수
 # =========================================================
-def count_production_rows():
+def count_production_rows(year=None, month=None):
     db = SessionLocal()
     try:
-        return _base_stock_production_query(db).count()
+        query = _base_stock_production_query(db)
+        query = _apply_dashboard_month_filter(query, year=year, month=month)
+        return query.count()
     finally:
         db.close()
 
@@ -257,10 +303,12 @@ def count_production_rows():
 # =========================================================
 # 🔥 불량 건수
 # =========================================================
-def count_defective_rows():
+def count_defective_rows(year=None, month=None):
     db = SessionLocal()
     try:
-        return _base_defective_query(db).count()
+        query = _base_defective_query(db)
+        query = _apply_dashboard_month_filter(query, year=year, month=month)
+        return query.count()
     finally:
         db.close()
 
@@ -269,7 +317,7 @@ def count_defective_rows():
 # 🔥 월별 생산/불량 실적
 # - 생산: ERP.stock.save_stock * ERP.purchase_order_item.purchase_price
 # - 불량: ERP.purchase_order_item.defective * ERP.purchase_order_item.purchase_price
-# - 단위 변환은 service에서 천원 단위로 처리
+# - 차트는 선택된 연도의 1~12월 흐름을 보여줌
 # =========================================================
 def fetch_monthly_production_chart(year=None):
     target_year = int(year or fetch_dashboard_base_year())
@@ -284,7 +332,6 @@ def fetch_monthly_production_chart(year=None):
             0,
         )
 
-        # 🔥 생산 금액: stock을 기준으로 실제 입고된 재고만 합산
         production_subquery = (
             db.query(
                 month_expr.label("month"),
@@ -313,7 +360,6 @@ def fetch_monthly_production_chart(year=None):
             0,
         )
 
-        # 🔥 불량 금액: purchase_order_item.defective 기준
         defective_subquery = (
             db.query(
                 month_expr.label("month"),
@@ -357,16 +403,15 @@ def fetch_monthly_production_chart(year=None):
 
 
 # =========================================================
-# =========================================================
 # 🔥 최근 발주 카드 5건
 # - 카드명: 대표상품명 외 N건
 # - 현 재고량: 해당 발주와 연결된 inbound_id의 stock_available만 합산
-# - 주의: product_id만으로 stock을 합산하면 과거 모든 입고 재고가 합쳐져 수만 ea로 튀어버림
+# - 선택된 월의 발주일(contract_date)에 해당하는 카드만 표시
 # =========================================================
-def fetch_recent_purchase_cards(limit=5):
+def fetch_recent_purchase_cards(limit=5, year=None, month=None):
     db = SessionLocal()
     try:
-        rows = (
+        query = (
             db.query(
                 ErpPurchaseOrder.purchase_order_id.label("purchase_order_id"),
                 ErpPurchaseOrder.contract_date.label("contract_date"),
@@ -405,7 +450,12 @@ def fetch_recent_purchase_cards(limit=5):
                 OpdProduct.product_detail_id == OpdProductDetail.product_detail_id,
             )
             .filter(ErpPurchaseOrder.is_purchase_order_cancel.is_(False))
-            .group_by(
+        )
+
+        query = _apply_purchase_month_filter(query, year=year, month=month)
+
+        rows = (
+            query.group_by(
                 ErpPurchaseOrder.purchase_order_id,
                 ErpPurchaseOrder.contract_date,
                 ErpPurchaseOrder.inbound_scheduled_date,

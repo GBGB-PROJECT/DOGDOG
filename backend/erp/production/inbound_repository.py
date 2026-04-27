@@ -1,8 +1,9 @@
 # =========================================================
 # 🔥 생산입고 Repository
 # - ERP.inbound + ERP.inbound_status JOIN
+# - ERP.stock + ERP.purchase_order_item + OPD.product + OPD.product_detail JOIN 추가
+# - 대시보드의 생산 입고 카드와 동일하게 상품명/입고수량/입고금액까지 조회
 # - 입고 상태 ID를 숫자로 노출하지 않고 inbound_status.status 문자로 반환
-# - 발주/거래처 정보는 입고 현황에서 같이 보기 좋도록 purchase_order/supplier까지 LEFT JOIN
 # - 검색어, 날짜 범위, 50개 단위 페이지네이션 처리
 # =========================================================
 
@@ -12,7 +13,16 @@ from sqlalchemy import cast, func, or_
 from sqlalchemy.types import String
 
 from db.db import SessionLocal
-from db.models import ErpInbound, ErpInboundStatus, ErpPurchaseOrder, ErpSupplier
+from db.models import (
+    ErpInbound,
+    ErpInboundStatus,
+    ErpPurchaseOrder,
+    ErpPurchaseOrderItem,
+    ErpStock,
+    ErpSupplier,
+    OpdProduct,
+    OpdProductDetail,
+)
 from ..common.query_utils import like_keyword, to_plain_value
 
 
@@ -82,8 +92,16 @@ def _normalize_end_datetime(value):
 
 # =========================================================
 # 🔥 생산입고 기본 JOIN 쿼리
+# - 기존: inbound 문서 헤더 중심
+# - 수정: stock 기준으로 상품별 입고 현황 조회
 # =========================================================
 def _base_query(db):
+    # 🔥 입고금액 = 실제 입고수량(save_stock) * 발주 구매단가(purchase_price)
+    inbound_amount_expr = func.coalesce(
+        ErpStock.save_stock * ErpPurchaseOrderItem.purchase_price,
+        0,
+    )
+
     return (
         db.query(
             ErpInbound.inbound_id.label("inbound_id"),
@@ -91,24 +109,52 @@ def _base_query(db):
             ErpPurchaseOrder.supplier_id.label("supplier_id"),
             ErpSupplier.supplier_name.label("supplier_name"),
             ErpInboundStatus.status.label("inbound_status"),  # 🔥 숫자 ID 대신 상태명 반환
+            ErpStock.product_id.label("product_id"),
+            OpdProductDetail.brand.label("brand"),
+            OpdProductDetail.product_name.label("product_name"),
+            ErpStock.save_stock.label("save_stock"),
+            ErpPurchaseOrderItem.purchase_price.label("purchase_price"),
+            inbound_amount_expr.label("inbound_amount"),
+            ErpStock.expiration_date.label("expiration_date"),
+            ErpPurchaseOrder.inbound_scheduled_date.label("inbound_scheduled_date"),
             ErpInbound.inbound_start.label("inbound_start"),
             ErpInbound.inbound_complete.label("inbound_complete"),
             ErpInbound.employee_id.label("employee_id"),
-            ErpPurchaseOrder.inbound_scheduled_date.label("inbound_scheduled_date"),
             ErpInbound.last_update.label("last_update"),
+        )
+        # 🔥 상품 입고 현황이므로 stock을 기준 테이블로 사용
+        .select_from(ErpStock)
+        .join(
+            ErpInbound,
+            ErpStock.inbound_id == ErpInbound.inbound_id,
         )
         .outerjoin(
             ErpInboundStatus,
             ErpInbound.inbound_status_id == ErpInboundStatus.inbound_status_id,
         )
-        .outerjoin(
+        .join(
             ErpPurchaseOrder,
             ErpInbound.purchase_order_id == ErpPurchaseOrder.purchase_order_id,
+        )
+        .join(
+            ErpPurchaseOrderItem,
+            (ErpPurchaseOrder.purchase_order_id == ErpPurchaseOrderItem.purchase_order_id)
+            & (ErpStock.product_id == ErpPurchaseOrderItem.product_id),
         )
         .outerjoin(
             ErpSupplier,
             ErpPurchaseOrder.supplier_id == ErpSupplier.supplier_id,
         )
+        .outerjoin(
+            OpdProduct,
+            ErpStock.product_id == OpdProduct.product_id,
+        )
+        .outerjoin(
+            OpdProductDetail,
+            OpdProduct.product_detail_id == OpdProductDetail.product_detail_id,
+        )
+        # 🔥 취소된 발주건은 생산입고 현황에서 제외
+        .filter(ErpPurchaseOrder.is_purchase_order_cancel.is_(False))
     )
 
 
@@ -142,10 +188,24 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
     if search_type == "inbound_status":
         return query.filter(ErpInboundStatus.status.ilike(like_keyword(clean)))
 
+    if search_type == "product_id":
+        if _is_int_text(clean):
+            return query.filter(ErpStock.product_id == int(clean))
+        return query.filter(cast(ErpStock.product_id, String).like(like_keyword(clean)))
+
+    if search_type == "brand":
+        return query.filter(OpdProductDetail.brand.ilike(like_keyword(clean)))
+
+    if search_type == "product_name":
+        return query.filter(OpdProductDetail.product_name.ilike(like_keyword(clean)))
+
     if search_type == "employee_id":
         if _is_int_text(clean):
             return query.filter(ErpInbound.employee_id == int(clean))
         return query.filter(cast(ErpInbound.employee_id, String).like(like_keyword(clean)))
+
+    if search_type == "expiration_date":
+        return query.filter(cast(ErpStock.expiration_date, String).like(like_keyword(clean)))
 
     if search_type == "inbound_start":
         return query.filter(cast(ErpInbound.inbound_start, String).like(like_keyword(clean)))
@@ -162,6 +222,9 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
             cast(ErpInbound.purchase_order_id, String).like(like_keyword(clean)),
             ErpInboundStatus.status.ilike(like_keyword(clean)),
             ErpSupplier.supplier_name.ilike(like_keyword(clean)),
+            cast(ErpStock.product_id, String).like(like_keyword(clean)),
+            OpdProductDetail.brand.ilike(like_keyword(clean)),
+            OpdProductDetail.product_name.ilike(like_keyword(clean)),
         )
     )
 
@@ -169,7 +232,7 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
 # =========================================================
 # 🔥 날짜 범위 처리
 # - 기본 기준: 입고 시작일(inbound_start)
-# - search_type이 입고완료일/입고예정일이면 해당 컬럼 기준으로 날짜 필터 적용
+# - 검색조건이 입고완료일/입고예정일/유통기한이면 해당 컬럼 기준
 # =========================================================
 def _apply_date_filter(query, search_type="inbound_id", start_date=None, end_date=None):
     start_dt = _normalize_start_datetime(start_date)
@@ -182,6 +245,8 @@ def _apply_date_filter(query, search_type="inbound_id", start_date=None, end_dat
         target_column = ErpInbound.inbound_complete
     elif search_type == "inbound_scheduled_date":
         target_column = ErpPurchaseOrder.inbound_scheduled_date
+    elif search_type == "expiration_date":
+        target_column = ErpStock.expiration_date
     else:
         target_column = ErpInbound.inbound_start
 
@@ -242,7 +307,9 @@ def fetch_inbounds(
 
         rows = (
             query.order_by(
+                ErpInbound.inbound_complete.desc().nullslast(),
                 ErpInbound.inbound_id.desc(),
+                ErpStock.product_id.asc(),
             )
             .limit(limit)
             .offset(offset)

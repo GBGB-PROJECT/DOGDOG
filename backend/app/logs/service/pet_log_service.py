@@ -39,6 +39,17 @@ class PetLogService:
                 f"배변 점수는 1.0~7.0 사이여야 합니다. (입력값: {log_status})"
             )
 
+    def _trigger_recalculation(self, pet_id: int):
+        """기록 변경 후 권장 급여량을 재계산합니다. (로그만 남기고 메인 로직에는 영향 없음)"""
+        from app.calc_feeding.cal_guideIntake_service import create_feeding_recommendation_service
+        try:
+            # 트랜잭션 독립성 및 안전성을 위해 별도 커밋(commit=True) 사용
+            create_feeding_recommendation_service(db=self.repo.db, pet_id=pet_id, commit=True)
+            print(f"[PetLogService] Feeding guide successfully recalculated for pet {pet_id}")
+        except Exception as e:
+            # 재계산 실패가 메인 기록 저장에 영향을 주지 않도록 예외를 삼킴
+            print(f"[PetLogService] Feeding guide recalculation failed for pet {pet_id}: {e}")
+
     def register_poop_log(
         self,
         customer_id: int,
@@ -47,18 +58,7 @@ class PetLogService:
         log_date: datetime,
         memo: str = None,
     ) -> tuple:
-        """배변 기록을 등록합니다.
-
-        Args:
-            customer_id: 보호자 ID
-            pet_id: 대상 반려견 ID
-            log_status: 배변 점수 (1.0~7.0)
-            log_date: 실제 발생 일시
-            memo: 메모 (선택)
-
-        Returns:
-            (CompanionPetLogNumeric, is_duplicate: bool) 튜플
-        """
+        """배변 기록을 등록합니다."""
         self._validate_log_date(log_date)
         self._validate_log_status(log_status)
 
@@ -77,17 +77,13 @@ class PetLogService:
         self.repo.commit()
         self.repo.refresh(log)
 
+        # 권장 급여량 재계산 트리거
+        self._trigger_recalculation(pet_id)
+
         return log, is_duplicate
 
     def get_poop_log(self, pet_log_numeric_id: int):
-        """배변 기록을 단건 조회합니다.
-
-        Args:
-            pet_log_numeric_id: 배변 로그 PK
-
-        Returns:
-            CompanionPetLogNumeric 또는 None
-        """
+        """배변 기록을 단건 조회합니다."""
         return self.repo.get_log_by_id(pet_log_numeric_id)
 
     def update_poop_log(
@@ -95,18 +91,7 @@ class PetLogService:
         pet_log_numeric_id: int,
         update_data: dict,
     ) -> CompanionPetLogNumeric:
-        """배변 기록을 수정합니다. (log_status, log_date, memo만 수정 가능)
-
-        Args:
-            pet_log_numeric_id: 대상 로그 PK
-            update_data: 수정할 필드-값 딕셔너리
-
-        Returns:
-            수정된 CompanionPetLogNumeric 객체
-
-        Raises:
-            ValueError: 로그를 찾을 수 없거나, 입력값이 유효하지 않은 경우
-        """
+        """배변 기록을 수정합니다."""
         log = self.repo.get_log_by_id(pet_log_numeric_id)
         if not log:
             raise ValueError("요청하신 배변 기록을 찾을 수 없습니다.")
@@ -122,32 +107,29 @@ class PetLogService:
         if "memo" in update_data:
             log.memo = update_data["memo"]
 
-        # last_update 수동 갱신 (모델에 onupdate 미설정)
+        # last_update 수동 갱신
         log.last_update = datetime.now()
 
         self.repo.commit()
         self.repo.refresh(log)
 
+        # 권장 급여량 재계산 트리거
+        self._trigger_recalculation(log.pet_id)
+
         return log
 
     def delete_poop_log(self, pet_log_numeric_id: int) -> bool:
-        """배변 기록을 논리 삭제(Soft Delete)합니다.
-
-        Args:
-            pet_log_numeric_id: 대상 로그 PK
-
-        Returns:
-            삭제 성공 여부
-
-        Raises:
-            ValueError: 로그를 찾을 수 없는 경우
-        """
+        """배변 기록을 논리 삭제(Soft Delete)합니다."""
         log = self.repo.get_log_by_id(pet_log_numeric_id)
         if not log:
             raise ValueError("요청하신 배변 기록을 찾을 수 없습니다.")
 
+        pet_id = log.pet_id
         self.repo.delete_log(log)
         self.repo.commit()
+
+        # 권장 급여량 재계산 트리거
+        self._trigger_recalculation(pet_id)
 
         return True
 
@@ -235,6 +217,9 @@ class PetLogService:
         for log in inserted_logs:
             self.repo.refresh(log)
 
+        # 권장 급여량 재계산 트리거 (한 번만 수행)
+        self._trigger_recalculation(pet_id)
+
         return inserted_logs
 
     def update_weight_bcs(self, pet_log_numeric_id: int, update_data: dict) -> list:
@@ -267,6 +252,9 @@ class PetLogService:
         self.repo.commit()
         self.repo.refresh(log)
 
+        # 권장 급여량 재계산 트리거
+        self._trigger_recalculation(log.pet_id)
+
         return [log]
 
     def delete_weight_bcs(self, pet_log_numeric_id: int) -> bool:
@@ -278,10 +266,14 @@ class PetLogService:
         if log.category not in ["weight", "bcs"]:
             raise ValueError("해당 API는 체중이나 BCS 기록만 삭제할 수 있습니다.")
 
+        pet_id = log.pet_id
         self.repo.delete_log(log)
         self.repo.db.flush()
 
         self.sync_pet_latest_status(log.pet_id, log.category)
         self.repo.commit()
+
+        # 권장 급여량 재계산 트리거
+        self._trigger_recalculation(pet_id)
 
         return True

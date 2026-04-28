@@ -57,7 +57,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         show_error_callback=show_error, 
         change_page_callback=change_page_callback,
         focus_field=focus_field,
-        popop=popop
+        popup=popup
     )
 
     # ---------------------------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         bottom = ft.Row(controls=[dogdog.continue_button(on_click=controller.process_user_sign_up)])
 
     elif content_page == "/pet_info":
-        content = pet_info_view(page=page)
+        content = pet_info_view(page=page, popup=popup)
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(on_click=lambda e: change_page_callback("/sign_up")),
@@ -108,7 +108,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         )
 
     elif content_page == "/pet_food":
-        content = pet_food_view(page=page)
+        content = pet_food_view(page=page, popup=popup)
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(

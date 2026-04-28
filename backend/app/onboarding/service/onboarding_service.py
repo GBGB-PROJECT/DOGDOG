@@ -103,9 +103,8 @@ class OnboardingService:
             self.db.flush()
             logger.info(f"Onboarding Step 3 Success: Food Registered")
 
-            # 4. AI 급여량 추천 계산 연동
-            create_feeding_recommendation_service(db=self.db, pet_id=pet_id)
-            logger.info(f"Onboarding Step 4 Success: AI Feeding Recommendation Created")
+            # 4. AI 급여량 추천 및 재고 초기화 (Step 3 내부에 통합됨)
+            logger.info(f"Onboarding Step 3 & 4 Success: Food Registered with AI Recommendation")
 
             # 5. 모든 단계 성공 시 최종 커밋
             self.db.commit()
@@ -114,15 +113,12 @@ class OnboardingService:
             return {
                 "success": True,
                 "message": "통합 온보딩이 완료되었습니다.",
-                "data": {
-                    "customer_id": customer_id,
-                    "pet_id": pet_id,
-                    "auth": {
-                        "access_token": auth_result.get("access_token"),
-                        "refresh_token": auth_result.get("refresh_token"),
-                        "expires_in": auth_result.get("expires_in")
-                    },
+                "auth": {
+                    "access_token": auth_result.get("access_token"),
+                    "refresh_token": auth_result.get("refresh_token")
                 },
+                "pet_id": pet_id,
+                "customer_id": customer_id
             }
 
         except Exception as e:

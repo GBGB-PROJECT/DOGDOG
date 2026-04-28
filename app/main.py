@@ -6,7 +6,7 @@ import asyncio
 import components as dogdog
 
 # 테스트 아이디(test7)로 테스트 설정
-IS_TEST_MODE = True
+IS_TEST_MODE = False
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
@@ -95,7 +95,7 @@ class Front_dogdog:
             print("[DEV] Starting auto login relay...")
             print(">> 로그인을 시도합니다...")
             # Step A: Login
-            payload = {"email": "test7@test.com", "password": "A12345678!"}
+            payload = {"email": "test042806@test.com", "password": "A12345678!"}
             res_login = await api_client.post("/auth/login", data=payload)
             if res_login.status_code != 200:
                 raise Exception(f"Login failed: {res_login.text}")
@@ -128,72 +128,70 @@ class Front_dogdog:
 
             print(">> 유저 및 Pet ID 조회를 시도합니다...")
             # Step B-1: Get pet_id
-            res_user = await api_client.get(
-                "/users/id", params={"email": "test7@test.com"}
-            )
-            if res_user.status_code != 200:
-                raise Exception(f"Get User failed: {res_user.status_code}")
+            # Step B-1: Get pet_id and pet info (API Response 1 format)
+            print(">> 반려동물 목록 조회를 시도합니다...")
+            res_pets = await api_client.get("/pets")
+            if res_pets.status_code != 200:
+                raise Exception(f"Get Pets failed: {res_pets.status_code}")
 
             try:
-                # JSON 구조: {"success": true, "data": {"customer_id": 1001, "pets": [{"pet_id": 3001}]}}
-                user_data = res_user.json().get("data", {})
-                pets = user_data.get("pets", [])
+                # API 응답 1: {"status": "success", "data": [{"pet_id": 3001, "nickname": "...", ...}]}
+                pets_data = res_pets.json().get("data") or []
+                if not pets_data:
+                    raise Exception("등록된 반려동물이 없습니다. (Cold Start)")
 
-                if pets and len(pets) > 0:
-                    pet_id = pets[0].get("pet_id")
-                    if not pet_id:
-                        raise Exception("pets 배열 내에 pet_id가 없습니다.")
-                else:
-                    raise Exception("pets 배열이 비어 있습니다.")
+                # 리스트의 첫 번째 항목에서 정보 추출
+                first_pet = pets_data[0]
+                pet_id = first_pet.get("pet_id")
+
+                # 전체 반려동물 리스트 구성 (세션 저장용)
+                real_pet_list = {}
+                for pet in pets_data:
+                    p_id = pet.get("pet_id")
+                    real_pet_list[p_id] = {
+                        "nickname": pet.get("nickname", "이름없음"),
+                        "birth_day": pet.get("birth_day", "2023-01-01"),
+                        "sex": pet.get("sex", 1),  # 정수형으로 저장 (지시 사항 준수)
+                        "profile_image": pet.get("profile_image"),
+                    }
+
+                self.page.session.store.set("pet_list", real_pet_list)
+                self.page.session.store.set("current_pet_id", pet_id)
+                print(f"<< 반려동물 정보 동기화 완료! (ID: {pet_id})")
+
             except Exception as e:
-                raise Exception(f"JSON 파싱 에러: {e}")
+                raise Exception(f"Pet Info 파싱 에러: {e}")
 
-            self.page.session.store.set("current_pet_id", pet_id)
-
-            # UI 렌더링을 위한 임시 pet_list 구조체 생성
-            mock_pet_list = {
-                pet_id: {
-                    "nickname": "테스트댕댕이",
-                    "birth_day": "2023-01-01",
-                    "sex": "1",
-                    "profile_image": None,
-                }
-            }
-            self.page.session.store.set("pet_list", mock_pet_list)
-
-            print(f"<< Pet ID({pet_id}) 조회 성공 및 임시 pet_list 초기화 완료!")
-
-            print(f">> 대시보드 데이터(Pet ID: {pet_id}) 조회를 시도합니다...")
+            # -------------------------------------------------------------------------------------------
             # Step B-2: Get dashboard
+            # -------------------------------------------------------------------------------------------
+            print(f">> 대시보드 데이터(Pet ID: {pet_id}) 조회를 시도합니다...")
             res_dash = await api_client.get(f"/home/dashboard/{pet_id}")
             if res_dash.status_code != 200:
-                raise Exception(f"Dashboard sync failed: {res_dash.status_code}")
+                # 콜드 스타트 상태일 경우 빈 딕셔너리로 진행 유도 (에러 발생시키지 않음)
+                print(
+                    f"[DEV] Dashboard sync failed: {res_dash.status_code}. Using empty data."
+                )
+                dash_data = {}
+            else:
+                dash_data = res_dash.json().get("data") or {}
 
-            dash_data = res_dash.json().get("data", res_dash.json())
             print("<< 대시보드 데이터 조회 성공!")
 
-            # Map dashboard data to UI state
+            # 2. 활동 로그 동기화 (history)
+            real_history = dash_data.get("history", {})
+            if not isinstance(real_history, dict):
+                real_history = {}
+            self.page.session.store.set("history", real_history)
+
+            # 3. 대시보드 전체 데이터 저장
             customer_detail = {"dashboard_sync": dash_data}
             self.storage.set("customer_detail", customer_detail)
-
-            # UI 렌더링을 위한 임시 history(활동 로그) 구조체 생성
-            mock_history = {
-                33: {
-                    "category": "급여량",
-                    "log_status": "77",
-                    "log_date": "2026-04-25 13:41:30.000",
-                },
-                88: {
-                    "category": "산책",
-                    "log_status": "30",
-                    "log_date": "2026-04-25 18:41:30.000",
-                },
-            }
-            self.page.session.store.set("history", mock_history)
 
             print("[DEV] Auto login relay Success. Routing to /home")
             self.is_onboarding_complete = True
 
+            # 즉시 홈 화면으로 이동 및 갱신
             if self.page.route == "/home":
                 await self.routing_view(page_name="/home")
             else:
@@ -206,7 +204,9 @@ class Front_dogdog:
 
             # 화면에 에러 표시 및 3초 대기 후 가입 화면으로 이동
             if hasattr(self, "loading_text"):
-                self.loading_text.value = f"테스트 계정 정보를 불러올 수 없습니다.\n(에러: {e})"
+                self.loading_text.value = (
+                    f"테스트 계정 정보를 불러올 수 없습니다.\n(에러: {e})"
+                )
                 self.loading_text.color = ft.Colors.RED
                 self.page.update()
                 await asyncio.sleep(3)
@@ -221,7 +221,11 @@ class Front_dogdog:
     async def on_route_change(self, e):
         route = e.route
         # self.page.overlay.clear()
-        if len(self.page.views) > 1 and self.page.views[-2].route == route and route != "/history":
+        if (
+            len(self.page.views) > 1
+            and self.page.views[-2].route == route
+            and route != "/history"
+        ):
             self.page.views.pop()
         elif len(self.page.views) == 0 or self.page.views[-1].route != route:
             # 새 페이지로 이동 시 기존 뷰 스택을 비워 메모리 누수 및 잔상 방지
@@ -266,6 +270,7 @@ class Front_dogdog:
             # --- 온보딩 뷰 생성 (On-boarding Tile) ---
             basic_content, focus_field = domains.on_boarding_tile(
                 page=self.page,
+                popup=self.popup,
                 content_page=page_name,
                 change_page_callback=self.page.go,
             )
@@ -309,8 +314,9 @@ class Front_dogdog:
                 self.page.views.clear()
                 self.page.update()  # 뷰를 비운 직후 즉시 갱신하여 로딩 화면처럼 보이게 함
 
-            home_background, main_container_content = await domains.home_tile(
+            home_background, main_container_content = domains.home_tile(
                 page=self.page,
+                popup=self.popup,
                 content_page=page_name,
                 change_page_callback=self.page.go,
             )
@@ -339,6 +345,8 @@ async def main(page: ft.Page):
     front_end = Front_dogdog(page=page)
     if page.platform == ft.PagePlatform.ANDROID:
         await page.set_allowed_device_orientations([ft.DeviceOrientation.PORTRAIT_UP])
+
+
 # -------------------------------------------------------------------------------------------------------
 if test_page == "Browser":
     import logging, warnings
@@ -351,7 +359,13 @@ if test_page == "Browser":
 
         if os.getenv(key="FLET_NO_BROWSER"):
             webbrowser.open = lambda *args: None
-        ft.run(main=main, assets_dir="assets", view=ft.AppView.WEB_BROWSER, port=34636, web_renderer=ft.WebRenderer.CANVAS_KIT)
+        ft.run(
+            main=main,
+            assets_dir="assets",
+            view=ft.AppView.WEB_BROWSER,
+            port=34636,
+            web_renderer=ft.WebRenderer.CANVAS_KIT,
+        )
 else:
     if __name__ == "__main__":
         ft.run(main=main, assets_dir="assets")

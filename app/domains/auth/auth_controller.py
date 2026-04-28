@@ -38,17 +38,57 @@ class AuthController:
             if pet_id:
                 self.page.session.store.set("current_pet_id", pet_id)
 
+            # -------------------------------------------------------------------------------------------
+            # [추가] 실시간 데이터 동기화 (홈 화면 렌더링용)
+            # -------------------------------------------------------------------------------------------
+            # 3. 반려견 정보 동기화 (pet_list)
+            print("[AuthController] 반려동물 상세 정보 동기화 중...")
+            res_pets = await self.api_client.get("/pets")
+            if res_pets.status_code == 200:
+                pets_data = res_pets.json().get("data") or []
+                real_pet_list = {}
+                for pet in pets_data:
+                    p_id = pet.get("pet_id")
+                    real_pet_list[p_id] = {
+                        "nickname": pet.get("nickname", "이름없음"),
+                        "birth_day": pet.get("birth_day", "2023-01-01"),
+                        "sex": pet.get("sex", 1), # 정수형 저장
+                        "profile_image": pet.get("profile_image"),
+                    }
+                self.page.session.store.set("pet_list", real_pet_list)
+                
+                # 만약 pet_id가 없는데 조회된 데이터가 있다면 첫 번째 펫을 기본값으로
+                if not pet_id and pets_data:
+                    pet_id = pets_data[0].get("pet_id")
+                    self.page.session.store.set("current_pet_id", pet_id)
+            
+            # 4. 대시보드 통계 데이터 동기화
+            if pet_id:
+                print(f"[AuthController] 대시보드 데이터 동기화 중... (ID: {pet_id})")
+                res_dash = await self.api_client.get(f"/home/dashboard/{pet_id}")
+                if res_dash.status_code == 200:
+                    dash_data = res_dash.json().get("data") or {}
+                    self.page.session.store.set("customer_detail", {"dashboard_sync": dash_data})
+                    
+                    # 활동 로그(history) 세션 동기화
+                    real_history = dash_data.get("history", {})
+                    if not isinstance(real_history, dict):
+                        real_history = {}
+                    self.page.session.store.set("history", real_history)
+                else:
+                    # 데이터가 없는 경우(콜드 스타트) 빈 값 세팅
+                    self.page.session.store.set("customer_detail", {"dashboard_sync": {}})
+                    self.page.session.store.set("history", {})
+
             # 온보딩 완료 플래그 (main.py에서 참조 가능하도록 세션에 기록)
             self.page.session.store.set("is_onboarding_complete", True)
 
             print(
-                f"[AuthController] Session storage updated (Token): {self.page.session.store.get('access_token')}"
+                f"[AuthController] Session storage updated (Token & Data Sync)"
             )
 
-            # 3. 세션 업데이트 보장
+            # 5. 세션 업데이트 보장 및 이동
             self.page.update()
-
-            # 4. 홈 화면으로 이동
             print("[AuthController] Relay complete. Navigating to /home")
             self.page.go("/home")
 

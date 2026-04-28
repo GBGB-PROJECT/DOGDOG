@@ -68,13 +68,30 @@ class PetfoodController:
             self.page.overlay.append(self.food_bottom_sheet)
         self.food_bottom_sheet.open = True
         self.page.update()
-    def on_food_search_change(self, e):
+    async def on_food_search_change(self, e):
+        keyword = e.control.value
+        api_client = ApiClient(self.page)
+        
+        try:
+            # API를 통해 사료 검색 수행
+            res = await api_client.get("/products", params={"keyword": keyword})
+            if res.status_code == 200:
+                res_data = res.json().get("data", [])
+                # update_item_list 규격에 맞춰 [ID, 이름] 리스트로 변환
+                search_list = [[item.get("product_detail_id"), item.get("product_name", "")] for item in res_data]
+            else:
+                search_list = []
+        except Exception as err:
+            print(f"사료 검색 중 오류: {err}")
+            search_list = []
+
         self.food_list = dogdog.update_item_list(
             list_column=self.food_list_column,
             search_data=search_list,
             select_key=self.selected_food_id, 
             select_value=self.select_food, 
-            keyword=keyword)
+            keyword=keyword
+        )
         self.page.update()
             
     async def select_food(self, food_id, food_name):

@@ -2,6 +2,7 @@ import flet as ft
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
 
+
 class Popup:
     def __init__(self, page: ft.Page):
         self.page = page
@@ -10,21 +11,24 @@ class Popup:
             modal=True,
             title=dogdog.basic_text(value="Quit"),
             content=dogdog.basic_text(value="Exit?"),
-            actions_alignment = ft.MainAxisAlignment.END,
+            actions_alignment=ft.MainAxisAlignment.END,
             actions=[
                 ft.TextButton("OK"),
-                ft.TextButton("Cancel", on_click=self.show_popup_close)
-            ]
+                ft.TextButton("Cancel", on_click=self.show_popup_close),
+            ],
         )
-        
+
         self.loading_dialog = ft.AlertDialog(
             modal=True,
             open=False,
             bgcolor=ft.Colors.TRANSPARENT,
-            content=ft.Row(alignment=ft.MainAxisAlignment.CENTER,
-                width=20, controls=[ft.ProgressRing(color=ft.Colors.BLUE_400)])
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                width=20,
+                controls=[ft.ProgressRing(color=ft.Colors.BLUE_400)],
+            ),
         )
-        
+
         self.bottom_sheet_controls = []
         self.bottom_sheet_popup = ft.AlertDialog(
             alignment=ft.Alignment(0, 1),
@@ -46,9 +50,9 @@ class Popup:
                     tight=True,
                     expand=True,
                     spacing=10,
-                    controls=self.bottom_sheet_controls
-                )
-            )
+                    controls=self.bottom_sheet_controls,
+                ),
+            ),
         )
 
         # Bottom Sheet Setting (popup)
@@ -71,4 +75,15 @@ class Popup:
 
     def show_popup_close(self, e):
         self.page.pop_dialog()
+        self.page.update()
+
+    async def show_api_insert_open(self, e=None):
+        """API 통신 시작 시 빙글빙글 로딩 창을 띄웁니다."""
+        self.page.dialog = self.loading_dialog
+        self.loading_dialog.open = True
+        self.page.update()
+
+    async def show_api_insert_close(self, e=None):
+        """API 통신 종료 시 로딩 창을 닫습니다."""
+        self.loading_dialog.open = False
         self.page.update()

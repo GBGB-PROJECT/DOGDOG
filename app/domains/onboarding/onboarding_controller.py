@@ -4,29 +4,37 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from api_client import ApiClient
 
+
 class OnboardingController:
     """
     [Controller] OnboardingController
     역할: 온보딩 과정의 비즈니스 로직(데이터 검증, API 통신, 상태 관리)을 전담합니다.
     - View(UI)는 화면 구성에만 집중하고, 모든 클릭 이벤트와 데이터 처리는 이 컨트롤러에서 수행합니다.
     """
-    
+
     # 온보딩 단계에서 누적될 데이터 저장소 (클래스 변수로 유지하여 단계 간 공유)
     data = {}
 
-    def __init__(self, page: ft.Page, show_error_callback, change_page_callback, focus_field=None, popop=None):
+    def __init__(
+        self,
+        page: ft.Page,
+        show_error_callback,
+        change_page_callback,
+        focus_field=None,
+        popup=None,
+    ):
         self.page = page
         self.show_error = show_error_callback
         self.change_page_callback = change_page_callback
         self.storage = page.session.store
         self.focus_field = focus_field
-        self.popop = popop
-        
+        self.popup = popup
+
         # 이메일 검증용 정규식
         self.regex_email = re.compile(
             pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._]+[@][a-zA-Z][A-Za-z.]+[.]\w{2,}"
         )
-        
+
         # 비밀번호 검증용 정규식 (최소 8자, 영문, 숫자, 특수문자 포함)
         # ^(?=.*[A-Za-z]) : 최소 하나의 영문자 포함
         # (?=.*\d) : 최소 하나의 숫자 포함
@@ -50,7 +58,7 @@ class OnboardingController:
             e.control.update()
             return
 
-        e.control.disabled = True # 중복 클릭 방지
+        e.control.disabled = True  # 중복 클릭 방지
         e.control.update()
 
         try:
@@ -96,12 +104,16 @@ class OnboardingController:
         # 조건: 2~10자, 한글/영문/숫자만 허용, 공백 불가
         regex_nickname = re.compile(r"^[가-힣a-zA-Z0-9]{2,10}$")
         if not re.fullmatch(regex_nickname, nickname):
-            self.show_error(text="닉네임은 2~10자의 한글, 영문, 숫자만 사용 가능합니다.")
+            self.show_error(
+                text="닉네임은 2~10자의 한글, 영문, 숫자만 사용 가능합니다."
+            )
             return
 
         # 3. 🔥 비밀번호 유효성 검사 (신규 기능)
         if not re.fullmatch(self.regex_password, password):
-            self.show_error(text="비밀번호는 8자 이상, 영문/숫자/특수문자를 포함해야 합니다.")
+            self.show_error(
+                text="비밀번호는 8자 이상, 영문/숫자/특수문자를 포함해야 합니다."
+            )
             return
 
         # 4. 데이터 누적 및 다음 단계 이동
@@ -109,18 +121,20 @@ class OnboardingController:
         self.page.update()
 
         try:
-            OnboardingController.data.update({
-                "email": current_email,
-                "user_nickname": nickname,
-                "password": password,
-                "phone": None,
-                "oauth_type": None,
-            })
+            OnboardingController.data.update(
+                {
+                    "email": current_email,
+                    "user_nickname": nickname,
+                    "password": password,
+                    "phone": None,
+                    "oauth_type": None,
+                }
+            )
 
             self.show_error(text="기본 정보 저장 완료")
             if self.focus_field:
                 await self.focus_field.focus()
-            
+
             self.page.update()
             self.change_page_callback("/pet_info")
         except Exception as ex:
@@ -130,8 +144,14 @@ class OnboardingController:
 
     async def process_pet_info(self, e):
         """반려견 기본 정보 검증 및 저장"""
-        if not (self.storage.get("breed_text") and self.storage.get("pet_name") and self.storage.get("pet_weight")):
-            self.show_error(text="이름, 품종, 생년월일, 성별, 무게를 모두 입력해주세요.")
+        if not (
+            self.storage.get("breed_text")
+            and self.storage.get("pet_name")
+            and self.storage.get("pet_weight")
+        ):
+            self.show_error(
+                text="이름, 품종, 생년월일, 성별, 무게를 모두 입력해주세요."
+            )
             return
 
         # 생일 계산 로직
@@ -140,7 +160,9 @@ class OnboardingController:
         elif self.storage.get("pet_age_year") and self.storage.get("pet_age_month"):
             age_month = int(self.storage.get("pet_age_month").split()[0])
             age_year = int(self.storage.get("pet_age_year").split()[0])
-            birth = str(datetime.date.today() - relativedelta(months=age_month, years=age_year))
+            birth = str(
+                datetime.date.today() - relativedelta(months=age_month, years=age_year)
+            )
         else:
             self.show_error("생년월일을 선택해주세요.")
             return
@@ -161,22 +183,24 @@ class OnboardingController:
             "수컷": (1, False),
             "암컷": (2, False),
             "수컷 (중성화)": (1, True),
-            "암컷 (중성화)": (2, True)
+            "암컷 (중성화)": (2, True),
         }
         gender_info = gender_map.get(self.storage.get("pet_gender"))
         if not gender_info:
             self.show_error(text="성별을 선택해주세요.")
             return
 
-        OnboardingController.data.update({
-            "pet_nickname": self.storage.get("pet_name"),
-            "image_path": self.storage.get("image_path"),
-            "breed_id": self.storage.get("breed_id"),
-            "birth": birth,
-            "sex": gender_info[0],
-            "is_neutered": gender_info[1],
-            "weight": self.storage.get("pet_weight"),
-        })
+        OnboardingController.data.update(
+            {
+                "pet_nickname": self.storage.get("pet_name"),
+                "image_path": self.storage.get("image_path"),
+                "breed_id": self.storage.get("breed_id"),
+                "birth": birth,
+                "sex": gender_info[0],
+                "is_neutered": gender_info[1],
+                "weight": self.storage.get("pet_weight"),
+            }
+        )
 
         if self.focus_field:
             await self.focus_field.focus()
@@ -193,13 +217,19 @@ class OnboardingController:
 
     async def process_pet_activity(self, e):
         """산책 및 급여 횟수 정보 저장"""
-        meals = [self.storage.get("breakfast"), self.storage.get("lunch"), self.storage.get("dinner")]
+        meals = [
+            self.storage.get("breakfast"),
+            self.storage.get("lunch"),
+            self.storage.get("dinner"),
+        ]
         if self.storage.get("radio_time") and any(meals):
             feeding_count = sum(1 for m in meals if m)
-            OnboardingController.data.update({
-                "feeding_count": feeding_count,
-                "daily_walks": int(self.storage.get("radio_time")),
-            })
+            OnboardingController.data.update(
+                {
+                    "feeding_count": feeding_count,
+                    "daily_walks": int(self.storage.get("radio_time")),
+                }
+            )
             if self.focus_field:
                 await self.focus_field.focus()
             self.page.update()
@@ -209,10 +239,12 @@ class OnboardingController:
 
     async def process_pet_health(self, e):
         """건강(알러지, 질환) 정보 저장"""
-        OnboardingController.data.update({
-            "allergy": self.storage.get("allergy"),
-            "disease": self.storage.get("disease")
-        })
+        OnboardingController.data.update(
+            {
+                "allergy": self.storage.get("allergy"),
+                "disease": self.storage.get("disease"),
+            }
+        )
         if self.focus_field:
             await self.focus_field.focus()
         self.page.update()
@@ -222,18 +254,17 @@ class OnboardingController:
         """최종 데이터 검증 및 서버 전송 (회원가입+반려견+사료 통합)"""
         p_id = self.storage.get("product_id")
         f_weight = self.storage.get("food_weight")
-        
+
         if not p_id or not f_weight:
             self.show_error(text="사료 무게와 급여량을 모두 입력/선택해 주세요.")
             return
 
-        OnboardingController.data.update({
-            "product_id": int(p_id), 
-            "food_weight": int(float(f_weight))
-        })
+        OnboardingController.data.update(
+            {"product_id": int(p_id), "food_weight": int(float(f_weight))}
+        )
 
-        if self.popop:
-            await self.popop.show_api_insert_open(e)
+        if self.popup:
+            await self.popup.show_api_insert_open(e)
 
         try:
             d = OnboardingController.data
@@ -266,33 +297,39 @@ class OnboardingController:
             res = await api_client.post("/onboarding", data=payload)
 
             if res.status_code in [200, 201]:
-                res_data = res.json().get("data", {})
-                auth_data = res_data.get("auth", {})
-                new_pet_id = res_data.get("pet_id")
-                customer_id = res_data.get("customer_id", 1001)
+                res_body = res.json()
+                auth_data = res_body.get("auth", {})
+                new_pet_id = res_body.get("pet_id")
+                customer_id = res_body.get("customer_id")
 
-                if self.popop:
-                    await self.popop.show_api_insert_close(e)
+                if self.popup:
+                    await self.popup.show_api_insert_close(e)
                     import asyncio
-                    await asyncio.sleep(0.1) # UI 갱신을 위한 짧은 대기
+
+                    await asyncio.sleep(0.1)  # UI 갱신을 위한 짧은 대기
 
                 # 인증 후처리 (AuthController 위임)
                 from domains.auth.auth_controller import AuthController
+
                 auth_ctrl = AuthController(self.page)
-                success = await auth_ctrl.complete_relay(auth_data, new_pet_id, customer_id=customer_id)
-                
+                success = await auth_ctrl.complete_relay(
+                    auth_data, new_pet_id, customer_id=customer_id
+                )
+
                 if success:
                     # self.show_error(text="DOGDOG에 오신 것을 환영합니다!") # 스낵바 대신 성공 화면으로 이동
                     self.change_page_callback("/sign_up_success")
                 else:
                     self.show_error(text="세션 동기화 중 오류가 발생했습니다.")
             else:
-                if self.popop:
-                    await self.popop.show_api_insert_close(e)
+                if self.popup:
+                    await self.popup.show_api_insert_close(e)
+                print(f"[API Error] 온보딩 실패: {res.text}")
                 msg = res.json().get("detail", "온보딩 실패")
                 self.show_error(text=str(msg))
 
         except Exception as ex:
-            if self.popop:
-                await self.popop.show_api_insert_close(e)
+            if self.popup:
+                await self.popup.show_api_insert_close(e)
+            print(f"[Onboarding Exception] 상세 내용: {str(ex)}")
             self.show_error(text=f"서버 통신 중 오류 발생: {str(ex)}")

@@ -79,38 +79,72 @@ def create_pet_food(
     # if pet_food is None
     # end_pet_food(db, pet_id)
 
-    # 6. 새 사료 등록
-    # 사료 등록
-    new_PetProductFeeding = insert_pet_product_feeding(
-        db=db,
-        pet_id=pet_id,
-        product_id=product_id,
-        one_gram_calories=product.product_detail.calories
-    )
+    # 6. 새 사료 등록 프로세스 (트랜잭션 관리 강화)
+    try:
+        # 6-1. 사료 영양 정보 등록 (AI 계산을 위한 기초 데이터)
+        new_PetProductFeeding = insert_pet_product_feeding(
+            db=db,
+            pet_id=pet_id,
+            product_id=product_id,
+            one_gram_calories=product.product_detail.calories
+        )
+        db.flush() # 영양 정보가 세션에 반영되어야 AI 추천 로직이 정상 작동함
 
-    # 잔여량 등록
-    new_CustomerFood = insert_customer_food(
-        db=db,
-        pet_id=pet_id,
-        total_weight=total_weight
-    )
+        # 7. AI 권장 급여량 기반 초기 재고 계산
+        from app.calc_feeding.cal_guideIntake_service import create_feeding_recommendation_service
+        from datetime import timedelta
 
-    if commit:
-        db.commit()
-    else:
-        db.flush()
+        guide_intake = 0
+        try:
+            # AI 추천 계산 (트랜잭션 유지를 위해 commit=False)
+            recommendation = create_feeding_recommendation_service(db=db, pet_id=pet_id, commit=False)
+            if isinstance(recommendation, dict):
+                guide_intake = recommendation.get("guide_intake", 0)
+        except Exception as ai_err:
+            print(f"[WARNING] AI Recommendation calculation failed: {ai_err}")
+            guide_intake = 0
 
-    db.refresh(new_CustomerFood)
-    db.refresh(new_PetProductFeeding)
+        print(f"[DEBUG] 가이드 급여량: {guide_intake}")
 
-    # left_weight_g = total_weight - left_intake
+        # 초기 계산값 준비
+        left_food_count = 0
+        expected_exdate = None
+        
+        if guide_intake and guide_intake > 0:
+            left_food_count = int(total_weight // guide_intake)
+            expected_exdate = date.today() + timedelta(days=left_food_count)
+        
+        print(f"[DEBUG] 계산된 잔여일: {left_food_count}, 소진일: {expected_exdate}")
 
-    return {
-        "pet_id": new_PetProductFeeding.pet_id,
-        "product_id": new_PetProductFeeding.product_id,
-        "product_name": product.product_detail.product_name,
-        "total_weight_g": new_CustomerFood.total_weight,
-        "one_gram_calories": new_PetProductFeeding.one_gram_calories,
-        "is_feeding_check": new_PetProductFeeding.is_feeding_check,
-        "record_date": str(new_PetProductFeeding.record_date)
-    }
+        # 6-2. 최종 잔여량 및 계산 필드 등록
+        new_CustomerFood = insert_customer_food(
+            db=db,
+            pet_id=pet_id,
+            total_weight=total_weight,
+            left_food_count=left_food_count,
+            expected_exdate=expected_exdate
+        )
+
+        if commit:
+            db.commit()
+            print(f"[SUCCESS] 사료 등록 및 트랜잭션 커밋 완료 (Pet ID: {pet_id})")
+        else:
+            db.flush()
+
+        db.refresh(new_CustomerFood)
+        db.refresh(new_PetProductFeeding)
+
+        return {
+            "pet_id": new_PetProductFeeding.pet_id,
+            "product_id": new_PetProductFeeding.product_id,
+            "product_name": product.product_detail.product_name,
+            "total_weight_g": new_CustomerFood.total_weight,
+            "one_gram_calories": new_PetProductFeeding.one_gram_calories,
+            "is_feeding_check": new_PetProductFeeding.is_feeding_check,
+            "record_date": str(new_PetProductFeeding.record_date)
+        }
+
+    except Exception as e:
+        db.rollback()
+        print(f"[ERROR] 사료 등록 중 치명적 오류 발생: {str(e)}")
+        raise e

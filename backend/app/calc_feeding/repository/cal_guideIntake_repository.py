@@ -122,6 +122,7 @@ def create_feeding_recommendation(
     pet_id: int,
     base_intake: float,
     guide_intake: float,
+    commit: bool = True,
 ):
     recommendation = db.get(CompanionFeedingGuide, pet_id)
 
@@ -135,9 +136,10 @@ def create_feeding_recommendation(
     else:
         recommendation.base_intake = int(round(base_intake))
         recommendation.guide_intake = int(round(guide_intake))
-        recommendation.guide_date=date.today()
+        recommendation.guide_date = date.today()
 
     db.add(recommendation)
-    db.commit()
-    db.refresh(recommendation)
+    if commit:
+        db.commit()
+        db.refresh(recommendation)
     return recommendation

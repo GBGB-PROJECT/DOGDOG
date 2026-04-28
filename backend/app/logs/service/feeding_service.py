@@ -50,13 +50,17 @@ class FeedingService:
     def _update_inventory_logic(
         self, pet_id: int, amount_diff: int, count_diff: int = 0
     ):
-        """재고 보정 로직 (누적량, 횟수)"""
+        """재고 보정 로직 (누적량, 횟수, 잔여량)"""
         inventory = self.repo.get_inventory(pet_id)
         if not inventory:
             return None
 
         inventory.total_intake += amount_diff
         inventory.food_count += count_diff
+        
+        # 백엔드 직접 계산: 잔여량 차감 (0 이하 방지)
+        current_left = inventory.left_intake or 0
+        inventory.left_intake = max(current_left - amount_diff, 0)
 
         return inventory
 
@@ -85,31 +89,23 @@ class FeedingService:
 
     # 잔여 일수 및 예상 소진일 통합 계산 헬퍼
     def _recalculate_remaining(self, pet_id: int, inventory):
-        """남은 사료량 기반으로 expected_exdate를 계산·저장합니다.
-
-        left_intake, left_food_count는 DB의 Generated Always 컬럼이므로
-        직접 쓰지 않고, 로컬 변수로만 계산에 활용합니다.
-
-        Args:
-            pet_id: 대상 반려견 ID
-            inventory: 업데이트된 CompanionCustomerFood 인스턴스
-        """
+        """남은 사료량 기반으로 left_food_count와 expected_exdate를 계산·저장합니다."""
         guide_intake = self.repo.get_guide_intake(pet_id)
 
-        # ZeroDivisionError 방어: guide_intake가 0이면 계산 스킵
-        if not guide_intake or guide_intake <= 0:
-            return
-
-        # left_intake를 로컬에서 계산 (DB Generated 컬럼에 직접 쓰지 않음)
+        # 1. 잔여량(left_intake) 재확인 및 업데이트
         total_weight = int(inventory.total_weight) if inventory.total_weight else 0
         total_intake = int(inventory.total_intake) if inventory.total_intake else 0
-        local_left_intake = max(total_weight - total_intake, 0)
+        inventory.left_intake = max(total_weight - total_intake, 0)
 
-        # 남은 일수를 로컬 변수로만 계산 (left_food_count도 DB Generated이므로 쓰지 않음)
-        local_left_food_count = int(local_left_intake // guide_intake)
+        # 2. ZeroDivisionError 방어: guide_intake가 0이면 계산 스킵
+        if not guide_intake or guide_intake <= 0:
+            inventory.left_food_count = 0
+            inventory.expected_exdate = None
+            return
 
-        # expected_exdate만 DB에 저장
-        inventory.expected_exdate = date.today() + timedelta(days=local_left_food_count)
+        # 3. 남은 일수 및 소진 예정일 계산
+        inventory.left_food_count = int(inventory.left_intake // guide_intake)
+        inventory.expected_exdate = date.today() + timedelta(days=inventory.left_food_count)
 
     # 급여 기록 등록
     def register_feeding(
@@ -219,6 +215,8 @@ class FeedingService:
         inven = None
         if is_current_period:
             inven = self._update_inventory_logic(log.pet_id, amount_diff)
+            if inven:
+                self._recalculate_remaining(log.pet_id, inven)
 
         # 날짜(Partition Key) 변경 시 삭제 후 재삽입 (Delete -> Insert)
         if "new_feeding_date" in new_data and new_data["new_feeding_date"] != old_date:
@@ -279,6 +277,8 @@ class FeedingService:
         inven = None
         if is_current_period:
             inven = self._update_inventory_logic(log.pet_id, -log.amount, count_diff=-1)
+            if inven:
+                self._recalculate_remaining(log.pet_id, inven)
 
         self.repo.delete_log(log)
         self.repo.commit()

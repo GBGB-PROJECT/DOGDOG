@@ -56,7 +56,7 @@ def home_layout(page, view=None, text=None, pet_list=None):
         if months < 0:
             years -= 1
             months += 12
-        sex_symbol = "♂️" if sex == "1" else "♀️"
+        sex_symbol = "♂️" if str(sex) == "1" else "♀️"
         return f"({years}년 {months}개월, {sex_symbol})"
     # ---------------------------------------------------------------------------------------------------    
     # Page Header

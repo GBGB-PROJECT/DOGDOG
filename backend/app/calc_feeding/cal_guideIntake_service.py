@@ -62,7 +62,7 @@ def build_adjustment_reason(adjustment_rate: float) -> str:
     return "기본 급여량 기준으로 권장 급여량을 산정했습니다."
 
 # AI 권장 급여량 계산
-def create_feeding_recommendation_service(db: Session, pet_id: int):
+def create_feeding_recommendation_service(db: Session, pet_id: int, commit: bool = True):
     if pet_id <= 0:
         raise HTTPException(
             status_code=400,
@@ -195,6 +195,7 @@ def create_feeding_recommendation_service(db: Session, pet_id: int):
         pet_id=pet_id,
         base_intake=base_daily_food_g,
         guide_intake=adjusted_daily_food_g,
+        commit=commit,
     )
 
     return {

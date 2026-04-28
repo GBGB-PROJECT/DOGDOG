@@ -62,29 +62,33 @@ def now_history(page: ft.Page, popup):
         now_log_bottom_sheet.open = True
         page.update()
     # ---------------------------------------------------------------------------------------------------
-    # 데이터 추출 및 초기화
+    # 데이터 추출 및 초기화 (Cold Start 방어)
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
     customer_detail = storage.get("customer_detail") or {}
-    dash_data = customer_detail.get("dashboard_sync", {})
+    dash_data = customer_detail.get("dashboard_sync") or {} # None 방지
 
-    # [1] 오늘의 기록 상단 데이터
+    # [1] 오늘의 기록 상단 데이터 (Key 매핑: feeding_stats, activity_stats)
     query_date = dash_data.get("query_date", datetime.datetime.now().strftime("%Y-%m-%d"))
-    query_date_formatted = str(query_date).replace("-", ".")
-
-    feeding_stats = dash_data.get("feeding_stats", {})
-    activity_stats = dash_data.get("activity_stats", {})
+    
+    feeding_stats = dash_data.get("feeding_stats") or {}
+    activity_stats = dash_data.get("activity_stats") or {}
 
     current_amount = feeding_stats.get("current_amount", 0)
     water_total = activity_stats.get("water_total", 0)
     walk_total = activity_stats.get("walk_total", 0)
 
-    # [2] 목표 칼로리 데이터
+    # [2] 목표 칼로리 및 진행률 계산
     current_kcal = feeding_stats.get("current_kcal", 0)
     target_kcal = feeding_stats.get("target_kcal", 0)
-    # progress_rate가 100분율(예: 78)로 올 경우 대비하여 100으로 나눔
     progress_rate = feeding_stats.get("progress_rate", 0)
-    kcal_progress_value = float(progress_rate) / 100 if progress_rate > 1 else float(progress_rate)
+    
+    # 0 나누기 방지 및 100분율 대응
+    try:
+        progress_val = float(progress_rate)
+        kcal_progress_value = progress_val / 100.0 if progress_val > 1.0 else progress_val
+    except (ValueError, TypeError, ZeroDivisionError):
+        kcal_progress_value = 0.0
 
     content_column = [
         ft.Row([dogdog.basic_text(value="오늘의 기록", size=18, weight="bold"),
@@ -132,15 +136,15 @@ def now_history(page: ft.Page, popup):
 
 def feeding_food_count(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
-    # 데이터 추출 및 초기화
+    # 데이터 추출 및 초기화 (Cold Start 방어)
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
     customer_detail = storage.get("customer_detail") or {}
-    dash_data = customer_detail.get("dashboard_sync", {})
+    dash_data = customer_detail.get("dashboard_sync") or {}
+
+    inventory = dash_data.get("food_inventory") or {}
     
-    inventory = dash_data.get("food_inventory", {})
-    
-    # [1] 사료 잔여량 데이터
+    # [1] 사료 잔여량 데이터 (Key 매핑: food_inventory)
     left_intake = inventory.get("left_intake", 0)
     total_weight_g = inventory.get("total_weight", 0)
     # 1600g -> 1.6Kg 변환

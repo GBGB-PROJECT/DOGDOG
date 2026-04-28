@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from db.models import CompanionCustomerFood, CompanionPetProductFeeding
@@ -66,22 +66,38 @@ def end_pet_food(db: Session, pet_id: int):
 
 
 # ------------------------------ 등록 ------------------------------
-def insert_customer_food(db: Session, pet_id: int, total_weight: int):
+def insert_customer_food(
+    db: Session, 
+    pet_id: int, 
+    total_weight: int,
+    left_food_count: int = 0,
+    expected_exdate: date = None
+):
     customer_food = get_customer_food_id(db=db, pet_id=pet_id)
     if customer_food is None:
         customer_food = CompanionCustomerFood(
             pet_id=pet_id,
             total_weight=total_weight,
-            # feeding_start=f"{date.today()}"
+            left_intake=total_weight, # 명시적 초기화
+            left_food_count=left_food_count,
+            expected_exdate=expected_exdate,
+            total_intake=0,
+            food_count=0,
+            last_update=func.now()
         )
         db.add(customer_food)
 
-    # 이미 급여한적이 있는 사용자의 경우 update total_weight
+    # 이미 급여한적이 있는 사용자의 경우 update
     else:
         customer_food.total_weight = total_weight
+        customer_food.left_intake = total_weight # 초기화
+        customer_food.left_food_count = left_food_count
+        customer_food.expected_exdate = expected_exdate
+        customer_food.total_intake = 0
+        customer_food.food_count = 0
         customer_food.feeding_start = date.today()
-        # customer_food.total_intake = 0
-        # customer_food.left_intake = total_weight
+        customer_food.last_update = func.now()
+        
     return customer_food
 
 

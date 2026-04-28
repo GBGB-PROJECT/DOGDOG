@@ -158,7 +158,7 @@ class StatusController:
         self.guide_bottom_sheet_content.clear()
         self.guide_bottom_sheet_content.append(
             ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[dogdog.basic_text(
-                f"{"배변 스코어란?" if route == "bowel" else "BCS 란?"}", size=25, weight="bold"),
+                f"{'배변 스코어란?' if route == 'bowel' else 'BCS 란?'}", size=25, weight="bold"),
                 dogdog.flat_button("닫기", on_click=lambda e:guide_close(e), disabled=False)]))
         self.guide_bottom_sheet_content.append(ft.Divider())
         self.guide_bottom_sheet_content.append(
@@ -215,7 +215,7 @@ def bottom_sheet(e, page: ft.Page, popup, call):
                     ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20))
             ])
             food = [dogdog.dropdown_menu_option(
-                key=customer_food_id, text=f"{detail.get("brand")} {detail.get("product_name")}"
+                key=customer_food_id, text=f"{detail.get('brand')} {detail.get('product_name')}"
                     ) for customer_food_id , detail in customer_detail.items()]
             feeding_food_list = ft.Row(margin=ft.margin.only(bottom=18),
                 controls=[

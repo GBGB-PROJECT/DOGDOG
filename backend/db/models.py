@@ -112,20 +112,8 @@ class CompanionCustomerFood(Base):
     feeding_start = Column(Date)
     total_intake = Column(SmallInteger, server_default=text("0"))
     food_count = Column(SmallInteger, server_default=text("0"))
-    left_food_count = Column(
-        Computed(
-            "case when total_intake > 0 and food_count > 0 and feeding_start is not null "
-            "then (total_weight / (total_intake / food_count::numeric)) - food_count else null end",
-            persisted=True,
-        )
-    )
-    left_intake = Column(
-        Computed(
-            "case when total_intake > 0 and food_count > 0 and total_weight is not null "
-            "then total_weight - total_intake else null end",
-            persisted=True,
-        )
-    )
+    left_food_count = Column(SmallInteger, server_default=text("0"))
+    left_intake = Column(SmallInteger, server_default=text("0"))
     last_update = Column(DateTime, nullable=False, server_default=text("now()"))
     expected_exdate = Column(Date)
 

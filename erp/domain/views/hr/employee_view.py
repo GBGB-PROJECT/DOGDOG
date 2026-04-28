@@ -136,7 +136,15 @@ def build_table_cell(
             size=size,
             color=color,
             weight=weight,
-            text_align=ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT,
+            # 🔥 수정: align_x 값에 따라 실제 Text 정렬도 함께 맞춤
+            # - 0: 중앙 / 1: 오른쪽 / -1: 왼쪽
+            text_align=(
+                ft.TextAlign.CENTER
+                if align_x == 0
+                else ft.TextAlign.RIGHT
+                if align_x == 1
+                else ft.TextAlign.LEFT
+            ),
         ),
     )
 
@@ -254,9 +262,7 @@ def erp_employee_view():
         "account_id": 7,
         "username": 7,
         "hire_date": 7,
-        "quit_date": 7,
         "position_name": 7,
-        "manager_id": 6,
         "email": 12,
         "phone": 10,
         "address": 12,
@@ -451,15 +457,13 @@ def erp_employee_view():
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
                     build_table_cell("사원ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("계정ID", col_expand["account_id"], -1, ft.FontWeight.W_700),
-                    build_table_cell("이름", col_expand["username"], -1, ft.FontWeight.W_700),
+                    build_table_cell("계정ID", col_expand["account_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("이름", col_expand["username"], 0, ft.FontWeight.W_700),
                     build_table_cell("입사일", col_expand["hire_date"], 0, ft.FontWeight.W_700),
-                    build_table_cell("퇴사일", col_expand["quit_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("직책", col_expand["position_name"], 0, ft.FontWeight.W_700),
-                    build_table_cell("관리자ID", col_expand["manager_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("이메일", col_expand["email"], -1, ft.FontWeight.W_700),
-                    build_table_cell("전화번호", col_expand["phone"], -1, ft.FontWeight.W_700),
-                    build_table_cell("주소", col_expand["address"], -1, ft.FontWeight.W_700),
+                    build_table_cell("이메일", col_expand["email"], 0, ft.FontWeight.W_700),
+                    build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
+                    build_table_cell("주소", col_expand["address"], 0, ft.FontWeight.W_700),
                     build_table_cell("우편번호", col_expand["postal_code"], 0, ft.FontWeight.W_700),
                     build_table_cell("상태", col_expand["active"], 0, ft.FontWeight.W_700),
                 ],
@@ -485,15 +489,13 @@ def erp_employee_view():
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
                     build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
-                    build_table_cell(row.get("account_id", ""), col_expand["account_id"], -1),
-                    build_table_cell(row.get("username", ""), col_expand["username"], -1),
+                    build_table_cell(row.get("account_id", ""), col_expand["account_id"], 0),
+                    build_table_cell(row.get("username", ""), col_expand["username"], 0),
                     build_table_cell(row.get("hire_date", ""), col_expand["hire_date"], 0),
-                    build_table_cell(row.get("quit_date", ""), col_expand["quit_date"], 0),
                     build_table_cell(row.get("position_name", ""), col_expand["position_name"], 0),
-                    build_table_cell(row.get("manager_id", ""), col_expand["manager_id"], 0),
-                    build_table_cell(row.get("email", ""), col_expand["email"], -1),
-                    build_table_cell(row.get("phone", ""), col_expand["phone"], -1),
-                    build_table_cell(row.get("address", ""), col_expand["address"], -1),
+                    build_table_cell(row.get("email", ""), col_expand["email"], 0),
+                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
+                    build_table_cell(row.get("address", ""), col_expand["address"], 0),
                     build_table_cell(row.get("postal_code", ""), col_expand["postal_code"], 0),
                     build_table_cell(
                         row.get("active", ""),
@@ -859,11 +861,22 @@ def erp_employee_view():
         border=ft.border.all(1, TABLE_BORDER),
         border_radius=10,
         bgcolor=CARD_BG,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Column(
+            expand=True,
             spacing=0,
             controls=[
                 build_table_header(),
-                table_rows_holder,
+                # 🔥 수정: inbound_view.py처럼 데이터 행 영역만 세로 스크롤
+                ft.Container(
+                    expand=True,
+                    content=ft.Column(
+                        expand=True,
+                        spacing=0,
+                        scroll=ft.ScrollMode.AUTO,
+                        controls=[table_rows_holder],
+                    ),
+                ),
             ],
         ),
     )
@@ -873,6 +886,7 @@ def erp_employee_view():
         bgcolor=cm.PAGE_BG,
         padding=0,
         content=ft.Column(
+            expand=True,
             spacing=0,
             controls=[
                 filter_bar,
@@ -880,8 +894,11 @@ def erp_employee_view():
                     padding=20,
                     expand=True,
                     content=ft.Column(
+                        expand=True,
                         spacing=14,
-                        scroll=ft.ScrollMode.AUTO,
+                        # 🔥 수정: 전체 본문 스크롤 제거
+                        # - 제목/결과텍스트/페이지네이션은 고정 영역에 두고
+                        # - 테이블 데이터 행만 table_area 안에서 스크롤되게 함
                         controls=[
                             ft.Text(
                                 value=page_title,
@@ -891,6 +908,7 @@ def erp_employee_view():
                             ),
                             result_text,
                             table_area,
+                            # 🔥 수정: pagination_holder는 스크롤 영역 밖 하단 배치
                             pagination_holder,
                         ],
                     ),

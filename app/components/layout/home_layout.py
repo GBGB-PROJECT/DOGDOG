@@ -101,9 +101,9 @@ def home_layout(page, view=None, text=None):
                 birth_day=first_pet_birth_day, sex=first_pet_birth_sex
             ),
             on_select=select_event,
-            helper_style=dogdog.TextStyle(color=ft.Colors.OUTLINE, size=12),
+            helper_style=dogdog.TextStyle(color=ft.Colors.OUTLINE, size=12, height=-1),
             height=50,
-            text_style=dogdog.TextStyle(),
+            text_style=dogdog.TextStyle(height=-1),
             trailing_icon=ft.Icons.KEYBOARD_ARROW_DOWN,
             selected_trailing_icon=ft.Icons.KEYBOARD_ARROW_UP,
             value=f"{first_pet_id}",

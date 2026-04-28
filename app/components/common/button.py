@@ -2,15 +2,13 @@ import flet as ft
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
 
-def flat_button(text, scale=0.8, icon=None, size=None, expand=None, on_click=None, disabled=True, bgcolor=ft.Colors.GREY_100, visible=True):
+def flat_button(text, text_color=ft.Colors.GREY_600, scale=1.0, icon=None, size=14, expand=None, on_click=None, disabled=False, bgcolor=ft.Colors.GREY_100, visible=True):
     return ft.Button(
         visible=visible,
         icon=icon,
-        width=size,
-        height=size,
         scale=scale,
         bgcolor=bgcolor,
-        content=dogdog.basic_text(value=text, color=ft.Colors.GREY_600),
+        content=dogdog.basic_text(value=text, color=text_color, size=size),
         expand=expand,
         on_click=on_click,
         disabled=disabled,
@@ -19,6 +17,21 @@ def flat_button(text, scale=0.8, icon=None, size=None, expand=None, on_click=Non
             shape=ft.RoundedRectangleBorder(radius=5), 
             padding=ft.Padding.only(left=10, right=10)
         )
+    )
+
+def flat_over_button(text, text_color=ft.Colors.GREY_600, size=14, expand=None, on_click=None, bgcolor=ft.Colors.GREY_100, visible=True):
+    return ft.Container(
+        padding=ft.padding.only(top=10, bottom=10, left=40, right=40),
+        alignment=ft.Alignment.CENTER,
+        on_click=on_click,
+        ink=True,
+        bgcolor=bgcolor,
+        border_radius=10,
+        visible=visible,
+        expand=expand,
+        # width=size*2,
+        # height=size*1.5,
+        content=dogdog.basic_text(value=text, color=text_color, size=size)
     )
 
 def icon_flat_button(text, icon:str, on_click=None):

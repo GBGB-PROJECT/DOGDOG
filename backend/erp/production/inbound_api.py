@@ -38,6 +38,14 @@ SEARCH_TYPE_LABELS = {
 }
 
 
+DATE_FILTER_TYPE_LABELS = {
+    "expiration_date": "유통기한",
+    "inbound_scheduled_date": "입고예정일",
+    "inbound_start": "입고시작일",
+    "inbound_complete": "입고완료일",
+}
+
+
 def _format_datetime(value):
     if not value:
         return ""
@@ -138,16 +146,29 @@ def get_inbound_list(
         description="조회 종료일. 기본은 입고시작일 기준이며, 검색조건이 입고완료일/입고예정일/유통기한이면 해당 날짜 기준입니다.",
         examples=["2026-04-30"],
     ),
+    date_filter_type: Literal[
+        "expiration_date",
+        "inbound_scheduled_date",
+        "inbound_start",
+        "inbound_complete",
+    ] = Query(
+        default="inbound_start",
+        description="날짜 범위를 적용할 기준 컬럼. 생산관리 카드에서 진입하면 입고완료일 기준으로 전달됩니다.",
+        examples=["inbound_complete"],
+    ),
 ):
     try:
         clean_search_type = (search_type or "inbound_id").strip()
         clean_keyword = (keyword or "").strip()
+        clean_date_filter_type = (date_filter_type or "inbound_start").strip()
 
         total_count = count_inbounds(
             search_type=clean_search_type,
             keyword=clean_keyword,
             start_date=start_date,
             end_date=end_date,
+            # 🔥 검색조건과 날짜 기준 분리
+            date_filter_type=clean_date_filter_type,
         )
 
         total_pages = max(1, ceil(total_count / size))
@@ -160,6 +181,8 @@ def get_inbound_list(
             offset=offset,
             start_date=start_date,
             end_date=end_date,
+            # 🔥 검색조건과 날짜 기준 분리
+            date_filter_type=clean_date_filter_type,
         )
 
         result_items = build_response_rows(items, page, size)
@@ -182,6 +205,8 @@ def get_inbound_list(
                         "keyword": clean_keyword,
                         "start_date": start_date,
                         "end_date": end_date,
+                        "date_filter_type": clean_date_filter_type,
+                        "date_filter_type_label": DATE_FILTER_TYPE_LABELS.get(clean_date_filter_type, clean_date_filter_type),
                     },
                 },
             }
@@ -203,6 +228,8 @@ def get_inbound_list(
                     "keyword": clean_keyword,
                     "start_date": start_date,
                     "end_date": end_date,
+                    "date_filter_type": clean_date_filter_type,
+                    "date_filter_type_label": DATE_FILTER_TYPE_LABELS.get(clean_date_filter_type, clean_date_filter_type),
                 },
             },
         }

@@ -230,21 +230,44 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
 
 # =========================================================
 # 🔥 날짜 범위 처리
-# - 기본 기준: 입고 시작일(inbound_start)
-# - 검색조건이 입고완료일/입고예정일/유통기한이면 해당 컬럼 기준
+# - 검색조건(search_type)과 날짜 기준(date_filter_type)을 분리
+# - 생산관리 68건 > 으로 들어온 경우 검색조건을 거래처명/상품명으로 바꿔도
+#   날짜 범위는 계속 입고완료일(inbound_complete) 기준으로 유지되어야 함
 # =========================================================
-def _apply_date_filter(query, search_type="inbound_id", start_date=None, end_date=None):
+def _apply_date_filter(
+    query,
+    search_type="inbound_id",
+    start_date=None,
+    end_date=None,
+    date_filter_type="inbound_start",
+):
     start_dt = _normalize_start_datetime(start_date)
     end_dt = _normalize_end_datetime(end_date)
 
     if not start_dt and not end_dt:
         return query
 
-    if search_type == "inbound_complete":
+    clean_date_filter_type = date_filter_type or "inbound_start"
+
+    # 🔥 기존 호출 호환: date_filter_type이 없고 검색조건이 날짜형이면 그 검색조건을 날짜 기준으로 사용
+    if clean_date_filter_type not in {
+        "expiration_date",
+        "inbound_scheduled_date",
+        "inbound_start",
+        "inbound_complete",
+    }:
+        clean_date_filter_type = search_type if search_type in {
+            "expiration_date",
+            "inbound_scheduled_date",
+            "inbound_start",
+            "inbound_complete",
+        } else "inbound_start"
+
+    if clean_date_filter_type == "inbound_complete":
         target_column = ErpInbound.inbound_complete
-    elif search_type == "inbound_scheduled_date":
+    elif clean_date_filter_type == "inbound_scheduled_date":
         target_column = ErpPurchaseOrder.inbound_scheduled_date
-    elif search_type == "expiration_date":
+    elif clean_date_filter_type == "expiration_date":
         target_column = ErpStock.expiration_date
     else:
         target_column = ErpInbound.inbound_start
@@ -266,6 +289,7 @@ def count_inbounds(
     keyword="",
     start_date=None,
     end_date=None,
+    date_filter_type="inbound_start",
 ):
     db = SessionLocal()
     try:
@@ -276,6 +300,8 @@ def count_inbounds(
             search_type=search_type,
             start_date=start_date,
             end_date=end_date,
+            # 🔥 검색조건과 날짜 기준 분리
+            date_filter_type=date_filter_type,
         )
         return query.count()
     finally:
@@ -292,6 +318,7 @@ def fetch_inbounds(
     offset=0,
     start_date=None,
     end_date=None,
+    date_filter_type="inbound_start",
 ):
     db = SessionLocal()
     try:
@@ -302,6 +329,8 @@ def fetch_inbounds(
             search_type=search_type,
             start_date=start_date,
             end_date=end_date,
+            # 🔥 검색조건과 날짜 기준 분리
+            date_filter_type=date_filter_type,
         )
 
         rows = (

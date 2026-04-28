@@ -235,7 +235,15 @@ def count_product_join_rows(search_type="product_id", keyword="", start_date=Non
 # ☑️ 생산 입고 현황 조회
 # =========================================================
 
-def fetch_inbounds(search_type="inbound_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+def fetch_inbounds(
+    search_type="inbound_id",
+    keyword="",
+    limit=50,
+    offset=0,
+    start_date=None,
+    end_date=None,
+    date_filter_type="inbound_start",
+):
     page = (offset // limit) + 1
 
     result = _list_request(
@@ -246,12 +254,20 @@ def fetch_inbounds(search_type="inbound_id", keyword="", limit=50, offset=0, sta
         size=limit,
         start_date=start_date,
         end_date=end_date,
+        # 🔥 생산관리 카드에서 넘어온 월 기준은 검색조건이 바뀌어도 유지
+        date_filter_type=date_filter_type,
     )
 
     return result["items"]
 
 
-def count_inbounds(search_type="inbound_id", keyword="", start_date=None, end_date=None):
+def count_inbounds(
+    search_type="inbound_id",
+    keyword="",
+    start_date=None,
+    end_date=None,
+    date_filter_type="inbound_start",
+):
     result = _list_request(
         "/erp/production/inbound",
         search_type=search_type,
@@ -260,6 +276,8 @@ def count_inbounds(search_type="inbound_id", keyword="", start_date=None, end_da
         size=1,
         start_date=start_date,
         end_date=end_date,
+        # 🔥 생산관리 카드에서 넘어온 월 기준은 검색조건이 바뀌어도 유지
+        date_filter_type=date_filter_type,
     )
 
     return result["pagination"].get("total_count", 0)

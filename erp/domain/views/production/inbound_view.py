@@ -45,11 +45,20 @@ PAGE_SIZE = 50
 _PRODUCTION_INBOUND_PREFILTER = {"value": None}
 
 
-def set_production_inbound_prefilter(start_date=None, end_date=None, search_type="inbound_complete"):
+def set_production_inbound_prefilter(
+    start_date=None,
+    end_date=None,
+    search_type="inbound_complete",
+    date_filter_type="inbound_complete",
+):
     _PRODUCTION_INBOUND_PREFILTER["value"] = {
         "start_date": start_date,
         "end_date": end_date,
         "search_type": search_type or "inbound_complete",
+        # 🔥 검색조건과 날짜 기준을 분리
+        # - 생산관리 68건 > 으로 들어온 경우 검색조건을 거래처명/상품명으로 바꿔도
+        #   날짜 범위는 계속 입고완료일 기준으로 유지해야 함
+        "date_filter_type": date_filter_type or "inbound_complete",
     }
 
 
@@ -236,9 +245,19 @@ def erp_inbound_view():
 
     rows_state = []
 
+    # 🔥 날짜 검색 기준과 검색조건을 분리
+    # - 기존 문제: 생산관리 68건 > 클릭 시 입고완료일 기준 월 필터가 걸렸는데,
+    #   화면에서 검색조건을 거래처명/상품명으로 바꾸는 순간 백엔드가 날짜 기준을 입고시작일로 바꿔버림
+    # - 수정: 대시보드에서 넘어온 날짜 기준은 inbound_complete로 고정 유지
+    date_search_types = {"expiration_date", "inbound_scheduled_date", "inbound_start", "inbound_complete"}
+    initial_date_filter_type = initial_prefilter.get("date_filter_type")
+    if initial_date_filter_type not in date_search_types:
+        initial_date_filter_type = initial_search_type if initial_search_type in date_search_types else "inbound_start"
+
     selected_start = {"value": _parse_prefilter_date(initial_prefilter.get("start_date"))}
     selected_end = {"value": _parse_prefilter_date(initial_prefilter.get("end_date"))}
     search_type_value = {"value": initial_search_type}
+    date_filter_type_value = {"value": initial_date_filter_type}
 
     pagination_state = {
         "current_page": 1,
@@ -385,6 +404,12 @@ def erp_inbound_view():
 
     def set_search_type(value: str):
         search_type_value["value"] = value
+
+        # 🔥 날짜형 검색조건을 직접 선택한 경우에만 날짜 기준도 같이 변경
+        # - 거래처명/상품명 같은 일반 검색조건으로 바꿔도 대시보드 월 필터는 유지됨
+        if value in date_search_types:
+            date_filter_type_value["value"] = value
+
         search_type_text.value = search_type_labels[value]
         search_type_text.update()
 
@@ -524,6 +549,8 @@ def erp_inbound_view():
             keyword=keyword,
             start_date=start_date,
             end_date=end_date,
+            # 🔥 검색조건과 날짜 기준 분리
+            date_filter_type=date_filter_type_value["value"],
         )
 
     def fetch_inbound_rows(keyword="", page_no=1):
@@ -537,6 +564,8 @@ def erp_inbound_view():
             offset=offset,
             start_date=start_date,
             end_date=end_date,
+            # 🔥 검색조건과 날짜 기준 분리
+            date_filter_type=date_filter_type_value["value"],
         )
 
         return inbound_db_row_adapter(db_rows, page_no)
@@ -605,10 +634,12 @@ def erp_inbound_view():
         start_text = format_picker_date(selected_start["value"]) or "미선택"
         end_text = format_picker_date(selected_end["value"]) or "미선택"
         search_label = search_type_labels.get(search_type_value["value"], "입고ID")
+        date_filter_label = search_type_labels.get(date_filter_type_value["value"], "입고시작일")
         keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
 
         result_text.value = (
             f"기간: {start_text} ~ {end_text} / "
+            f"날짜기준: {date_filter_label} / "
             f"검색조건: {search_label} / "
             f"검색어: {keyword_text} / "
             f"전체 {pagination_state['total_count']}건 / "

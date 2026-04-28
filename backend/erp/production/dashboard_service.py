@@ -79,10 +79,12 @@ def _format_quantity(value):
     return f"{_to_int(value):,} ea"
 
 
-def _format_money_to_manwon(value):
+def _format_money_to_won(value):
+    # 🔥 금액 표시 단위 수정
+    # - 기존: 1만원 / 11만원
+    # - 수정: 10,000원 / 110,000원
     amount = _to_int(value)
-    manwon = round(amount / 10000)
-    return f"{manwon:,}만원"
+    return f"{amount:,}원"
 
 
 # =========================================================
@@ -98,7 +100,7 @@ def _build_recent_production_screen_rows(rows):
                 "생산",
                 row.get("product_name") or row.get("supplier_name") or "-",
                 _format_quantity(row.get("save_stock")),
-                _format_money_to_manwon(row.get("production_amount")),
+                _format_money_to_won(row.get("production_amount")),
             ]
         )
 
@@ -115,7 +117,7 @@ def _build_recent_defective_screen_rows(rows):
                 "불량",
                 row.get("product_name") or row.get("supplier_name") or "-",
                 _format_quantity(row.get("defective")),
-                _format_money_to_manwon(row.get("defective_amount")),
+                _format_money_to_won(row.get("defective_amount")),
             ]
         )
 

@@ -2,7 +2,11 @@ import re
 import flet as ft
 from components import common as cm
 from components.common.charts.twin_chart import build_stock_twin_chart
-from components.common.modals.production_order import ProductionOrderDialog
+from components.common.modals.production_order import (
+    ProductionOrderDialog,
+    to_int,
+    format_number,
+)
 
 # 🔥 requests 방식 API 호출로 변경
 from api.erp_httpx_api import fetch_stock_dashboard
@@ -192,9 +196,34 @@ def erp_stock_status_view():
         # 🔥 생산지시서 첫 번째 품목 행 자동 입력
         if dialog.item_rows:
             first_row = dialog.item_rows[0]
+
+            # 🔥 추가: 대시보드 API에서 내려준 구매단가/판매가를 생산지시서에 바로 주입
+            # - 구매단가: ERP.purchase_order_item.purchase_price
+            # - 판매가: OPD.product.retail_price 또는 sales_order_item.retail_price
+            buy_price = item_data.get("purchase_price") or item_data.get("buy_price") or ""
+            sell_price = item_data.get("retail_price") or item_data.get("sell_price") or ""
+
             first_row["product_name"].value = product_name
             first_row["unit"].value = "ea"
             first_row["qty"].value = expected_qty
+            first_row["buy_price"].value = format_number(buy_price) if buy_price else ""
+            first_row["sell_price"].value = format_number(sell_price) if sell_price else ""
+
+            # 🔥 추가: 모달을 열자마자 구매가계/판매가계까지 자동 계산
+            qty = to_int(first_row["qty"].value)
+            buy_price_num = to_int(first_row["buy_price"].value)
+            sell_price_num = to_int(first_row["sell_price"].value)
+
+            first_row["buy_total"].value = (
+                format_number(qty * buy_price_num)
+                if qty and buy_price_num
+                else ""
+            )
+            first_row["sell_total"].value = (
+                format_number(qty * sell_price_num)
+                if qty and sell_price_num
+                else ""
+            )
 
         dialog.open()
 

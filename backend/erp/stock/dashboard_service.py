@@ -67,10 +67,12 @@ def _format_quantity(value):
     return f"{_to_int(value):,} ea"
 
 
-def _format_money_to_manwon(value):
+def _format_money_to_won(value):
+    # 🔥 금액 표시 단위 수정
+    # - 기존: 1만원 / 11만원
+    # - 수정: 10,000원 / 110,000원
     amount = _to_int(value)
-    manwon = round(amount / 10000)
-    return f"{manwon:,}만원"
+    return f"{amount:,}원"
 
 
 # =========================================================
@@ -86,7 +88,7 @@ def _build_recent_inbound_screen_rows(rows):
                 "입고",
                 row.get("product_name") or row.get("brand") or "-",
                 _format_quantity(row.get("quantity")),
-                _format_money_to_manwon(row.get("amount")),
+                _format_money_to_won(row.get("amount")),
             ]
         )
 
@@ -103,7 +105,7 @@ def _build_recent_outbound_screen_rows(rows):
                 "출고",
                 row.get("product_name") or row.get("brand") or "-",
                 _format_quantity(row.get("quantity")),
-                _format_money_to_manwon(row.get("amount")),
+                _format_money_to_won(row.get("amount")),
             ]
         )
 
@@ -176,6 +178,13 @@ def _build_top_stock_items(rows):
                 "name": display_name,
                 "action_text": "즉시 생산",
                 "product_id": row.get("product_id"),
+
+                # 🔥 추가: 생산지시서 자동 입력용 단가
+                # - 구매단가: ERP.purchase_order_item.purchase_price
+                # - 판매가: OPD.product.retail_price 또는 sales_order_item.retail_price
+                "purchase_price": _to_int(row.get("purchase_price")),
+                "retail_price": _to_int(row.get("retail_price")),
+
                 "rows": [
                     ("적정 재고량", _format_quantity(proper_stock)),
                     ("현 재고량", _format_quantity(current_stock)),

@@ -56,8 +56,8 @@ CUSTOMER_BLOCK_HEIGHT = 84
 COL_NO = 50
 COL_LOT = 110
 
-# 🔥 수정: 품명이 너무 좁아서 120 → 240으로 확대
-COL_NAME = 240
+# 🔥 수정: 품명 칸을 240 → 390으로 더 확대
+COL_NAME = 390
 
 COL_SPEC = 120
 COL_UNIT = 70
@@ -67,15 +67,11 @@ COL_QTY = 90
 COL_BUY_SUM = 120
 COL_SELL_SUM = 120
 
-# 🔥 수정: 생산기간은 남는 폭을 가져가되, 품명 폭을 키운 만큼 자동으로 줄어듦
-COL_PERIOD = 120
-
-ITEM_TOTAL_WIDTH = (
+# 🔥 수정: 생산기간 칸은 남는 폭만 사용해서 확 줄어들게 처리
+COL_PERIOD = DOC_WIDTH - (
     COL_NO + COL_LOT + COL_NAME + COL_SPEC + COL_UNIT +
-    COL_BUY + COL_SELL + COL_QTY + COL_BUY_SUM + COL_SELL_SUM + COL_PERIOD
+    COL_BUY + COL_SELL + COL_QTY + COL_BUY_SUM + COL_SELL_SUM
 )
-
-COL_PERIOD = COL_PERIOD + (DOC_WIDTH - ITEM_TOTAL_WIDTH)
 
 
 # =========================================================
@@ -197,7 +193,7 @@ def box_input(control, width=None, height=FIELD_HEIGHT):
 
 def build_textfield(
     value="",
-    text_align=ft.TextAlign.LEFT,
+    text_align=ft.TextAlign.CENTER,  # 🔥 수정: 모든 입력 글자 기본 중앙정렬
     read_only=False,
     on_change=None,
     dense=True,
@@ -282,27 +278,29 @@ class ProductionOrderDialog:
 
         row_data["no"] = no
         row_data["lot_no"] = build_textfield(text_align=ft.TextAlign.CENTER)
-        row_data["product_name"] = build_textfield()
-        row_data["spec"] = build_textfield()
+        row_data["product_name"] = build_textfield(text_align=ft.TextAlign.CENTER)
+        row_data["spec"] = build_textfield(text_align=ft.TextAlign.CENTER)
         row_data["unit"] = build_textfield(text_align=ft.TextAlign.CENTER)
+
+        # 🔥 수정: 금액/수량도 오른쪽 정렬이 아니라 중앙정렬
         row_data["buy_price"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             on_change=on_amount_change,
         )
         row_data["sell_price"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             on_change=on_amount_change,
         )
         row_data["qty"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             on_change=on_amount_change,
         )
         row_data["buy_total"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             read_only=True,
         )
         row_data["sell_total"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             read_only=True,
         )
         row_data["period"] = build_textfield(text_align=ft.TextAlign.CENTER)
@@ -577,8 +575,8 @@ class ProductionOrderDialog:
             "A": 12,
             "B": 16,
 
-            # 🔥 수정: 엑셀에서도 품명 칸 확대
-            "C": 28,
+            # 🔥 수정: 엑셀에서도 품명 칸 더 확대
+            "C": 42,
 
             "D": 16,
             "E": 12,
@@ -588,8 +586,8 @@ class ProductionOrderDialog:
             "I": 14,
             "J": 16,
 
-            # 🔥 수정: 엑셀에서도 생산기간 칸 축소
-            "K": 12,
+            # 🔥 수정: 엑셀에서도 생산기간 칸 더 축소
+            "K": 10,
         }
 
         for col, width in column_widths.items():
@@ -667,34 +665,34 @@ class ProductionOrderDialog:
         # ☑️ 상단 기본 정보
         # -------------------------------------------------
         apply_range_style(ws, "A5:A5", value="지시일자", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "B5:H5", value=data["instruction_date"], horizontal="left")
+        apply_range_style(ws, "B5:H5", value=data["instruction_date"], horizontal="center")
         apply_range_style(ws, "I5:I5", value="납품장소", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "J5:K5", value=data["delivery_place"], horizontal="left")
+        apply_range_style(ws, "J5:K5", value=data["delivery_place"], horizontal="center")
 
         apply_range_style(ws, "A6:A6", value="문서번호", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "B6:H6", value=data["doc_no"], horizontal="left")
+        apply_range_style(ws, "B6:H6", value=data["doc_no"], horizontal="center")
         apply_range_style(ws, "I6:I6", value="요구부서", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "J6:K6", value=data["request_dept"], horizontal="left")
+        apply_range_style(ws, "J6:K6", value=data["request_dept"], horizontal="center")
 
         apply_range_style(ws, "A7:A7", value="계약번호", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "B7:H7", value=data["contract_no"], horizontal="left")
+        apply_range_style(ws, "B7:H7", value=data["contract_no"], horizontal="center")
         apply_range_style(ws, "I7:I7", value="생산담당자", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "J7:K7", value=data["production_manager"], horizontal="left")
+        apply_range_style(ws, "J7:K7", value=data["production_manager"], horizontal="center")
 
         # -------------------------------------------------
         # ☑️ 주문처 / TEL / FAX / 담당자 블록
         # -------------------------------------------------
         apply_range_style(ws, "A8:A9", value="주문처", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "B8:E9", value=data["customer_name"], horizontal="left")
+        apply_range_style(ws, "B8:E9", value=data["customer_name"], horizontal="center")
 
         apply_range_style(ws, "F8:F8", value="TEL", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "G8:H8", value=data["tel"], horizontal="left")
+        apply_range_style(ws, "G8:H8", value=data["tel"], horizontal="center")
 
         apply_range_style(ws, "F9:F9", value="FAX", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "G9:H9", value=data["fax"], horizontal="left")
+        apply_range_style(ws, "G9:H9", value=data["fax"], horizontal="center")
 
         apply_range_style(ws, "I8:I9", value="담당자", fill_color=header_fill, bold=True)
-        apply_range_style(ws, "J8:K9", value=data["person_in_charge"], horizontal="left")
+        apply_range_style(ws, "J8:K9", value=data["person_in_charge"], horizontal="center")
 
         # -------------------------------------------------
         # ☑️ 품목 헤더
@@ -760,6 +758,16 @@ class ProductionOrderDialog:
                 ws.cell(row=row_no, column=11).value = item["period"]
 
             set_all_borders(ws, start_row, start_row + max_item_rows - 1, 1, 11)
+
+        # 🔥 수정: 엑셀 품목 데이터도 전체 중앙정렬 보정
+        for row in ws.iter_rows(min_row=11, max_row=28, min_col=1, max_col=11):
+            for cell in row:
+                cell.alignment = Alignment(
+                    horizontal="center",
+                    vertical="center",
+                    wrap_text=False,
+                    shrink_to_fit=True,
+                )
 
         # -------------------------------------------------
         # ☑️ 시트 옵션

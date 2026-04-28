@@ -180,71 +180,36 @@ def get_pet_foods_after_effective_date(
 # 예전 기록 수정
 
 
-# db 수정 --------------------
-# 기존 - 종료 처리, 수정일 전날을 종료일로 
-def close_pet_food_history(
+# db 수정 ---------------------------------------------------
+def update_pet_product_feeding(
+    db: Session,
     pet_food: CompanionPetProductFeeding,
-    effective_date: date
-):
-    pet_food.is_feeding_check = False
-    pet_food.feeding_false_date = effective_date - timedelta(days=1)
-    return pet_food
-
-# 기준일 이후 잘못 등록된 이력 비활성화
-def deactivate_future_pet_foods(
-    db: Session,
-    pet_id: int,
-    effective_date: date
-):
-    future_foods = get_pet_foods_after_effective_date(
-        db=db,
-        pet_id=pet_id,
-        effective_date=effective_date
-    )
-
-    for food in future_foods:
-        food.is_feeding_check = False
-        food.feeding_false_date = effective_date - timedelta(days=1)
-
-    return future_foods
-
-# 수정된 사료 정보로 새 이력 생성 - 시작일 수정 필요
-# def update_same_day_pet_food(
-#     pet_food: CompanionPetProductFeeding,
-#     product_id: int,
-#     one_gram_calories: float
-# ):
-#     pet_food.product_id = product_id
-#     pet_food.one_gram_calories = one_gram_calories
-#     pet_food.is_feeding_check = True
-#     pet_food.feeding_false_date = None
-#     return pet_food
-
-# 새로운 이력 업데이트
-def create_pet_food_history(
-    db: Session,
-    pet_id: int,
     product_id: int,
     one_gram_calories: float,
-    effective_date: date
+    effective_date: date,
 ):
-    new_pet_food = CompanionPetProductFeeding(
-        pet_id=pet_id,
-        product_id=product_id,
-        one_gram_calories=one_gram_calories,
-        is_feeding_check=True,
-        record_date=effective_date,
-        feeding_false_date=None
-    )
-    db.add(new_pet_food)
-    return new_pet_food
+    # 1) 기존 사료 종료 처리
+    pet_food.is_feeding_check = False
+    pet_food.feeding_false_date = effective_date
 
-# 잔여량 갱신 - customer_food
-def upsert_customer_food_for_update(
+    # 중요: 트리거 로그 남기려면 여기서 DB에 한 번 반영
+    db.flush()
+
+    # 2) 같은 row를 새 사료 정보로 갱신
+    pet_food.product_id = product_id
+    pet_food.one_gram_calories = one_gram_calories
+    pet_food.record_date = effective_date
+    pet_food.feeding_false_date = None
+    pet_food.is_feeding_check = True
+
+    return pet_food
+
+
+def update_customer_food_for_pet_food_change(
     db: Session,
     pet_id: int,
     total_weight: int,
-    effective_date: date
+    effective_date: date,
 ):
     customer_food = get_customer_food_id(db=db, pet_id=pet_id)
 
@@ -257,16 +222,11 @@ def upsert_customer_food_for_update(
             food_count=0,
         )
         db.add(customer_food)
-    else:
-        customer_food.total_weight = total_weight
-        customer_food.feeding_start = effective_date  # 급여 시작일을 수정 날짜로 변경
-        customer_food.total_intake = 0
-        customer_food.food_count = 0
+        return customer_food
 
-        if hasattr(customer_food, "left_food_count"):
-            customer_food.left_food_count = total_weight
-
-        if hasattr(customer_food, "left_intake"):
-            customer_food.left_intake = 0
+    customer_food.total_weight = total_weight
+    customer_food.feeding_start = effective_date
+    customer_food.total_intake = 0
+    customer_food.food_count = 0
 
     return customer_food

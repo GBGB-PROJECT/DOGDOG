@@ -6,12 +6,10 @@ from app.pets.repository.petFood_repository import (
     insert_customer_food,
     insert_pet_product_feeding,
     get_pet_food_by_effective_date,
-    close_pet_food_history,
-    deactivate_future_pet_foods,
-    update_same_day_pet_food,
-    create_pet_food_history,
-    upsert_customer_food_for_update,
+    update_pet_product_feeding,
+    update_customer_food_for_pet_food_change,
 )
+
 
 from dependencies import get_pet_by_id, check_pet_owner, get_product_by_id
 
@@ -121,158 +119,68 @@ def update_pet_food(
     db: Session,
     customer_id: int,
     pet_id: int,
-    effective_date: date,
     product_id: int | None,
+    effective_date: date | None,
     total_weight: int | None,
 ):
-    """
-    특정 날짜(effective_date)를 기준으로 급여 사료 정보를 수정한다.
+    if pet_id <= 0:
+        raise ValueError("INVALID_PET_ID")
 
-    처리 순서:
-    1. 입력값 검증
-    2. pet 존재 확인
-    3. 권한 확인
-    4. product 존재 확인
-    5. effective_date 기준 적용 중인 기존 이력 조회
-    6. 같은 시작일이면 기존 row 직접 수정
-    7. 중간 날짜면 기존 이력 종료 + 이후 이력 비활성화 + 새 row 생성
-    8. customer_food 갱신
-    """
-    # 1. 입력값 검증
+    if product_id is None or product_id <= 0:
+        raise ValueError("INVALID_PRODUCT_ID")
+
     if effective_date is None:
-        raise ValueError("INVALID_DATE")
+        raise ValueError("INVALID_EFFECTIVE_DATE")
 
-    if product_id is None:
-        raise ValueError("PRODUCT_ID_REQUIRED")
-
-    if total_weight is None:
-        raise ValueError("TOTAL_WEIGHT_REQUIRED")
-
-    if total_weight <= 0:
+    if total_weight is None or total_weight <= 0:
         raise ValueError("INVALID_TOTAL_WEIGHT")
 
-    # 2. pet 존재 확인
     pet = get_pet_by_id(db=db, pet_id=pet_id)
     if pet is None:
         raise ValueError("PET_NOT_FOUND")
 
-    # 3. 권한 확인
     has_access = check_pet_owner(
         db=db,
         pet_id=pet_id,
-        customer_id=customer_id
+        customer_id=customer_id,
     )
     if not has_access:
-        raise ValueError("FORBIDDEN_PET_ACCESS")
+        raise ValueError("FORBIDDEN")
 
-    # 4. product 존재 확인
     product = get_product_by_id(db=db, product_id=product_id)
-    if product is None:
+    if product is None or product.active is False:
         raise ValueError("PRODUCT_NOT_FOUND")
 
-    if product.product_detail.calories is None:
-        raise ValueError("PRODUCT_CALORIES_NOT_FOUND")
-
     if total_weight > product.weight:
-        raise ValueError("HIGH_TOTAL_WEIGHT")
+        raise ValueError("INVALID_TOTAL_WEIGHT")
 
-    # 5. 기준 날짜에 적용 중인 기존 이력 조회
-    target_food = get_pet_food_by_effective_date(
+    if product.product_detail.calories is None:
+        raise ValueError("PRODUCT_NOT_FOUND")
+
+    active_pet_food = get_active_pet_food(db=db, pet_id=pet_id)
+    if active_pet_food is None:
+        raise ValueError("PET_FOOD_NOT_FOUND")
+
+    updated_pet_food = update_pet_product_feeding(
         db=db,
-        pet_id=pet_id,
-        effective_date=effective_date
-    )
-
-    if target_food is None:
-        raise ValueError("NO_FEEDING_DATA")
-
-    # 같은 날짜에 같은 상품으로 수정하려는 경우
-    if target_food.record_date == effective_date and target_food.product_id == product_id:
-        raise ValueError("EXIST_PET_FOOD")
-
-    # 6. 기존 시작일과 동일하면 직접 수정
-    if target_food.record_date == effective_date:
-        updated_food = update_same_day_pet_food(
-            pet_food=target_food,
-            product_id=product_id,
-            one_gram_calories=product.product_detail.calories
-        )
-
-        deactivate_future_pet_foods(
-            db=db,
-            pet_id=pet_id,
-            effective_date=effective_date
-        )
-
-        customer_food = upsert_customer_food_for_update(
-            db=db,
-            pet_id=pet_id,
-            total_weight=total_weight,
-            effective_date=effective_date
-        )
-
-        db.commit()
-        db.refresh(updated_food)
-        db.refresh(customer_food)
-
-        return {
-            "pet_id": updated_food.pet_id,
-            "product_id": updated_food.product_id,
-            "product_name": product.product_detail.product_name,
-            "total_weight_g": customer_food.total_weight,
-            "one_gram_calories": updated_food.one_gram_calories,
-            "is_feeding_check": updated_food.is_feeding_check,
-            "record_date": str(updated_food.record_date),
-            "feeding_false_date": (
-                str(updated_food.feeding_false_date)
-                if updated_food.feeding_false_date else None
-            )
-        }
-
-    # 7. 중간 날짜 수정이면 기존 이력 종료
-    close_pet_food_history(
-        pet_food=target_food,
-        effective_date=effective_date
-    )
-
-    # 8. 기준일 이후 기존 이력 비활성화
-    deactivate_future_pet_foods(
-        db=db,
-        pet_id=pet_id,
-        effective_date=effective_date
-    )
-
-    # 9. 새 이력 생성
-    new_food = create_pet_food_history(
-        db=db,
-        pet_id=pet_id,
+        pet_food=active_pet_food,
         product_id=product_id,
         one_gram_calories=product.product_detail.calories,
-        effective_date=effective_date
+        effective_date=effective_date,
     )
 
-    # 10. customer_food 갱신
-    customer_food = upsert_customer_food_for_update(
+    updated_customer_food = update_customer_food_for_pet_food_change(
         db=db,
         pet_id=pet_id,
         total_weight=total_weight,
-        effective_date=effective_date
+        effective_date=effective_date,
     )
 
-    db.commit()
-    db.refresh(new_food)
-    db.refresh(customer_food)
-
     return {
-        "pet_id": new_food.pet_id,
-        "product_id": new_food.product_id,
-        "product_name": product.product_detail.product_name,
-        "total_weight_g": customer_food.total_weight,
-        "one_gram_calories": new_food.one_gram_calories,
-        "is_feeding_check": new_food.is_feeding_check,
-        "record_date": str(new_food.record_date),
-        "feeding_false_date": (
-            str(new_food.feeding_false_date)
-            if new_food.feeding_false_date else None
-        )
+        "pet_id": updated_pet_food.pet_id,
+        "product_id": updated_pet_food.product_id,
+        "record_date": str(updated_pet_food.record_date),
+        "feeding_false_date": updated_pet_food.feeding_false_date,
+        "is_feeding_check": updated_pet_food.is_feeding_check,
+        "total_weight": updated_customer_food.total_weight,
     }

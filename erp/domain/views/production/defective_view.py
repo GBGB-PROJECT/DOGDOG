@@ -558,54 +558,69 @@ def erp_defective_view():
             f"/ {pagination_state['current_page']:,}페이지"
         )
 
-    def build_pagination_button(label, page_no=None, selected=False, disabled=False):
-        def on_click(e):
-            if disabled or page_no is None:
-                return
-            load_page(page_no, e.page)
+    # =========================================================
+    # 🔥 수정: 생산입고현황조회와 동일한 페이지네이션 UI로 통일
+    # - 작은 검정 버튼(‹ 1 2 3 ›) 방식 제거
+    # - 생산입고현황조회처럼 파란색 선택 버튼 + < > 표기 사용
+    # =========================================================
+    def move_page(page_no: int, page: ft.Page):
+        if page_no < 1 or page_no > pagination_state["total_pages"]:
+            return
 
+        pagination_state["current_page"] = page_no
+        load_page(page_no)
+        page.update()
+
+    def build_page_button(label, page_no=None, selected=False, disabled=False):
         return ft.Container(
-            width=34,
-            height=32,
-            border_radius=6,
-            bgcolor="#111827" if selected else FIELD_BG,
-            border=ft.Border.all(1, "#111827" if selected else FIELD_BORDER),
+            width=40,
+            height=40,
+            border_radius=10,
+            bgcolor="#2563EB" if selected else ft.Colors.TRANSPARENT,
             alignment=ft.Alignment(0, 0),
-            on_click=on_click,
+            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
             content=ft.Text(
                 str(label),
-                size=12,
-                color=ft.Colors.WHITE if selected else TEXT_ROW,
-                weight=ft.FontWeight.W_700 if selected else ft.FontWeight.W_400,
+                size=16,
+                color=ft.Colors.WHITE if selected else "#0F172A",
+                weight=ft.FontWeight.W_700 if selected else ft.FontWeight.W_500,
             ),
         )
 
     def refresh_pagination():
-        current = pagination_state["current_page"]
         total_pages = pagination_state["total_pages"]
-        buttons = []
+        current_page = pagination_state["current_page"]
 
-        buttons.append(build_pagination_button("‹", current - 1, disabled=current <= 1))
+        if total_pages <= 1:
+            pagination_holder.content = None
+            return
 
-        start_page = max(1, current - 2)
-        end_page = min(total_pages, start_page + 4)
-        start_page = max(1, end_page - 4)
+        page_controls = []
+        page_controls.append(build_page_button("<", current_page - 1, disabled=(current_page == 1)))
+
+        start_page = max(1, current_page - 2)
+        end_page = min(total_pages, current_page + 2)
 
         for page_no in range(start_page, end_page + 1):
-            buttons.append(
-                build_pagination_button(
+            page_controls.append(
+                build_page_button(
+                    str(page_no),
                     page_no,
-                    page_no,
-                    selected=(page_no == current),
+                    selected=(page_no == current_page),
                 )
             )
 
-        buttons.append(build_pagination_button("›", current + 1, disabled=current >= total_pages))
+        page_controls.append(build_page_button(">", current_page + 1, disabled=(current_page == total_pages)))
 
-        pagination_holder.content = ft.Row(
-            spacing=6,
-            alignment=ft.MainAxisAlignment.CENTER,
-            controls=buttons,
+        pagination_holder.content = ft.Container(
+            padding=ft.Padding.only(top=14, bottom=6),
+            alignment=ft.Alignment(0, 0),
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=8,
+                controls=page_controls,
+            ),
         )
 
     def load_page(page_no=1, page=None):

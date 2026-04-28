@@ -9,12 +9,13 @@ import os
 
 # -------------------------------------------------------------------------------------------------------
 class StatusController:
-    def __init__(self, page: ft.Page, popup):
+    def __init__(self, page: ft.Page, popup, on_refresh_callback=None):
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
         self.popup = popup
+        self.on_refresh_callback = on_refresh_callback
         self.storage = page.session.store
         self.popup.event_popup.actions[0] = ft.Row()
         self.popup.event_popup.actions[1].content = "닫기"  # type: ignore
@@ -149,6 +150,11 @@ class StatusController:
                 )
                 self.page.snack_bar.open = True
                 self.grid_bottom_sheet.open = False
+                
+                # 성공 콜백 실행 (홈 화면 새로고침)
+                if self.on_refresh_callback:
+                    await self.on_refresh_callback()
+                
                 self.page.update()
             else:
                 error_detail = res.json().get("detail", "알 수 없는 오류")
@@ -313,7 +319,7 @@ class StatusController:
 
 
 # -------------------------------------------------------------------------------------------------------
-async def bottom_sheet(e, page: ft.Page, popup, call):
+async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
     # 🚨🚨🚨 [경로 디버깅] 진짜 실행 중인 파일의 절대 경로를 출력합니다 🚨🚨🚨
     print("=" * 50)
     print(f"🚨🚨🚨 진짜 실행 중인 grid.py 경로: {os.path.abspath(__file__)} 🚨🚨🚨")
@@ -323,7 +329,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call):
     # Default Value
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
-    s_control = StatusController(page=page, popup=popup)
+    s_control = StatusController(page=page, popup=popup, on_refresh_callback=on_refresh_callback)
     customer_detail = storage.get("customer_detail")
     is_customer_detail = True
 
@@ -702,7 +708,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call):
 
 
 # -------------------------------------------------------------------------------------------------------
-def status_update_menu(page: ft.Page, popup):
+def status_update_menu(page: ft.Page, popup, on_refresh_callback=None):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
@@ -710,20 +716,22 @@ def status_update_menu(page: ft.Page, popup):
         (
             "밥주기",
             "dogbowl.png",
-            lambda e, call="feeding": page.run_task(bottom_sheet, e, page, popup, call),
+            lambda e, call="feeding": page.run_task(
+                bottom_sheet, e, page, popup, call, on_refresh_callback
+            ),
         ),
         (
             "물주기",
             "waterdrop.png",
             lambda e, call="watering": page.run_task(
-                bottom_sheet, e, page, popup, call
+                bottom_sheet, e, page, popup, call, on_refresh_callback
             ),
         ),
         (
             "활동기록",
             "dogwalking.png",
             lambda e, call="daily_walks": page.run_task(
-                bottom_sheet, e, page, popup, call
+                bottom_sheet, e, page, popup, call, on_refresh_callback
             ),
         ),
     ]
@@ -732,21 +740,21 @@ def status_update_menu(page: ft.Page, popup):
             "위생/배변",
             "poop.png",
             lambda e, call="hygiene_bowel": page.run_task(
-                bottom_sheet, e, page, popup, call
+                bottom_sheet, e, page, popup, call, on_refresh_callback
             ),
         ),
         (
             "건강기록",
             "injection.png",
             lambda e, call="health_log": page.run_task(
-                bottom_sheet, e, page, popup, call
+                bottom_sheet, e, page, popup, call, on_refresh_callback
             ),
         ),
         (
             "상태기록",
             "note.png",
             lambda e, call="status_log": page.run_task(
-                bottom_sheet, e, page, popup, call
+                bottom_sheet, e, page, popup, call, on_refresh_callback
             ),
         ),
     ]

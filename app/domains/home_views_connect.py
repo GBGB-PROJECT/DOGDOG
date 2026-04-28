@@ -3,7 +3,7 @@ import flet as ft
 import domains as domains
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
-def home_tile(page: ft.Page, popup, content_page:str, change_page_callback=None):
+def home_tile(page: ft.Page, popup, content_page:str, change_page_callback=None, on_refresh_callback=None):
     # ---------------------------------------------------------------------------------------------------
     # Default Layout
     # ---------------------------------------------------------------------------------------------------
@@ -35,7 +35,7 @@ def home_tile(page: ft.Page, popup, content_page:str, change_page_callback=None)
                 content_list=domains.home.feeding_food_count(page=page),
                 on_click=lambda e:appbar_on_change(e, "/feeding")
         ))
-        body_scroll_column.controls.append(domains.grid.status_update_menu(page=page, popup=popup))
+        body_scroll_column.controls.append(domains.grid.status_update_menu(page=page, popup=popup, on_refresh_callback=on_refresh_callback))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/log":
         home_background , top_banner = dogdog.home_layout(page=page, text="Log")

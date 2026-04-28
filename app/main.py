@@ -95,7 +95,7 @@ class Front_dogdog:
             print("[DEV] Starting auto login relay...")
             print(">> 로그인을 시도합니다...")
             # Step A: Login
-            payload = {"email": "test7@test.com", "password": "A12345678!"}
+            payload = {"email": "test042809@test.com", "password": "A12345678!"}
             res_login = await api_client.post("/auth/login", data=payload)
             if res_login.status_code != 200:
                 raise Exception(f"Login failed: {res_login.text}")
@@ -200,20 +200,45 @@ class Front_dogdog:
             self.page.update()
 
         except Exception as e:
-            print(f"[DEV] Error during auto relay: {e}")
+            print(f"[DEV] Auto login failed: {e}")
 
-            # 화면에 에러 표시 및 3초 대기 후 가입 화면으로 이동
-            if hasattr(self, "loading_text"):
-                self.loading_text.value = (
-                    f"테스트 계정 정보를 불러올 수 없습니다.\n(에러: {e})"
-                )
-                self.loading_text.color = ft.Colors.RED
+    async def refresh_home_data(self):
+        """대시보드 데이터를 다시 fetch하고 화면을 갱신합니다."""
+        try:
+            from api_client import ApiClient
+
+            api_client = ApiClient(self.page)
+
+            pet_id = (
+                self.storage.get("pet_id")
+                or self.storage.get("customer_pet_id")
+                or self.storage.get("current_pet_id")
+            )
+
+            print(f"🏠 [HOME DEBUG] Dashboard API 호출 시도 - Pet ID: {pet_id}")
+            res_dash = await api_client.get(f"/home/dashboard/{pet_id}")
+
+            if res_dash.status_code == 200:
+                dash_data = res_dash.json().get("data") or {}
+                print(f"🏠 [HOME DEBUG] 수신된 데이터: {res_dash.json()}")
+
+                # 1. 활동 로그 동기화
+                real_history = dash_data.get("history", {})
+                self.page.session.store.set("history", real_history)
+
+                # 2. 대시보드 전체 데이터 저장
+                customer_detail = {"dashboard_sync": dash_data}
+                self.storage.set("customer_detail", customer_detail)
+
+                # 3. 화면 갱신
+                if self.page.route == "/home":
+                    await self.routing_view(page_name="/home")
                 self.page.update()
-                await asyncio.sleep(3)
-
-            self.is_onboarding_complete = False
-            self.page.go("/sign_up")
-            self.page.update()
+                print("🏠 [HOME DEBUG] 대시보드 데이터 갱신 완료!")
+            else:
+                print(f"[HOME DEBUG] Dashboard refresh failed: {res_dash.status_code}")
+        except Exception as e:
+            print(f"[HOME DEBUG] Error during dashboard refresh: {e}")
 
     # ---------------------------------------------------------------------------------------------------
     # Route Change & Android OnBackPressedCallback Event
@@ -319,6 +344,7 @@ class Front_dogdog:
                 popup=self.popup,
                 content_page=page_name,
                 change_page_callback=self.page.go,
+                on_refresh_callback=self.refresh_home_data,
             )
             main_container = ft.Container(
                 expand=True,

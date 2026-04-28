@@ -177,7 +177,6 @@ def create_subscription_service(
             final_price,
         )
         
-
         # 14. payment 생성
         create_payment(db, subs.subs_id, final_amount)
 

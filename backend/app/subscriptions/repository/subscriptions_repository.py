@@ -58,6 +58,7 @@ def create_subs(db: Session, customer_id: int, subs_plan_id: int, is_auto_delive
     )
     db.add(subs)
     db.flush()
+    print("flush 후 subs_id:", subs.subs_id)
     return subs
 
 

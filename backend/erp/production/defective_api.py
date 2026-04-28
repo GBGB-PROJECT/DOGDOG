@@ -85,7 +85,7 @@ def build_response_rows(items: list, page: int, size: int):
     description=(
         "생산관리 > 불량현황조회 화면에서 사용하는 상품별 불량 현황 조회 API입니다. "
         "ERP.inbound, ERP.inbound_status, ERP.purchase_order, ERP.purchase_order_item, "
-        "OPD.product, OPD.product_detail을 JOIN하여 불량수량과 불량금액을 반환합니다."
+        "OPD.product, OPD.product_detail을 JOIN하여 불량수량과 불량손실액을 반환합니다."
     ),
     response_model=ErpProductionDefectiveListResponse,
 )

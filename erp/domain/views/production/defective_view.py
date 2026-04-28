@@ -454,7 +454,7 @@ def erp_defective_view():
                     build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("불량수량", col_expand["defective"], 0, ft.FontWeight.W_700),
                     build_table_cell("구매단가", col_expand["purchase_price"], 0, ft.FontWeight.W_700),
-                    build_table_cell("불량금액", col_expand["defective_amount"], 0, ft.FontWeight.W_700),
+                    build_table_cell("불량손실액", col_expand["defective_amount"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고완료일", col_expand["inbound_complete"], 0, ft.FontWeight.W_700),
                     build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),

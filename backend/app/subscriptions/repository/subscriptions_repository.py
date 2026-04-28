@@ -110,7 +110,7 @@ def update_notification(db: Session, customer_id: int):
     setting = db.execute(
         select(CompanionCustomerNotiSettings).where(
             CompanionCustomerNotiSettings.customer_id == customer_id,
-            CompanionCustomerNotiSettings.category == "subs_payments"
+            CompanionCustomerNotiSettings.category == "subs_payment"
         )
     ).scalar_one_or_none()
 
@@ -123,7 +123,7 @@ def update_notification(db: Session, customer_id: int):
     # 없으면 새로 생성 (선택)
     new_setting = CompanionCustomerNotiSettings(
         customer_id=customer_id,
-        category="subs_payments",
+        category="subs_payment",
         noti_option1=True,
         noti_option2=True
     )

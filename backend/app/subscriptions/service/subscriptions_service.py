@@ -151,6 +151,8 @@ def create_subscription_service(
                 subs_plan_id=subs_plan.subs_plan_id,
                 is_auto_delivery=body.is_auto_delivery,
             )
+            print("정기배송: 생성된 subs_id:", subs.subs_id)
+            print("subs", subs.customer_id)
 
         else:
             subs = create_subs(
@@ -159,6 +161,8 @@ def create_subscription_service(
                 subs_plan_id=None,
                 is_auto_delivery=body.is_auto_delivery,
             )
+            print("자동배송: 생성된 subs_id:", subs.subs_id)
+            print("subs", subs.customer_id)
 
         # 12. detail 생성
         create_subs_detail(db, subs.subs_id, body.payment_billing_id, body)
@@ -172,6 +176,7 @@ def create_subscription_service(
             retail_price,
             final_price,
         )
+        
 
         # 14. payment 생성
         create_payment(db, subs.subs_id, final_amount)

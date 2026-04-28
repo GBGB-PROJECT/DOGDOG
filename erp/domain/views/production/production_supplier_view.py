@@ -121,7 +121,14 @@ def build_table_cell(
             size=size,
             color=color,
             weight=weight,
-            text_align=ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT,
+            # 🔥 수정: align_x=0이면 텍스트도 중앙 정렬
+            text_align=(
+                ft.TextAlign.RIGHT
+                if align_x == 1
+                else ft.TextAlign.CENTER
+                if align_x == 0
+                else ft.TextAlign.LEFT
+            ),
         ),
     )
 
@@ -224,7 +231,6 @@ def erp_production_supplier_view():
         "designated_payment_date": 8,
         "scheduled_payment_date": 10,
         "employee_id": 6,
-        "memo": 12,
         "sup_manager": 8,
         "phone": 10,
         "last_update": 12,
@@ -415,14 +421,13 @@ def erp_production_supplier_view():
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
                     build_table_cell("거래처ID", col_expand["supplier_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("거래처명", col_expand["supplier_name"], -1, ft.FontWeight.W_700),
+                    build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),  # 🔥 수정: 거래처명 중앙정렬
                     build_table_cell("사업자번호", col_expand["brn"], 0, ft.FontWeight.W_700),
                     build_table_cell("연락상태", col_expand["is_contact_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("지정결제일", col_expand["designated_payment_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("예정결제일", col_expand["scheduled_payment_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("메모", col_expand["memo"], -1, ft.FontWeight.W_700),
-                    build_table_cell("담당자명", col_expand["sup_manager"], -1, ft.FontWeight.W_700),
+                    build_table_cell("담당자명", col_expand["sup_manager"], 0, ft.FontWeight.W_700),
                     build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
                     build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),
                 ],
@@ -448,7 +453,7 @@ def erp_production_supplier_view():
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
                     build_table_cell(row.get("supplier_id", ""), col_expand["supplier_id"], 0),
-                    build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], -1),
+                    build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),  # 🔥 수정: 거래처명 중앙정렬
                     build_table_cell(row.get("brn", ""), col_expand["brn"], 0),
                     build_table_cell(
                         row.get("is_contact_status", ""),
@@ -460,8 +465,7 @@ def erp_production_supplier_view():
                     build_table_cell(row.get("designated_payment_date", ""), col_expand["designated_payment_date"], 0),
                     build_table_cell(row.get("scheduled_payment_date", ""), col_expand["scheduled_payment_date"], 0),
                     build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
-                    build_table_cell(row.get("memo", ""), col_expand["memo"], -1),
-                    build_table_cell(row.get("sup_manager", ""), col_expand["sup_manager"], -1),
+                    build_table_cell(row.get("sup_manager", ""), col_expand["sup_manager"], 0),
                     build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
                     build_table_cell(row.get("last_update", ""), col_expand["last_update"], 0),
                 ],

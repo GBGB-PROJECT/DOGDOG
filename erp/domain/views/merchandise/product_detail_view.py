@@ -1,7 +1,8 @@
 import math
 import flet as ft
 from components import common as cm
-from backend.erp.merchandise.product_detail_service import count_product_join_rows, fetch_product_join_rows, create_product_detail
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import count_product_join_rows, fetch_product_join_rows, create_product_detail
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 
@@ -122,23 +123,35 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
     for index, row in enumerate(db_rows, start=start_no):
-        product_detail_id = row.get("product_detail_id", "")
-        product_id = row.get("product_id", "")
+        # 🔥 requests 방식에서는 API가 이미 product_display_id를 만들어서 내려준다.
+        # - 기존 직접 service 호출 방식: product_detail_id + product_id 조합 필요
+        # - 현재 requests API 방식: product_display_id 그대로 사용
+        product_display_id = row.get("product_display_id", "")
+
+        # 🔥 혹시 나중에 raw id가 내려오는 구조로 바뀌어도 대응
+        if not product_display_id:
+            product_detail_id = row.get("product_detail_id", "")
+            product_id = row.get("product_id", "")
+            product_display_id = (
+                f"{product_detail_id}-{product_id}"
+                if product_detail_id != "" and product_id != ""
+                else ""
+            )
 
         rows.append(
             {
-                "no": str(index),
-                "product_display_id": f"{product_detail_id}-{product_id}" if product_detail_id != "" and product_id != "" else "",
+                "no": str(row.get("no", index)),  # 🔥 API에서 내려준 no가 있으면 우선 사용
+                "product_display_id": product_display_id,
                 "type": row.get("type", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "function": row.get("function", ""),
                 "main_protein": row.get("main_protein", ""),
                 "life": row.get("life", ""),
-                "weight": _format_number(row.get("weight", "")),
-                "retail_price": _format_number(row.get("retail_price", "")),
-                "quantity": _format_number(row.get("quantity", "")),
-                "active": _format_sale_status(row.get("active", "")),
+                "weight": row.get("weight", ""),
+                "retail_price": row.get("retail_price", ""),
+                "quantity": row.get("quantity", ""),
+                "active": row.get("active", ""),
             }
         )
 

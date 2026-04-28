@@ -4,7 +4,9 @@ import flet as ft
 
 from components import common as cm
 from components.common.modals.purchase_order import PurchaseOrderDialog
-from backend.erp.production.production_supplier_service import (
+# API client import
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import (
     count_purchase_orders,
     fetch_purchase_orders,
     fetch_purchase_order_detail,
@@ -171,10 +173,15 @@ def action_button(text, on_click=None, width=78, bgcolor=BUTTON_BG, color=BUTTON
     )
 
 
+# =========================================================
+# 🔥 테이블 셀
+# - 발주관리 테이블 헤더/본문 전체 중앙정렬
+# - ft.alignment.* 사용하지 않고 ft.Alignment(0, 0) 사용
+# =========================================================
 def build_table_cell(
     text,
     width,
-    align_x=-1,
+    align_x=0,
     weight=ft.FontWeight.W_400,
     color=TEXT_ROW,
     size=12,
@@ -182,23 +189,42 @@ def build_table_cell(
 ):
     return ft.Container(
         width=width,
-        alignment=ft.Alignment(align_x, 0),
+        alignment=ft.Alignment(0, 0),
         content=build_text(
             value=text,
             size=size,
             color=color,
             weight=weight,
-            text_align=ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT,
+            text_align=ft.TextAlign.CENTER,
             max_lines=max_lines,
         ),
     )
 
 
 def normalize_cancel_text(value):
-    # 🔥 is_purchase_order_cancel
-    # - False: 정상 발주
-    # - True : 취소 발주
-    return "취소" if value else "정상"
+    # 🔥 requests 방식에서는 API가 이미 "정상" / "취소" 문자열로 내려줄 수 있다.
+    # - True / "true" / "1" / "y"  → 취소
+    # - False / "false" / "0" / "n" → 정상
+    # - "정상" / "취소" 문자열은 그대로 유지
+
+    if value in [None, ""]:
+        return ""
+
+    if value is True:
+        return "취소"
+
+    if value is False:
+        return "정상"
+
+    clean = str(value).strip().lower()
+
+    if clean in {"취소", "true", "1", "y", "yes"}:
+        return "취소"
+
+    if clean in {"정상", "false", "0", "n", "no"}:
+        return "정상"
+
+    return str(value)
 
 
 def normalize_pay_status(value):
@@ -220,7 +246,7 @@ def purchase_order_db_row_adapter(db_rows: list, page_no: int):
     for index, row in enumerate(db_rows, start=start_no):
         rows.append(
             {
-                "no": str(index),
+                "no": str(row.get("no", index)),  # 🔥 API에서 내려준 no 우선 사용
                 "purchase_order_id": row.get("purchase_order_id", ""),
                 "supplier_id": row.get("supplier_id", ""),
                 "supplier_name": row.get("supplier_name", ""),
@@ -281,16 +307,16 @@ def erp_purchase_order_view():
 
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "purchase_order_id", "label": "발주ID", "width": 80, "align_x": 1},
-        {"key": "supplier_id", "label": "거래처ID", "width": 90, "align_x": 1},
-        {"key": "supplier_name", "label": "거래처명", "width": 130, "align_x": -1},
+        {"key": "purchase_order_id", "label": "발주ID", "width": 80, "align_x": 0},
+        {"key": "supplier_id", "label": "거래처ID", "width": 90, "align_x": 0},
+        {"key": "supplier_name", "label": "거래처명", "width": 130, "align_x": 0},
         {"key": "contract_date", "label": "계약일자", "width": 110, "align_x": 0},
         {"key": "inbound_scheduled_date", "label": "입고예정일", "width": 110, "align_x": 0},
         {"key": "pay_status", "label": "결제상태", "width": 90, "align_x": 0},
         {"key": "is_purchase_order_cancel", "label": "발주상태", "width": 90, "align_x": 0},  # 🔥 수정
-        {"key": "employee_id", "label": "담당자ID", "width": 90, "align_x": 1},
-        {"key": "item_count", "label": "품목수", "width": 80, "align_x": 1},
-        {"key": "final_amount_sum", "label": "최종금액합계", "width": 140, "align_x": 1},
+        {"key": "employee_id", "label": "담당자ID", "width": 90, "align_x": 0},
+        {"key": "item_count", "label": "품목수", "width": 80, "align_x": 0},
+        {"key": "final_amount_sum", "label": "최종금액합계", "width": 140, "align_x": 0},
         {"key": "last_update", "label": "최종수정일", "width": 190, "align_x": 0},
     ]
 

@@ -7,10 +7,19 @@ class ErpProductionInboundItem(BaseModel):
 
     no: int | None = None
     inbound_id: Any = None
-    purchase_order_id: Any = None
     supplier_id: Any = None
     supplier_name: Any = None
     inbound_status: Any = None
+
+    # 🔥 상품별 생산입고 현황 컬럼
+    product_id: Any = None
+    brand: Any = None
+    product_name: Any = None
+    save_stock: Any = None
+    purchase_price: Any = None
+    inbound_amount: Any = None
+    expiration_date: Any = None
+
     inbound_scheduled_date: Any = None
     inbound_start: Any = None
     inbound_complete: Any = None

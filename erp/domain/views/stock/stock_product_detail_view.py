@@ -3,7 +3,8 @@ import datetime
 import flet as ft
 
 from components import common as cm
-from backend.erp.stock.stock_product_detail_service import count_stocks, fetch_stocks
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import count_stocks, fetch_stocks
 
 
 FIELD_BG = ft.Colors.WHITE

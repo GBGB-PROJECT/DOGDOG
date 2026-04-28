@@ -1,8 +1,9 @@
 # =========================================================
 # 🔥 생산입고 > 입고 현황 조회 화면
 # - backend/erp/production/inbound_service.py 직접 호출
-# - ERP.inbound + ERP.inbound_status JOIN 결과 표시
+# - ERP.inbound + ERP.inbound_status + ERP.stock JOIN 결과 표시
 # - 입고 상태는 숫자 ID가 아니라 상태명 문자로 표시
+# - 생산관리 대시보드 카드와 이어지도록 상품명/입고수량/입고금액 표시
 # - 50개씩 페이지네이션
 # - DatePicker 선택값은 별도 시간 보정 없이 그대로 사용
 # =========================================================
@@ -11,7 +12,8 @@ import math
 import datetime
 import flet as ft
 
-from backend.erp.production.inbound_service import count_inbounds, fetch_inbounds
+# 🔥 requests 방식 API 호출로 변경
+from api.erp_requests_api import count_inbounds, fetch_inbounds
 
 
 FIELD_BG = ft.Colors.WHITE
@@ -163,6 +165,16 @@ def format_date_text_from_value(value):
     return str(value)[:10]
 
 
+def format_number_text(value):
+    if value is None or value == "":
+        return ""
+
+    try:
+        return f"{int(value):,}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
 # =========================================================
 # 🔥 DB row -> 화면 row 변환
 # =========================================================
@@ -175,13 +187,20 @@ def inbound_db_row_adapter(db_rows: list, page_no: int):
             {
                 "no": str(index),
                 "inbound_id": row.get("inbound_id", ""),
-                "purchase_order_id": row.get("purchase_order_id", ""),
                 "supplier_id": row.get("supplier_id", ""),
                 "supplier_name": row.get("supplier_name", ""),
                 "inbound_status": row.get("inbound_status", ""),  # 🔥 상태명 문자
+                "product_id": row.get("product_id", ""),
+                "brand": row.get("brand", ""),
+                "product_name": row.get("product_name", ""),
+                "save_stock": format_number_text(row.get("save_stock", "")),
+                "purchase_price": format_number_text(row.get("purchase_price", "")),
+                "inbound_amount": format_number_text(row.get("inbound_amount", "")),
+                "expiration_date": format_date_text_from_value(row.get("expiration_date", "")),
                 "inbound_scheduled_date": format_date_text_from_value(row.get("inbound_scheduled_date", "")),
                 "inbound_start": format_datetime_text(row.get("inbound_start", "")),
-                "inbound_complete": format_datetime_text(row.get("inbound_complete", "")),
+                # 🔥 입고완료일은 시간 없이 날짜만 표시
+                "inbound_complete": format_date_text_from_value(row.get("inbound_complete", "")),
                 "employee_id": row.get("employee_id", ""),
                 "last_update": format_datetime_text(row.get("last_update", "")),
             }
@@ -201,11 +220,14 @@ def erp_inbound_view():
     initial_search_type = initial_prefilter.get("search_type") or "inbound_id"
     if initial_search_type not in {
         "inbound_id",
-        "purchase_order_id",
         "supplier_id",
         "supplier_name",
         "inbound_status",
+        "product_id",
+        "brand",
+        "product_name",
         "employee_id",
+        "expiration_date",
         "inbound_scheduled_date",
         "inbound_start",
         "inbound_complete",
@@ -239,25 +261,32 @@ def erp_inbound_view():
     # =========================================================
     col_expand = {
         "no": 3,
+        # 🔥 컬럼 순서 변경: No 다음 상품ID, 그 다음 입고ID
+        "product_id": 5,
         "inbound_id": 5,
-        "purchase_order_id": 6,
-        "supplier_id": 5,
-        "supplier_name": 8,
-        "inbound_status": 7,
-        "inbound_scheduled_date": 7,
-        "inbound_start": 9,
-        "inbound_complete": 9,
+        "supplier_name": 7,
+        "inbound_status": 6,
+        "brand": 7,
+        "product_name": 10,
+        "save_stock": 5,
+        "purchase_price": 6,
+        "inbound_amount": 7,
+        "expiration_date": 7,
+        "inbound_complete": 7,
         "employee_id": 5,
-        "last_update": 9,
+        "last_update": 8,
     }
 
     search_type_labels = {
         "inbound_id": "입고ID",
-        "purchase_order_id": "발주ID",
         "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
         "inbound_status": "입고상태",
+        "product_id": "상품ID",
+        "brand": "브랜드",
+        "product_name": "상품명",
         "employee_id": "담당자ID",
+        "expiration_date": "유통기한",
         "inbound_scheduled_date": "입고예정일",
         "inbound_start": "입고시작일",
         "inbound_complete": "입고완료일",
@@ -370,7 +399,7 @@ def erp_inbound_view():
         )
 
     search_type = ft.Container(
-        width=160,
+        width=170,
         height=38,
         bgcolor=FIELD_BG,
         border=ft.Border.all(1, FIELD_BORDER),
@@ -420,13 +449,17 @@ def erp_inbound_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
+                    build_table_cell("상품ID", col_expand["product_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고ID", col_expand["inbound_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("발주ID", col_expand["purchase_order_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("거래처ID", col_expand["supplier_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
-                    build_table_cell("입고예정일", col_expand["inbound_scheduled_date"], 0, ft.FontWeight.W_700),
-                    build_table_cell("입고시작일", col_expand["inbound_start"], 0, ft.FontWeight.W_700),
+                    build_table_cell("브랜드", col_expand["brand"], 0, ft.FontWeight.W_700),
+                    build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700),
+                    build_table_cell("입고수량", col_expand["save_stock"], 0, ft.FontWeight.W_700),
+                    build_table_cell("구매단가", col_expand["purchase_price"], 0, ft.FontWeight.W_700),
+                    # 🔥 입고금액은 단가가 아니라 입고수량 * 구매단가의 총액이라 헤더명을 명확히 변경
+                    build_table_cell("입고총액", col_expand["inbound_amount"], 0, ft.FontWeight.W_700),
+                    build_table_cell("유통기한", col_expand["expiration_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고완료일", col_expand["inbound_complete"], 0, ft.FontWeight.W_700),
                     build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),
@@ -445,9 +478,8 @@ def erp_inbound_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
+                    build_table_cell(row.get("product_id", ""), col_expand["product_id"], 0),
                     build_table_cell(row.get("inbound_id", ""), col_expand["inbound_id"], 0),
-                    build_table_cell(row.get("purchase_order_id", ""), col_expand["purchase_order_id"], 0),
-                    build_table_cell(row.get("supplier_id", ""), col_expand["supplier_id"], 0),
                     build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),
                     build_table_cell(
                         row.get("inbound_status", ""),
@@ -456,8 +488,12 @@ def erp_inbound_view():
                         ft.FontWeight.W_700,
                         ACTION_BLUE,
                     ),
-                    build_table_cell(row.get("inbound_scheduled_date", ""), col_expand["inbound_scheduled_date"], 0),
-                    build_table_cell(row.get("inbound_start", ""), col_expand["inbound_start"], 0),
+                    build_table_cell(row.get("brand", ""), col_expand["brand"], 0),
+                    build_table_cell(row.get("product_name", ""), col_expand["product_name"], 0),
+                    build_table_cell(row.get("save_stock", ""), col_expand["save_stock"], 0),
+                    build_table_cell(row.get("purchase_price", ""), col_expand["purchase_price"], 0),
+                    build_table_cell(row.get("inbound_amount", ""), col_expand["inbound_amount"], 0),
+                    build_table_cell(row.get("expiration_date", ""), col_expand["expiration_date"], 0),
                     build_table_cell(row.get("inbound_complete", ""), col_expand["inbound_complete"], 0),
                     build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
                     build_table_cell(row.get("last_update", ""), col_expand["last_update"], 0),

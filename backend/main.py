@@ -29,6 +29,7 @@ from erp.hr.employee_api import router as erp_hr_router
 from erp.production.inbound_api import router as erp_inbound_router  # 🔥 수정: 생산입고현황조회 API
 from erp.stock.stock_product_detail_api import router as erp_stock_router
 from erp.production.dashboard_api import router as erp_production_dashboard_router
+from erp.production.purchase_order_api import router as erp_purchase_order_router  # 🔥 추가: 발주관리 API
 
 
 
@@ -110,6 +111,7 @@ app.include_router(erp_supplier_router)  # 🔥 추가: 거래처 관리 API 등
 app.include_router(erp_hr_router)
 app.include_router(erp_inbound_router)  # 🔥 추가: 생산입고 API 등록
 app.include_router(erp_stock_router)  # 🔥 추가: 상품별 재고 상세 API 등록
+app.include_router(erp_purchase_order_router)  # 🔥 추가: 발주관리 API 등록
 app.include_router(erp_production_dashboard_router)
 
 # [7] 실행 블록: 터미널에서 python main.py 로 직접 실행 가능하게 합니다.

@@ -1,7 +1,9 @@
 # =========================================================
 # 🔥 생산입고 API
 # - ERP.inbound + ERP.inbound_status JOIN 목록 조회
+# - ERP.stock + ERP.purchase_order_item + OPD.product + OPD.product_detail JOIN 추가
 # - 입고상태는 inbound_status_id 숫자가 아니라 inbound_status.status 문자로 응답
+# - 생산관리 메인 카드에서 보이는 상품명/수량/금액과 이어지는 상품별 입고 현황 응답
 # =========================================================
 
 from math import ceil
@@ -22,11 +24,14 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "inbound_id": "입고ID",
-    "purchase_order_id": "발주ID",
     "supplier_id": "거래처ID",
     "supplier_name": "거래처명",
     "inbound_status": "입고상태",
+    "product_id": "상품ID",
+    "brand": "브랜드",
+    "product_name": "상품명",
     "employee_id": "담당자ID",
+    "expiration_date": "유통기한",
     "inbound_scheduled_date": "입고예정일",
     "inbound_start": "입고시작일",
     "inbound_complete": "입고완료일",
@@ -54,13 +59,20 @@ def build_response_rows(items: list, page: int, size: int):
             {
                 "no": index,
                 "inbound_id": row.get("inbound_id", ""),
-                "purchase_order_id": row.get("purchase_order_id", ""),
                 "supplier_id": row.get("supplier_id", ""),
                 "supplier_name": row.get("supplier_name", ""),
                 "inbound_status": row.get("inbound_status", ""),  # 🔥 상태명 문자
+                "product_id": row.get("product_id", ""),
+                "brand": row.get("brand", ""),
+                "product_name": row.get("product_name", ""),
+                "save_stock": row.get("save_stock", ""),
+                "purchase_price": row.get("purchase_price", ""),
+                "inbound_amount": row.get("inbound_amount", ""),
+                "expiration_date": _format_date(row.get("expiration_date", "")),
                 "inbound_scheduled_date": _format_date(row.get("inbound_scheduled_date", "")),
                 "inbound_start": _format_datetime(row.get("inbound_start", "")),
-                "inbound_complete": _format_datetime(row.get("inbound_complete", "")),
+                # 🔥 입고완료일은 시간 없이 날짜만 반환
+                "inbound_complete": _format_date(row.get("inbound_complete", "")),
                 "employee_id": row.get("employee_id", ""),
                 "last_update": _format_datetime(row.get("last_update", "")),
             }
@@ -73,31 +85,35 @@ def build_response_rows(items: list, page: int, size: int):
     "",
     summary="생산입고현황조회",
     description=(
-        "생산관리 > 생산입고현황조회 화면에서 사용하는 입고 현황 조회 API입니다. "
-        "ERP.inbound와 ERP.inbound_status를 JOIN하여 입고상태 ID가 아닌 상태명을 반환합니다."
+        "생산관리 > 생산입고현황조회 화면에서 사용하는 상품별 입고 현황 조회 API입니다. "
+        "ERP.inbound, ERP.inbound_status, ERP.stock, ERP.purchase_order_item, "
+        "OPD.product, OPD.product_detail을 JOIN하여 입고상태명과 상품 정보를 함께 반환합니다."
     ),
     response_model=ErpProductionInboundListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
 def get_inbound_list(
     search_type: Literal[
         "inbound_id",
-        "purchase_order_id",
         "supplier_id",
         "supplier_name",
         "inbound_status",
+        "product_id",
+        "brand",
+        "product_name",
         "employee_id",
+        "expiration_date",
         "inbound_scheduled_date",
         "inbound_start",
         "inbound_complete",
     ] = Query(
         default="inbound_id",
         description="검색 조건",
-        examples=["inbound_id"],
+        examples=["product_name"],
     ),
     keyword: str = Query(
         default="",
         description="검색어",
-        examples=["1"],
+        examples=["콤보"],
     ),
     page: int = Query(
         default=1,
@@ -114,12 +130,12 @@ def get_inbound_list(
     ),
     start_date: date | None = Query(
         default=None,
-        description="조회 시작일. 기본은 입고시작일 기준이며, 검색조건이 입고완료일/입고예정일이면 해당 날짜 기준입니다.",
+        description="조회 시작일. 기본은 입고시작일 기준이며, 검색조건이 입고완료일/입고예정일/유통기한이면 해당 날짜 기준입니다.",
         examples=["2026-04-01"],
     ),
     end_date: date | None = Query(
         default=None,
-        description="조회 종료일. 기본은 입고시작일 기준이며, 검색조건이 입고완료일/입고예정일이면 해당 날짜 기준입니다.",
+        description="조회 종료일. 기본은 입고시작일 기준이며, 검색조건이 입고완료일/입고예정일/유통기한이면 해당 날짜 기준입니다.",
         examples=["2026-04-30"],
     ),
 ):

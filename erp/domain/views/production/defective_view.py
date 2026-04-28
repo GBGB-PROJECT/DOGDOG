@@ -260,8 +260,9 @@ def erp_defective_view():
         "no": 3,
         "product_id": 5,
         "inbound_id": 5,
-        "purchase_order_id": 5,
-        "supplier_name": 7,
+        # 🔥 수정: 화면에서 발주ID 컬럼 제거
+        # - 발주ID는 검색조건/API 응답에는 남겨두고, 테이블 노출만 제외
+        "supplier_name": 8,
         "inbound_status": 6,
         "brand": 7,
         "product_name": 10,
@@ -447,7 +448,7 @@ def erp_defective_view():
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
                     build_table_cell("상품ID", col_expand["product_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고ID", col_expand["inbound_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("발주ID", col_expand["purchase_order_id"], 0, ft.FontWeight.W_700),
+                    # 🔥 수정: 발주ID 컬럼 제거
                     build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("브랜드", col_expand["brand"], 0, ft.FontWeight.W_700),
@@ -475,7 +476,7 @@ def erp_defective_view():
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
                     build_table_cell(row.get("product_id", ""), col_expand["product_id"], 0),
                     build_table_cell(row.get("inbound_id", ""), col_expand["inbound_id"], 0),
-                    build_table_cell(row.get("purchase_order_id", ""), col_expand["purchase_order_id"], 0),
+                    # 🔥 수정: 발주ID 컬럼 제거
                     build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),
                     build_table_cell(row.get("inbound_status", ""), col_expand["inbound_status"], 0),
                     build_table_cell(row.get("brand", ""), col_expand["brand"], 0),

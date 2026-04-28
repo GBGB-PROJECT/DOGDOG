@@ -9,6 +9,7 @@ from api.erp_httpx_api import fetch_stock_dashboard
 
 # 🔥 재고현황 → 입고/출고 관리 화면 월 필터 전달
 from domain.views.stock.stock_inout_view import set_stock_inout_prefilter
+from domain.views.stock.stock_product_detail_view import set_stock_product_detail_prefilter
 
 
 # ==============================
@@ -150,7 +151,20 @@ def erp_stock_status_view():
         e.page.go("/stock/product/inout")
 
     def open_stock_product_detail_page(e):
+        data = state["data"]
+
         set_stock_dashboard_month_state(state["year"], state["month"])
+
+        # 🔥 총 재고량 카드 클릭 시 상품별 재고 상세도 선택 월로 자동 필터링
+        # - 대시보드 총 재고량 기준과 맞추기 위해 유통기한이 아니라 입고 기준일로 전달
+        set_stock_product_detail_prefilter(
+            start_date=data.get("month_start"),
+            end_date=data.get("month_end"),
+            date_filter_type="inbound_date",
+            search_type="product_id",
+            keyword="",
+        )
+
         e.page.go("/stock/product/detail")
 
     def _extract_quantity_number(text):

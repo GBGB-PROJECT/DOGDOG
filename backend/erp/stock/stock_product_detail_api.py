@@ -6,7 +6,7 @@
 
 from math import ceil
 from typing import Literal
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -44,6 +44,28 @@ def _format_number(value):
         return str(value)
 
 
+def _format_date_only(value):
+    # 🔥 날짜 컬럼은 화면에 시간(00:00:00)이 나오지 않도록 YYYY-MM-DD만 반환
+    if value in [None, ""]:
+        return ""
+
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+
+    if isinstance(value, date):
+        return value.strftime("%Y-%m-%d")
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    # 예: 2026-05-18 00:00:00 / 2026-05-18T00:00:00 모두 앞 10자리만 사용
+    if len(text) >= 10:
+        return text[:10]
+
+    return text
+
+
 def build_response_rows(items: list, page: int, size: int):
     start_no = ((page - 1) * size) + 1
     rows = []
@@ -55,14 +77,15 @@ def build_response_rows(items: list, page: int, size: int):
                 "product_id": row.get("product_id", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
-                "expiration_date": row.get("expiration_date", ""),
+                "expiration_date": _format_date_only(row.get("expiration_date", "")),
                 "inbound_id": row.get("inbound_id", ""),
+                "inbound_date": _format_date_only(row.get("inbound_date", "")),
                 "inbound_status": row.get("inbound_status", ""),
                 "save_stock": _format_number(row.get("save_stock", "")),
                 "sale_stock": _format_number(row.get("sale_stock", "")),
                 "stock_available": _format_number(row.get("stock_available", "")),
                 "scrap_stock": _format_number(row.get("scrap_stock", "")),
-                "last_update": row.get("last_update", ""),
+                "last_update": _format_date_only(row.get("last_update", "")),
             }
         )
 
@@ -124,6 +147,11 @@ def get_stock_product_detail_list(
         description="유통기한 종료일",
         examples=["2026-04-30"],
     ),
+    date_filter_type: Literal["expiration_date", "inbound_date"] = Query(
+        default="expiration_date",
+        description="날짜 필터 기준: expiration_date=유통기한, inbound_date=입고완료일/입고시작일",
+        examples=["expiration_date"],
+    ),
 ):
     try:
         clean_search_type = (search_type or "product_id").strip()
@@ -134,6 +162,7 @@ def get_stock_product_detail_list(
             keyword=clean_keyword,
             start_date=start_date,
             end_date=end_date,
+            date_filter_type=date_filter_type,
         )
 
         total_pages = max(1, ceil(total_count / size))
@@ -146,6 +175,7 @@ def get_stock_product_detail_list(
             offset=offset,
             start_date=start_date,
             end_date=end_date,
+            date_filter_type=date_filter_type,
         )
 
         result_items = build_response_rows(items, page, size)
@@ -168,6 +198,7 @@ def get_stock_product_detail_list(
                         "keyword": clean_keyword,
                         "start_date": start_date,
                         "end_date": end_date,
+                        "date_filter_type": date_filter_type,
                     },
                 },
             }
@@ -189,6 +220,7 @@ def get_stock_product_detail_list(
                     "keyword": clean_keyword,
                     "start_date": start_date,
                     "end_date": end_date,
+                    "date_filter_type": date_filter_type,
                 },
             },
         }

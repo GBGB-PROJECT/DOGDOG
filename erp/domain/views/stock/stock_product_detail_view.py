@@ -28,6 +28,55 @@ PAGE_SIZE = 50
 
 
 # =========================================================
+# 🔥 재고 현황 대시보드 → 상품별 재고 상세 화면 월 필터 전달용
+# - 총 재고량 카드 클릭 시 해당 월 입고 기준 재고만 조회
+# =========================================================
+_STOCK_PRODUCT_DETAIL_PREFILTER = {"value": None}
+
+
+def set_stock_product_detail_prefilter(
+    start_date=None,
+    end_date=None,
+    date_filter_type="inbound_date",
+    search_type="product_id",
+    keyword="",
+):
+    _STOCK_PRODUCT_DETAIL_PREFILTER["value"] = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "date_filter_type": date_filter_type or "inbound_date",
+        "search_type": search_type or "product_id",
+        "keyword": keyword or "",
+    }
+
+
+def _consume_stock_product_detail_prefilter():
+    value = _STOCK_PRODUCT_DETAIL_PREFILTER.get("value")
+    _STOCK_PRODUCT_DETAIL_PREFILTER["value"] = None
+    return value or {}
+
+
+def _parse_prefilter_date(value):
+    if not value:
+        return None
+
+    if isinstance(value, datetime.datetime):
+        return value.date()
+
+    if isinstance(value, datetime.date):
+        return value
+
+    clean = str(value).strip()[:10]
+    try:
+        return datetime.datetime.strptime(clean, "%Y-%m-%d").date()
+    except ValueError:
+        try:
+            return datetime.datetime.strptime(clean.replace(".", "-"), "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+
+# =========================================================
 # 🔥 상품별 재고 상세 View
 # - stock이 주인공인 화면
 # - 중량/수량/판매가/샘플/활성/상세ID/발주ID 제거
@@ -144,6 +193,28 @@ def _format_number(value):
         return str(value)
 
 
+def _format_date_only(value):
+    # 🔥 API/DB에서 datetime 문자열이 와도 화면에는 날짜만 표시
+    if value in [None, ""]:
+        return ""
+
+    if isinstance(value, datetime.datetime):
+        return value.strftime("%Y-%m-%d")
+
+    if isinstance(value, datetime.date):
+        return value.strftime("%Y-%m-%d")
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    # 예: 2026-05-18 00:00:00 / 2026-05-18T00:00:00 -> 2026-05-18
+    if len(text) >= 10:
+        return text[:10]
+
+    return text
+
+
 def stock_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
@@ -155,14 +226,15 @@ def stock_db_row_adapter(db_rows: list, page_no: int):
                 "product_id": row.get("product_id", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
-                "expiration_date": row.get("expiration_date", ""),
+                "expiration_date": _format_date_only(row.get("expiration_date", "")),
                 "inbound_id": row.get("inbound_id", ""),
+                "inbound_date": _format_date_only(row.get("inbound_date", "")),
                 "inbound_status": row.get("inbound_status", ""),
                 "save_stock": _format_number(row.get("save_stock", "")),
                 "sale_stock": _format_number(row.get("sale_stock", "")),
                 "stock_available": _format_number(row.get("stock_available", "")),
                 "scrap_stock": _format_number(row.get("scrap_stock", "")),
-                "last_update": row.get("last_update", ""),
+                "last_update": _format_date_only(row.get("last_update", "")),
             }
         )
 
@@ -186,9 +258,31 @@ def normalize_to_date(value):
 def erp_stock_product_detail_view():
     page_title = "재고관리 > 상품별 재고 상세"
 
-    selected_start = {"value": None}
-    selected_end = {"value": None}
-    search_type_value = {"value": "product_id"}
+    initial_prefilter = _consume_stock_product_detail_prefilter()
+
+    initial_search_type = initial_prefilter.get("search_type") or "product_id"
+    if initial_search_type not in {
+        "product_id",
+        "brand",
+        "product_name",
+        "inbound_id",
+        "inbound_status",
+        "save_stock",
+        "sale_stock",
+        "scrap_stock",
+        "stock_available",
+        "expiration_date",
+    }:
+        initial_search_type = "product_id"
+
+    initial_date_filter_type = initial_prefilter.get("date_filter_type") or "expiration_date"
+    if initial_date_filter_type not in {"expiration_date", "inbound_date"}:
+        initial_date_filter_type = "expiration_date"
+
+    selected_start = {"value": _parse_prefilter_date(initial_prefilter.get("start_date"))}
+    selected_end = {"value": _parse_prefilter_date(initial_prefilter.get("end_date"))}
+    search_type_value = {"value": initial_search_type}
+    date_filter_type_value = {"value": initial_date_filter_type}
 
     search_type_labels = {
         "product_id": "상품ID",
@@ -214,6 +308,9 @@ def erp_stock_product_detail_view():
         {"key": "brand", "label": "브랜드", "width": 130, "align_x": 0},
         {"key": "product_name", "label": "상품명", "width": 260, "align_x": 0},
         {"key": "expiration_date", "label": "유통기한", "width": 120, "align_x": 0},
+        # 🔥 총 재고량 카드 월 필터 근거 컬럼
+        # - 이 날짜가 2026-06-01 ~ 2026-06-30 안에 들어가야 6월 입고 재고임을 화면에서 확인 가능
+        {"key": "inbound_date", "label": "입고일자", "width": 130, "align_x": 0},
         {"key": "inbound_id", "label": "입고ID", "width": 90, "align_x": 0},
         {"key": "inbound_status", "label": "입고상태", "width": 110, "align_x": 0},
         {"key": "save_stock", "label": "보관재고", "width": 100, "align_x": 0},
@@ -227,7 +324,7 @@ def erp_stock_product_detail_view():
         "current_page": 1,
         "total_count": 0,
         "total_pages": 1,
-        "keyword": "",
+        "keyword": initial_prefilter.get("keyword") or "",
         "page_ref": None,
     }
 
@@ -252,7 +349,7 @@ def erp_stock_product_detail_view():
     search_field = ft.TextField(
         width=220,
         height=38,
-        value="",
+        value=pagination_state["keyword"],
         hint_text="검색어",
         hint_style=ft.TextStyle(size=13, color=HINT_TEXT),
         text_size=13,
@@ -519,6 +616,7 @@ def erp_stock_product_detail_view():
             keyword=keyword,
             start_date=get_selected_date_text(selected_start["value"]),
             end_date=get_selected_date_text(selected_end["value"]),
+            date_filter_type=date_filter_type_value["value"],
         )
 
     def fetch_stock_rows(keyword="", page_no=1):
@@ -531,6 +629,7 @@ def erp_stock_product_detail_view():
             offset=offset,
             start_date=get_selected_date_text(selected_start["value"]),
             end_date=get_selected_date_text(selected_end["value"]),
+            date_filter_type=date_filter_type_value["value"],
         )
 
         return stock_db_row_adapter(db_rows, page_no)
@@ -694,8 +793,11 @@ def erp_stock_product_detail_view():
             else "미선택"
         )
 
+        date_filter_label = "입고일자" if date_filter_type_value["value"] == "inbound_date" else "유통기한"
+
         if pagination_state["total_count"] == 0:
             result_text.value = (
+                f"기간기준: {date_filter_label} / "
                 f"기간: {start_text} ~ {end_text} / "
                 f"검색조건: {search_type_labels[search_type_value['value']]} / "
                 f"검색어: {keyword if keyword else '없음'} / "
@@ -704,6 +806,7 @@ def erp_stock_product_detail_view():
             return
 
         result_text.value = (
+            f"기간기준: {date_filter_label} / "
             f"기간: {start_text} ~ {end_text} / "
             f"검색조건: {search_type_labels[search_type_value['value']]} / "
             f"검색어: {keyword if keyword else '없음'} / "
@@ -713,7 +816,7 @@ def erp_stock_product_detail_view():
         )
 
     def load_rows(page_ref: ft.Page | None = None):
-        pagination_state["keyword"] = ""
+        pagination_state["keyword"] = (search_field.value or "").strip()
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count("")

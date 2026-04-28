@@ -303,7 +303,15 @@ def count_suppliers(search_type="supplier_id", keyword="", start_date=None, end_
 # ☑️ 상품별 재고 상세 조회
 # =========================================================
 
-def fetch_stocks(search_type="product_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+def fetch_stocks(
+    search_type="product_id",
+    keyword="",
+    limit=50,
+    offset=0,
+    start_date=None,
+    end_date=None,
+    date_filter_type="expiration_date",
+):
     page = (offset // limit) + 1
 
     result = _list_request(
@@ -314,12 +322,19 @@ def fetch_stocks(search_type="product_id", keyword="", limit=50, offset=0, start
         size=limit,
         start_date=start_date,
         end_date=end_date,
+        date_filter_type=date_filter_type,
     )
 
     return result["items"]
 
 
-def count_stocks(search_type="product_id", keyword="", start_date=None, end_date=None):
+def count_stocks(
+    search_type="product_id",
+    keyword="",
+    start_date=None,
+    end_date=None,
+    date_filter_type="expiration_date",
+):
     result = _list_request(
         "/erp/stock/product-detail",
         search_type=search_type,
@@ -328,6 +343,7 @@ def count_stocks(search_type="product_id", keyword="", start_date=None, end_date
         size=1,
         start_date=start_date,
         end_date=end_date,
+        date_filter_type=date_filter_type,
     )
 
     return result["pagination"].get("total_count", 0)

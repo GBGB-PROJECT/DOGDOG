@@ -38,6 +38,14 @@ def _base_query(db):
             ErpStock.expiration_date.label("expiration_date"),
             ErpStock.last_update.label("last_update"),
 
+            # 🔥 총 재고량 카드 월 필터 근거 표시용
+            # - 입고완료일 우선
+            # - 없으면 입고시작일 사용
+            func.coalesce(
+                ErpInbound.inbound_complete,
+                ErpInbound.inbound_start,
+            ).label("inbound_date"),
+
             # 🔥 상품 식별용 보조 컬럼
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
@@ -156,15 +164,30 @@ def _apply_filter(query, search_type: str, keyword: str):
     return query
 
 
-def _apply_date_filter(query, start_date=None, end_date=None):
+def _stock_detail_base_date_expr():
+    return func.coalesce(
+        ErpInbound.inbound_complete,
+        ErpInbound.inbound_start,
+    )
+
+
+def _apply_date_filter(query, start_date=None, end_date=None, date_filter_type="expiration_date"):
     start = _normalize_start_date(start_date)
     end = _normalize_end_date(end_date)
 
+    # 🔥 대시보드 총 재고량 카드에서 넘어온 경우
+    # - 선택 월 기준과 맞추기 위해 입고완료일 우선, 없으면 입고시작일 기준으로 필터링
+    # - 일반 상품별 재고 상세 화면에서는 기존처럼 유통기한 기준으로 필터링
+    if date_filter_type == "inbound_date":
+        date_expr = _stock_detail_base_date_expr()
+    else:
+        date_expr = ErpStock.expiration_date
+
     if start:
-        query = query.filter(func.date(ErpStock.expiration_date) >= start)
+        query = query.filter(func.date(date_expr) >= start)
 
     if end:
-        query = query.filter(func.date(ErpStock.expiration_date) <= end)
+        query = query.filter(func.date(date_expr) <= end)
 
     return query
 
@@ -180,6 +203,7 @@ def _row_to_dict(row):
         "scrap_stock": to_plain_value(row.scrap_stock),
         "stock_available": to_plain_value(row.stock_available),
         "expiration_date": to_plain_value(row.expiration_date),
+        "inbound_date": to_plain_value(row.inbound_date),
         "product_name": to_plain_value(row.product_name),
         "last_update": to_plain_value(row.last_update),
     }
@@ -190,12 +214,18 @@ def count_stocks(
     keyword="",
     start_date=None,
     end_date=None,
+    date_filter_type="expiration_date",
 ):
     db = SessionLocal()
     try:
         query = _base_query(db)
         query = _apply_filter(query, search_type, keyword)
-        query = _apply_date_filter(query, start_date=start_date, end_date=end_date)
+        query = _apply_date_filter(
+            query,
+            start_date=start_date,
+            end_date=end_date,
+            date_filter_type=date_filter_type,
+        )
         return query.count()
     finally:
         db.close()
@@ -208,12 +238,18 @@ def fetch_stocks(
     offset=0,
     start_date=None,
     end_date=None,
+    date_filter_type="expiration_date",
 ):
     db = SessionLocal()
     try:
         query = _base_query(db)
         query = _apply_filter(query, search_type, keyword)
-        query = _apply_date_filter(query, start_date=start_date, end_date=end_date)
+        query = _apply_date_filter(
+            query,
+            start_date=start_date,
+            end_date=end_date,
+            date_filter_type=date_filter_type,
+        )
 
         rows = (
             query.order_by(

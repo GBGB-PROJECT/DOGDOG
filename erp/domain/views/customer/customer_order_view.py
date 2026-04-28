@@ -104,9 +104,21 @@ def format_money(value):
 
 
 def format_datetime_text(value):
+    # 🔥 주문일 화면 표시용 포맷
+    # - API/DB에서 datetime이 오면 "2026-05-31T20:04:25"처럼 내려올 수 있음
+    # - 고객 주문 관리 화면에서는 날짜만 보여주기 위해 T와 시간 제거
     if not value:
         return ""
-    return str(value)[:19]
+
+    text = str(value).strip()
+
+    if "T" in text:
+        return text.split("T")[0]
+
+    if " " in text:
+        return text.split(" ")[0]
+
+    return text[:10]
 
 
 def customer_order_db_row_adapter(db_rows: list, page_no: int):

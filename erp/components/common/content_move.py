@@ -6,6 +6,7 @@ from domain.views.sales import sales_view
 
 from domain.views.stock import stock_status_view
 from domain.views.stock import stock_product_detail_view
+from domain.views.stock import stock_inout_view
 
 # 👊 추가: 상품관리 화면 연결
 from domain.views.merchandise import product_view
@@ -78,6 +79,8 @@ MENU_ITEMS = {
     "상품별 재고 상세": stock_product_detail_view.erp_stock_product_detail_view,
 
     "물류관리": lambda: ft.Container(content=ft.Text("물류관리 준비 중")),
+
+    "입고/출고 관리": stock_inout_view.erp_stock_inout_view,
 
     # 🔥 수정: 고객관리 대분류는 메인 텍스트 화면만 표시
     "고객관리": erp_customer_view,

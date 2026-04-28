@@ -363,6 +363,55 @@ def fetch_stock_dashboard(year=None, month=None):
 
     return _get("/erp/stock/dashboard", params=params)
 
+# =========================================================
+# ☑️ 재고 입고/출고 관리
+# =========================================================
+
+def fetch_stock_inouts(
+    search_type="all",
+    keyword="",
+    inout_type="all",
+    limit=50,
+    offset=0,
+    start_date=None,
+    end_date=None,
+):
+    page = (offset // limit) + 1
+
+    result = _list_request(
+        "/erp/stock/inout",
+        search_type=search_type,
+        keyword=keyword,
+        page=page,
+        size=limit,
+        start_date=start_date,
+        end_date=end_date,
+        inout_type=inout_type,
+    )
+
+    return result["items"]
+
+
+def count_stock_inouts(
+    search_type="all",
+    keyword="",
+    inout_type="all",
+    start_date=None,
+    end_date=None,
+):
+    result = _list_request(
+        "/erp/stock/inout",
+        search_type=search_type,
+        keyword=keyword,
+        page=1,
+        size=1,
+        start_date=start_date,
+        end_date=end_date,
+        inout_type=inout_type,
+    )
+
+    return result["pagination"].get("total_count", 0)
+
 
 # =========================================================
 # ☑️ 발주관리

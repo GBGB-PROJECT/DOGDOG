@@ -1,9 +1,14 @@
+import re
 import flet as ft
 from components import common as cm
 from components.common.charts.twin_chart import build_stock_twin_chart
+from components.common.modals.production_order import ProductionOrderDialog
 
-# 🔥 httpx 방식 API 호출로 변경
+# 🔥 requests 방식 API 호출로 변경
 from api.erp_httpx_api import fetch_stock_dashboard
+
+# 🔥 재고현황 → 입고/출고 관리 화면 월 필터 전달
+from domain.views.stock.stock_inout_view import set_stock_inout_prefilter
 
 
 # ==============================
@@ -127,6 +132,56 @@ def erp_stock_status_view():
     chart_holder = ft.Container()
     top_stock_holder = ft.Container()
 
+    def open_stock_inout_page(e, inout_type="all"):
+        data = state["data"]
+
+        set_stock_dashboard_month_state(state["year"], state["month"])
+
+        set_stock_inout_prefilter(
+            start_date=data.get("month_start"),
+            end_date=data.get("month_end"),
+            inout_type=inout_type,
+            search_type="all",
+            keyword="",
+        )
+
+        e.page.go("/stock/product/inout")
+
+    def open_stock_product_detail_page(e):
+        set_stock_dashboard_month_state(state["year"], state["month"])
+        e.page.go("/stock/product/detail")
+
+    def _extract_quantity_number(text):
+        if text is None:
+            return ""
+
+        value = str(text)
+        matched = re.search(r"[\d,]+", value)
+        if not matched:
+            return ""
+
+        return matched.group(0).replace(",", "")
+
+    def open_production_order_from_stock(e, item_data):
+        dialog = ProductionOrderDialog(e.page)
+
+        product_name = item_data.get("name", "")
+        expected_qty = ""
+
+        for left, right in item_data.get("rows", []):
+            if left in ("예상 발주량", "보충 권장량"):
+                expected_qty = _extract_quantity_number(right)
+                break
+
+        # 🔥 생산지시서 첫 번째 품목 행 자동 입력
+        if dialog.item_rows:
+            first_row = dialog.item_rows[0]
+            first_row["product_name"].value = product_name
+            first_row["unit"].value = "ea"
+            first_row["qty"].value = expected_qty
+
+        dialog.open()
+
     # ==============================
     # ☑️ 공통 함수
     # ==============================
@@ -194,7 +249,31 @@ def erp_stock_status_view():
             ],
         )
 
-    def build_box_header(title: str, right_text: str):
+    def build_box_header(title: str, right_text: str, on_click=None):
+        right_area = ft.Container(
+            border_radius=8,
+            ink=True if on_click else False,
+            on_click=on_click,
+            padding=ft.Padding.only(left=8, right=2, top=4, bottom=4),
+            content=ft.Row(
+                spacing=4,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    build_text(
+                        right_text,
+                        size=13,
+                        color=TEXT_SECONDARY,
+                        weight=ft.FontWeight.W_600,
+                    ),
+                    ft.Icon(
+                        ft.Icons.CHEVRON_RIGHT,
+                        size=18,
+                        color=TEXT_TERTIARY,
+                    ),
+                ],
+            ),
+        )
+
         return ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -205,23 +284,7 @@ def erp_stock_status_view():
                     color=TEXT_PRIMARY,
                     weight=ft.FontWeight.W_700,
                 ),
-                ft.Row(
-                    spacing=4,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        build_text(
-                            right_text,
-                            size=13,
-                            color=TEXT_SECONDARY,
-                            weight=ft.FontWeight.W_600,
-                        ),
-                        ft.Icon(
-                            ft.Icons.CHEVRON_RIGHT,
-                            size=18,
-                            color=TEXT_TERTIARY,
-                        ),
-                    ],
-                ),
+                right_area,
             ],
         )
 
@@ -250,6 +313,14 @@ def erp_stock_status_view():
 
     def build_status_box(box_data):
         rows = box_data.get("rows", [])
+        title = box_data.get("title", "")
+
+        if title == "입고":
+            header_click = lambda e: open_stock_inout_page(e, inout_type="inbound")
+        elif title == "출고":
+            header_click = lambda e: open_stock_inout_page(e, inout_type="outbound")
+        else:
+            header_click = None
 
         if rows:
             row_area = ft.Column(
@@ -265,7 +336,11 @@ def erp_stock_status_view():
             content=ft.Column(
                 spacing=12,
                 controls=[
-                    build_box_header(box_data.get("title", ""), box_data.get("count_text", "0건")),
+                    build_box_header(
+                        title,
+                        box_data.get("count_text", "0건"),
+                        on_click=header_click,
+                    ),
                     build_text(box_data.get("subtitle", ""), size=13, color=TEXT_SECONDARY),
                     ft.Divider(height=1, color=BORDER_COLOR),
                     row_area,
@@ -324,12 +399,8 @@ def erp_stock_status_view():
 
         for item in items:
             copied = dict(item)
-            product_id = copied.get("product_id")
-
-            # 🔥 현재는 즉시 생산 화면/등록 모달 연결 전
-            # - 클릭 이벤트가 죽지 않게 product_id만 로그로 남김
             copied["on_action_click"] = (
-                lambda e, pid=product_id: print(f"즉시 생산 클릭 product_id={pid}")
+                lambda e, item_data=copied: open_production_order_from_stock(e, item_data)
             )
             new_items.append(copied)
 
@@ -388,16 +459,29 @@ def erp_stock_status_view():
             border_radius=12,
             padding=12,
             border=ft.border.all(1, BORDER_COLOR),
+            ink=True,
+            on_click=open_stock_product_detail_page,
             content=ft.Stack(
                 expand=True,
                 controls=[
                     ft.Container(
-                        alignment=ft.Alignment(-1, -1),
-                        content=ft.Text(
-                            "재고관리",
-                            size=16,
-                            weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
+                        alignment=ft.Alignment(0, -1),
+                        content=ft.Row(
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.START,
+                            controls=[
+                                ft.Text(
+                                    "상품별 재고 상세",
+                                    size=16,
+                                    weight=ft.FontWeight.W_700,
+                                    color=TEXT_PRIMARY,
+                                ),
+                                ft.Icon(
+                                    ft.Icons.CHEVRON_RIGHT,
+                                    size=18,
+                                    color=TEXT_TERTIARY,
+                                ),
+                            ],
                         ),
                     ),
                     ft.Container(

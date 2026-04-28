@@ -5,6 +5,22 @@ from db.models import OpdProductDetail, OpdProduct
 
 VALID_SORTS = {"price_desc", "price_asc", "weight_desc", "weight_asc"}
 
+def get_product_detail_list(db: Session, keyword: str | None = None):
+    query = (
+        select(OpdProductDetail.product_detail_id, 
+                OpdProductDetail.product_name, 
+                )
+    )
+
+    if keyword is not None and keyword.strip() != "": # 키워드가 있을때
+        query = query.where(OpdProductDetail.product_name.ilike(f"%{keyword.strip()}%"))
+
+    result = db.execute(query)
+    # products = result.scalars().all()
+    products = result.all()
+
+    return products
+
 def get_product_list(
         db: Session, 
         keyword: str | None = None,

@@ -590,16 +590,6 @@ def erp_stock_inout_view():
         reload_current_page(1)
         e.page.update()
 
-    def on_reset_click(e):
-        selected_start["value"] = None
-        selected_end["value"] = None
-        search_field.value = ""
-        set_search_type("all")
-        set_inout_type("all")
-        refresh_picker_fields()
-        reload_current_page(1)
-        e.page.update()
-
     refresh_picker_fields()
     reload_current_page(1)
 
@@ -624,7 +614,6 @@ def erp_stock_inout_view():
                         search_type_dropdown,
                         search_field,
                         build_button("조회", on_search_click),
-                        build_button("초기화", on_reset_click),
                     ],
                 ),
                 build_text(

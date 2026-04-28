@@ -340,16 +340,24 @@ def erp_production_view():
         )
 
     def build_five_text_row(row_items):
+        # 🔥 수정: Flet 0.81.0에서 expand는 bool 또는 int만 허용됨
+        # - 기존에 1.2, 2.0 같은 float 값을 넣으면 ValueError 발생
+        # - 날짜 / 구분 / 상품명 / 수량(ea) / 금액을 int 비율로 배치
+        # - 수량(ea) 같은 숫자+단위 텍스트도 중앙정렬
+        column_expands = [12, 10, 20, 10, 14]
+
         return ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Container(
-                    expand=1,
-                    alignment=ft.Alignment(-1, 0)
-                    if i < len(row_items) - 1
-                    else ft.Alignment(1, 0),
-                    content=build_text(item, size=13, color=TEXT_ROW),
+                    expand=column_expands[i] if i < len(column_expands) else 10,
+                    alignment=ft.Alignment(0, 0),
+                    content=build_text(
+                        item,
+                        size=13,
+                        color=TEXT_ROW,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
                 )
                 for i, item in enumerate(row_items)
             ],

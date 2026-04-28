@@ -130,11 +130,112 @@ def insert_pet_product_feeding(
 
         # 새 급여 사료 row 생성
         # false 처리 -> json으로 결과 넘기고 update
-        # deactivate_pet_food(
-        #    db=db, pet_food=active_pet_food, feeding_false_date=date.today()
-        # )
-        new_pet_food.is_feeding_check = True
-        new_pet_food.product_id = product_id
-        new_pet_food.one_gram_calories = one_gram_calories
+        deactivate_pet_food(
+            db=db,
+            pet_food=active_pet_food,
+            feeding_false_date=date.today()
+        )
 
-    return new_pet_food
+        new_pet_food = CompanionPetProductFeeding(
+            pet_id=pet_id,
+            product_id=product_id,
+            one_gram_calories=one_gram_calories,
+        )
+        db.add(new_pet_food)
+        return new_pet_food
+    
+# ------------------------------ 수정 ------------------------------
+# 수정 가능 날짜 조회
+def get_pet_food_by_effective_date(
+    db: Session,
+    pet_id: int,
+    effective_date: date
+):
+    query = (
+        select(CompanionPetProductFeeding)
+        .where(
+            CompanionPetProductFeeding.pet_id == pet_id,
+            CompanionPetProductFeeding.record_date <= effective_date,
+            (
+                (CompanionPetProductFeeding.feeding_false_date.is_(None)) |  # 급여중이거나
+                (CompanionPetProductFeeding.feeding_false_date >= effective_date)  # 급여 종료 날짜 전을 수정할 때
+            )
+        )
+        # .order_by(CompanionPetProductFeeding.record_date.desc()) # 내림차순
+    )
+
+    result = db.execute(query)
+    return result.scalars().first()
+
+
+def get_pet_foods_after_effective_date(
+    db: Session,
+    pet_id: int,
+    effective_date: date
+):
+    query = (
+        select(CompanionPetProductFeeding)
+        .where(
+            CompanionPetProductFeeding.pet_id == pet_id,
+            CompanionPetProductFeeding.record_date > effective_date
+        )
+        .order_by(CompanionPetProductFeeding.record_date.asc())
+    )
+
+    result = db.execute(query)
+    return result.scalars().all()
+
+# 활성화된 급여 사료가 있을때
+# 예전 기록 수정
+
+
+# db 수정 ---------------------------------------------------
+def update_pet_product_feeding(
+    db: Session,
+    pet_food: CompanionPetProductFeeding,
+    product_id: int,
+    one_gram_calories: float,
+    effective_date: date,
+):
+    # 1) 기존 사료 종료 처리
+    pet_food.is_feeding_check = False
+    pet_food.feeding_false_date = effective_date
+
+    # 중요: 트리거 로그 남기려면 여기서 DB에 한 번 반영
+    db.flush()
+
+    # 2) 같은 row를 새 사료 정보로 갱신
+    pet_food.product_id = product_id
+    pet_food.one_gram_calories = one_gram_calories
+    pet_food.record_date = effective_date
+    pet_food.feeding_false_date = None
+    pet_food.is_feeding_check = True
+
+    return pet_food
+
+
+def update_customer_food_for_pet_food_change(
+    db: Session,
+    pet_id: int,
+    total_weight: int,
+    effective_date: date,
+):
+    customer_food = get_customer_food_id(db=db, pet_id=pet_id)
+
+    if customer_food is None:
+        customer_food = CompanionCustomerFood(
+            pet_id=pet_id,
+            total_weight=total_weight,
+            feeding_start=effective_date,
+            total_intake=0,
+            food_count=0,
+        )
+        db.add(customer_food)
+        return customer_food
+
+    customer_food.total_weight = total_weight
+    customer_food.feeding_start = effective_date
+    customer_food.total_intake = 0
+    customer_food.food_count = 0
+
+    return customer_food

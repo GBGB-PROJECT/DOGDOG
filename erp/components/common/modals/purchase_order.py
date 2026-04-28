@@ -92,14 +92,19 @@ INFO_RIGHT_VALUE_W = DOC_WIDTH - (
 # =========================================================
 COL_NO = 50
 COL_LOT = 110
-COL_NAME = 150
-COL_SPEC = 140
+
+# 🔥 수정: 발주서 품목표 폭 조정
+# - 품명은 긴 상품명이 잘 보이도록 대폭 확대
+# - 규격/사양, 납품기한은 화면을 많이 차지하지 않도록 축소
+# - 전체 품목표 폭은 DOC_WIDTH(1424)에 정확히 맞춤
+COL_NAME = 420
+COL_SPEC = 90
 COL_UNIT = 70
 COL_QTY = 110
 COL_PRICE = 120
 COL_SUPPLY = 130
 COL_TAX = 120
-COL_DEADLINE = 110
+COL_DEADLINE = 204
 
 ITEM_TOTAL_WIDTH = (
     COL_NO
@@ -113,8 +118,6 @@ ITEM_TOTAL_WIDTH = (
     + COL_TAX
     + COL_DEADLINE
 )
-
-COL_DEADLINE = COL_DEADLINE + (DOC_WIDTH - ITEM_TOTAL_WIDTH)
 
 # =========================================================
 # ☑️ 하단 합계 / 참고사항 폭
@@ -403,24 +406,25 @@ class PurchaseOrderDialog:
 
         row_data["no"] = no
         row_data["lot_no"] = build_textfield(text_align=ft.TextAlign.CENTER)
-        row_data["product_name"] = build_textfield()
-        row_data["spec"] = build_textfield()
+        # 🔥 수정: 품목표 입력값 전체 중앙정렬
+        row_data["product_name"] = build_textfield(text_align=ft.TextAlign.CENTER)
+        row_data["spec"] = build_textfield(text_align=ft.TextAlign.CENTER)
         row_data["unit"] = build_textfield(text_align=ft.TextAlign.CENTER)
 
         row_data["qty"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             on_change=on_amount_change,
         )
         row_data["unit_price"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             on_change=on_amount_change,
         )
         row_data["supply_amount"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             read_only=True,
         )
         row_data["tax_amount"] = build_textfield(
-            text_align=ft.TextAlign.RIGHT,
+            text_align=ft.TextAlign.CENTER,
             read_only=True,
         )
         row_data["delivery_deadline"] = build_textfield(text_align=ft.TextAlign.CENTER)
@@ -809,17 +813,19 @@ class PurchaseOrderDialog:
         # -------------------------------------------------
         # ☑️ 컬럼 폭 설정
         # -------------------------------------------------
+        # 🔥 수정: 화면 품목표 폭 조정과 엑셀 컬럼 폭도 같이 맞춤
+        # A no / B LOT NO / C 품명 / D 규격/사양 / J 납품기한
         column_widths = {
-            "A": 12,
-            "B": 18,
-            "C": 18,
-            "D": 16,
-            "E": 12,
-            "F": 14,
+            "A": 8,
+            "B": 13,
+            "C": 42,
+            "D": 10,
+            "E": 8,
+            "F": 12,
             "G": 12,
-            "H": 14,
-            "I": 12,
-            "J": 16,
+            "H": 15,
+            "I": 10,
+            "J": 12,
         }
 
         for col, width in column_widths.items():

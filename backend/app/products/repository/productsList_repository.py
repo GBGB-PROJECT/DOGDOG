@@ -9,7 +9,7 @@ def get_product_detail_list(db: Session, keyword: str | None = None):
     query = (
         select(OpdProductDetail.product_detail_id, 
                 OpdProductDetail.product_name, 
-                )
+            )
     )
 
     if keyword is not None and keyword.strip() != "": # 키워드가 있을때

@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.db import get_db
-from app.products.repository.productsList_repository import get_product_list
+from app.products.repository.productsList_repository import get_product_list, get_product_detail_list
 from app.products.repository.productsWeight_repository import get_product_weight
 from dependencies import get_current_user
 from app.products.product_service import get_product_detail_service, read_product_list
@@ -61,7 +61,7 @@ def read_products(
         db: Session = Depends(get_db)
     ):
     try:
-        products = get_product_list(db=db, keyword=keyword)
+        products = get_product_detail_list(db=db, keyword=keyword)
 
         data = [
             {

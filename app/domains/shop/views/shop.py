@@ -71,7 +71,7 @@ def product_guide(page: ft.Page):
                 icon=ft.Icons.ARROW_BACK_IOS, icon_size=10, 
                 on_click=lambda e:product_guide_page(e=e, key="back")),
             ft.TabBarView(expand=True, controls=dogdog.products(
-                Product.guide_product_list, guide_image_size)),
+                page, Product.guide_product_list, guide_image_size)),
             ft.IconButton(
                 icon=ft.Icons.ARROW_FORWARD_IOS, icon_size=10, 
                 on_click=lambda e:product_guide_page(e=e, key="forward")),
@@ -79,23 +79,23 @@ def product_guide(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
     # Product Filter Event
     # ---------------------------------------------------------------------------------------------------
-    default_view = dogdog.products(Product.guide_product_list_t, product_image_size)
+    default_view = dogdog.products(page, Product.guide_product_list_t, product_image_size)
     def selected_filter(e):
         # print(e.data)
         if e.data == "all":
             product_list.content.controls = default_view # type: ignore
         elif e.data == "dry":
             product_list.content.controls = dogdog.products( # type: ignore
-                Product.guide_product_list, product_image_size)
+                page, Product.guide_product_list, product_image_size)
         elif e.data == "semi-dry":
             product_list.content.controls = dogdog.products( # type: ignore
-                Product.guide_product_list_t, product_image_size)
+                page, Product.guide_product_list_t, product_image_size)
         elif e.data == "wet":
             product_list.content.controls = dogdog.products( # type: ignore
-                Product.guide_product_list, product_image_size)
+                page, Product.guide_product_list, product_image_size)
         elif e.data == "cooked":
             product_list.content.controls = dogdog.products( # type: ignore
-                Product.guide_product_list_t, product_image_size)
+                page, Product.guide_product_list_t, product_image_size)
         product_list.update()
     # ---------------------------------------------------------------------------------------------------
     # Product View

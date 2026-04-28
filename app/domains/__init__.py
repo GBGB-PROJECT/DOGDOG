@@ -17,4 +17,4 @@ from .logs.views import history , log , grid
 
 from .mypage.views import mypage_view , notification
 
-from .shop.views import shop
+from .shop.views import shop , shop_product_detail

@@ -82,7 +82,7 @@ class Front_dogdog:
             # Icon , Text , On_click
             (ft.Icons.HOME, "Home", lambda _:self.page.go("/home")),
             (ft.Icons.CALENDAR_MONTH, "Log", lambda _:self.page.go("/log")),
-            ("skeleton.png" if page_name != "/shop" else "shop.png", None, lambda _:self.page.go("/shop")),
+            ("skeleton.png" if not "/shop" in page_name else "shop.png", None, lambda _:self.page.go("/shop")),
             (ft.Icons.MESSENGER_OUTLINE_ROUNDED, "Contents", lambda _:self.page.go("/contents")),
             (ft.Icons.PERSON_OUTLINE, "MyPage", lambda _:self.page.go("/mypage")),
         ]

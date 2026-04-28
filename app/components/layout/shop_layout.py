@@ -1,10 +1,10 @@
 import flet as ft
 import components as dogdog
 
-def product(p_id, image_src, image_size, title, price):
+def product(page, p_id, image_src, image_size, title, price):
     return ft.Container(
         padding=0,
-        on_click=lambda _:print(p_id, title),
+        on_click=lambda _:page.go(f"/shop/detail_{p_id}"),
         ink=True,
         content=ft.Column(spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER, controls=[
             ft.Container(width=image_size, height=image_size, image=ft.DecorationImage(src=image_src)),
@@ -12,7 +12,7 @@ def product(p_id, image_src, image_size, title, price):
             dogdog.basic_text(value=price, size=12, color=ft.Colors.GREY_800)
     ]))
 
-def products(data_dict, image_size):
+def products(page, data_dict, image_size):
     items = list(data_dict.items())
     products = []
     for i in range(0, len(items), 3):
@@ -20,7 +20,7 @@ def products(data_dict, image_size):
         row_controls = []
         for p_id, p_d in chunk:
             row_controls.append(
-                product(p_id, p_d["image_src"], image_size, p_d["product_name"], f"{p_d['sales_price']}원")
+                product(page, p_id, p_d["image_src"], image_size, p_d["product_name"], f"{p_d['sales_price']}원")
             )
         products.append(
             ft.Row(

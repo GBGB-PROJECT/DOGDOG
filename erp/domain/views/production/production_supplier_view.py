@@ -663,15 +663,26 @@ def erp_production_supplier_view():
     ]
 
     table_section = ft.Container(
+        expand=True,
         bgcolor=CARD_BG,
         border=ft.Border.all(1, TABLE_BORDER),
-        border_radius=8,
+        border_radius=10,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Column(
+            expand=True,
             spacing=0,
             controls=[
                 build_table_header(),
-                table_rows_holder,
+                # 🔥 수정: 거래처 관리도 inbound_view.py처럼 데이터 행 영역만 스크롤
+                ft.Container(
+                    expand=True,
+                    content=ft.Column(
+                        expand=True,
+                        spacing=0,
+                        scroll=ft.ScrollMode.AUTO,
+                        controls=[table_rows_holder],
+                    ),
+                ),
             ],
         ),
     )
@@ -684,7 +695,7 @@ def erp_production_supplier_view():
             expand=True,
             controls=[
                 ft.Column(
-                    scroll=ft.ScrollMode.AUTO,
+                    expand=True,
                     spacing=16,
                     controls=[
                         ft.Text(
@@ -694,7 +705,9 @@ def erp_production_supplier_view():
                             color=TEXT_PRIMARY,
                         ),
                         ft.Row(
+                            wrap=True,
                             spacing=8,
+                            run_spacing=8,
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             controls=[
                                 start_field_holder,
@@ -710,6 +723,7 @@ def erp_production_supplier_view():
                         ),
                         result_text,
                         table_section,
+                        # 🔥 수정: pagination_holder는 스크롤 영역 밖에 배치
                         pagination_holder,
                     ],
                 ),

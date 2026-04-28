@@ -683,57 +683,68 @@ def erp_defective_view():
     refresh_picker_fields()
     load_page(1)
 
-    return ft.Container(
+    return ft.Column(
         expand=True,
-        bgcolor="#F3F4F6",
-        padding=20,
-        content=ft.Column(
-            spacing=16,
-            scroll=ft.ScrollMode.AUTO,
-            controls=[
-                ft.Text(page_title, size=24, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
-                ft.Container(
-                    bgcolor=CARD_BG,
-                    border=ft.Border.all(1, TABLE_BORDER),
-                    border_radius=12,
-                    padding=16,
-                    content=ft.Column(
-                        spacing=14,
-                        controls=[
-                            ft.Row(
-                                spacing=10,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=0,
+        controls=[
+            ft.Container(
+                bgcolor="#F3F4F6",
+                padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
+                content=ft.Row(
+                    wrap=True,
+                    spacing=12,
+                    run_spacing=12,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        start_field_holder,
+                        start_icon_holder,
+                        ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+                        end_field_holder,
+                        end_icon_holder,
+                        search_type,
+                        search_field,
+                        action_button("조회", on_click=on_search),
+                        action_button("초기화", on_click=on_reset, width=88),
+                    ],
+                ),
+            ),
+            ft.Container(
+                expand=True,
+                bgcolor="#F5F5F5",
+                padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
+                content=ft.Column(
+                    expand=True,
+                    spacing=18,
+                    controls=[
+                        ft.Text(page_title, size=22, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
+                        result_text,
+                        ft.Container(
+                            expand=True,
+                            bgcolor=CARD_BG,
+                            border_radius=10,
+                            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                            content=ft.Column(
+                                expand=True,
+                                spacing=0,
                                 controls=[
-                                    ft.Text("기간", size=13, color=TEXT_PRIMARY, weight=ft.FontWeight.W_700),
-                                    start_field_holder,
-                                    start_icon_holder,
-                                    ft.Text("~", size=13, color=TEXT_SECONDARY),
-                                    end_field_holder,
-                                    end_icon_holder,
-                                    search_type,
-                                    search_field,
-                                    action_button("조회", on_click=on_search),
-                                    action_button("초기화", on_click=on_reset, width=88),
+                                    build_table_header(),
+                                    # 🔥 수정: 전체 화면 스크롤이 아니라 데이터 행 영역만 스크롤
+                                    ft.Container(
+                                        expand=True,
+                                        content=ft.Column(
+                                            expand=True,
+                                            spacing=0,
+                                            scroll=ft.ScrollMode.AUTO,
+                                            controls=[table_rows_holder],
+                                        ),
+                                    ),
                                 ],
                             ),
-                            result_text,
-                        ],
-                    ),
+                        ),
+                        # 🔥 수정: pagination_holder는 테이블 바깥에 두어 하단 고정처럼 보이게 함
+                        pagination_holder,
+                    ],
                 ),
-                ft.Container(
-                    bgcolor=CARD_BG,
-                    border=ft.Border.all(1, TABLE_BORDER),
-                    border_radius=12,
-                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                    content=ft.Column(
-                        spacing=0,
-                        controls=[
-                            build_table_header(),
-                            table_rows_holder,
-                        ],
-                    ),
-                ),
-                pagination_holder,
-            ],
-        ),
+            ),
+        ],
     )

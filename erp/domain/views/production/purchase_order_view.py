@@ -953,10 +953,20 @@ def erp_purchase_order_view():
     )
 
     table_content = ft.Column(
+        expand=True,
         spacing=0,
         controls=[
             build_table_header(),
-            table_rows_holder,
+            # 🔥 수정: 발주관리도 전체 화면이 아니라 데이터 행 영역만 스크롤
+            ft.Container(
+                expand=True,
+                content=ft.Column(
+                    expand=True,
+                    spacing=0,
+                    scroll=ft.ScrollMode.AUTO,
+                    controls=[table_rows_holder],
+                ),
+            ),
         ],
     )
 
@@ -979,6 +989,7 @@ def erp_purchase_order_view():
         bgcolor=cm.PAGE_BG,
         padding=0,
         content=ft.Column(
+            expand=True,
             spacing=0,
             controls=[
                 filter_bar,
@@ -986,8 +997,8 @@ def erp_purchase_order_view():
                     padding=20,
                     expand=True,
                     content=ft.Column(
+                        expand=True,
                         spacing=14,
-                        scroll=ft.ScrollMode.AUTO,
                         controls=[
                             ft.Text(
                                 value=page_title,
@@ -997,6 +1008,7 @@ def erp_purchase_order_view():
                             ),
                             result_text,
                             table_area,
+                            # 🔥 수정: pagination_holder는 테이블 바깥에 두어 하단 고정처럼 보이게 함
                             pagination_holder,
                         ],
                     ),

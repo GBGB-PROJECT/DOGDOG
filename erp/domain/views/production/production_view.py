@@ -2,9 +2,6 @@ import flet as ft
 from components import common as cm
 from components.common.charts.twin_chart import build_production_twin_chart
 
-# 🔥 requests 방식 API 호출로 변경
-from api.erp_requests_api import fetch_production_dashboard
-
 # 🔥 생산 입고 count 클릭 시 입고 화면에 해당 월 필터 전달
 from domain.views.production.inbound_view import set_production_inbound_prefilter
 

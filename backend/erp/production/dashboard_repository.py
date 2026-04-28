@@ -328,7 +328,11 @@ def count_defective_rows(year=None, month=None):
 # 🔥 월별 생산/불량 실적
 # - 생산: ERP.stock.save_stock * ERP.purchase_order_item.purchase_price
 # - 불량: ERP.purchase_order_item.defective * ERP.purchase_order_item.purchase_price
-# - 단위 변환은 service에서 천원 단위로 처리
+# - 중요:
+#   기존에는 production_subquery 기준 LEFT JOIN이라
+#   "불량만 있는 월"은 차트에서 누락될 수 있었음
+# - 해결:
+#   생산/불량을 각각 조회한 뒤 Python에서 1월~12월 기준으로 합침
 # =========================================================
 def fetch_monthly_production_chart(year=None):
     target_year = int(year or fetch_dashboard_base_year())
@@ -338,12 +342,16 @@ def fetch_monthly_production_chart(year=None):
         dashboard_date = _dashboard_date_expr()
         month_expr = func.extract("month", dashboard_date)
 
+        # =====================================================
+        # 🔥 생산 금액 집계
+        # - 실제 입고된 stock.save_stock 기준
+        # =====================================================
         production_amount_expr = func.coalesce(
             ErpStock.save_stock * ErpPurchaseOrderItem.purchase_price,
             0,
         )
 
-        production_subquery = (
+        production_rows = (
             db.query(
                 month_expr.label("month"),
                 func.coalesce(func.sum(production_amount_expr), 0).label("production_amount"),
@@ -366,15 +374,20 @@ def fetch_monthly_production_chart(year=None):
             .filter(ErpInbound.inbound_status_id == 103)
             .filter(func.extract("year", dashboard_date) == target_year)
             .group_by(month_expr)
-            .subquery()
+            .all()
         )
 
+        # =====================================================
+        # 🔥 불량 금액 집계
+        # - purchase_order_item.defective 기준
+        # - 생산 데이터가 없는 월이어도 따로 집계함
+        # =====================================================
         defective_amount_expr = func.coalesce(
             ErpPurchaseOrderItem.defective * ErpPurchaseOrderItem.purchase_price,
             0,
         )
 
-        defective_subquery = (
+        defective_rows = (
             db.query(
                 month_expr.label("month"),
                 func.coalesce(func.sum(defective_amount_expr), 0).label("defective_amount"),
@@ -393,25 +406,40 @@ def fetch_monthly_production_chart(year=None):
             .filter(ErpPurchaseOrderItem.defective > 0)
             .filter(func.extract("year", dashboard_date) == target_year)
             .group_by(month_expr)
-            .subquery()
-        )
-
-        rows = (
-            db.query(
-                production_subquery.c.month.label("month"),
-                func.coalesce(production_subquery.c.production_amount, 0).label("production_amount"),
-                func.coalesce(defective_subquery.c.defective_amount, 0).label("defective_amount"),
-            )
-            .select_from(production_subquery)
-            .outerjoin(
-                defective_subquery,
-                production_subquery.c.month == defective_subquery.c.month,
-            )
-            .order_by(production_subquery.c.month.asc())
             .all()
         )
 
-        return [_row_to_dict(row) for row in rows]
+        # =====================================================
+        # 🔥 1월~12월 기준으로 생산/불량 데이터 합치기
+        # - 불량만 있는 월도 반드시 살아남게 처리
+        # =====================================================
+        month_map = {
+            month: {
+                "month": month,
+                "production_amount": 0,
+                "defective_amount": 0,
+            }
+            for month in range(1, 13)
+        }
+
+        for row in production_rows:
+            data = _row_to_dict(row)
+            month = int(data.get("month") or 0)
+
+            if month in month_map:
+                month_map[month]["production_amount"] = data.get("production_amount") or 0
+
+        for row in defective_rows:
+            data = _row_to_dict(row)
+            month = int(data.get("month") or 0)
+
+            if month in month_map:
+                month_map[month]["defective_amount"] = data.get("defective_amount") or 0
+
+        return [
+            month_map[month]
+            for month in range(1, 13)
+        ]
 
     finally:
         db.close()

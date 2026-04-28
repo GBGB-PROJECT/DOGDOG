@@ -2,8 +2,8 @@ import math
 import datetime
 import flet as ft
 
-# 🔥 requests 방식 API 호출로 변경
-from api.erp_requests_api import count_customer_subscriptions, fetch_customer_subscriptions
+# 🔥 httpx 방식 API 호출로 변경
+from api.erp_httpx_api import count_customer_subscriptions, fetch_customer_subscriptions
 
 
 # =========================================================
@@ -197,7 +197,7 @@ def erp_customer_subscription_view():
     search_type_labels = {
         "subs_id": "구독ID",
         "customer_id": "고객ID",
-        "subs_plan_id": "플랜ID",
+        "subs_plan_id": "구독플랜",
         "is_auto_delivery": "자동배송",
         "is_subs_status": "구독상태",
         "subs_day": "신청요일",
@@ -386,7 +386,7 @@ def erp_customer_subscription_view():
                     build_table_cell("이름", col_expand["name"], 0, ft.FontWeight.W_700),
                     build_table_cell("구독ID", col_expand["subs_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("플랜ID", col_expand["subs_plan_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("구독플랜", col_expand["subs_plan_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("신청요일", col_expand["subs_day"], 0, ft.FontWeight.W_700),
                     build_table_cell("자동배송", col_expand["is_auto_delivery"], 0, ft.FontWeight.W_700),
                     build_table_cell("배송주기", col_expand["delivery_cycle"], 0, ft.FontWeight.W_700),

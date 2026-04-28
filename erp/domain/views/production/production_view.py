@@ -8,8 +8,8 @@ from domain.views.production.inbound_view import set_production_inbound_prefilte
 # 🔥 발주관리 상자 클릭 시 해당 월 발주 목록 필터 전달
 from domain.views.production.purchase_order_view import set_purchase_order_prefilter
 
-# 🔥 requests 방식 API 호출로 변경
-from api.erp_requests_api import (
+# 🔥 httpx 방식 API 호출로 변경
+from api.erp_httpx_api import (
     fetch_production_dashboard,
     fetch_purchase_order_detail,
     fetch_purchase_order_items,

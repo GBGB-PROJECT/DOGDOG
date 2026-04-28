@@ -1,8 +1,8 @@
 import math
 import flet as ft
 from components import common as cm
-# 🔥 requests 방식 API 호출로 변경
-from api.erp_requests_api import count_product_join_rows, fetch_product_join_rows, create_product_detail
+# 🔥 httpx 방식 API 호출로 변경
+from api.erp_httpx_api import count_product_join_rows, fetch_product_join_rows, create_product_detail
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 
@@ -123,9 +123,9 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
     for index, row in enumerate(db_rows, start=start_no):
-        # 🔥 requests 방식에서는 API가 이미 product_display_id를 만들어서 내려준다.
+        # 🔥 httpx 방식에서는 API가 이미 product_display_id를 만들어서 내려준다.
         # - 기존 직접 service 호출 방식: product_detail_id + product_id 조합 필요
-        # - 현재 requests API 방식: product_display_id 그대로 사용
+        # - 현재 httpx API 방식: product_display_id 그대로 사용
         product_display_id = row.get("product_display_id", "")
 
         # 🔥 혹시 나중에 raw id가 내려오는 구조로 바뀌어도 대응

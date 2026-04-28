@@ -2,8 +2,8 @@ import math
 import datetime
 import flet as ft
 
-# 🔥 requests 방식 API 호출로 변경
-from api.erp_requests_api import count_customer_orders, fetch_customer_orders
+# 🔥 httpx 방식 API 호출로 변경
+from api.erp_httpx_api import count_customer_orders, fetch_customer_orders
 
 
 # =========================================================

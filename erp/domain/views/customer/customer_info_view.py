@@ -5,8 +5,8 @@ import datetime
 from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import CUSTOMER_FIELDS
-# 🔥 requests 방식 API 호출로 변경
-from api.erp_requests_api import count_customers, fetch_customers, create_customer
+# 🔥 httpx 방식 API 호출로 변경
+from api.erp_httpx_api import count_customers, fetch_customers, create_customer
 
 
 # =========================================================

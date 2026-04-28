@@ -1,6 +1,6 @@
-# erp/api/erp_requests_api.py
+# erp/api/erp_httpx_api.py
 
-import requests
+import httpx
 
 # 🔥 FastAPI 서버 주소
 BASE_URL = "http://127.0.0.1:8000"
@@ -19,11 +19,11 @@ def _get(path: str, params: dict | None = None):
     url = f"{BASE_URL}{path}"
 
     try:
-        response = requests.get(url, params=params, timeout=10)
+        response = httpx.get(url, params=params, timeout=10.0)
         response.raise_for_status()
         result = response.json()
         return result.get("data", {})
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         print(f"🔥 API 요청 실패: {url}")
         print(e)
         return {}
@@ -425,7 +425,7 @@ def fetch_purchase_order_items(purchase_order_id):
 
 
 # =========================================================
-# ⚠️ 등록 기능은 현재 API에 POST가 없으면 requests 전환 불가
+# ⚠️ 등록 기능은 현재 API에 POST가 없으면 httpx 전환 불가
 # =========================================================
 
 def create_customer(*args, **kwargs):

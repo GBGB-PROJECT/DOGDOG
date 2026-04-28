@@ -5,8 +5,8 @@ import flet as ft
 from components import common as cm
 from components.common.modals.purchase_order import PurchaseOrderDialog
 # API client import
-# 🔥 requests 방식 API 호출로 변경
-from api.erp_requests_api import (
+# 🔥 httpx 방식 API 호출로 변경
+from api.erp_httpx_api import (
     count_purchase_orders,
     fetch_purchase_orders,
     fetch_purchase_order_detail,
@@ -202,7 +202,7 @@ def build_table_cell(
 
 
 def normalize_cancel_text(value):
-    # 🔥 requests 방식에서는 API가 이미 "정상" / "취소" 문자열로 내려줄 수 있다.
+    # 🔥 httpx 방식에서는 API가 이미 "정상" / "취소" 문자열로 내려줄 수 있다.
     # - True / "true" / "1" / "y"  → 취소
     # - False / "false" / "0" / "n" → 정상
     # - "정상" / "취소" 문자열은 그대로 유지

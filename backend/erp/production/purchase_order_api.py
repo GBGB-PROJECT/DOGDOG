@@ -1,7 +1,7 @@
 # =========================================================
 # 🔥 발주관리 API
 # - 생산관리 > 발주 관리 화면용 실제 HTTP API
-# - Flet 화면에서는 backend service 직접 import 대신 requests client로 이 API를 호출
+# - Flet 화면에서는 backend service 직접 import 대신 httpx client로 이 API를 호출
 # =========================================================
 
 from math import ceil

@@ -13,6 +13,7 @@ from app.pets.repository.petFood_repository import (
 
 from dependencies import get_pet_by_id, check_pet_owner, get_product_by_id
 
+
 # 등록 ---------------------------------------------------
 def create_pet_food(
     db: Session,
@@ -46,10 +47,8 @@ def create_pet_food(
     if total_weight <= 0:
         raise ValueError("INVALID_TOTAL_WEIGHT")
 
-
     # if left_intake < 0:
     #     raise ValueError("INVALID_LEFT_INTAKE")
-
 
     # 2. pet 존재 확인
     pet = get_pet_by_id(db=db, pet_id=pet_id)
@@ -57,11 +56,7 @@ def create_pet_food(
         raise ValueError("PET_NOT_FOUND")
 
     # 3. 권한 확인
-    has_access = check_pet_owner(
-        db=db,
-        pet_id=pet_id,
-        customer_id=customer_id
-    )
+    has_access = check_pet_owner(db=db, pet_id=pet_id, customer_id=customer_id)
     if not has_access:
         raise ValueError("FORBIDDEN_PET_ACCESS")
 
@@ -72,11 +67,11 @@ def create_pet_food(
 
     if product.product_detail.calories is None:
         raise ValueError("PRODUCT_CALORIES_NOT_FOUND")
-    
+
     # + total_weight <= product_weight 이 아닌 경우 에러처리
     if total_weight > product.weight:
         raise ValueError("HIGH_TOTAL_WEIGHT")
-    
+
     pet_food = get_active_pet_food(db, pet_id)
 
     # 5. 기존 활성 사료 종료 처리
@@ -90,18 +85,22 @@ def create_pet_food(
             db=db,
             pet_id=pet_id,
             product_id=product_id,
-            one_gram_calories=product.product_detail.calories
+            one_gram_calories=product.product_detail.calories,
         )
-        db.flush() # 영양 정보가 세션에 반영되어야 AI 추천 로직이 정상 작동함
+        db.flush()  # 영양 정보가 세션에 반영되어야 AI 추천 로직이 정상 작동함
 
         # 7. AI 권장 급여량 기반 초기 재고 계산
-        from app.calc_feeding.cal_guideIntake_service import create_feeding_recommendation_service
+        from app.calc_feeding.cal_guideIntake_service import (
+            create_feeding_recommendation_service,
+        )
         from datetime import timedelta
 
         guide_intake = 0
         try:
             # AI 추천 계산 (트랜잭션 유지를 위해 commit=False)
-            recommendation = create_feeding_recommendation_service(db=db, pet_id=pet_id, commit=False)
+            recommendation = create_feeding_recommendation_service(
+                db=db, pet_id=pet_id, commit=False
+            )
             if isinstance(recommendation, dict):
                 guide_intake = recommendation.get("guide_intake", 0)
         except Exception as ai_err:
@@ -113,11 +112,11 @@ def create_pet_food(
         # 초기 계산값 준비
         left_food_count = 0
         expected_exdate = None
-        
+
         if guide_intake and guide_intake > 0:
             left_food_count = int(total_weight // guide_intake)
             expected_exdate = date.today() + timedelta(days=left_food_count)
-        
+
         print(f"[DEBUG] 계산된 잔여일: {left_food_count}, 소진일: {expected_exdate}")
 
         # 6-2. 최종 잔여량 및 계산 필드 등록
@@ -126,7 +125,7 @@ def create_pet_food(
             pet_id=pet_id,
             total_weight=total_weight,
             left_food_count=left_food_count,
-            expected_exdate=expected_exdate
+            expected_exdate=expected_exdate,
         )
 
         if commit:
@@ -145,8 +144,13 @@ def create_pet_food(
             "total_weight_g": new_CustomerFood.total_weight,
             "one_gram_calories": new_PetProductFeeding.one_gram_calories,
             "is_feeding_check": new_PetProductFeeding.is_feeding_check,
-            "record_date": str(new_PetProductFeeding.record_date)
+            "record_date": str(new_PetProductFeeding.record_date),
         }
+    except Exception as e:
+        db.rollback()
+        print(f"[ERROR] 사료 등록 중 치명적 오류 발생: {str(e)}")
+        raise e
+
 
 # 수정 --------------------------------------------------
 def update_pet_food(
@@ -217,9 +221,4 @@ def update_pet_food(
         "feeding_false_date": updated_pet_food.feeding_false_date,
         "is_feeding_check": updated_pet_food.is_feeding_check,
         "total_weight": updated_customer_food.total_weight,
-        }
-
-        except Exception as e:
-            db.rollback()
-        print(f"[ERROR] 사료 등록 중 치명적 오류 발생: {str(e)}")
-        raise e
+    }

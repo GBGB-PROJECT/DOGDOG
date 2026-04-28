@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.products.products_api import router as products_router
-
 
 # Domain Routers
 from app.pets.api.pets_api import router as pets_router
@@ -14,7 +12,9 @@ from app.logs.api.logs_api import router as logs_router
 from app.logs.api.weight_bcs_api import router as weight_bcs_router
 from app.logs.api.feeding_api import router as feeding_router
 from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
+from app.products.products_api import router as products_router
 from app.onboarding.api.onboarding_api import router as onboarding_router
+
 
 app = FastAPI(
     title="DOGDOG API",

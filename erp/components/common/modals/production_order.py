@@ -50,10 +50,15 @@ RIGHT_TOTAL_W = RIGHT_LABEL_W + RIGHT_INPUT_W
 CUSTOMER_VALUE_W = DOC_WIDTH - CUSTOMER_LABEL_W - MID_LABEL_W - MID_VALUE_W - RIGHT_TOTAL_W
 CUSTOMER_BLOCK_HEIGHT = 84
 
-# 하단 품목 폭
+# =========================================================
+# ☑️ 하단 품목 폭
+# =========================================================
 COL_NO = 50
 COL_LOT = 110
-COL_NAME = 120
+
+# 🔥 수정: 품명이 너무 좁아서 120 → 240으로 확대
+COL_NAME = 240
+
 COL_SPEC = 120
 COL_UNIT = 70
 COL_BUY = 110
@@ -61,6 +66,8 @@ COL_SELL = 110
 COL_QTY = 90
 COL_BUY_SUM = 120
 COL_SELL_SUM = 120
+
+# 🔥 수정: 생산기간은 남는 폭을 가져가되, 품명 폭을 키운 만큼 자동으로 줄어듦
 COL_PERIOD = 120
 
 ITEM_TOTAL_WIDTH = (
@@ -569,7 +576,10 @@ class ProductionOrderDialog:
         column_widths = {
             "A": 12,
             "B": 16,
-            "C": 18,
+
+            # 🔥 수정: 엑셀에서도 품명 칸 확대
+            "C": 28,
+
             "D": 16,
             "E": 12,
             "F": 14,
@@ -577,7 +587,9 @@ class ProductionOrderDialog:
             "H": 12,
             "I": 14,
             "J": 16,
-            "K": 18,
+
+            # 🔥 수정: 엑셀에서도 생산기간 칸 축소
+            "K": 12,
         }
 
         for col, width in column_widths.items():

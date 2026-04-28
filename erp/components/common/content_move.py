@@ -29,6 +29,7 @@ from domain.views.production import purchase_order_view
 
 from domain.views.production import production_supplier_view
 from domain.views.production import inbound_view  # 🔥 수정: 생산입고현황조회 화면
+from domain.views.production import defective_view  # 🔥 추가: 불량현황조회 화면
 
 
 ## ============= 페이지 이동 (실질)
@@ -67,6 +68,7 @@ MENU_ITEMS = {
 
     "생산관리": production_view.erp_production_view,
     "생산입고": inbound_view.erp_inbound_view,  # 🔥 추가: 생산입고 실제 입고 현황 화면 연결
+    "불량 현황": defective_view.erp_defective_view,  # 🔥 추가: 불량현황조회 화면 연결
     "발주 관리": purchase_order_view.erp_purchase_order_view,
     "거래처 관리": production_supplier_view.erp_production_supplier_view,
 
@@ -174,6 +176,7 @@ PRODUCT_ALL_ITEMS = [
 PRODUCTION_MAIN_ITEMS = [
     "생산실적",
     "생산입고",
+    "불량 현황",  # 🔥 추가: 불량현황조회 메뉴
     "발주 관리",
     "품질 및 이력 관리",
     "거래처 관리",
@@ -184,6 +187,7 @@ PRODUCTION_ALL_ITEMS = [
     "생산관리",
     "생산실적",
     "생산입고",
+    "불량 현황",  # 🔥 추가: 불량현황조회 메뉴
     "발주 관리",
     "품질 및 이력 관리",
     "거래처 관리",
@@ -223,6 +227,7 @@ MENU_TO_ROUTE = {
     "생산관리": "/production",
     "생산실적": "/production/performance",
     "생산입고": "/production/inbound",
+    "불량 현황": "/production/defective",  # 🔥 추가: 불량현황조회 route 연결
     "발주 관리": "/production/order",
     "품질 및 이력 관리": "/production/quality",
     "거래처 관리": "/production/supplier",

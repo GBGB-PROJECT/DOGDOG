@@ -5,6 +5,9 @@ from components.common.charts.twin_chart import build_production_twin_chart
 # 🔥 생산 입고 count 클릭 시 입고 화면에 해당 월 필터 전달
 from domain.views.production.inbound_view import set_production_inbound_prefilter
 
+# 🔥 불량 내역 count 클릭 시 불량현황조회 화면에 해당 월 필터 전달
+from domain.views.production.defective_view import set_production_defective_prefilter
+
 # 🔥 발주관리 상자 클릭 시 해당 월 발주 목록 필터 전달
 from domain.views.production.purchase_order_view import set_purchase_order_prefilter
 
@@ -177,6 +180,21 @@ def erp_production_view():
 
         e.page.go("/production/inbound")
 
+    def open_month_defective_page(e):
+        data = state["data"]
+
+        # 🔥 이동 직전 현재 월 저장
+        set_production_dashboard_month_state(state["year"], state["month"])
+
+        # 🔥 불량 내역도 생산 입고와 같은 월 기준으로 필터 전달
+        set_production_defective_prefilter(
+            start_date=data.get("month_start"),
+            end_date=data.get("month_end"),
+            search_type="inbound_complete",
+        )
+
+        e.page.go("/production/defective")
+
     # 🔥 최근 발주 카드의 상세내역 클릭 시 바로 발주서 모달 열기
     def open_purchase_order_detail(e, purchase_order_id):
         try:
@@ -347,7 +365,13 @@ def erp_production_view():
     def build_status_box(box_data):
         rows = box_data.get("rows", [])
         title = box_data.get("title", "")
-        header_click = open_month_inbound_page if title == "생산 입고" else None
+        # 🔥 생산 입고 / 불량 내역 카드의 count 영역을 각각 해당 조회 화면으로 연결
+        if title == "생산 입고":
+            header_click = open_month_inbound_page
+        elif title == "불량 내역":
+            header_click = open_month_defective_page
+        else:
+            header_click = None
 
         if rows:
             row_area = ft.Column(

@@ -511,3 +511,57 @@ def create_product_detail(*args, **kwargs):
 def create_supplier(*args, **kwargs):
     print("🔥 create_supplier는 아직 POST API가 필요합니다.")
     return None
+
+# =========================================================
+# ☑️ 불량현황조회
+# - 기존 공통 _list_request() 사용
+# - _request_json 함수는 이 파일에 없으므로 사용하면 NameError 발생
+# =========================================================
+
+def fetch_defectives(
+    search_type="inbound_id",
+    keyword="",
+    page=1,
+    size=50,
+    start_date=None,
+    end_date=None,
+    offset=None,  # 🔥 기존 view 호출 호환용
+    limit=None,   # 🔥 기존 view 호출 호환용
+):
+    # 🔥 defective_view.py가 offset/limit를 같이 넘겨도 기존 조회 화면들과 같은 방식으로 page/size 계산
+    if limit:
+        size = limit
+
+    if offset is not None and limit:
+        page = (offset // limit) + 1
+
+    result = _list_request(
+        "/erp/production/defective",
+        search_type=search_type,
+        keyword=keyword,
+        page=page,
+        size=size,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return result["items"]
+
+
+def count_defectives(
+    search_type="inbound_id",
+    keyword="",
+    start_date=None,
+    end_date=None,
+):
+    result = _list_request(
+        "/erp/production/defective",
+        search_type=search_type,
+        keyword=keyword,
+        page=1,
+        size=1,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return result["pagination"].get("total_count", 0)

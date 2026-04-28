@@ -206,11 +206,16 @@ def erp_stock_inout_view():
         "status": 6,
     }
 
+    # =========================================================
+    # 🔥 수정: 출고ID → 주문ID
+    # - 출고 데이터는 sales_order_id를 기준으로 보여주기 때문에
+    #   화면 검색조건도 주문ID가 더 정확함
+    # =========================================================
     search_type_labels = {
         "all": "전체",
         "inout_type": "구분",
         "inbound_id": "입고ID",
-        "sales_order_id": "출고ID",
+        "sales_order_id": "주문ID",
         "product_id": "상품ID",
         "brand": "브랜드",
         "product_name": "상품명",
@@ -422,7 +427,14 @@ def erp_stock_inout_view():
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("구분", col_expand["inout_type"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
-                    build_table_cell("기준ID", col_expand["base_id"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
+
+                    # =========================================================
+                    # 🔥 수정: 기준ID → 입고ID/주문ID
+                    # - 입고 행: inbound_id
+                    # - 출고 행: sales_order_id
+                    # =========================================================
+                    build_table_cell("입고ID/주문ID", col_expand["base_id"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
+
                     build_table_cell("상품ID", col_expand["product_id"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("브랜드", col_expand["brand"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),

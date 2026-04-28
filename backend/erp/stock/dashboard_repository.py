@@ -434,6 +434,43 @@ def fetch_monthly_stock_chart(year=None):
 # - 해당 월 total_amount 합계 기준 TOP N
 # - 현재고는 ERP.stock.stock_available 합계
 # =========================================================
+
+# =========================================================
+# 🔥 선택 월 총 재고량
+# - 기준 월: 입고완료일 우선, 없으면 입고시작일
+# - 수량 기준: ERP.stock.stock_available 합계
+# =========================================================
+def fetch_month_total_stock_quantity(year=None, month=None):
+    db = SessionLocal()
+
+    try:
+        target_year, target_month = (
+            (int(year), int(month))
+            if year and month
+            else fetch_stock_dashboard_base_year_month()
+        )
+
+        dashboard_date = _inbound_dashboard_date_expr()
+
+        total_quantity = (
+            db.query(
+                func.coalesce(func.sum(ErpStock.stock_available), 0)
+            )
+            .select_from(ErpStock)
+            .join(
+                ErpInbound,
+                ErpStock.inbound_id == ErpInbound.inbound_id,
+            )
+            .filter(ErpInbound.inbound_status_id == 103)
+            .filter(func.extract("year", dashboard_date) == target_year)
+            .filter(func.extract("month", dashboard_date) == target_month)
+            .scalar()
+        )
+
+        return to_plain_value(total_quantity) or 0
+
+    finally:
+        db.close()
 def fetch_top_sales_stock_rows(limit=3, year=None, month=None):
     db = SessionLocal()
 
@@ -513,5 +550,6 @@ __all__ = [
     "count_inbound_rows",
     "count_outbound_rows",
     "fetch_monthly_stock_chart",
+    "fetch_month_total_stock_quantity",
     "fetch_top_sales_stock_rows",
 ]

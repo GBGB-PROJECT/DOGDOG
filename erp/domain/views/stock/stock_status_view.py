@@ -82,6 +82,8 @@ def _empty_dashboard_data(year=2026, month=4):
             },
         ],
         "chart_data": [(f"{month_no}월", 0, 0) for month_no in range(1, 13)],
+        "total_stock_quantity": 0,
+        "total_stock_quantity_text": "0 ea",
         "top_stock_section_data": {
             "title": "매출 TOP 3 재고",
             "items": [],
@@ -451,6 +453,7 @@ def erp_stock_status_view():
             "current_month_text",
             f"{state['year']}년 {state['month']}월",
         )
+        total_stock_text = state["data"].get("total_stock_quantity_text") or "0 ea"
 
         return ft.Container(
             width=180,
@@ -471,7 +474,7 @@ def erp_stock_status_view():
                             vertical_alignment=ft.CrossAxisAlignment.START,
                             controls=[
                                 ft.Text(
-                                    "상품별 재고 상세",
+                                    "총 재고량",
                                     size=16,
                                     weight=ft.FontWeight.W_700,
                                     color=TEXT_PRIMARY,
@@ -482,6 +485,17 @@ def erp_stock_status_view():
                                     color=TEXT_TERTIARY,
                                 ),
                             ],
+                        ),
+                    ),
+                    ft.Container(
+                        expand=True,
+                        alignment=ft.Alignment(1, 0.42),
+                        content=ft.Text(
+                            total_stock_text,
+                            size=22,
+                            weight=ft.FontWeight.W_700,
+                            color=TEXT_PRIMARY,
+                            text_align=ft.TextAlign.RIGHT,
                         ),
                     ),
                     ft.Container(

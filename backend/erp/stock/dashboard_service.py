@@ -10,6 +10,7 @@ from .dashboard_repository import (
     count_inbound_rows,
     count_outbound_rows,
     fetch_monthly_stock_chart,
+    fetch_month_total_stock_quantity,
     fetch_recent_inbound_rows,
     fetch_recent_outbound_rows,
     fetch_stock_dashboard_base_year_month,
@@ -215,6 +216,12 @@ def fetch_stock_dashboard(year=None, month=None):
         year=target_year,
         month=target_month,
     )
+
+    # 🔥 선택 월에 입고 완료된 재고의 현재 남은 총 재고량
+    total_stock_quantity = fetch_month_total_stock_quantity(
+        year=target_year,
+        month=target_month,
+    )
     outbound_rows = fetch_recent_outbound_rows(
         limit=5,
         year=target_year,
@@ -272,6 +279,8 @@ def fetch_stock_dashboard(year=None, month=None):
         "month_end": month_end,
         "status_box_data": status_box_data,
         "chart_data": _build_chart_data(monthly_data),
+        "total_stock_quantity": _to_int(total_stock_quantity),
+        "total_stock_quantity_text": _format_quantity(total_stock_quantity),
         "top_stock_section_data": top_stock_section_data,
     }
 

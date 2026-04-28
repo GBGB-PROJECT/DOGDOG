@@ -334,16 +334,24 @@ def erp_stock_status_view():
         )
 
     def build_five_text_row(row_items):
+        # 🔥 수정: 재고 현황 카드 행 정렬 통일
+        # - 날짜 / 구분 / 상품명 / 수량(ea) / 금액을 정수 expand 비율로 배치
+        # - Flet 0.81.0에서는 expand가 bool 또는 int만 가능하므로 float 사용 금지
+        # - 수량(ea)처럼 숫자+단위가 들어간 텍스트도 가운데 정렬
+        column_expands = [12, 10, 20, 10, 14]
+
         return ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Container(
-                    expand=1,
-                    alignment=ft.Alignment(-1, 0)
-                    if i < len(row_items) - 1
-                    else ft.Alignment(1, 0),
-                    content=build_text(item, size=13, color=TEXT_ROW),
+                    expand=column_expands[i] if i < len(column_expands) else 10,
+                    alignment=ft.Alignment(0, 0),
+                    content=build_text(
+                        item,
+                        size=13,
+                        color=TEXT_ROW,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
                 )
                 for i, item in enumerate(row_items)
             ],

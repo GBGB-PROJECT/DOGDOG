@@ -23,8 +23,6 @@ def home_tile(page: ft.Page, popup, content_page:str, change_page_callback=None)
         main_container_content.append(top_banner)
         main_container_content.append(body_column)
         # -----------------------------------------------------------------------------------------------
-        # now_history = popup.bottom_sheet_popup
-        # domains.history_bottom.now_log(page, popup, now_history)
         body_column.controls.append(domains.home.now_history(page=page, popup=popup))
         body_column.expand = False
         body_column.margin = None
@@ -32,9 +30,8 @@ def home_tile(page: ft.Page, popup, content_page:str, change_page_callback=None)
         main_container_content.append(body_scroll_column)
         body_scroll_column.controls.append(
             dogdog.content_container(
-                content_list=domains.home.feeding_food_count(page=page),
-                on_click=lambda e:appbar_on_change(e, "/feeding")
-        ))
+                content_list=domains.home.feeding_food_count(page=page, content_page=content_page),
+                on_click=lambda e:appbar_on_change(e, "/feeding")))
         body_scroll_column.controls.append(domains.grid.status_update_menu(page=page, popup=popup))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/log":
@@ -45,8 +42,15 @@ def home_tile(page: ft.Page, popup, content_page:str, change_page_callback=None)
         body_scroll_column.controls = domains.log.log_view(page)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/shop":
-        home_background , top_banner = dogdog.home_layout(page=page, text="Shop Test")
+        home_background , top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
         main_container_content.append(top_banner)
+        main_container_content.append(body_scroll_column)
+        body_scroll_column.controls.append(domains.shop.shop_feeding_guide(page=page))
+        body_scroll_column.controls.append(
+            dogdog.content_container(
+                content_list=domains.home.feeding_food_count(page=page, content_page=content_page),
+                on_click=lambda e:appbar_on_change(e, "/feeding")))
+        body_scroll_column.controls.append(domains.shop.product_guide(page=page))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/contents":
         home_background , top_banner = dogdog.home_layout(page=page, text="Content")

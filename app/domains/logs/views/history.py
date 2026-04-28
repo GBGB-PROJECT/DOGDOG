@@ -83,20 +83,11 @@ def history_view(page: ft.Page):
             scroll=ft.ScrollMode.HIDDEN, expand=True, controls=content, margin=ft.margin.only(bottom=10)
         )
     
-    def delete_popup(e):
-        page.pop_dialog()
-        if storage.get("select_log"): 
-            print(storage.get("select_log").keys()) # type: ignore
-            storage.remove("select_log")
-    
     def setting_content(visible):
         delete_popup = popup.event_popup
         delete_popup.title = dogdog.basic_text("오늘의 기록")
         delete_popup.content = dogdog.basic_text("선택하신 기록을 삭제하시겠습니까?")
-        delete_popup.actions = [
-            ft.TextButton("네", on_click=lambda e: delete_popup_close(e, options=True)),
-            ft.TextButton("아니요", on_click=lambda e: delete_popup_close(e))
-        ]
+        delete_popup.actions[0].on_click = lambda e: delete_popup_close(e, options=True) # type: ignore
 
         def delete_popup_close(e, options=None):
             delete_popup.open = False

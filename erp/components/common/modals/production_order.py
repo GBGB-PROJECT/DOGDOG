@@ -53,21 +53,22 @@ CUSTOMER_BLOCK_HEIGHT = 84
 # =========================================================
 # ☑️ 하단 품목 폭
 # =========================================================
-COL_NO = 50
-COL_LOT = 110
+# 🔥 수정: 생산기간 칸을 넓히기 위해 앞쪽 컬럼들을 조금씩 축소
+# - Flet 문서 전체 폭(DOC_WIDTH)은 유지
+# - 품명은 너무 줄이지 않고, LOT/규격/단가/합계 칸을 조금씩 줄여 생산기간 확보
+COL_NO = 45
+COL_LOT = 90
+COL_NAME = 340
+COL_SPEC = 105
+COL_UNIT = 60
+COL_BUY = 95
+COL_SELL = 95
+COL_QTY = 75
+COL_BUY_SUM = 110
+COL_SELL_SUM = 110
 
-# 🔥 수정: 품명 칸을 240 → 390으로 더 확대
-COL_NAME = 390
-
-COL_SPEC = 120
-COL_UNIT = 70
-COL_BUY = 110
-COL_SELL = 110
-COL_QTY = 90
-COL_BUY_SUM = 120
-COL_SELL_SUM = 120
-
-# 🔥 수정: 생산기간 칸은 남는 폭만 사용해서 확 줄어들게 처리
+# 🔥 수정: 생산기간 칸 자동 계산
+# - 기존 약 134px 수준 → 약 299px 수준으로 확대
 COL_PERIOD = DOC_WIDTH - (
     COL_NO + COL_LOT + COL_NAME + COL_SPEC + COL_UNIT +
     COL_BUY + COL_SELL + COL_QTY + COL_BUY_SUM + COL_SELL_SUM
@@ -572,22 +573,19 @@ class ProductionOrderDialog:
         # ☑️ 컬럼 폭 설정
         # -------------------------------------------------
         column_widths = {
-            "A": 12,
-            "B": 16,
-
-            # 🔥 수정: 엑셀에서도 품명 칸 더 확대
-            "C": 42,
-
-            "D": 16,
-            "E": 12,
-            "F": 14,
-            "G": 14,
-            "H": 12,
-            "I": 14,
-            "J": 16,
-
-            # 🔥 수정: 엑셀에서도 생산기간 칸 더 축소
-            "K": 10,
+            # 🔥 수정: 화면 컬럼 폭 조정에 맞춰 엑셀 폭도 같이 조정
+            # - 생산기간(K)을 넓히고, 앞쪽 컬럼을 조금씩 축소
+            "A": 8,
+            "B": 12,
+            "C": 36,
+            "D": 13,
+            "E": 8,
+            "F": 11,
+            "G": 11,
+            "H": 9,
+            "I": 12,
+            "J": 12,
+            "K": 28,
         }
 
         for col, width in column_widths.items():

@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timedelta
 import flet as ft
 from components import common as cm
 from components.common.charts.twin_chart import build_stock_twin_chart
@@ -186,12 +187,25 @@ def erp_stock_status_view():
         dialog = ProductionOrderDialog(e.page)
 
         product_name = item_data.get("name", "")
+        product_id = item_data.get("product_id", "")
         expected_qty = ""
 
         for left, right in item_data.get("rows", []):
             if left in ("예상 발주량", "보충 권장량"):
                 expected_qty = _extract_quantity_number(right)
                 break
+
+        # 🔥 추가: 생산지시서 상단 기본 정보 자동 입력
+        # - DB에 없는 계약번호/LOT/TEL/FAX는 억지로 채우지 않음
+        # - 화면에서 이미 가지고 있는 월 범위와 클릭 상품ID만 안전하게 사용
+        today_text = datetime.today().strftime("%Y.%m.%d")
+        month_start = str(state["data"].get("month_start") or "")[:10].replace("-", ".")
+        month_end = str(state["data"].get("month_end") or "")[:10].replace("-", ".")
+        period_text = f"{month_start} ~ {month_end}" if month_start and month_end else ""
+
+        dialog.instruction_date.value = today_text
+        dialog.doc_no.value = f"PRD-{state['year']}{state['month']:02d}-{product_id or 'AUTO'}"
+        dialog.request_dept.value = "재고관리"
 
         # 🔥 생산지시서 첫 번째 품목 행 자동 입력
         if dialog.item_rows:
@@ -208,6 +222,7 @@ def erp_stock_status_view():
             first_row["qty"].value = expected_qty
             first_row["buy_price"].value = format_number(buy_price) if buy_price else ""
             first_row["sell_price"].value = format_number(sell_price) if sell_price else ""
+            first_row["period"].value = period_text
 
             # 🔥 추가: 모달을 열자마자 구매가계/판매가계까지 자동 계산
             qty = to_int(first_row["qty"].value)

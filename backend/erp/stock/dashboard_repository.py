@@ -493,6 +493,24 @@ def fetch_top_sales_stock_rows(limit=3, year=None, month=None):
             .subquery()
         )
 
+        # 🔥 추가: 생산지시서 자동 입력용 구매단가
+        # - ErpPurchaseOrderItem을 매출 집계 쿼리에 직접 JOIN하면
+        #   발주 이력이 여러 건인 상품에서 sales_quantity / sales_amount가 중복 집계될 수 있음
+        # - 그래서 product_id별 구매단가를 별도 subquery로 먼저 묶은 뒤 JOIN
+        purchase_price_subquery = (
+            db.query(
+                ErpPurchaseOrderItem.product_id.label("product_id"),
+                func.coalesce(func.max(ErpPurchaseOrderItem.purchase_price), 0).label("purchase_price"),
+            )
+            .join(
+                ErpPurchaseOrder,
+                ErpPurchaseOrderItem.purchase_order_id == ErpPurchaseOrder.purchase_order_id,
+            )
+            .filter(ErpPurchaseOrder.is_purchase_order_cancel.is_(False))
+            .group_by(ErpPurchaseOrderItem.product_id)
+            .subquery()
+        )
+
         rows = (
             db.query(
                 OpdSalesOrderItem.product_id.label("product_id"),
@@ -502,6 +520,12 @@ def fetch_top_sales_stock_rows(limit=3, year=None, month=None):
                 func.coalesce(func.sum(OpdSalesOrderItem.quantity), 0).label("sales_quantity"),
                 func.coalesce(func.sum(OpdSalesOrderItem.total_amount), 0).label("sales_amount"),
                 func.coalesce(current_stock_subquery.c.current_stock, 0).label("current_stock"),
+
+                # 🔥 추가: stock_status_view.py → 생산지시서 자동 입력용 단가
+                # - 구매단가: ERP.purchase_order_item.purchase_price
+                # - 판매가: OPD.sales_order_item.retail_price 기준
+                func.coalesce(purchase_price_subquery.c.purchase_price, 0).label("purchase_price"),
+                func.coalesce(func.max(OpdSalesOrderItem.retail_price), 0).label("retail_price"),
             )
             .select_from(OpdSalesOrderItem)
             .join(
@@ -520,6 +544,10 @@ def fetch_top_sales_stock_rows(limit=3, year=None, month=None):
                 current_stock_subquery,
                 OpdSalesOrderItem.product_id == current_stock_subquery.c.product_id,
             )
+            .outerjoin(
+                purchase_price_subquery,
+                OpdSalesOrderItem.product_id == purchase_price_subquery.c.product_id,
+            )
             .filter(OpdSalesOrder.order_date >= month_start_dt)
             .filter(OpdSalesOrder.order_date <= month_end_dt)
             .group_by(
@@ -527,6 +555,7 @@ def fetch_top_sales_stock_rows(limit=3, year=None, month=None):
                 OpdProductDetail.product_name,
                 OpdProductDetail.brand,
                 current_stock_subquery.c.current_stock,
+                purchase_price_subquery.c.purchase_price,
             )
             .order_by(
                 func.coalesce(func.sum(OpdSalesOrderItem.total_amount), 0).desc(),
@@ -540,7 +569,6 @@ def fetch_top_sales_stock_rows(limit=3, year=None, month=None):
 
     finally:
         db.close()
-
 
 __all__ = [
     "fetch_stock_dashboard_base_year",

@@ -1,20 +1,9 @@
 import sys
 import os
-
-# 1. 내 위치(auth)를 기준으로, 프로젝트 최상위 폴더(dogdog-project)의 절대 경로를 찾습니다.
-#    auth -> views -> domain -> erp -> dogdog-project (총 4칸 위로!)
-current_dir = os.path.dirname(os.path.abspath(__file__)) 
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
-
-# 2. 파이썬에게 "저 경로를 네 머릿속에 기억해 둬!" 라고 강제로 주입합니다.
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-### ========================================테스트 목적의 인위적 연결설정
-
 import json
 import flet as ft
 from components import common as cm
-from domain.controller.auth.erp_login_controller import AuthController
+from domain.controller import auth
 
 # 1. ERP 로그인 페이지 클래스 생성
 """
@@ -32,60 +21,70 @@ class ErpLoginView(ft.Container):
     self.on_login_success = on_login_success
 
     ## 입력창을 선언함
-    self.id_input = cm.custom_textfield('사번', "GB0001") # label값, placeholder값
-    self.email_input = cm.custom_textfield('이메일', "dogdog@gaebap.com")
-    self.password_input = cm.custom_textfield("비밀번호", "********", is_password=True)
+    self.id_input = cm.custom_textfield('사번', "account1") # label값, placeholder값
+    self.email_input = cm.custom_textfield('이메일', "emp1@test.com")
+    self.password_input = cm.custom_textfield("비밀번호", "hashed_pw", is_password=True)
 
     self.content = self.build_login_erp()
 
-  ## 1-2. 로그인 버튼 클릭 시 로직
+## 1-2. 로그인 버튼 클릭 시 로직
   def handle_login(self, e):
     try:
-      # 1. 입력창에서 값만 가져오기
+      # 1. 입력값 가져오기
       uid = self.id_input.controls[1].value
       u_email = self.email_input.controls[1].value
       u_pw = self.password_input.controls[1].value
 
-      # 2. 모든 입력창의 에러 메시지 전광판을 초기화합니다.
+      # 2. 에러 메시지 초기화
       self.id_input.controls[1].error_text = None
       self.email_input.controls[1].error_text = None
       self.password_input.controls[1].error_text = None
 
-      # 3. 데이터를 전달, 바구니에 넣는 작업
-      is_valid, error_msg, error_type = AuthController.validate_login(uid, u_email, u_pw)
-
-      # 4. 결과에 따른 후속 조치
+      # 3. 유효성 검사 실행
+      is_valid, error_msg, error_type = auth.AuthController.validate_login(uid, u_email, u_pw)
       if not is_valid:
-        target = None
-        if error_type == "id":
-          target = self.id_input.controls[1]
-          print("아이디 유효성 오류")
-        elif error_type == "email":
-          target = self.email_input.controls[1]
-          print('이메일 유효성 오류')
-        elif error_type == "pw":
-          target = self.password_input.controls[1]
-          print("패스워드 유효성 오류")
-        
-        if target:
-          target.error_text = error_msg
-          target.update()
-
-        # 2. 💡 가져오신 공식 예시를 적용한 SnackBar 호출법
-        error_snackbar = ft.SnackBar(
-            content=ft.Text(error_msg, color=cm.PAGE_BG),
-            bgcolor=cm.INCORRECT_POPUPCOLOR,
-            duration=3000
-        )
-        
-        # 게시판에 붙이는 대신, show_dialog를 사용해 화면에 바로 띄웁니다!
-        self.main_page.show_dialog(error_snackbar)
-        
+        # 유효성 실패 시 스낵바 (공식 예시 적용)
+        self.main_page.show_dialog(ft.SnackBar(ft.Text(error_msg)))
         self.main_page.update()
         return
-      
-      print("심사통과: 메인 화면으로 이동")
-      self.on_login_success()
+      ## 4. 백엔드 서버 인증 시도 => 2단계로 open 해야함(현재 user_data 내에 데이터가 있음.)
+      try:
+        response = auth.AuthController.login_user(uid, u_email, u_pw)
+
+        actual_data = response.get("user_data", {})
+
+        ## backend에서 가지고 왔는지 확인
+        if not response.get("success"):
+          raise Exception(response.get("msg", "로그인에 실패했습니다."))
+
+        ## 데이터 계ㅡㅊㅇ에서 가져오기
+        emp_id = actual_data.get("employee_id")
+        emp_name = actual_data.get("username")
+        emp_email = actual_data.get("email")
+        emp_pos = actual_data.get("emp_position_id")   
+
+        # [수정] 가장 원시적이지만 확실한 방법: page 객체에 직접 저장
+        # 이렇게 하면 session이나 client_storage 에러를 피할 수 있습니다.
+        self.main_page.user_id = emp_id
+        self.main_page.user_name = emp_name
+        self.main_page.user_email = emp_email
+        self.main_page.user_pos = emp_pos
+
+        ## 터미널 확인용
+        print(f"✅ 로그인 성공: {emp_name}({emp_pos}) | ID: {emp_id}")
+        self.on_login_success()
+
+      except Exception as api_error:
+        print(f"api 상세에러: {api_error}")  
+        self.main_page.show_dialog(
+          ft.SnackBar(ft.Text(f"인증 실패: {str(api_error)}"), bgcolor=cm.INCORRECT_POPUPCOLOR)
+          )
+        self.main_page.update()
+        return
+
+      except Exception as err:
+        # 예상치 못한 시스템 로직 에러 처리
+        print(f"🔥 [시스템 에러]: {err}")
 
       # 2. 터미널에서 데이터 확인용 출력
       login_data = json.dumps({"id": uid, "email": u_email, "password": u_pw})
@@ -95,7 +94,7 @@ class ErpLoginView(ft.Container):
 
       # 3. [핵심] 유효성 검사 없이 바로 성공 콜백 실행
       # 이 줄이 실행되면 무조건 다음 화면으로 넘어갑니다.
-      self.on_login_success() 
+      # self.on_login_success() 
 
     except Exception as err:
       # 만약 여기서 에러가 난다면 UI 경로(controls[1] 등)의 문제입니다.
@@ -134,10 +133,13 @@ class ErpLoginView(ft.Container):
     )
 
 def main(page: ft.Page):
-    page.title = "ERP 로그인 테스트"
+  page.title = "ERP 로그인 테스트"
     # 클래스를 생성하고 페이지에 추가합니다.
-    login_view = ErpLoginView(page)
-    page.add(login_view)
+  def dummy_success_action():
+    print("로그인 버튼 클릭 완료! (테스트)")
+
+  login_view = ErpLoginView(page, dummy_success_action)
+  page.add(login_view)
 
 
 # ## 테스트용 실행(이후에는 연결고리를 만들 것)

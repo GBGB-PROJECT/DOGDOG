@@ -18,9 +18,9 @@ class EmployeeRepository:
                 ErpEmployee.account_id, # account_id
                 ErpEmployee.email, # email
                 ErpEmployee.password, # password
-                ErpEmployee.employee_id,
-                ErpEmployee.username,
-                ErpEmpPosition.position_name
+                ErpEmployee.employee_id, # 직원 ID(홈에 우상단에 넣을 내용)
+                ErpEmployee.username, # 이름
+                ErpEmpPosition.position_name # 직위
             )
             .join(ErpEmpPosition, ErpEmployee.emp_position_id == ErpEmpPosition.emp_position_id)
             .filter(ErpEmployee.account_id == account_id)

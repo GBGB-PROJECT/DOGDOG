@@ -201,7 +201,7 @@ def erp_product_detail_view():
         {"key": "life", "label": "생애주기", "width": 90, "align_x": 0},
         {"key": "weight", "label": "중량(g)", "width": 90, "align_x": 0},
         {"key": "retail_price", "label": "판매가(원)", "width": 110, "align_x": 0},
-        {"key": "quantity", "label": "유닛(EA)", "width": 90, "align_x": 0},
+        {"key": "quantity", "label": "수량(ea)", "width": 90, "align_x": 0},
         {"key": "active", "label": "판매상태", "width": 100, "align_x": 0},
     ]
 

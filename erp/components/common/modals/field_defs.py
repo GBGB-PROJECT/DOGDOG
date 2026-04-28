@@ -52,7 +52,7 @@ PRODUCT_DETAIL_FIELDS = [
     {"label": "사료 형태", "key": "feedshape", "type": "text", "required": False, "max_length": 20},
     {"label": "중량(g)", "key": "weight", "type": "int", "required": True, "max_length": 10, "min_value": 1},
     {"label": "판매가", "key": "retail_price", "type": "int", "required": True, "max_length": 10, "min_value": 0},
-    {"label": "유닛(EA)", "key": "quantity", "type": "int", "required": True, "max_length": 10, "min_value": 1},
+    {"label": "수량(ea)", "key": "quantity", "type": "int", "required": True, "max_length": 10, "min_value": 1},
     {"label": "판매상태", "key": "active", "type": "bool", "required": True, "max_length": 10},
 ]
 

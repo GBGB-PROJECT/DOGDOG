@@ -260,7 +260,7 @@ def create_product_detail(data: dict):
 
         weight = require_int(data.get("weight"), "중량(g)")
         retail_price = require_int(data.get("retail_price"), "판매가")
-        quantity = require_int(data.get("quantity"), "유닛(EA)")
+        quantity = require_int(data.get("quantity"), "수량(ea)")
         active = require_bool(data.get("active"), "판매상태")
 
         if weight < 1:
@@ -268,7 +268,7 @@ def create_product_detail(data: dict):
         if retail_price < 0:
             raise ValueError("판매가는 0 이상이어야 합니다.")
         if quantity < 1:
-            raise ValueError("유닛(EA)은 1 이상이어야 합니다.")
+            raise ValueError("수량(ea)은 1 이상이어야 합니다.")
 
         if db.query(OpdProductDetail).filter(
             OpdProductDetail.type == product_type,

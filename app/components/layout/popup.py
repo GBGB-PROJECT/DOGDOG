@@ -70,5 +70,4 @@ class Popup:
         # self.page.update()
 
     def show_popup_close(self, e):
-        self.page.pop_dialog()
-        self.page.update()
+        self.event_popup.open = False

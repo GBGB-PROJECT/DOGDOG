@@ -12,5 +12,9 @@ from .onboarding.views.pet_food_view import pet_food_view
 
 from .home_views_connect import home_tile
 from .home.views import feeding_add_edit , home , feeding , guide
+
 from .logs.views import history , log , grid
+
 from .mypage.views import mypage_view , notification
+
+from .shop.views import shop

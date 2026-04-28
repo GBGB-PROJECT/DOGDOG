@@ -132,7 +132,7 @@ def now_history(page: ft.Page, popup):
         content_list=content_column,
         on_click=lambda e: now_history_open(e))
 
-def feeding_food_count(page: ft.Page):
+def feeding_food_count(page: ft.Page, content_page):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
@@ -168,7 +168,7 @@ def feeding_food_count(page: ft.Page):
             height=10,
             value=left_intake / g_product_weight,
             bgcolor=ft.Colors.GREY_300,
-            color=ft.Colors.YELLOW_600,
+            color=ft.Colors.YELLOW_600 if content_page != "/shop" else "#E6001A",
             border_radius=10,
         ),
         dogdog.basic_text(spans=[

@@ -89,6 +89,16 @@ class StatusController:
     # Button Push Event
     # ---------------------------------------------------------------------------------------------------
     def button_event(self, e, call, content):
+        error_popup = self.popup.event_popup
+        def error_popup_open(title, text):
+            error_popup.title = dogdog.basic_text(title, size=16, weight="bold")
+            error_popup.content = dogdog.basic_text(text)
+            if error_popup not in self.page.overlay:
+                self.page.overlay.append(error_popup)
+            else:
+                self.page.overlay.clear()
+                self.page.overlay.append(error_popup)
+            error_popup.open = True
         callcase = {
             "feeding":{"밥주기":"사료, 급여량을 선택 / 작성해주세요."},
             "watering": {"물주기":"물 섭취량을 적어주세요."},
@@ -110,7 +120,7 @@ class StatusController:
                 if self.storage.get("customer_food_id"):
                     event_text.update({"customer_food_id":self.storage.get("customer_food_id")})
                 else:
-                    self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
+                    error_popup_open(call_title, call_message)
                     return
             if self.storage.get(f"{call}_weight"):
                 event_text.update({f"{call}_weight":self.storage.get(f"{call}_weight")})
@@ -119,17 +129,17 @@ class StatusController:
                 event_text.update({f"{call}_bcs_weight":self.storage.get(f"{call}_bcs_weight")})
             elif call == "status_log": pass
             else:
-                self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
+                error_popup_open(call_title, call_message)
                 return
             if self.storage.get(f"{call}_memo"):
                 event_text.update({f"{call}_memo":self.storage.get(f"{call}_memo")})
             else:
                 if call == "status_log":
-                    self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
+                    error_popup_open(call_title, call_message)
                     return
             event_text.update({f"{call}_date":self.storage.get(f"{call}_date")})
             event_text.update({f"{call}_time":self.storage.get(f"{call}_time")})
-            self.popup.show_popup_open(e=e, case="event_popup", title=call, text=event_text)
+            error_popup_open(call_title, call_message)
         elif content == "feeding_add": self.page.go("/feeding_add")
         elif content == "cancel": pass
         self.grid_bottom_sheet.open = False

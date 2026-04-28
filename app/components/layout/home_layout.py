@@ -55,13 +55,29 @@ def home_layout(page, view=None, text=None):
     # ---------------------------------------------------------------------------------------------------
     background_height = 100
     home_background = ft.Container(
-        bgcolor="#FEF3B9", height=background_height, 
+        bgcolor="#FEF3B9" if text != "개밥개밥푸드" else "#E6001A", height=background_height, 
         border_radius=ft.BorderRadius.only(bottom_left=30, bottom_right=30))
     center_header = ft.Container()
     right_header = ft.IconButton(
         icon=ft.Icons.NOTIFICATIONS_NONE, icon_color=ft.Colors.GREY_500, 
-        icon_size=26, on_click=lambda _: page.go("/notification")
-    ) if not (text == "알림" or text == "알림 설정") else ft.Container(width=26)
+        icon_size=26, on_click=lambda _: page.go("/notification"))
+    if text == "알림" or text == "알림 설정":
+        right_header = ft.Container(width=26)
+    elif text == "개밥개밥푸드":
+        right_header = ft.Row(spacing=3, alignment=ft.MainAxisAlignment.CENTER, controls=[
+            ft.IconButton(
+                icon=ft.Icons.SEARCH, icon_color=ft.Colors.WHITE, icon_size=26, 
+                on_click=lambda _: print("Product Search") # page.go("/product_search")
+            ),
+            ft.IconButton(
+                icon=ft.Icons.NOTIFICATIONS_NONE, icon_color=ft.Colors.WHITE, icon_size=26, 
+                on_click=lambda _: page.go("/notification")
+            ),
+            ft.IconButton(
+                icon=ft.Icons.SHOPPING_CART, icon_color=ft.Colors.WHITE, icon_size=26, 
+                on_click=lambda _: print("Shopping Cart") # page.go("/shopping_cart")
+            )
+        ])
     header_container_padding = 40
     # ---------------------------------------------------------------------------------------------------
     # Page Top Banner Edit
@@ -75,13 +91,10 @@ def home_layout(page, view=None, text=None):
         first_pet_profile_image = (
             pet_list.get(first_pet_id).get("profile_image") # type: ignore
             if pet_list.get(first_pet_id).get("profile_image") else "dogclay.png") # type: ignore
-
         pet_list_name = [
             ft.DropdownOption(
                 key=f"{row_id}", text=row.get("nickname"), style=dogdog.Style.DropdownOptionStyle
-            ) for row_id , row in pet_list.items()
-        ]
-
+        ) for row_id , row in pet_list.items()]
         pet_dropdown_list = ft.Dropdown(
             content_padding=0,
             helper_text=pet_dropdown_list_helper_text(
@@ -98,26 +111,22 @@ def home_layout(page, view=None, text=None):
             border_width=0,
             options=pet_list_name
         )
-        
         storage.set("customer_pet_id", pet_dropdown_list.value)
         for row_id , row in pet_list.items():
             if int(row_id) == int(pet_dropdown_list.value): # type: ignore
                 storage.set("customer_pet_name", row.get("nickname"))
-        
         left_header_image = dogdog.image_circle(src=first_pet_profile_image, event=None, size=80, shadow=False)
-        
         left_header = ft.Row(
             vertical_alignment=ft.CrossAxisAlignment.END,
             height=80, spacing=10, controls=[
                 left_header_image,
-                ft.Container(padding=0, width=120, height=70, content=pet_dropdown_list)]
-        )
+                ft.Container(padding=0, width=120, height=70, content=pet_dropdown_list)])
     # ---------------------------------------------------------------------------------------------------    
     else:
         header_container_padding = 50
         left_header = ft.IconButton(
             icon=ft.Icons.ARROW_BACK_IOS_NEW, icon_color=ft.Colors.GREY_500, icon_size=26, on_click=handle_back
-        )
+        ) if text != "개밥개밥푸드" else dogdog.basic_text(value=text, weight="bold", size=16, color=ft.Colors.WHITE)
         center_header = dogdog.basic_text(value=text, weight="bold", size=16) # type: ignore
     # ---------------------------------------------------------------------------------------------------
     # Page Top Banner
@@ -128,6 +137,12 @@ def home_layout(page, view=None, text=None):
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[left_header, center_header, right_header]
+    )) if text != "개밥개밥푸드" else ft.Container(
+        padding=ft.Padding.only(top=header_container_padding, left=20, right=20),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[left_header, right_header]
     ))
-
+    # ---------------------------------------------------------------------------------------------------
     return home_background , top_banner

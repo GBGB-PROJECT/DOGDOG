@@ -605,21 +605,22 @@ def erp_stock_inout_view():
     refresh_picker_fields()
     reload_current_page(1)
 
-    return ft.Container(
+    return ft.Column(
         expand=True,
-        bgcolor="#EDEDED",
-        padding=20,
-        content=ft.Column(
-            spacing=18,
-            scroll=ft.ScrollMode.AUTO,
-            controls=[
-                ft.Row(
-                    spacing=10,
+        spacing=0,
+        controls=[
+            ft.Container(
+                bgcolor="#F3F4F6",
+                padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
+                content=ft.Row(
+                    wrap=True,
+                    spacing=12,
+                    run_spacing=12,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         start_field_holder,
                         start_icon_holder,
-                        ft.Text("~", size=18, color="#111827", weight=ft.FontWeight.W_700),
+                        ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
                         end_field_holder,
                         end_icon_holder,
                         inout_type_dropdown,
@@ -628,26 +629,49 @@ def erp_stock_inout_view():
                         build_button("조회", on_search_click),
                     ],
                 ),
-                build_text(
-                    page_title,
-                    size=22,
-                    color=TEXT_PRIMARY,
-                    weight=ft.FontWeight.W_700,
+            ),
+            ft.Container(
+                expand=True,
+                bgcolor="#F5F5F5",
+                padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
+                content=ft.Column(
+                    expand=True,
+                    spacing=18,
+                    controls=[
+                        build_text(
+                            page_title,
+                            size=22,
+                            color=TEXT_PRIMARY,
+                            weight=ft.FontWeight.W_700,
+                        ),
+                        result_text,
+                        ft.Container(
+                            expand=True,
+                            bgcolor=CARD_BG,
+                            border_radius=10,
+                            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                            content=ft.Column(
+                                expand=True,
+                                spacing=0,
+                                controls=[
+                                    build_table_header(),
+                                    # 🔥 수정: inbound_view.py처럼 데이터 행 영역만 스크롤
+                                    ft.Container(
+                                        expand=True,
+                                        content=ft.Column(
+                                            expand=True,
+                                            spacing=0,
+                                            scroll=ft.ScrollMode.AUTO,
+                                            controls=[table_rows_holder],
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        ),
+                        # 🔥 수정: 페이지네이션은 테이블 스크롤 영역 밖에 고정 배치
+                        pagination_holder,
+                    ],
                 ),
-                result_text,
-                ft.Container(
-                    bgcolor=CARD_BG,
-                    border_radius=12,
-                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                    content=ft.Column(
-                        spacing=0,
-                        controls=[
-                            build_table_header(),
-                            table_rows_holder,
-                        ],
-                    ),
-                ),
-                pagination_holder,
-            ],
-        ),
+            ),
+        ],
     )

@@ -670,13 +670,13 @@ def erp_product_detail_view():
         ),
     )
 
-    table_content = ft.Column(
-        spacing=0,
-        controls=[
-            build_table_header(),
-            table_rows_holder,
-        ],
-    )
+    # =========================================================
+    # 🔥 inbound_view.py 방식으로 스크롤 구조 통일
+    # - 화면 전체가 아니라 테이블 데이터 행 영역만 세로 스크롤
+    # - pagination_holder는 테이블 스크롤 영역 밖에 두어 하단 고정처럼 유지
+    # - 상품 상세 테이블은 컬럼이 많으므로 가로 스크롤은 유지
+    # =========================================================
+    total_table_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1))
 
     table_area = ft.Container(
         expand=True,
@@ -686,7 +686,27 @@ def erp_product_detail_view():
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Row(
             scroll=ft.ScrollMode.AUTO,
-            controls=[ft.Container(content=table_content)],
+            controls=[
+                ft.Container(
+                    width=total_table_width + (row_padding_x * 2),
+                    content=ft.Column(
+                        expand=True,
+                        spacing=0,
+                        controls=[
+                            build_table_header(),
+                            ft.Container(
+                                expand=True,
+                                content=ft.Column(
+                                    expand=True,
+                                    spacing=0,
+                                    scroll=ft.ScrollMode.AUTO,
+                                    controls=[table_rows_holder],
+                                ),
+                            ),
+                        ],
+                    ),
+                ),
+            ],
         ),
     )
 
@@ -695,6 +715,7 @@ def erp_product_detail_view():
         bgcolor=cm.PAGE_BG,
         padding=0,
         content=ft.Column(
+            expand=True,
             spacing=0,
             controls=[
                 filter_bar,
@@ -702,8 +723,8 @@ def erp_product_detail_view():
                     padding=20,
                     expand=True,
                     content=ft.Column(
+                        expand=True,
                         spacing=14,
-                        scroll=ft.ScrollMode.AUTO,
                         controls=[
                             ft.Text(
                                 value=page_title,

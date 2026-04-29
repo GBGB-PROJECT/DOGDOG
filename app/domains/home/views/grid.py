@@ -188,7 +188,7 @@ def bottom_sheet(e, page: ft.Page, call):
                     ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20))
             ])
             food = [dogdog.dropdown_menu_option(
-                key=customer_food_id, text=f"{detail.get("brand")} {detail.get("product_name")}"
+                key=customer_food_id, text=f"{detail.get('brand')} {detail.get('product_name')}"
                     ) for customer_food_id , detail in customer_detail.items()]
             feeding_food_list = ft.Row(margin=ft.margin.only(bottom=18),
                 controls=[

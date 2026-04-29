@@ -18,7 +18,7 @@ def notification_dummy(page: ft.Page):
                     dummy_ment
                 ]),
                 ft.Row(alignment=ft.MainAxisAlignment.END, controls=[
-                    dogdog.basic_text(f"25.{i if i >= 10 else f"0{i}"}.20")
+                    dogdog.basic_text(f"25.{i if i >= 10 else f'0{i}'}.20")
                 ])
             ]
         ) for i in range(12 , 8, -1)

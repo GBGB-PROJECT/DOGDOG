@@ -42,7 +42,7 @@ CHART_MAX_Y = 8
 
 WEEKDAY_NAMES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
 now = datetime.datetime.now()
-DETAIL_BANNER_TEXT = f"{(now-datetime.timedelta(days=6)).strftime("%Y-%m-%d")} ~ {now.strftime("%Y-%m-%d")}"
+DETAIL_BANNER_TEXT = f"{(now-datetime.timedelta(days=6)).strftime('%Y-%m-%d')} ~ {now.strftime('%Y-%m-%d')}"
 SUMMARY_TEXT = "일 평균 000kcal   |   목표 000kcal   |   달성 0회"
 
 CARD_BORDER_COLOR = BORDER_DARK

@@ -19,29 +19,12 @@ sys.path.insert(0, str(APP_DIR))
 
 import flet as ft
 import components as dogdog
+from domains.shop.views import address
 
 SHOP_RED = "#E6001A"
 BORDER = ft.Colors.GREY_300
 TEXT_GREY = ft.Colors.GREY_600
 DOT_GREY = ft.Colors.GREY_400
-
-def shop_payment_content():
-
-    return ft.Column(
-        scroll=ft.ScrollMode.AUTO,
-        spacing=0,
-        controls=[
-            orderer_info_section(),
-            delivery_info_section(),
-            order_product_section(),
-            # coupon_point_section(),
-            payment_summary_section(),
-            payment_method_section(),
-            agreement_section(),
-            payment_button(),
-        ]
-    )
-
 
 # ----------------------------
 # 주문자 정보
@@ -62,7 +45,7 @@ def orderer_info_section():
 # ----------------------------
 # 배송 정보
 # ----------------------------
-def delivery_info_section():
+def delivery_info_section(page):
     return section_box(
         "배송 정보",
         ft.Column(
@@ -70,7 +53,7 @@ def delivery_info_section():
             controls=[
                 line_input("이름", "홍길동"),
                 line_input("전화번호", "010-0000-0000"),
-                line_input("배송주소", "전북시 디지털로"),
+                line_address_input(page, "배송주소"),
                 dropdown_input(
                     label="배송메모(선택)",
                     options=[
@@ -311,6 +294,67 @@ def line_input(label, value="", hint=None, password=False, keyboard_type=None):
         ),
     )
 
+
+
+# 배송 주소 --------------------------------
+def line_address_input(page, label):
+    address_field = ft.TextField(
+        value="",
+        hint_text="배송주소를 등록해주세요.",
+        border=ft.InputBorder.NONE,
+        read_only=True,
+        height=30,
+        text_size=15,
+        content_padding=ft.padding.only(bottom=10),
+    )
+    
+    def clear_text(e):
+        address_field.value = ""
+        address_field.update()
+
+    def open_address_page(page):
+        page.clean()
+
+        def receive_address(data):
+            page.clean()
+            address_field.value = data["full_address"]
+            shop_page(page)
+
+        address.main(page, on_complete=receive_address)
+    
+    return ft.Container(
+        margin=ft.margin.only(bottom=12),
+        height=52,
+        ink=True,
+        on_click=open_address_page,
+        border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                ft.Column(
+                    spacing=0,
+                    expand=True,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text(label, size=13, color=TEXT_GREY),
+                        address_field,
+                    ],
+                ),
+                ft.Container(
+                    alignment=ft.Alignment(0, 2),
+                    content=ft.IconButton(
+                        icon=ft.Icons.CANCEL,
+                        icon_size=16,
+                        icon_color=TEXT_GREY,
+                        on_click=clear_text,
+                    )
+                )
+            ],
+        ),
+    )
+
+
 # 박스
 def payment_method_button(text):
     return ft.Container(
@@ -323,6 +367,7 @@ def payment_method_button(text):
         content=ft.Text(text, size=13),
     )
 
+# 배송 요청사항 드롭다운
 def dropdown_input(label, value=None, options=None):
     return ft.Container(
         height=58,
@@ -358,8 +403,24 @@ def dropdown_input(label, value=None, options=None):
         ),
     )
 
+# ---------------------------------------------------------------------------------------------------
 # https://flet-controls-gallery.fly.dev/input/textfield
 
+def shop_payment_content(page):
+    return ft.Column(
+        scroll=ft.ScrollMode.AUTO,
+        spacing=0,
+        controls=[
+            orderer_info_section(),
+            delivery_info_section(page),
+            order_product_section(),
+            # coupon_point_section(),
+            payment_summary_section(),
+            payment_method_section(),
+            agreement_section(),
+            payment_button(),
+        ]
+    )
 
 # def shop_page(page: ft.Page):
 
@@ -374,6 +435,7 @@ def dropdown_input(label, value=None, options=None):
 #             # dogdog.bottom_nav()
 #         ]
 #     )
+
 def shop_page(page: ft.Page):
     page.bgcolor = ft.Colors.WHITE
     page.scroll = ft.ScrollMode.AUTO
@@ -390,7 +452,7 @@ def shop_page(page: ft.Page):
                             # dogdog.sub_top_bar()
                             # top_banner,
 
-                            shop_payment_content(),
+                            shop_payment_content(page),
 
                             # dogdog.bottom_nav()
                         ]

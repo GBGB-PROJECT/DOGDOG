@@ -91,7 +91,7 @@ def now_history(page: ft.Page, popup):
                             border_radius=10,
                         ),
                         dogdog.basic_text(
-                            value=f"{45}/{90}{"분"}",
+                            value=f"{45}/{90}{'분'}",
                             size=12,
                             color=ft.Colors.GREY_500,
                             weight="bold",
@@ -117,7 +117,7 @@ def now_history(page: ft.Page, popup):
                             border_radius=10,
                         ),
                         dogdog.basic_text(
-                            value=f"{150}/{310}{"kcal"}",
+                            value=f"{150}/{310}{'kcal'}",
                             size=12,
                             color=ft.Colors.GREY_500,
                             weight="bold",
@@ -158,10 +158,10 @@ def feeding_food_count(page: ft.Page, content_page):
         ft.Row(
             controls=[
                 dogdog.basic_text(spans=[
-                    ft.TextSpan(f"{left_intake if left_intake != 0 else "???"}g", style=dogdog.TextStyle(size=16, height=-1)),
+                    ft.TextSpan(f"{left_intake if left_intake != 0 else '???'}g", style=dogdog.TextStyle(size=16, height=-1)),
                     ft.TextSpan(f" / {view_product_weight}")
                 ], color=ft.Colors.GREY_400, weight="bold", size=16),
-                dogdog.flat_button(f"{feeding_food_count if feeding_food_count else "?"} 일치 남음", scale=0.7, disabled=True),
+                dogdog.flat_button(f"{feeding_food_count if feeding_food_count else '?'} 일치 남음", scale=0.7, disabled=True),
             ],
         ),
         ft.ProgressBar(

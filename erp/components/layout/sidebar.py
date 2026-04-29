@@ -19,20 +19,26 @@ def _menu_item(
     active_bgcolor: str | None = None,
     selected_weight: ft.FontWeight = ft.FontWeight.W_600,
     is_forced_selected: bool = False,
+    is_disabled: bool = False,
 ):
     is_selected = text == selected_menu or is_forced_selected
+
+    # 🔥 수정: 비활성 메뉴도 글자색은 그대로 두고 클릭만 막는다.
+    final_text_color = active_color if is_selected else text_color
 
     return ft.Container(
         width=BASE_SIDEBAR_WIDTH,
         bgcolor=active_bgcolor if is_selected else ft.Colors.TRANSPARENT,
-        on_click=lambda e, menu=text: on_menu_click(menu),
+        # 🔥 수정: Flet 0.81.0 Container에는 mouse_cursor 인자가 없어서 제거
+        # - 비활성 메뉴는 on_click 자체를 None으로 빼서 클릭 자체를 막는다.
+        on_click=None if is_disabled else lambda e, menu=text: on_menu_click(menu),
         content=ft.Container(
             padding=ft.padding.only(left=left_padding, top=10, bottom=10, right=12),
             content=ft.Text(
                 value=text,
                 size=14,
                 weight=selected_weight if is_selected else ft.FontWeight.W_600,
-                color=active_color if is_selected else text_color,
+                color=final_text_color,
             ),
         ),
     )
@@ -118,7 +124,9 @@ def _build_expanded_sidebar(header_control, menu_controls):
 
 
 # ☑️ 추가: 확장 메뉴 공통 생성
-def _build_expanded_menu_controls(items, selected_menu, on_menu_click):
+def _build_expanded_menu_controls(items, selected_menu, on_menu_click, disabled_items=None):
+    disabled_items = disabled_items or []
+
     return [
         _menu_item(
             text=item,
@@ -127,6 +135,8 @@ def _build_expanded_menu_controls(items, selected_menu, on_menu_click):
             text_color=com.EXPANDED_TEXT_COLOR,
             active_color=com.PAGE_BG,
             active_bgcolor=com.EXPANDED_ACTIVE_BG,
+            # 🔥 추가: 화면 없는 하위 메뉴는 클릭만 막고 글자색은 유지
+            is_disabled=item in disabled_items,
         )
         for item in items
     ]
@@ -204,6 +214,8 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             com.PRODUCT_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
+            # 🔥 추가: 상품 상세 정보 관리만 클릭 가능, 나머지 3개는 클릭 불가
+            disabled_items=com.DISABLED_PRODUCT_MENU_ITEMS,
         )
 
         return _build_expanded_sidebar(
@@ -217,6 +229,9 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             com.PRODUCTION_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
+            # 🔥 추가: 생산입고/불량 현황/발주 관리/거래처 관리만 클릭 가능
+            # 🔥 생산실적, 품질 및 이력 관리는 클릭 불가
+            disabled_items=com.DISABLED_PRODUCTION_MENU_ITEMS,
         )
 
         return _build_expanded_sidebar(
@@ -230,6 +245,9 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             com.CUSTOMER_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
+            # 🔥 추가: 고객 정보/주문/구독 관리만 클릭 가능
+            # 🔥 고객 문의 관리, 고객 센터 관리는 클릭 불가
+            disabled_items=com.DISABLED_CUSTOMER_MENU_ITEMS,
         )
 
         return _build_expanded_sidebar(
@@ -242,6 +260,8 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             text=item,
             selected_menu=selected_menu,
             on_menu_click=on_menu_click,
+            # 🔥 추가: 의미 없는 빈 화면/준비중 화면만 뜨는 메뉴는 클릭 불가 처리
+            is_disabled=item in com.DISABLED_MAIN_MENU_ITEMS,
         )
         for item in com.ERP_MAIN_MENU_ITEMS
     ]

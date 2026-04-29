@@ -51,6 +51,18 @@ ERP_MAIN_MENU_ITEMS = [
     "시스템관리",
 ]
 
+# 🔥 추가: 아직 실제 화면이 없거나 의미 없는 준비중/빈 화면만 뜨는 1차 메뉴
+# - 사이드바에서는 표시만 하고 클릭은 막는다.
+DISABLED_MAIN_MENU_ITEMS = [
+    "매출관리",
+    "원가관리",
+    "구매관리",
+    "물류관리",
+    "영업관리",
+    "회계관리",
+    "시스템관리",
+]
+
 # erp_homecontent.view,     
 MENU_ITEMS = {
     "홈": home_view.erp_home_view,
@@ -58,8 +70,8 @@ MENU_ITEMS = {
     "원가관리": lambda: ft.Container(content=ft.Text("원가관리 준비 중")),
     "구매관리": sales_view.erp_sales_view,
 
-    # 👊 수정: 임시 텍스트 → 실제 상품관리 메인 화면 연결
-    "상품관리": product_view.erp_product_view,
+    # 🔥 수정: 상품관리 대분류를 누르면 안내/텍스트 화면이 아니라 기본 화면(상품 상세 정보 관리)을 바로 표시
+    "상품관리": product_detail_view.erp_product_detail_view,
 
     # 👊 추가: 상품관리 하위 메뉴 연결
     # "상품마스터정보관리": product_master_view.erp_product_master_view,
@@ -163,6 +175,14 @@ PRODUCT_MAIN_ITEMS = [
     "자재명세서",
 ]
 
+# 🔥 추가: 아직 실제 화면이 없거나 의미 없는 화면으로 이어지는 상품관리 하위 메뉴
+# - 글자색은 그대로 두고 클릭만 막는다.
+DISABLED_PRODUCT_MENU_ITEMS = [
+    "상품카테고리관리",
+    "상품마스터정보관리",
+    "자재명세서",
+]
+
 # ☑️ 추가: 상품관리 전체 묶음
 PRODUCT_ALL_ITEMS = [
     "상품관리",
@@ -180,6 +200,13 @@ PRODUCTION_MAIN_ITEMS = [
     "발주 관리",
     "품질 및 이력 관리",
     "거래처 관리",
+]
+
+# 🔥 추가: 아직 실제 화면이 없거나 의미 없는 화면으로 이어지는 생산관리 하위 메뉴
+# - 글자색은 그대로 두고 클릭만 막는다.
+DISABLED_PRODUCTION_MENU_ITEMS = [
+    "생산실적",
+    "품질 및 이력 관리",
 ]
 
 # ☑️ 추가: 생산관리 전체 묶음
@@ -202,6 +229,13 @@ CUSTOMER_MAIN_ITEMS = [
     "고객 센터 관리",
 ]
 
+# 🔥 추가: 아직 실제 화면이 없거나 의미 없는 화면으로 이어지는 고객관리 하위 메뉴
+# - 글자색은 그대로 두고 클릭만 막는다.
+DISABLED_CUSTOMER_MENU_ITEMS = [
+    "고객 문의 관리",
+    "고객 센터 관리",
+]
+
 # 🔥 추가: 고객관리 확장 사이드바 진입 조건 묶음
 CUSTOMER_ALL_ITEMS = [
     "고객관리",
@@ -220,7 +254,8 @@ MENU_TO_ROUTE = {
     "매출관리": "/sales",
     "원가관리": "/cost",
     "구매관리": "/purchase",
-    "상품관리": "/merchandise",
+    # 🔥 수정: 상품관리 클릭 시 /merchandise 안내 화면이 아니라 상품 상세 정보 관리 route로 바로 이동
+    "상품관리": "/merchandise/detail",
     "상품카테고리관리": "/merchandise/category",
     "상품 상세 정보 관리": "/merchandise/detail",
     "자재명세서": "/merchandise/bom",
@@ -263,10 +298,12 @@ DEFAULT_AUTH_ROUTE = "/home"
 # - /stock 은 재고관리 안내 화면이 아니라 재고 현황 화면으로 연결
 # - /stock/product 는 상품 재고 관리의 기본 하위 화면인 재고 현황으로 연결
 # - /customer 는 고객관리 안내/텍스트 화면이 아니라 고객 정보 관리 화면으로 연결
+# - /merchandise 는 상품관리 안내/텍스트 화면이 아니라 상품 상세 정보 관리 화면으로 연결
 ROUTE_ALIASES = {
     "/stock": "/stock/product/status",
     "/stock/product": "/stock/product/status",
     "/customer": "/customer/info",
+    "/merchandise": "/merchandise/detail",
 }
 
 def normalize_route(route: str | None) -> str:
@@ -297,6 +334,15 @@ def get_menu_by_route(route: str | None) -> str | None:
 
 def get_route_by_menu(menu_name: str) -> str:
     """메뉴명에 대응하는 route를 반환합니다."""
+    # 🔥 추가: 비활성 메뉴는 혹시 다른 곳에서 호출되어도 의미 없는 화면으로 이동하지 않게 홈으로 보정
+    if (
+        menu_name in DISABLED_MAIN_MENU_ITEMS
+        or menu_name in DISABLED_PRODUCT_MENU_ITEMS
+        or menu_name in DISABLED_PRODUCTION_MENU_ITEMS
+        or menu_name in DISABLED_CUSTOMER_MENU_ITEMS
+    ):
+        return DEFAULT_AUTH_ROUTE
+
     return MENU_TO_ROUTE.get(menu_name, DEFAULT_AUTH_ROUTE)
 
 def get_view_by_route(route: str | None):

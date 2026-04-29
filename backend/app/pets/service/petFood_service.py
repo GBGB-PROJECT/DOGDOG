@@ -63,14 +63,17 @@ def create_pet_food(
     # 4. product 존재 확인
     product = get_product_by_id(db=db, product_id=product_id)
     if product is None:
-        raise ValueError("PRODUCT_NOT_FOUND")
+        raise ValueError(f"존재하지 않는 사료 ID입니다. (ID: {product_id})")
+
+    if not product.product_detail:
+        raise ValueError(f"사료 상세 정보(ProductDetail)를 찾을 수 없습니다. (ID: {product_id})")
 
     if product.product_detail.calories is None:
-        raise ValueError("PRODUCT_CALORIES_NOT_FOUND")
+        raise ValueError(f"사료의 칼로리 정보가 등록되어 있지 않습니다. (ID: {product_id})")
 
     # + total_weight <= product_weight 이 아닌 경우 에러처리
     if total_weight > product.weight:
-        raise ValueError("HIGH_TOTAL_WEIGHT")
+        raise ValueError(f"입력하신 용량({total_weight}g)이 제품의 원래 중량({product.weight}g)보다 큽니다.")
 
     pet_food = get_active_pet_food(db, pet_id)
 
@@ -87,6 +90,10 @@ def create_pet_food(
             product_id=product_id,
             one_gram_calories=product.product_detail.calories,
         )
+        
+        if new_PetProductFeeding is None:
+             raise ValueError("사료 급여 정보(PetProductFeeding) 생성에 실패했습니다.")
+
         db.flush()  # 영양 정보가 세션에 반영되어야 AI 추천 로직이 정상 작동함
 
         # 7. AI 권장 급여량 기반 초기 재고 계산
@@ -127,6 +134,9 @@ def create_pet_food(
             left_food_count=left_food_count,
             expected_exdate=expected_exdate,
         )
+        
+        if new_CustomerFood is None:
+            raise ValueError("사료 재고 정보(CustomerFood) 생성에 실패했습니다.")
 
         if commit:
             db.commit()
@@ -134,8 +144,12 @@ def create_pet_food(
         else:
             db.flush()
 
-        db.refresh(new_CustomerFood)
-        db.refresh(new_PetProductFeeding)
+        # commit=True일 때만 리프레시 수행 (commit=False인 온보딩 트랜잭션에서는 생략)
+        if commit:
+            if new_CustomerFood:
+                db.refresh(new_CustomerFood)
+            if new_PetProductFeeding:
+                db.refresh(new_PetProductFeeding)
 
         return {
             "pet_id": new_PetProductFeeding.pet_id,

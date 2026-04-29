@@ -27,7 +27,7 @@ class OnboardingService:
     def complete_onboarding(self, request: OnboardingRequest) -> dict:
         """
         유저, 반려견, 사료 등록을 단일 트랜잭션으로 통합 수행하는 온보딩 로직.
-        Deferred Commit 패턴을 사용하여 모든 단계가 성공해야만 최종 커밋됩니다.
+        데이터 무결성을 위해 각 단계의 결과값을 엄격히 검증합니다.
         """
         try:
             # 1. 유저 생성 (AuthService)
@@ -39,8 +39,10 @@ class OnboardingService:
             )
             
             try:
-                # commit=False로 호출하여 DB 세션에만 반영하고 확정은 미룸
+                # commit=False로 호출하여 DB 세션에만 반영
                 auth_result = self.auth_service.register_user(auth_req, commit=False)
+                if not auth_result or "customer" not in auth_result:
+                    raise ValueError("유저 정보 생성에 실패했습니다.")
             except ValueError as e:
                 if str(e) == "EMAIL_ALREADY_EXISTS":
                     raise HTTPException(status_code=409, detail="이미 가입된 이메일입니다.")
@@ -63,12 +65,13 @@ class OnboardingService:
             ]
             self.db.add_all(noti_settings)
             
-            # 다음 단계를 위해 세션 반영 (ID 등 확보)
+            # ID 확보를 위해 flush
             self.db.flush()
-            logger.info(f"Onboarding Step 1.5 Success: Notification settings initialized")
 
             # 2. 반려견 생성 (PetService)
+            # 성별 및 중성화 코드 계산 (백엔드 도메인 규칙 준수)
             sex_and_neuter = (request.pet.sex - 1) * 2 + (2 if request.pet.is_neutered else 1)
+            
             pet_req = PetRegisterRequest(
                 nickname=request.pet.nickname,
                 birth_day=request.pet.birth_day.strftime("%Y-%m-%d") if request.pet.birth_day else None,
@@ -77,20 +80,23 @@ class OnboardingService:
                 weight=request.pet.weight,
                 bcs=request.pet.bcs,
                 daily_walks=request.pet.daily_walks,
-                feeding_count=[""] * request.pet.feeding_count,
+                feeding_count=[""] * request.pet.feeding_count, # feeding_count를 기반으로 빈 리스트 생성
             )
             
-            # commit=False 전달
             pet_result = self.pet_service.register_pet(customer_id, pet_req, commit=False)
-            pet_id = pet_result["data"]["pet_id"]
+            if not pet_result or "data" not in pet_result:
+                raise ValueError("반려견 정보 생성에 실패했습니다.")
+                
+            pet_id = pet_result["data"].get("pet_id")
+            if not pet_id:
+                raise ValueError("반려견 ID를 확보할 수 없습니다.")
             
-            # 다음 단계를 위해 세션 반영
             self.db.flush()
             logger.info(f"Onboarding Step 2 Success: Pet ID {pet_id}")
 
             # 3. 사료 생성 (create_pet_food)
-            # commit=False 전달
-            create_pet_food(
+            # commit=False 전달하여 통합 트랜잭션 유지
+            food_result = create_pet_food(
                 db=self.db,
                 customer_id=customer_id,
                 pet_id=pet_id,
@@ -99,30 +105,35 @@ class OnboardingService:
                 commit=False
             )
             
-            # 다음 단계를 위해 세션 반영
+            if not food_result:
+                raise ValueError("사료 정보 등록에 실패했습니다.")
+            
             self.db.flush()
             logger.info(f"Onboarding Step 3 Success: Food Registered")
 
-            # 4. AI 급여량 추천 및 재고 초기화 (Step 3 내부에 통합됨)
-            logger.info(f"Onboarding Step 3 & 4 Success: Food Registered with AI Recommendation")
-
-            # 5. 모든 단계 성공 시 최종 커밋
+            # 4. 모든 단계 성공 시 최종 커밋
             self.db.commit()
-            logger.info(f"Onboarding Transaction Committed: All steps successful.")
+            logger.info(f"Onboarding Transaction Committed: Success (Customer: {customer_id}, Pet: {pet_id})")
+
+            # 5. 안전한 응답 조립 (NoneType 방지)
+            access_token = auth_result.get("access_token")
+            refresh_token = auth_result.get("refresh_token")
+            
+            if not access_token:
+                logger.warning(f"Warning: Access token is missing for customer {customer_id}")
 
             return {
                 "success": True,
                 "message": "통합 온보딩이 완료되었습니다.",
                 "auth": {
-                    "access_token": auth_result.get("access_token"),
-                    "refresh_token": auth_result.get("refresh_token")
+                    "access_token": access_token,
+                    "refresh_token": refresh_token
                 },
                 "pet_id": pet_id,
                 "customer_id": customer_id
             }
 
         except Exception as e:
-            # 예외 발생 시 전체 롤백 (이전의 모든 INSERT/UPDATE 취소)
             self.db.rollback()
             logger.error(f"Onboarding Failed: {str(e)}. Transaction rolled back.")
             

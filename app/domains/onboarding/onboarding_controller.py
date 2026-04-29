@@ -252,46 +252,90 @@ class OnboardingController:
 
     async def process_onboarding_finalize(self, e):
         """최종 데이터 검증 및 서버 전송 (회원가입+반려견+사료 통합)"""
+        import datetime
+
+        # 1. 스토리지 데이터 추출 및 엄격한 검증
+        d = OnboardingController.data
         p_id = self.storage.get("product_id")
         f_weight = self.storage.get("food_weight")
 
-        if not p_id or not f_weight:
-            self.show_error(text="사료 무게와 급여량을 모두 입력/선택해 주세요.")
+        # 필수 필드 리스트 및 검증 (임시 기본값 사용 금지 원칙 준수)
+        required_fields = {
+            "email": "이메일 정보가 누락되었습니다.",
+            "password": "비밀번호 정보가 누락되었습니다.",
+            "user_nickname": "유저 닉네임이 누락되었습니다.",
+            "pet_nickname": "반려견 이름을 입력해 주세요.",
+            "birth": "반려견 생일을 선택해 주세요.",
+            "breed_id": "반려견 품종을 선택해 주세요.",
+            "sex": "반려견 성별을 선택해 주세요.",
+            "weight": "반려견 몸무게를 입력해 주세요.",
+            "bcs": "BCS 지수를 선택해 주세요.",
+            "daily_walks": "산책 횟수를 선택해 주세요.",
+            "feeding_count": "하루 급여 횟수를 선택해 주세요.",
+        }
+
+        for key, msg in required_fields.items():
+            if not d.get(key):
+                self.show_error(text=msg)
+                return
+
+        if not p_id:
+            self.show_error(text="사료 제품을 선택해 주세요.")
+            return
+
+        if f_weight is None or str(f_weight).strip() == "":
+            self.show_error(text="사료 잔여량을 입력해 주세요.")
+            return
+
+        # 2. 데이터 타입 변환 및 정규화
+        try:
+            total_weight = int(float(f_weight))
+            product_id = int(p_id)
+            if total_weight < 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            self.show_error(text="사료 잔여량은 0 이상의 숫자여야 합니다.")
             return
 
         OnboardingController.data.update(
-            {"product_id": int(p_id), "food_weight": int(float(f_weight))}
+            {"product_id": product_id, "total_weight": total_weight}
         )
 
         if self.popup:
             await self.popup.show_api_insert_open(e)
 
         try:
-            d = OnboardingController.data
+            # 3. 최종 Payload 구성 (기본값 제거 및 정적 타입 보장)
+            today_str = datetime.date.today().isoformat()
+
             payload = {
                 "user": {
-                    "email": str(d.get("email")),
-                    "password": str(d.get("password")),
-                    "nickname": str(d.get("user_nickname")),
-                    "phone": None,
-                    "oauth_type": None,
+                    "email": str(d["email"]),
+                    "password": str(d["password"]),
+                    "nickname": str(d["user_nickname"]),
+                    "phone": d.get("phone"),
+                    "oauth_type": d.get("oauth_type", "local"),
                 },
                 "pet": {
-                    "nickname": str(d.get("pet_nickname")),
-                    "birth_day": str(d.get("birth")),
-                    "breed_id": int(d.get("breed_id")),
-                    "sex": int(d.get("sex")),
-                    "is_neutered": bool(d.get("is_neutered")),
-                    "weight": float(d.get("weight")),
-                    "bcs": int(d.get("bcs")),
-                    "daily_walks": int(d.get("daily_walks")),
-                    "feeding_count": int(d.get("feeding_count")),
+                    "nickname": str(d["pet_nickname"]),
+                    "birth_day": str(d["birth"]),
+                    "breed_id": int(d["breed_id"]),
+                    "sex": int(d["sex"]),
+                    "is_neutered": bool(d.get("is_neutered", False)),
+                    "weight": float(d["weight"]),
+                    "bcs": int(d["bcs"]),
+                    "daily_walks": int(d["daily_walks"]),
+                    "feeding_count": int(d["feeding_count"]),
                 },
                 "food": {
-                    "product_id": int(d.get("product_id")),
-                    "total_weight": int(d.get("food_weight")),
+                    "product_id": int(d["product_id"]),
+                    "total_weight": int(d["total_weight"]),
+                    "feeding_start": today_str,
                 },
             }
+
+            # [DEBUG] 전송 데이터 확인
+            print(f"[Onboarding DEBUG] Final Payload: {payload}")
 
             api_client = ApiClient(self.page)
             res = await api_client.post("/onboarding", data=payload)
@@ -300,36 +344,37 @@ class OnboardingController:
                 res_body = res.json()
                 auth_data = res_body.get("auth", {})
                 new_pet_id = res_body.get("pet_id")
-                customer_id = res_body.get("customer_id")
+                customer_id = res_body.get("customer_id")  # 이거 챙기기!
 
                 if self.popup:
                     await self.popup.show_api_insert_close(e)
                     import asyncio
 
-                    await asyncio.sleep(0.1)  # UI 갱신을 위한 짧은 대기
+                    await asyncio.sleep(0.1)
 
-                # 인증 후처리 (AuthController 위임)
+                # 인증 후처리 (원래 잘 작동하던 오리지널 로직으로 복구!)
                 from domains.auth.auth_controller import AuthController
 
                 auth_ctrl = AuthController(self.page)
+
                 success = await auth_ctrl.complete_relay(
                     auth_data, new_pet_id, customer_id=customer_id
                 )
 
                 if success:
-                    # self.show_error(text="DOGDOG에 오신 것을 환영합니다!") # 스낵바 대신 성공 화면으로 이동
                     self.change_page_callback("/sign_up_success")
                 else:
                     self.show_error(text="세션 동기화 중 오류가 발생했습니다.")
+
             else:
                 if self.popup:
                     await self.popup.show_api_insert_close(e)
-                print(f"[API Error] 온보딩 실패: {res.text}")
-                msg = res.json().get("detail", "온보딩 실패")
-                self.show_error(text=str(msg))
+                error_detail = res.json().get("detail", "서버 오류가 발생했습니다.")
+                self.show_error(text=f"등록 실패: {error_detail}")
 
         except Exception as ex:
             if self.popup:
                 await self.popup.show_api_insert_close(e)
-            print(f"[Onboarding Exception] 상세 내용: {str(ex)}")
+            print(f"❌ [Onboarding FATAL] {str(ex)}")
+            self.show_error(text=f"통신 중 오류가 발생했습니다: {str(ex)}")
             self.show_error(text=f"서버 통신 중 오류 발생: {str(ex)}")

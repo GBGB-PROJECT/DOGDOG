@@ -115,12 +115,14 @@ def insert_pet_product_feeding(
             one_gram_calories=one_gram_calories,
         )
         db.add(new_pet_food)
+        return new_pet_food
 
     # 존재하지만 비활성화인 경우
     elif new_pet_food.is_feeding_check == False:
         new_pet_food.is_feeding_check = True
         new_pet_food.product_id = product_id
         new_pet_food.one_gram_calories = one_gram_calories
+        return new_pet_food
 
     # 이미 존재하는 경우 - 활성화
     else:

@@ -26,37 +26,41 @@ BORDER = ft.Colors.GREY_300
 TEXT_GREY = ft.Colors.GREY_600
 DOT_GREY = ft.Colors.GREY_400
 
-# ----------------------------
+LABEL_TEXT_SIZE = 13
+VALUE_TEXT_SIZE = 15
+
+# -------------------------------------------------------------------------------------------------
 # 주문자 정보
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 def orderer_info_section():
     return section_box(
         "주문자 정보",
         ft.Column(
             spacing=0,
             controls=[
-                line_input("이름", "홍길동"),
-                line_input("전화번호", "010-0000-0000"),
+                line_input("이름", hint="최대 10자로 작성해주세요"),
+                line_input("전화번호", hint="010-0000-0000"),
             ]
         )
     )
 
 
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # 배송 정보
-# ----------------------------
-def delivery_info_section(page):
+# -------------------------------------------------------------------------------------------------
+def delivery_info_section(page, address_value=""):
     return section_box(
         "배송 정보",
         ft.Column(
             spacing=0,
             controls=[
-                line_input("이름", "홍길동"),
-                line_input("전화번호", "010-0000-0000"),
-                line_address_input(page, "배송주소"),
+                line_input("이름", hint="최대 10자로 작성해주세요"),
+                line_input("전화번호", hint="010-0000-0000"),
+                line_address_input(page, "배송주소", address_value),
                 dropdown_input(
                     label="배송메모(선택)",
                     options=[
+                        "요청사항을 선택해주세요.",
                         "문 앞에 배송해주세요.",
                         "경비실에 맡겨주세요.",
                         "배송 전에 연락주세요.",
@@ -68,9 +72,9 @@ def delivery_info_section(page):
     )
 
 
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # 주문 상품
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 def order_product_section():
     count_amount = 1
     count_text = ft.Text(str(count_amount), size=14)
@@ -131,9 +135,9 @@ def order_product_section():
     )
 
 
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # 쿠폰 & 적립금
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # def coupon_point_section():
 #     return section_box(
 #         "쿠폰 & 적립금",
@@ -144,9 +148,9 @@ def order_product_section():
 #     )
 
 
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # 결제 금액 요약
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 def payment_summary_section():
     return section_box(
         "최종 결제 금액",
@@ -170,23 +174,23 @@ def payment_method_section():
         ft.Row(
             spacing=8,
             controls=[
-                payment_method_button("카드"),
-                payment_method_button("간편결제"),
+                method_button("카드"),
+                method_button("간편결제"),
             ]
         )
     )
 
 
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # 약관 동의
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 def agreement_section():
     return ft.Container(
         padding=ft.padding.only(left=0, right=15, top=5, bottom=12),
         content=ft.Row(
             spacing=3,
             controls=[
-                ft.Checkbox(value=True, scale=0.9, overlay_color=TEXT_GREY),
+                ft.Checkbox(value=False, scale=0.9, overlay_color=TEXT_GREY),
                 ft.Text(
                     "주문하실 상품 및 결제, 주문정보를 확인했으며 이에 동의합니다. (필수)",
                     size=11.5,
@@ -197,9 +201,9 @@ def agreement_section():
     )
 
 
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # 결제 버튼
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 def payment_button():
     return ft.Container(
         expand=9,
@@ -218,9 +222,9 @@ def payment_button():
     )
 
 
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # 공통 박스 UI
-# ----------------------------
+# -------------------------------------------------------------------------------------------------
 # 구역 박스
 def section_box(title, content):
     return ft.Container(
@@ -251,11 +255,14 @@ def line_input(label, value="", hint=None, password=False, keyboard_type=None):
     text_field = ft.TextField(
                     value=value,
                     hint_text=hint,
+                    hint_style=ft.TextStyle(
+                        color=ft.Colors.GREY_500
+                    ),
                     password=password,
                     keyboard_type=keyboard_type,
                     border=ft.InputBorder.NONE,
                     # height=52,
-                    text_size=15,
+                    text_size=VALUE_TEXT_SIZE,
                     content_padding=ft.padding.only(bottom=10),
                     # text_vertical_align=ft.VerticalAlignment.CENTER,
                 )
@@ -277,7 +284,7 @@ def line_input(label, value="", hint=None, password=False, keyboard_type=None):
                     expand=True,
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
-                        ft.Text(label, size=13, color=TEXT_GREY),
+                        ft.Text(label, size=LABEL_TEXT_SIZE, color=TEXT_GREY),
                         text_field,
                     ],
                 ),
@@ -297,36 +304,32 @@ def line_input(label, value="", hint=None, password=False, keyboard_type=None):
 
 
 # 배송 주소 --------------------------------
-def line_address_input(page, label):
+def line_address_input(page, label, address_value=""):
     address_field = ft.TextField(
-        value="",
+        value=address_value,
         hint_text="배송주소를 등록해주세요.",
+        hint_style=ft.TextStyle(
+            color=ft.Colors.GREY_500
+        ),
         border=ft.InputBorder.NONE,
-        read_only=True,
+        # read_only=True,
         height=30,
-        text_size=15,
+        text_size=VALUE_TEXT_SIZE,
         content_padding=ft.padding.only(bottom=10),
     )
-    
-    def clear_text(e):
-        address_field.value = ""
-        address_field.update()
 
-    def open_address_page(page):
+    def open_address_page(e):
         page.clean()
-
         def receive_address(data):
             page.clean()
-            address_field.value = data["full_address"]
-            shop_page(page)
+            # address_field.value = data["full_address"]
+            shop_page(page, address_value=data["full_address"])
 
         address.main(page, on_complete=receive_address)
     
     return ft.Container(
         margin=ft.margin.only(bottom=12),
         height=52,
-        ink=True,
-        on_click=open_address_page,
         border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -337,30 +340,29 @@ def line_address_input(page, label):
                     expand=True,
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
-                        ft.Text(label, size=13, color=TEXT_GREY),
+                        ft.Text(label, size=LABEL_TEXT_SIZE, color=TEXT_GREY),
                         address_field,
                     ],
                 ),
                 ft.Container(
-                    alignment=ft.Alignment(0, 2),
-                    content=ft.IconButton(
-                        icon=ft.Icons.CANCEL,
-                        icon_size=16,
-                        icon_color=TEXT_GREY,
-                        on_click=clear_text,
-                    )
-                )
+                    alignment=ft.Alignment(0, 0.8),
+                    content=method_button("주소검색", 
+                                          expand=False, 
+                                          width=70, 
+                                          on_click=open_address_page),
+                ),
             ],
         ),
     )
 
 
 # 박스
-def payment_method_button(text):
+def method_button(text, expand=True, width=None, on_click=lambda e: print("클릭")):
     return ft.Container(
-        expand=True,
-        height=24,
-        on_click=lambda e: print(text),
+        expand=expand,
+        height=26,
+        width=width,
+        on_click=on_click,
         bgcolor=ft.Colors.GREY_300,
         border_radius=4,
         alignment=ft.Alignment.CENTER,
@@ -376,13 +378,16 @@ def dropdown_input(label, value=None, options=None):
             spacing=0,
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
-                ft.Text(label, size=11, color=TEXT_GREY),
+                ft.Text(label, size=LABEL_TEXT_SIZE, color=TEXT_GREY),
                 ft.Row(
                     controls=[
                         ft.Dropdown(
                             expand=True,  # 길게
                             value=value,
                             hint_text="요청사항을 선택해주세요.",
+                            hint_style=ft.TextStyle(
+                                color=ft.Colors.GREY_500
+                            ),
                             options=[
                                 ft.DropdownOption(key=opt, text=opt)
                                 for opt in (options or [])
@@ -390,7 +395,7 @@ def dropdown_input(label, value=None, options=None):
                             bgcolor=ft.Colors.WHITE,
                             border=ft.InputBorder.NONE,
                             height=34,
-                            text_size=15,
+                            text_size=VALUE_TEXT_SIZE,
                             content_padding=ft.padding.only(left=0, right=0),
                             trailing_icon=ft.Icons.KEYBOARD_ARROW_DOWN,
                             selected_trailing_icon=ft.Icons.KEYBOARD_ARROW_DOWN,
@@ -404,21 +409,18 @@ def dropdown_input(label, value=None, options=None):
     )
 
 # ---------------------------------------------------------------------------------------------------
-# https://flet-controls-gallery.fly.dev/input/textfield
-
-def shop_payment_content(page):
+def shop_payment_content(page, address_value=""):
     return ft.Column(
         scroll=ft.ScrollMode.AUTO,
         spacing=0,
         controls=[
             orderer_info_section(),
-            delivery_info_section(page),
+            delivery_info_section(page, address_value),
             order_product_section(),
             # coupon_point_section(),
             payment_summary_section(),
             payment_method_section(),
             agreement_section(),
-            payment_button(),
         ]
     )
 
@@ -436,7 +438,7 @@ def shop_payment_content(page):
 #         ]
 #     )
 
-def shop_page(page: ft.Page):
+def shop_page(page: ft.Page, address_value=""):
     page.bgcolor = ft.Colors.WHITE
     page.scroll = ft.ScrollMode.AUTO
 
@@ -452,9 +454,9 @@ def shop_page(page: ft.Page):
                             # dogdog.sub_top_bar()
                             # top_banner,
 
-                            shop_payment_content(page),
+                            shop_payment_content(page, address_value),
 
-                            # dogdog.bottom_nav()
+                            payment_button(),
                         ]
                     )
         )

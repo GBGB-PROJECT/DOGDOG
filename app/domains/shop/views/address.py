@@ -1,4 +1,6 @@
 import flet as ft
+#flet run --web domains/shop/views/address.py
+
 
 def main(page: ft.Page, on_complete=None):
     import requests
@@ -17,7 +19,8 @@ def main(page: ft.Page, on_complete=None):
     result_column = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True) # 결과 내역
     search_input = ft.TextField(label="도로명 주소, 건물명 검색", expand=True, autofocus=True) # 찾기 창(input)
     error_label = ft.Text(size=15, color="red") # 에러 라벨 자체
-    search_button = ft.Button("검색", icon=ft.Icons.SEARCH) # 찾기 버튼
+    # search_button = ft.Button("검색", icon=ft.Icons.SEARCH) # 찾기 버튼
+    search_button = ft.IconButton(ft.Icons.SEARCH, icon_size=30) # 찾기 버튼
     ## 팝업 UI 컴포넌트를 미리 생성해줌
     check_popup = ft.AlertDialog(
         modal=True,
@@ -94,7 +97,7 @@ def main(page: ft.Page, on_complete=None):
             result_column.controls.append(ft.Text("시스템 오류입니다. 다시 검색하세요.", size=15, color="red"))
             print(f"서버API오류 발생: {ex}")
 
-    ## 3-5. 기존 검색창에에서 주소를 클릭하면 상세주소입력모드로 변경하기
+    ## 3-5. 기존 검색창에에서 주소를 클릭하면 입력모드로 변경상세주소하기
     async def on_address_select(e):
         ## send_page 전송 목적으로 data를 준비해준다.
         search_input.data = e.control.data
@@ -159,12 +162,14 @@ def main(page: ft.Page, on_complete=None):
             "full_address": f'{save_data["road"]} {detail_addr}'.strip(),
         }
 
+        print(f"우편번호: {save_data['zip']}")
+        print(f"지번주소: {save_data['jibun']}")
+        print(f"상세주소: {detail_addr}")
+
         if on_complete:
             on_complete(result)
+            
         else:
-            print(f"우편번호: {save_data['zip']}")
-            print(f"지번주소: {save_data['jibun']}")
-            print(f"상세주소: {detail_addr}")
             page.clean()
 
     ## 3-8. input 내용이 변경될때마다 적용하는 함수로: error 텍스트가 None되도록 하는 함수이다.
@@ -217,7 +222,7 @@ def main(page: ft.Page, on_complete=None):
         scroll=ft.ScrollMode.AUTO,
         expand=True,
         controls=[
-            ft.Text("주소 검색", size=25, weight="bold"),
+            ft.Text("주소 검색", size=20, weight="bold"),
             ft.Row(
                 controls=[
                     search_input,
@@ -230,6 +235,7 @@ def main(page: ft.Page, on_complete=None):
     )
     page.show_dialog(bottom_tip_sheet)
     page.add(content)
+    
 
 if __name__ == "__main__":
     # ft.run(main)

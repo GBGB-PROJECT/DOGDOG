@@ -10,6 +10,7 @@ from app.calc_feeding.repository.cal_guideIntake_repository import (
     get_feeding_count,
     create_feeding_recommendation,
 )
+from app.calc_feeding.repository.guideIntake_repository import get_guide_intake
 
 # from app.ai.inference.predictor import predict_recommend_g
 from app.ai.recommend import predict_recommend_g
@@ -211,4 +212,43 @@ def create_feeding_recommendation_service(db: Session, pet_id: int, commit: bool
         "adjustment_reason": build_adjustment_reason(adjustment_ratio),
         "recommend_kcal": round(recommend_kcal, 2),
         "goal_weight": round(goal_weight, 2),
+    }
+def get_one_time_feeding_amount_service(db: Session, pet_id: int):
+    """
+    1회 권장 급여량 계산 서비스
+    """
+    # 1. 권장 급여량 조회 (Feeding Guide)
+    guide = get_guide_intake(db, pet_id)
+    if not guide:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "success": False,
+                "error_code": "FEEDING_GUIDE_NOT_FOUND",
+                "message": "저장된 권장 급여량 정보가 없습니다. 먼저 AI 추천을 실행해 주세요."
+            }
+        )
+
+    # 2. 급여 횟수 조회 (Pet)
+    feeding_count = get_feeding_count(db, pet_id)
+    
+    # 방어 로직: feeding_count가 없거나 0인 경우 기본값 1 적용 또는 에러 처리
+    if feeding_count is None or feeding_count <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "success": False,
+                "error_code": "INVALID_FEEDING_COUNT",
+                "message": "반려견의 하루 급여 횟수 설정이 올바르지 않습니다. (현재: 0 또는 None)"
+            }
+        )
+
+    # 3. 1회 급여량 계산
+    one_time_intake = round(guide.guide_intake / feeding_count, 2)
+
+    return {
+        "pet_id": pet_id,
+        "guide_intake": guide.guide_intake,
+        "feeding_count": feeding_count,
+        "one_time_intake": one_time_intake
     }

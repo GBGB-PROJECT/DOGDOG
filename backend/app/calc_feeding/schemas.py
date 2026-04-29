@@ -33,3 +33,14 @@ class GuideIntakeResponse(BaseModel):
     success: bool
     message: str
     data: GuideIntakeData
+
+class OneTimeFeedingData(BaseModel):
+    pet_id: int
+    guide_intake: float
+    feeding_count: int
+    one_time_intake: float
+
+class OneTimeFeedingResponse(BaseModel):
+    success: bool
+    message: str
+    data: OneTimeFeedingData

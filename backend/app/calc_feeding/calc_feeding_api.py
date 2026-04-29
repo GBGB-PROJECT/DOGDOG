@@ -5,8 +5,15 @@ from sqlalchemy.orm import Session
 from db.db import get_db
 from app.calc_feeding.repository.guideIntake_repository import get_guide_intake, get_feeding_count
 from dependencies import get_pet_by_id, check_pet_owner, get_current_user
-from app.calc_feeding.cal_guideIntake_service import create_feeding_recommendation_service
-from app.calc_feeding.schemas import CalcFeedingRecommendationResponse, GuideIntakeResponse
+from app.calc_feeding.cal_guideIntake_service import (
+    create_feeding_recommendation_service,
+    get_one_time_feeding_amount_service,
+)
+from app.calc_feeding.schemas import (
+    CalcFeedingRecommendationResponse,
+    GuideIntakeResponse,
+    OneTimeFeedingResponse,
+)
 
 router = APIRouter(prefix="/api/v1/calc_feeding", tags=["Calc Feeding"])
 
@@ -138,4 +145,29 @@ def read_guide_intake(
                 "message": "권장 급여량 조회에 실패했습니다."
             }
         )
+
+# 1회 권장 급여량 조회
+@router.get("/{pet_id}/one-time", response_model=OneTimeFeedingResponse)
+def get_one_time_feeding_amount(
+    pet_id: int,
+    customer_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    [1회 권장 급여량 조회] 일일 권장 급여량을 급여 횟수로 나누어 반환합니다.
+    """
+    # 1. 권한 확인
+    if not check_pet_owner(db, pet_id, customer_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다."
+        )
+
+    # 2. 서비스 호출
+    result = get_one_time_feeding_amount_service(db, pet_id)
+
+    return {
+        "success": True,
+        "message": "1회 권장 급여량을 조회했습니다.",
+        "data": result
+    }
     

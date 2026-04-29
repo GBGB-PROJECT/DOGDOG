@@ -107,11 +107,9 @@ def history_view(page: ft.Page):
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
                 dogdog.flat_button(
-                    "삭제", disabled=False, scale=1, visible=visible,
-                    on_click=lambda e:history_delete(e)),
+                    "삭제", visible=visible, on_click=lambda e:history_delete(e)),
                 dogdog.flat_button(
-                    "수정", disabled=False, scale=1, bgcolor="#FEF3B9", visible=visible, # type: ignore
-                    on_click=None),
+                    "수정", bgcolor="#FEF3B9", visible=visible, on_click=None), # type: ignore
             ] # type: ignore
         )
 
@@ -137,7 +135,7 @@ def history_view(page: ft.Page):
                 ]),
                 insert_grid,
                 ft.TabBar(indicator_size=ft.TabBarIndicatorSize.TAB, divider_height=0,
-                    tabs=logs_tab, label_text_style=dogdog.TextStyle(size=14)), # type: ignore
+                    tabs=logs_tab, label_text_style=dogdog.TextStyle(size=14, height=-1)), # type: ignore
                 ft.Divider(height=1),
                 ft.TabBarView(expand=True, margin=ft.margin.only(top=10), 
                     controls=logs_content) if len(all_log) > 0 else ft.Container( # type: ignore

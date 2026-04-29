@@ -169,7 +169,7 @@ class StatusController:
         self.guide_bottom_sheet_content.append(
             ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[dogdog.basic_text(
                 f"{"배변 스코어란?" if route == "bowel" else "BCS 란?"}", size=25, weight="bold"),
-                dogdog.flat_button("닫기", on_click=lambda e:guide_close(e), disabled=False)]))
+                dogdog.flat_button("닫기", on_click=lambda e:guide_close(e), scale=0.8)]))
         self.guide_bottom_sheet_content.append(ft.Divider())
         self.guide_bottom_sheet_content.append(
             ft.Column(expand=True, scroll=ft.ScrollMode.HIDDEN, 
@@ -190,10 +190,9 @@ def bottom_sheet(e, page: ft.Page, popup, call):
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
                 dogdog.flat_button(
-                    "취소", disabled=False, scale=1,
-                    on_click=lambda e, menu=call, content="cancel": s_control.button_event(e, call,content)),
+                    "취소", on_click=lambda e, menu=call, content="cancel": s_control.button_event(e, call,content)),
                 dogdog.flat_button(
-                    "저장", disabled=False, scale=1, bgcolor="#FEF3B9", # type: ignore
+                    "저장", bgcolor="#FEF3B9", # type: ignore
                     on_click=lambda e, menu=call, content="save": s_control.button_event(e, call, content)),
             ] # type: ignore
         )
@@ -260,11 +259,11 @@ def bottom_sheet(e, page: ft.Page, popup, call):
             ])
             setting_content = [
                 dogdog.flat_button(
-                    "등록하러가기", disabled=False, scale=1, bgcolor="#FEF3B9", # type: ignore 
+                    "등록하러가기", bgcolor="#FEF3B9", # type: ignore 
                     on_click=lambda e, menu=call, content="feeding_add": 
                     s_control.button_event(e, call, content)),
                 dogdog.flat_button(
-                    "나중에 등록할께요", disabled=False, scale=1,
+                    "나중에 등록할께요",
                     on_click=lambda e, menu=call, content="cancel": 
                     s_control.button_event(e, call, content)),
             ] # type: ignore

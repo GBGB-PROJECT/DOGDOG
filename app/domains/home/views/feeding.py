@@ -30,7 +30,7 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
             dogdog.basic_text(value=feeding_data["product_name"], weight="bold")
         ]),
         ft.Column(
-            controls=[dogdog.flat_button(text="변경", on_click=feeding_edit_event ,disabled=False)]
+            controls=[dogdog.flat_button(text="변경", scale=0.8, on_click=feeding_edit_event)]
     )] if feeding_data else [dogdog.basic_text(spans=[
         ft.TextSpan(" 등록된 제품이 없습니다."),
         # ft.TextSpan("\n제품을 등록하시겠습니까?")
@@ -46,10 +46,10 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                 dogdog.basic_text(spans=[
                     ft.TextSpan(
                         text=f"{feeding_food_weight if feeding_food_weight != 0 else "???"}g",
-                        style=dogdog.TextStyle(size=16)),
+                        style=dogdog.TextStyle(size=16, height=-1)),
                     ft.TextSpan(text=f" / {view_product_weight}")
                 ], color=ft.Colors.GREY_400, weight="bold", size=16),
-                dogdog.flat_button(text=f"{feeding_data["left_food_count"] if feeding_data else "?"} 일치 남음", scale=0.7),
+                dogdog.flat_button(text=f"{feeding_data["left_food_count"] if feeding_data else "?"} 일치 남음", scale=0.7, disabled=True),
             ]),
             ft.ProgressBar(
                 height=10,
@@ -119,9 +119,9 @@ def feeding_tabs_view(page: ft.Page):
                 ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                     ft.TabBar(
                         indicator_size=ft.TabBarIndicatorSize.TAB, divider_height=0,
-                        tabs=feeding_tabs, label_text_style=dogdog.TextStyle(size=14), expand=True),  # type: ignore
+                        tabs=feeding_tabs, label_text_style=dogdog.TextStyle(size=14), expand=True, height=-1),  # type: ignore
                     dogdog.flat_button(
-                        text="사료 등록", icon=ft.Icons.EDIT, on_click=lambda _: page.go("/feeding_add"), disabled=False)
+                        text="사료 등록", scale=0.8, icon=ft.Icons.EDIT, on_click=lambda _: page.go("/feeding_add"))
                 ]),
                 ft.Divider(height=1),
                 ft.TabBarView(expand=True, margin=ft.margin.only(top=10), controls=feeding_content), # type: ignore

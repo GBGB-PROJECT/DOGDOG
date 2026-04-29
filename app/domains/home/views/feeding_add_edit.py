@@ -108,22 +108,18 @@ def feeding_add_edit(page: ft.Page, view):
         column_text = "현재 급여 중인 사료"
         feeding_setting_content = [
             dogdog.flat_button(
-                text="삭제", scale=1, disabled=False,
-                on_click=lambda e, content="delete": button_event(e, content)),
+                text="삭제", on_click=lambda e, content="delete": button_event(e, content)),
             dogdog.flat_button(bgcolor="#FEF3B9", # type: ignore
-                text="수정", scale=1, disabled=False,
-                on_click=lambda e, content="edit": button_event(e, content)),
+                text="수정", on_click=lambda e, content="edit": button_event(e, content)),
             dogdog.flat_button(bgcolor="#FEF3B9", # type: ignore
-                text="저장", scale=1, disabled=False,
-                on_click=lambda e, content="save": button_event(e, content))
+                text="저장", on_click=lambda e, content="save": button_event(e, content))
         ]
         food_select_field.color = ft.Colors.BLACK
     # ---------------------------------------------------------------------------------------------------
     elif view == "add":
         column_text = "신규 등록 사료"
         feeding_setting_content = [dogdog.flat_button(bgcolor="#FEF3B9", # type: ignore
-                text="저장", scale=1, disabled=False,
-                on_click=lambda e, content="add_save": button_event(e, content))]
+                text="저장", on_click=lambda e, content="add_save": button_event(e, content))]
         food_select_field.value = "사료를 선택해주세요."
     selected_food_weight = dogdog.input_textfield(
         hint_text="사료의 잔여량을 적어주세요", input_type="int", suffix="g", on_change=on_change)

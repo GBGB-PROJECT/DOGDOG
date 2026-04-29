@@ -55,7 +55,7 @@ class Front_dogdog:
         # Init First View
         # -----------------------------------------------------------------------------------------------
         page.views.clear()
-        target_route = "/shop" if self.is_onboarding_complete else "/sign_up"
+        target_route = "/shop/product/14" if self.is_onboarding_complete else "/sign_up"
         if self.page.route == target_route: self.routing_view(page_name=target_route)
         else: page.go(target_route)
     # ---------------------------------------------------------------------------------------------------

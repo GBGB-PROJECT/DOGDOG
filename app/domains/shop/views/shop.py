@@ -128,9 +128,11 @@ def product_guide(page: ft.Page):
     # Background Guide Page Event
     # ---------------------------------------------------------------------------------------------------
     async def timesleep():
-        for i in range(999):
-            await asyncio.sleep(5)
-            product_guide_page("forward")
+        try:
+            for i in range(999):
+                await asyncio.sleep(5)
+                product_guide_page("forward")
+        except: pass
     page.run_task(timesleep)
     # ---------------------------------------------------------------------------------------------------
     return ft.Container(

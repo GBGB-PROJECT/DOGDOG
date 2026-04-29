@@ -1,0 +1,28 @@
+[project]
+name = "Dogdog"
+version = "0.1.0"
+description = "Test Build APK"
+requires-python = ">=3.9"
+[tool.flet.app]
+exclude = [
+    ".idea",
+    ".original",
+    ".re_original",
+    ".test",
+    ".junhwan",
+    ".venv",
+    ".git",
+    "__pycache__",
+    "components/__pycache__",
+    "components/common/__pycache__",
+    "components/layout/__pycache__",
+    "domains/__pycache__",
+    "domains/home/views/__pycache__",
+    "domains/logs/views/__pycache__",
+    "domains/mypage/views/__pycache__",
+    "domains/onboarding/views/__pycache__",
+    ".vscode",
+    ".gitignore",
+    "flet_linux_basic.sh",
+    "flet_windows_basic.bat",
+]

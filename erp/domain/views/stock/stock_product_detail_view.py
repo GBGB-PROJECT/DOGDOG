@@ -245,9 +245,10 @@ def normalize_to_date(value):
     if not value:
         return None
 
-    # 🔥 +9 / -9 시간 보정 없이 DatePicker 선택값 그대로 사용
+    # 🔥 수정: 생산관리 DatePicker와 동일하게 +9시간 보정 후 날짜만 사용
+    # - Flet DatePicker가 UTC 기준 값으로 들어와 하루 전날로 표시되는 문제 방지
     if isinstance(value, datetime.datetime):
-        return value.date()
+        return (value + datetime.timedelta(hours=9)).date()
 
     if isinstance(value, datetime.date):
         return value
@@ -260,7 +261,16 @@ def erp_stock_product_detail_view():
 
     initial_prefilter = _consume_stock_product_detail_prefilter()
 
+    # 🔥 수정: 검색조건과 DatePicker 날짜기준을 분리
+    # - 입력 검색조건: 텍스트/숫자로 검색할 컬럼
+    # - 날짜기준: DatePicker가 조회할 날짜 컬럼(유통기한/입고일자)
     initial_search_type = initial_prefilter.get("search_type") or "product_id"
+    initial_date_filter_type = initial_prefilter.get("date_filter_type") or "expiration_date"
+
+    if initial_search_type in {"expiration_date", "inbound_date"}:
+        initial_date_filter_type = initial_search_type
+        initial_search_type = "product_id"
+
     if initial_search_type not in {
         "product_id",
         "brand",
@@ -271,11 +281,9 @@ def erp_stock_product_detail_view():
         "sale_stock",
         "scrap_stock",
         "stock_available",
-        "expiration_date",
     }:
         initial_search_type = "product_id"
 
-    initial_date_filter_type = initial_prefilter.get("date_filter_type") or "expiration_date"
     if initial_date_filter_type not in {"expiration_date", "inbound_date"}:
         initial_date_filter_type = "expiration_date"
 
@@ -294,7 +302,13 @@ def erp_stock_product_detail_view():
         "sale_stock": "판매재고",
         "scrap_stock": "폐기재고",
         "stock_available": "가용재고",
+    }
+
+    # 🔥 추가: DatePicker 전용 날짜 기준
+    # - 검색창에 날짜를 직접 입력하지 않고, 기간 선택은 이 드롭다운 기준으로 처리
+    date_filter_labels = {
         "expiration_date": "유통기한",
+        "inbound_date": "입고일자",
     }
 
     # =========================================================
@@ -463,12 +477,33 @@ def erp_stock_product_detail_view():
         text_align=ft.TextAlign.CENTER,
     )
 
+    date_filter_text = ft.Text(
+        value=date_filter_labels[date_filter_type_value["value"]],
+        size=13,
+        color=FIELD_TEXT,
+        weight=ft.FontWeight.W_500,
+        text_align=ft.TextAlign.CENTER,
+    )
+
     rows_state = []
 
-    def set_search_type(value: str):
+    def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
         search_type_text.value = search_type_labels[value]
-        search_type_text.update()
+
+        if page:
+            page.update()
+        else:
+            search_type_text.update()
+
+    def set_date_filter_type(value: str, page: ft.Page | None = None):
+        date_filter_type_value["value"] = value
+        date_filter_text.value = date_filter_labels[value]
+
+        if page:
+            page.update()
+        else:
+            date_filter_text.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -484,8 +519,62 @@ def erp_stock_product_detail_view():
                     text_align=ft.TextAlign.CENTER,
                 ),
             ),
-            on_click=lambda e: set_search_type(value),
+            on_click=lambda e: set_search_type(value, e.page),
         )
+
+    def build_date_filter_menu_item(label: str, value: str):
+        return ft.PopupMenuItem(
+            height=34,
+            content=ft.Container(
+                padding=ft.Padding.only(left=2, right=2),
+                alignment=ft.Alignment(0, 0),
+                content=ft.Text(
+                    value=label,
+                    size=13,
+                    color=FIELD_TEXT,
+                    weight=ft.FontWeight.W_500,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ),
+            on_click=lambda e: set_date_filter_type(value, e.page),
+        )
+
+    date_filter_type = ft.Container(
+        width=150,
+        height=38,
+        bgcolor=FIELD_BG,
+        border=ft.Border.all(1, FIELD_BORDER),
+        border_radius=6,
+        padding=ft.Padding.only(left=12, right=4),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
+                    content=date_filter_text,
+                ),
+                ft.PopupMenuButton(
+                    tooltip="날짜 기준 선택",
+                    content=ft.Container(
+                        width=24,
+                        height=24,
+                        alignment=ft.Alignment(0, 0),
+                        content=ft.Icon(
+                            ft.Icons.ARROW_DROP_DOWN,
+                            size=18,
+                            color="#4B5563",
+                        ),
+                    ),
+                    items=[
+                        build_date_filter_menu_item(label, value)
+                        for value, label in date_filter_labels.items()
+                    ],
+                ),
+            ],
+        ),
+    )
 
     search_type = ft.Container(
         width=150,
@@ -793,7 +882,7 @@ def erp_stock_product_detail_view():
             else "미선택"
         )
 
-        date_filter_label = "입고일자" if date_filter_type_value["value"] == "inbound_date" else "유통기한"
+        date_filter_label = date_filter_labels.get(date_filter_type_value["value"], "유통기한")
 
         if pagination_state["total_count"] == 0:
             result_text.value = (
@@ -869,6 +958,7 @@ def erp_stock_product_detail_view():
                 start_icon_holder,
                 end_field_holder,
                 end_icon_holder,
+                date_filter_type,
                 search_type,
                 search_field,
                 action_button(

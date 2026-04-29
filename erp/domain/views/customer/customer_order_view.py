@@ -170,6 +170,9 @@ def erp_customer_order_view():
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
 
+    # 🔥 추가: 검색/날짜 조건 사용 후에만 보이는 초기화 버튼 자리
+    reset_button_holder = ft.Container(visible=False)
+
     # =========================================================
     # 🔥 수정: 배송지 컬럼 추가에 맞춰 컬럼 비율 재조정
     # =========================================================
@@ -231,6 +234,7 @@ def erp_customer_order_view():
                 selected_end["value"] = selected_start["value"]
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     def on_end_date_change(e):
@@ -244,6 +248,7 @@ def erp_customer_order_view():
                 selected_end["value"] = corrected_date
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     start_date_picker = ft.DatePicker(
@@ -289,10 +294,26 @@ def erp_customer_order_view():
         weight=ft.FontWeight.W_500,
     )
 
-    def set_search_type(value: str):
+    def update_reset_button_visibility():
+        # 🔥 추가: 기본 상태가 아니면 초기화 버튼 표시
+        has_filter = (
+            selected_start["value"] is not None
+            or selected_end["value"] is not None
+            or (search_field.value or "").strip() != ""
+            or search_type_value["value"] != "order_number"
+            or (pagination_state["keyword"] or "").strip() != ""
+        )
+        reset_button_holder.visible = has_filter
+
+    def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
         search_type_text.value = search_type_labels[value]
-        search_type_text.update()
+        update_reset_button_visibility()
+
+        if page:
+            page.update()
+        else:
+            search_type_text.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -301,7 +322,7 @@ def erp_customer_order_view():
                 alignment=ft.Alignment(-1, 0),
                 content=ft.Text(label, size=13, color=FIELD_TEXT, weight=ft.FontWeight.W_500),
             ),
-            on_click=lambda e: set_search_type(value),
+            on_click=lambda e: set_search_type(value, e.page),
         )
 
     search_type = ft.Container(
@@ -547,9 +568,31 @@ def erp_customer_order_view():
         pagination_state["keyword"] = (search_field.value or "").strip()
         pagination_state["current_page"] = 1
         reload_current_page()
+        update_reset_button_visibility()
+        e.page.update()
+
+    def on_reset_click(e):
+        # 🔥 추가: 검색/날짜 조건을 전부 기본값으로 되돌리고 첫 화면 재조회
+        selected_start["value"] = None
+        selected_end["value"] = None
+
+        search_type_value["value"] = "order_number"
+        search_type_text.value = search_type_labels["order_number"]
+        search_field.value = ""
+
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+
+        refresh_picker_fields()
+        reload_current_page()
+        update_reset_button_visibility()
         e.page.update()
 
     refresh_picker_fields()
+
+    # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
+    update_reset_button_visibility()
 
     pagination_state["keyword"] = ""
     pagination_state["current_page"] = 1
@@ -576,6 +619,7 @@ def erp_customer_order_view():
                         search_type,
                         search_field,
                         action_button("조회", on_click=on_search_click),
+                        reset_button_holder,
                         action_button("인쇄"),
                         action_button("다운로드", width=92),
                     ],

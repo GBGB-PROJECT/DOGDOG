@@ -22,7 +22,7 @@ def notification_dummy(page: ft.Page):
                 ),
                 ft.Row(
                     alignment=ft.MainAxisAlignment.END,
-                    controls=[dogdog.basic_text(f"25.{i if i >= 10 else f'0{i}'}.20")],
+                    controls=[dogdog.basic_text(f"25.{i:02d}.20")],
                 ),
             ],
         )

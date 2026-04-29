@@ -46,11 +46,11 @@ class PetfoodController:
                 key="food_text"
             )
 
-        self.food_list = dogdog.update_item_list(
+        dogdog.update_item_list(
             list_column=self.food_list_column,
             search_data=[],
             select_key=None,
-            select_value=self.select_food,
+            select_value=lambda k, v: self.page.run_task(self.select_food, k, v),
             keyword="",
         )
 
@@ -140,11 +140,11 @@ class PetfoodController:
                 ]
 
                 # UI 바인딩
-                self.food_list = dogdog.update_item_list(
+                dogdog.update_item_list(
                     list_column=self.food_list_column,
                     search_data=search_list,
                     select_key=self.selected_product_detail_id,
-                    select_value=self.select_food,
+                    select_value=lambda k, v: self.page.run_task(self.select_food, k, v),
                     keyword=keyword,
                 )
                 self.page.update()

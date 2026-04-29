@@ -346,6 +346,7 @@ class CompanionPetFood(Base):
     feeding_date = Column(
         Date, primary_key=True, nullable=False, server_default=text("current_date")
     )
+    feeding_time = Column(Time, nullable=True)
     last_update = Column(DateTime, nullable=False, server_default=text("now()"))
 
     pet = relationship("CompanionPet", back_populates="pet_food_logs")

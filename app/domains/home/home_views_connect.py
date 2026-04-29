@@ -6,7 +6,13 @@ import datetime
 from .home_controller import HomeController  # 같은 폴더의 컨트롤러를 가져옵니다.
 
 # -------------------------------------------------------------------------------------------------------
-async def home_tile(page: ft.Page, content_page: str, change_page_callback=None):
+async def home_tile(
+    page: ft.Page,
+    popup,
+    content_page: str,
+    change_page_callback=None,
+    on_refresh_callback=None,
+):
     """
     [View] home_tile
     역할: 홈 도메인의 화면 구성을 담당합니다.
@@ -87,21 +93,55 @@ async def home_tile(page: ft.Page, content_page: str, change_page_callback=None)
             )
         ]))
         
-        # 추가 카드 섹션들
-        body_column.controls.append(
-            dogdog.content_container(
-                content_list=domains.home.now_history(page=page),
-                on_click=lambda e: popup.show_popup_open(e, "bottom_sheet")
-            )
+        # 오늘의 기록 (칼로리 & 활동 요약) 카드
+        history_card = dogdog.content_container(
+            content_list=domains.home.now_history(page=page, popup=popup),
+            on_click=lambda e: popup.show_popup_open(e, "bottom_sheet")
         )
+        body_column.controls.append(history_card)
         body_column.expand = False
+
+        # 사료 잔여량 게이지 카드
+        inventory_card = dogdog.content_container(
+            content_list=domains.home.feeding_food_count(page=page, content_page="/home"),
+            on_click=lambda e: appbar_on_change(e, "/feeding")
+        )
+        body_scroll_column.controls.append(inventory_card)
+
+        # 상태 업데이트 메뉴 (밥주기 버튼 등)
+        # 콜백 정의: 저장 성공 시 실행됨
+        async def local_refresh_callback():
+            print("🔥 [DEBUG] 새로고침 콜백 실행됨!")
+            pet_id = page.session.store.get("pet_id")
+            if not pet_id:
+                print("⚠️ [DEBUG] pet_id가 없어 새로고침을 중단합니다.")
+                return
+            
+            # 1. 데이터 리패치 (Controller를 통해 세션 업데이트)
+            print(f"🔄 [DEBUG] 데이터 리패치 시도 (Pet ID: {pet_id})")
+            await controller.fetch_dashboard_data(pet_id)
+            
+            # 2. 부모(main.py)의 콜백이 있다면 실행 (라우팅 포함)
+            if on_refresh_callback:
+                print("🚀 [DEBUG] 부모 refresh_home_data 호출")
+                await on_refresh_callback()
+            else:
+                # 부모 콜백이 없을 경우를 대비한 자체 강제 렌더링
+                print("♻️ [DEBUG] 자체 UI 강제 재렌더링 실행")
+                history_card.content.controls = domains.home.now_history(page=page, popup=popup)
+                inventory_card.content.controls = domains.home.feeding_food_count(page=page, content_page="/home")
+                history_card.update()
+                inventory_card.update()
+            
+            print("✅ [DEBUG] 대시보드 새로고침 완료")
+
         body_scroll_column.controls.append(
-            dogdog.content_container(
-                content_list=domains.home.feeding_food_count(page=page),
-                on_click=lambda e: appbar_on_change(e, "/feeding")
+            domains.grid.status_update_menu(
+                page=page, 
+                popup=popup, 
+                on_refresh_callback=local_refresh_callback
             )
         )
-        body_scroll_column.controls.append(domains.grid.status_update_menu(page=page))
 
     # [참고] 다른 페이지들(log, shop 등)도 동일하게 home_layout을 사용하여 렌더링됩니다.
     elif content_page in ["/log", "/shop", "/contents", "/mypage", "/history", "/notification"]:
@@ -115,7 +155,11 @@ async def home_tile(page: ft.Page, content_page: str, change_page_callback=None)
     elif content_page == "/feeding":
         home_background, top_banner = dogdog.home_layout(page=page, text="급여 중인 제품")
         main_container_content.append(top_banner)
-        main_container_content.append(domains.feeding.feeding_tabs_view(page=page))
+        main_container_content.append(
+            domains.feeding.feeding_tabs_view(
+                page=page, on_refresh_callback=local_refresh_callback
+            )
+        )
 
     elif content_page == "/feeding_edit":
         home_background, top_banner = dogdog.home_layout(page=page, text="제품 정보 변경")

@@ -126,7 +126,7 @@ def now_history(page: ft.Page, popup):
             ]
         ),
         ft.Row(
-            spacing=0,
+            spacing=10,
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
                 dogdog.flat_button(f"급여량: {current_amount}g"),

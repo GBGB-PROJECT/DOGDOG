@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, time
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -18,6 +18,7 @@ class FeedingCreate(BaseModel):
     pet_id: int
     amount: int = Field(gt=0, description="급여량(g)은 0보다 커야 합니다.")
     feeding_date: Optional[date] = None
+    feeding_time: Optional[time] = None
     memo: Optional[str] = Field(None, max_length=200)
 
 
@@ -25,6 +26,7 @@ class FeedingUpdate(BaseModel):
     amount: Optional[int] = Field(None, gt=0)
     memo: Optional[str] = Field(None, max_length=200)
     new_feeding_date: Optional[date] = None
+    feeding_time: Optional[time] = None
 
 
 # --- Router ---
@@ -60,6 +62,7 @@ def register_feeding(
             pet_id=request.pet_id,
             amount=request.amount,
             feeding_date=request.feeding_date,
+            feeding_time=request.feeding_time,
             memo=request.memo,
         )
 
@@ -71,6 +74,7 @@ def register_feeding(
                 "pet_id": log.pet_id,
                 "amount": log.amount,
                 "feeding_date": log.feeding_date,
+                "feeding_time": log.feeding_time,
                 "inventory": {
                     "total_intake": float(inven.total_intake) if inven else 0,
                     "food_count": inven.food_count if inven else 0,
@@ -152,6 +156,7 @@ def update_feeding(
                 "amount": updated_log.amount,
                 "calories": updated_log.calories,
                 "feeding_date": updated_log.feeding_date,
+                "feeding_time": updated_log.feeding_time,
                 "memo": updated_log.memo,
                 "last_update": updated_log.last_update,
             },

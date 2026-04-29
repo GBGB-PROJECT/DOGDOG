@@ -29,7 +29,7 @@ def products(page, data_dict, image_size):
                     p_id, 
                     p_d["thumbnail"], 
                     image_size, 
-                    f"{p_d["brand"]} {p_d["product_name"]}", 
+                    f"{p_d['brand']} {p_d['product_name']}", 
                     f"{int(p_d['sales_price']):,}원"
                 )
             )

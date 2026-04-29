@@ -67,47 +67,48 @@ def micro_box(text):
 
 
 def log_view(page: ft.Page):
-    page.padding = 0
-    page.spacing = 0
-    page.vertical_alignment = ft.MainAxisAlignment.START
-    page.bgcolor = SURFACE_WHITE
-    page.appbar = None
+    if len(page.views) > 0:
+        page.padding = 0
+        page.spacing = 0
+        page.vertical_alignment = ft.MainAxisAlignment.START
+        page.bgcolor = SURFACE_WHITE
+        page.appbar = None
 
-    today = datetime.date.today()
+        today = datetime.date.today()
 
-    current_year = today.year
-    current_month = today.month
-    selected_date = today
+        current_year = today.year
+        current_month = today.month
+        selected_date = today
 
-    selected_banner = {"index": None}
-    selected_metric = "급여량"
+        selected_banner = {"index": None}
+        selected_metric = "급여량"
 
-    calendar_container = ft.Container()
-    detail_banner_area = ft.Container()
-    chart_container = ft.Container(padding=20)
-    metric_selector_container = ft.Container()
+        calendar_container = ft.Container()
+        detail_banner_area = ft.Container()
+        chart_container = ft.Container(padding=20)
+        metric_selector_container = ft.Container()
 
-    chart_data_map = {
-        "급여량": [
-            ("월요일", 2.8),
-            ("화요일", 3.0),
-            ("수요일", 3.4),
-            ("목요일", 3.1),
-            ("금요일", 3.6),
-            ("토요일", 3.8),
-            ("일요일", 3.3),
-        ],
-        "음수량": [],
-        "몸무게": [
-            ("월요일", 2.2),
-            ("화요일", 2.3),
-            ("수요일", 4.2),
-            ("목요일", 2.0),
-            ("금요일", 5.0),
-            ("토요일", 6.2),
-            ("일요일", 3.9),
-        ],
-    }
+        chart_data_map = {
+            "급여량": [
+                ("월요일", 2.8),
+                ("화요일", 3.0),
+                ("수요일", 3.4),
+                ("목요일", 3.1),
+                ("금요일", 3.6),
+                ("토요일", 3.8),
+                ("일요일", 3.3),
+            ],
+            "음수량": [],
+            "몸무게": [
+                ("월요일", 2.2),
+                ("화요일", 2.3),
+                ("수요일", 4.2),
+                ("목요일", 2.0),
+                ("금요일", 5.0),
+                ("토요일", 6.2),
+                ("일요일", 3.9),
+            ],
+        }
 
     # ============================================================
     # ✅ 달력 관련 함수

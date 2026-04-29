@@ -109,7 +109,7 @@ class FeedingService:
 
     # 급여 기록 등록
     def register_feeding(
-        self, customer_id: int, pet_id: int, amount: int, feeding_date=None, memo=None
+        self, customer_id: int, pet_id: int, amount: int, feeding_date=None, feeding_time=None, memo=None
     ):
         """[등록] 새로운 급여 기록을 등록하고 사료 재고 및 예상 소진일을 업데이트합니다."""
         if amount <= 0:
@@ -142,6 +142,7 @@ class FeedingService:
             amount=amount,
             calories=cal,
             feeding_date=feeding_date,
+            feeding_time=feeding_time,
             memo=memo,
             food_type=f_type,
         )
@@ -211,6 +212,9 @@ class FeedingService:
         if "memo" in new_data:
             log.memo = new_data["memo"]
 
+        if "feeding_time" in new_data:
+            log.feeding_time = new_data["feeding_time"]
+
         # 현재 사료 기간의 기록만 재고에 반영
         inven = None
         if is_current_period:
@@ -240,6 +244,7 @@ class FeedingService:
                 "calories": log.calories,
                 "memo": log.memo,
                 "feeding_date": new_date,
+                "feeding_time": log.feeding_time,
                 "food_type": log.food_type,
             }
             self.repo.delete_log(log)

@@ -49,6 +49,35 @@ class HomeController:
             print(f"[HomeController] fetch_pets_data 중 예외 발생: {e}")
             return {}
 
+    async def fetch_dashboard_data(self, pet_id: int):
+        """
+        특정 반려동물의 대시보드 요약 데이터를 가져와 세션에 업데이트합니다.
+        (급여량, 음수량, 산책량, 사료 잔여량 등)
+        """
+        try:
+            # 1. API 호출 (GET /api/v1/home/dashboard/{pet_id})
+            response = await self.api_client.get(f"/home/dashboard/{pet_id}")
+            
+            if response.status_code == 200:
+                # 2. 데이터 추출
+                dash_data = response.json().get("data", {})
+                
+                # 3. 기존 세션의 customer_detail을 가져와서 dashboard_sync 부분만 업데이트
+                storage = self.page.session.store
+                customer_detail = storage.get("customer_detail") or {}
+                customer_detail["dashboard_sync"] = dash_data
+                
+                # 4. 세션 덮어쓰기
+                storage.set("customer_detail", customer_detail)
+                print(f"[HomeController] 대시보드 데이터 세션 업데이트 완료: {pet_id}")
+                return dash_data
+            else:
+                print(f"[HomeController] 대시보드 API 호출 실패: {response.status_code}")
+                return None
+        except Exception as e:
+            print(f"[HomeController] fetch_dashboard_data 중 예외 발생: {e}")
+            return None
+
     def get_formatted_history(self, count=3):
         """
         최근 활동 기록을 사용자 친화적인 문자열로 변환하여 반환합니다.

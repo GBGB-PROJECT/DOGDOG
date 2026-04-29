@@ -440,7 +440,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
             )
 
             feeding_weight = dogdog.input_textfield(
-                hint_text="급여량을 적어주세요.",
+                hint_text= recommended_amount,
                 input_type="int",
                 suffix="g",
                 on_change=lambda e, change=f"{call}_weight": s_control.change_event(

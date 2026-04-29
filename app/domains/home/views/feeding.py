@@ -28,8 +28,8 @@ def content_container_detail(
         (now + days).strftime("%Y.%m.%d") if days != 0 else "????.??.??"
     )
 
-    feeding_food_weight = feeding_data["left_intake"] if feeding_data else 0
-    g_product_weight = feeding_data["total_weight"] if feeding_data else 5
+    feeding_food_weight = feeding_data.get("left_intake", 0) if feeding_data else 0
+    g_product_weight = feeding_data.get("total_weight", 0) if feeding_data else 5
     kg_product_weight = float(g_product_weight / 1000)
     view_product_weight = (
         (
@@ -45,15 +45,17 @@ def content_container_detail(
         height=100,
         expand=True,
         controls=[
-            ft.Image(src=feeding_data["thumbnail"], fit=ft.BoxFit.CONTAIN, expand=2),
+            ft.Image(
+                src=feeding_data.get("thumbnail", ""), fit=ft.BoxFit.CONTAIN, expand=2
+            ),
             ft.Column(
                 expand=3,
                 spacing=0,
                 alignment=ft.MainAxisAlignment.CENTER,
                 controls=[
-                    dogdog.basic_text(value=feeding_data["brand"]),
+                    dogdog.basic_text(value=feeding_data.get("brand", "")),
                     dogdog.basic_text(
-                        value=feeding_data["product_name"], weight="bold"
+                        value=feeding_data.get("product_name", ""), weight="bold"
                     ),
                 ],
             ),
@@ -101,7 +103,7 @@ def content_container_detail(
                             size=16,
                         ),
                         dogdog.flat_button(
-                            text=f"{feeding_data['left_food_count'] if feeding_data else '?'} 일치 남음",
+                            text=f"{feeding_data.get('left_food_count', 0) if feeding_data else '?'} 일치 남음",
                             scale=0.7,
                             disabled=True,
                         ),
@@ -109,11 +111,11 @@ def content_container_detail(
                 ),
                 ft.ProgressBar(
                     height=10,
-                    value=feeding_food_weight / g_product_weight,
+                    value=feeding_food_weight / g_product_weight if g_product_weight else 0,
                     bgcolor=ft.Colors.GREY_300,
                     # 20% 미만이면 빨간색(#E6001A), 아니면 원래 로직적용!
                     color="#E6001A"
-                    if (feeding_food_weight / g_product_weight) < 0.2
+                    if (feeding_food_weight / g_product_weight if g_product_weight else 0) < 0.2
                     else ft.Colors.YELLOW_600,
                     border_radius=10,
                 ),

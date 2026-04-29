@@ -2,7 +2,6 @@ import flet as ft
 from api_client import ApiClient
 import datetime
 
-
 class GridController:
     def __init__(self, page: ft.Page):
         self.page = page
@@ -36,7 +35,7 @@ class GridController:
         try:
             if not pet_id:
                 return None
-
+            
             res = await self.api_client.get(f"/pets/{pet_id}/pet_food")
             if res.status_code == 200:
                 return res.json().get("data")
@@ -56,47 +55,41 @@ class GridController:
                 or self.storage.get("customer_pet_id")
                 or self.storage.get("current_pet_id")
             )
-
+            
             payload = {
                 "pet_id": pet_id,
                 "amount": self.storage.get(f"{call}_weight"),
                 "feeding_date": self.storage.get(f"{call}_date"),
                 "feeding_time": self.storage.get(f"{call}_time"),
-                "memo": self.storage.get(f"{call}_memo"),
+                "memo": self.storage.get(f"{call}_memo")
             }
 
             print(f"[GridController] Feeding API 전송 시도: {payload}")
-
+            
             # 2. API 호출
             res = await self.api_client.post("/logs/feeding", data=payload)
-
+            
             if res.status_code in [200, 201]:
                 print(f"[GridController] Feeding 저장 성공")
                 import components as dogdog
-
                 self.page.snack_bar = ft.SnackBar(
-                    content=dogdog.basic_text(
-                        "급여 기록이 저장되었습니다.", color=ft.Colors.WHITE
-                    ),
-                    bgcolor=ft.Colors.GREEN_400,
+                    content=dogdog.basic_text("급여 기록이 저장되었습니다.", color=ft.Colors.WHITE),
+                    bgcolor=ft.Colors.GREEN_400
                 )
                 self.page.snack_bar.open = True
-
+                
                 # 성공 콜백 실행 (홈 화면 새로고침)
                 if on_refresh_callback:
                     await on_refresh_callback()
-
+                
                 return True
             else:
                 error_detail = res.json().get("detail", "알 수 없는 오류")
                 print(f"[GridController] Feeding 저장 실패: {error_detail}")
                 import components as dogdog
-
                 self.page.snack_bar = ft.SnackBar(
-                    content=dogdog.basic_text(
-                        f"저장에 실패했습니다: {error_detail}", color=ft.Colors.WHITE
-                    ),
-                    bgcolor=ft.Colors.RED_400,
+                    content=dogdog.basic_text(f"저장에 실패했습니다: {error_detail}", color=ft.Colors.WHITE),
+                    bgcolor=ft.Colors.RED_400
                 )
                 self.page.snack_bar.open = True
                 return False
@@ -104,12 +97,9 @@ class GridController:
         except Exception as ex:
             print(f"[GridController] API 통신 중 예외 발생: {str(ex)}")
             import components as dogdog
-
             self.page.snack_bar = ft.SnackBar(
-                content=dogdog.basic_text(
-                    "서버 통신 중 오류가 발생했습니다.", color=ft.Colors.WHITE
-                ),
-                bgcolor=ft.Colors.RED_400,
+                content=dogdog.basic_text("서버 통신 중 오류가 발생했습니다.", color=ft.Colors.WHITE),
+                bgcolor=ft.Colors.RED_400
             )
             self.page.snack_bar.open = True
             return False

@@ -111,7 +111,7 @@ def content_container_detail(
                     height=10,
                     value=feeding_food_weight / g_product_weight,
                     bgcolor=ft.Colors.GREY_300,
-                    # 20% 미만이면 빨간색(#E6001A), 아니면 원래 로직(노란색 또는 샵 전용 빨간색) 적용!
+                    # 20% 미만이면 빨간색(#E6001A), 아니면 원래 로직적용!
                     color="#E6001A"
                     if (feeding_food_weight / g_product_weight) < 0.2
                     else ft.Colors.YELLOW_600,

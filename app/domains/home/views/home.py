@@ -228,7 +228,8 @@ def feeding_food_count(page: ft.Page, content_page):
             height=10,
             value=progress_value,
             bgcolor=ft.Colors.GREY_300,
-            color=ft.Colors.YELLOW_600 if content_page != "/shop" else "#E6001A",
+            # 20% 미만이면 빨간색(#E6001A), 아니면 원래 로직적용!
+            color="#E6001A" if progress_value < 0.2 else ft.Colors.YELLOW_600,
             border_radius=10,
         ),
         dogdog.basic_text(

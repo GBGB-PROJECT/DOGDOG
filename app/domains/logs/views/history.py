@@ -89,7 +89,6 @@ def history_view(page: ft.Page):
             controls=content,
             margin=ft.margin.only(bottom=10),
         )
-
     def setting_content(visible):
         delete_popup = popup.event_popup
         delete_popup.title = dogdog.basic_text("오늘의 기록")

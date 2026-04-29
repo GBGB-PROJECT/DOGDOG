@@ -136,6 +136,7 @@ def home_tile(
         home_background, top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
+        body_scroll_column.margin = None
         if "product/" in content_page:
             body_scroll_column.controls.append(
                 domains.shop_product_detail.shop_product_detail(

@@ -87,7 +87,7 @@ def notification_setting(page: ft.Page):
                             ft.TextSpan(
                                 "알림 간격\n",
                                 style=dogdog.TextStyle(
-                                    size=16, color=ft.Colors.GREY_800, height=0
+                                    size=16, color=ft.Colors.GREY_800
                                 ),
                             ),
                             ft.TextSpan(
@@ -171,9 +171,7 @@ def notification_setting(page: ft.Page):
                         spans=[
                             ft.TextSpan(
                                 "3일 전\n",
-                                style=dogdog.TextStyle(
-                                    color=ft.Colors.GREY_700, height=0
-                                ),
+                                style=dogdog.TextStyle(color=ft.Colors.GREY_700),
                             ),
                             ft.TextSpan("구독 배송 3일 전 안내"),
                         ],
@@ -190,9 +188,7 @@ def notification_setting(page: ft.Page):
                         spans=[
                             ft.TextSpan(
                                 "7일 전\n",
-                                style=dogdog.TextStyle(
-                                    color=ft.Colors.GREY_700, height=0
-                                ),
+                                style=dogdog.TextStyle(color=ft.Colors.GREY_700),
                             ),
                             ft.TextSpan("구독 배송 7일 전 안내"),
                         ],
@@ -209,7 +205,7 @@ def notification_setting(page: ft.Page):
         spans=[
             ft.TextSpan(
                 "사료 소진일 알림 설정\n",
-                style=dogdog.TextStyle(size=16, color=ft.Colors.GREY_800, height=0),
+                style=dogdog.TextStyle(size=16, color=ft.Colors.GREY_800),
             ),
             ft.TextSpan("제품이 소진되기 3일, 7일 전 미리 알림을 받을 수 있어요."),
         ],

@@ -13,7 +13,7 @@ test_page = ""
 # flet build apk --verbose --compile-app --compile-packages --arch arm64-v8a
 # flet build apk --verbose --compile-app --compile-packages #맥용
 # -------------------------------------------------------------------------------------------------------
-# test_page = "Browser"  # APP Build Test 시 주석 처리
+test_page = "Browser"  # APP Build Test 시 주석 처리
 
 
 # -------------------------------------------------------------------------------------------------------
@@ -395,4 +395,4 @@ if test_page == "Browser":
         )
 else:
     if __name__ == "__main__":
-        ft.run(main=main, assets_dir="assets")
+        ft.run(main=main, assets_dir="assets", web_renderer=ft.WebRenderer.CANVAS_KIT)

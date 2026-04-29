@@ -44,10 +44,7 @@ def home_layout(page, view=None, text=None, pet_list=None):
         if not birth_day:
             return "(생일 정보 없음)"
         
-        # [방어 코드] 백엔드에서 타임스탬프 포함된 문자열(T00:00:00)을 보낼 경우 대비
-        # T를 기준으로 잘라내어 순수 날짜(YYYY-MM-DD)만 취득합니다.
         birth_day = str(birth_day).split("T")[0]
-        
         birth = datetime.datetime.strptime(birth_day, "%Y-%m-%d")
         now = datetime.datetime.now()
         years = now.year - birth.year
@@ -56,20 +53,36 @@ def home_layout(page, view=None, text=None, pet_list=None):
         if months < 0:
             years -= 1
             months += 12
-        sex_symbol = "♂️" if str(sex) == "1" else "♀️"
+        sex_symbol = "♂️" if sex == "1" else "♀️"
         return f"({years}년 {months}개월, {sex_symbol})"
     # ---------------------------------------------------------------------------------------------------    
     # Page Header
     # ---------------------------------------------------------------------------------------------------
     background_height = 100
     home_background = ft.Container(
-        bgcolor="#FEF3B9", height=background_height, 
+        bgcolor="#FEF3B9" if text != "개밥개밥푸드" else "#E6001A", height=background_height, 
         border_radius=ft.BorderRadius.only(bottom_left=30, bottom_right=30))
     center_header = ft.Container()
     right_header = ft.IconButton(
         icon=ft.Icons.NOTIFICATIONS_NONE, icon_color=ft.Colors.GREY_500, 
-        icon_size=26, on_click=lambda _: page.go("/notification")
-    ) if not (text == "알림" or text == "알림 설정") else ft.Container(width=26)
+        icon_size=26, on_click=lambda _: page.go("/notification"))
+    if text == "알림" or text == "알림 설정":
+        right_header = ft.Container(width=26)
+    elif text == "개밥개밥푸드":
+        right_header = ft.Row(spacing=3, alignment=ft.MainAxisAlignment.CENTER, controls=[
+            ft.IconButton(
+                icon=ft.Icons.SEARCH, icon_color=ft.Colors.WHITE, icon_size=26, 
+                on_click=lambda _: print("Product Search") # page.go("/product_search")
+            ),
+            ft.IconButton(
+                icon=ft.Icons.NOTIFICATIONS_NONE, icon_color=ft.Colors.WHITE, icon_size=26, 
+                on_click=lambda _: page.go("/notification")
+            ),
+            ft.IconButton(
+                icon=ft.Icons.SHOPPING_CART, icon_color=ft.Colors.WHITE, icon_size=26, 
+                on_click=lambda _: print("Shopping Cart") # page.go("/shopping_cart")
+            )
+        ])
     header_container_padding = 40
     # ---------------------------------------------------------------------------------------------------
     # Page Top Banner Edit
@@ -139,7 +152,7 @@ def home_layout(page, view=None, text=None, pet_list=None):
         header_container_padding = 50
         left_header = ft.IconButton(
             icon=ft.Icons.ARROW_BACK_IOS_NEW, icon_color=ft.Colors.GREY_500, icon_size=26, on_click=handle_back
-        )
+        ) if text != "개밥개밥푸드" else dogdog.basic_text(value=text, weight="bold", size=16, color=ft.Colors.WHITE)
         center_header = dogdog.basic_text(value=text, weight="bold", size=16) # type: ignore
     # ---------------------------------------------------------------------------------------------------
     # Page Top Banner
@@ -150,6 +163,12 @@ def home_layout(page, view=None, text=None, pet_list=None):
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[left_header, center_header, right_header]
+    )) if text != "개밥개밥푸드" else ft.Container(
+        padding=ft.Padding.only(top=header_container_padding, left=20, right=20),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[left_header, right_header]
     ))
-
+    # ---------------------------------------------------------------------------------------------------
     return home_background , top_banner

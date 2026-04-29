@@ -51,11 +51,6 @@ def home_bottom_appbar(appbar_status, page_name):
                 width=80,
                 height=80,
                 shape=ft.BoxShape.CIRCLE,
-                shadow=ft.BoxShadow(
-                    spread_radius=0.2,
-                    blur_radius=5,
-                    color=ft.Colors.with_opacity(0.4, "#FEF3B9"),
-                ),
                 offset=ft.Offset(0, -0.3),
                 on_click=on_click,
                 image=ft.DecorationImage(src=icon, fit=ft.BoxFit.COVER),

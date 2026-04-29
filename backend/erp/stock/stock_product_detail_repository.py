@@ -115,15 +115,13 @@ def _apply_filter(query, search_type: str, keyword: str):
     if not clean:
         return query
 
-    # 🔥 stock PK / FK 검색
+    # 🔥 수정: 검색 기능은 전부 부분검색으로 통일
+    # - 예: 입고ID에 9 입력 시 9, 119, 290, 298처럼 9가 포함된 값 조회
+    # - 상품ID/재고수량도 다른 화면 검색처럼 포함 검색으로 처리
     if search_type == "product_id":
-        if _is_int_text(clean):
-            return query.filter(ErpStock.product_id == int(clean))
         return query.filter(cast(ErpStock.product_id, String).like(like_keyword(clean)))
 
     if search_type == "inbound_id":
-        if _is_int_text(clean):
-            return query.filter(ErpStock.inbound_id == int(clean))
         return query.filter(cast(ErpStock.inbound_id, String).like(like_keyword(clean)))
 
     # 🔥 상품 보조 검색
@@ -137,25 +135,17 @@ def _apply_filter(query, search_type: str, keyword: str):
     if search_type == "inbound_status":
         return query.filter(cast(ErpInboundStatus.status, String).ilike(like_keyword(clean)))
 
-    # 🔥 stock 수량 검색
+    # 🔥 수정: stock 수량 검색도 부분검색으로 통일
     if search_type == "save_stock":
-        if _is_int_text(clean):
-            return query.filter(ErpStock.save_stock == int(clean))
         return query.filter(cast(ErpStock.save_stock, String).like(like_keyword(clean)))
 
     if search_type == "sale_stock":
-        if _is_int_text(clean):
-            return query.filter(ErpStock.sale_stock == int(clean))
         return query.filter(cast(ErpStock.sale_stock, String).like(like_keyword(clean)))
 
     if search_type == "scrap_stock":
-        if _is_int_text(clean):
-            return query.filter(ErpStock.scrap_stock == int(clean))
         return query.filter(cast(ErpStock.scrap_stock, String).like(like_keyword(clean)))
 
     if search_type == "stock_available":
-        if _is_int_text(clean):
-            return query.filter(ErpStock.stock_available == int(clean))
         return query.filter(cast(ErpStock.stock_available, String).like(like_keyword(clean)))
 
     if search_type == "expiration_date":

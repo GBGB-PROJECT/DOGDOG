@@ -1,7 +1,9 @@
 # =========================================================
 # 🔥 상품 재고 관리 > 입고/출고 관리 화면
 # - 재고 현황 대시보드에서 입고/출고 건수 클릭 시 월 필터 연동
-# - requests 방식 API 호출
+# - httpx 방식 API 호출
+# - DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
+# - DatePicker 기간 기준은 화면의 처리일자(event_date) 기준
 # =========================================================
 
 import math
@@ -134,18 +136,26 @@ def calendar_icon_box(on_click=None):
 
 
 def build_button(text, on_click=None, width=82):
-    return ft.ElevatedButton(
-        text,
+    # 🔥 수정: ElevatedButton은 내부 기본 padding 때문에 "초기화"가 세로로 줄바꿈되는 문제가 있음
+    # - 다른 조회 화면 버튼들과 동일하게 Container + Text 방식으로 고정
+    # - max_lines=1을 줘서 버튼 텍스트가 절대 두 줄로 내려가지 않게 처리
+    return ft.Container(
         width=width,
         height=38,
-        style=ft.ButtonStyle(
-            bgcolor=BUTTON_BG,
-            color=BUTTON_TEXT,
-            shape=ft.RoundedRectangleBorder(radius=6),
-            side=ft.BorderSide(1, BUTTON_BORDER),
-            elevation=0,
-        ),
+        bgcolor=BUTTON_BG,
+        border=ft.Border.all(1, BUTTON_BORDER),
+        border_radius=6,
+        alignment=ft.Alignment(0, 0),
         on_click=on_click,
+        content=ft.Text(
+            value=text,
+            size=13,
+            color=BUTTON_TEXT,
+            weight=ft.FontWeight.W_500,
+            text_align=ft.TextAlign.CENTER,
+            max_lines=1,
+            overflow=ft.TextOverflow.CLIP,
+        ),
     )
 
 
@@ -191,6 +201,9 @@ def erp_stock_inout_view():
     result_text = ft.Text("불러오는 중입니다.", size=13, color=TEXT_SECONDARY)
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
+
+    # 🔥 추가: 다른 조회 화면과 동일하게 조건 사용 후에만 보이는 초기화 버튼
+    reset_button_holder = ft.Container(visible=False)
 
     col_expand = {
         "no": 3,
@@ -251,19 +264,25 @@ def erp_stock_inout_view():
         )
         end_icon_holder.content = calendar_icon_box(on_click=open_end_picker)
 
+    # =========================================================
+    # 🔥 DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
+    # - Flet DatePicker가 UTC 기준 값으로 들어와 하루 전날로 표시되는 문제 방지
+    # - DatePicker 기간 기준은 테이블의 처리일자(event_date) 기준
+    # =========================================================
     def on_start_date_change(e):
         if e.control.value:
-            selected_start["value"] = e.control.value.replace(tzinfo=None)
+            selected_start["value"] = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     def on_end_date_change(e):
         if e.control.value:
-            picked_date = e.control.value.replace(tzinfo=None)
+            picked_date = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
 
             if selected_start["value"] and picked_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -271,6 +290,7 @@ def erp_stock_inout_view():
                 selected_end["value"] = picked_date
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     start_date_picker = ft.DatePicker(
@@ -323,14 +343,28 @@ def erp_stock_inout_view():
         weight=ft.FontWeight.W_500,
     )
 
+    def update_reset_button_visibility():
+        # 🔥 추가: 기본값이 아니면 초기화 버튼 표시
+        has_filter = (
+            selected_start["value"] is not None
+            or selected_end["value"] is not None
+            or inout_type_value["value"] != "all"
+            or search_type_value["value"] != "all"
+            or (search_field.value or "").strip() != ""
+            or (pagination_state["keyword"] or "").strip() != ""
+        )
+        reset_button_holder.visible = has_filter
+
     def set_search_type(value: str):
         search_type_value["value"] = value
         search_type_text.value = search_type_labels[value]
+        update_reset_button_visibility()
         search_type_text.update()
 
     def set_inout_type(value: str):
         inout_type_value["value"] = value
         inout_type_text.value = inout_type_labels[value]
+        update_reset_button_visibility()
         inout_type_text.update()
 
     def build_menu_item(label: str, value: str, setter):
@@ -522,6 +556,7 @@ def erp_stock_inout_view():
         keyword = pagination_state["keyword"] or "없음"
 
         result_text.value = (
+            f"기간기준: 처리일자 / "
             f"기간: {start_text} ~ {end_text} / "
             f"구분: {inout_text} / "
             f"검색조건: {condition_text} / 검색어: {keyword} / "
@@ -600,9 +635,35 @@ def erp_stock_inout_view():
 
     def on_search_click(e):
         reload_current_page(1)
+        update_reset_button_visibility()
+        e.page.update()
+
+    def on_reset_click(e):
+        # 🔥 추가: 검색/날짜/구분 조건을 전부 기본값으로 되돌리고 첫 화면 재조회
+        selected_start["value"] = None
+        selected_end["value"] = None
+
+        inout_type_value["value"] = "all"
+        inout_type_text.value = inout_type_labels["all"]
+
+        search_type_value["value"] = "all"
+        search_type_text.value = search_type_labels["all"]
+
+        search_field.value = ""
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+
+        refresh_picker_fields()
+        reload_current_page(1)
+        update_reset_button_visibility()
         e.page.update()
 
     refresh_picker_fields()
+
+    # 🔥 추가: 처음에는 숨기고, 날짜/구분/검색 조건이 생기면 표시
+    reset_button_holder.content = build_button("초기화", on_reset_click, width=82)
+    update_reset_button_visibility()
+
     reload_current_page(1)
 
     return ft.Column(
@@ -627,6 +688,7 @@ def erp_stock_inout_view():
                         search_type_dropdown,
                         search_field,
                         build_button("조회", on_search_click),
+                        reset_button_holder,
                     ],
                 ),
             ),

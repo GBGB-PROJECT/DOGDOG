@@ -4,6 +4,7 @@ import components as dogdog
 import datetime
 import domains
 from api_client import ApiClient
+from domains.logs.controller.grid_controller import GridController
 import os
 
 
@@ -62,6 +63,7 @@ class StatusController:
         self.time_button.on_click = lambda e, picker=self.time_picker: self.open_event(
             e, picker
         )
+        self.ctrl = GridController(page)
 
     # ---------------------------------------------------------------------------------------------------
     # Picker Open Event
@@ -120,59 +122,11 @@ class StatusController:
     # ---------------------------------------------------------------------------------------------------
     # API 전송 태스크
     # ---------------------------------------------------------------------------------------------------
-    async def save_feeding_api(self, call, event_text):
-        try:
-            api_client = ApiClient(self.page)
-            # 1. Payload 구성
-            pet_id = (
-                self.storage.get("pet_id")
-                or self.storage.get("customer_pet_id")
-                or self.storage.get("current_pet_id")
-            )
-            
-            payload = {
-                "pet_id": pet_id,
-                "amount": self.storage.get(f"{call}_weight"),
-                "feeding_date": self.storage.get(f"{call}_date"),
-                "memo": self.storage.get(f"{call}_memo")
-            }
-
-            print(f"[DEBUG] Feeding API 전송 시도: {payload}")
-            
-            # 2. API 호출
-            res = await api_client.post("/logs/feeding", data=payload)
-            
-            if res.status_code in [200, 201]:
-                print(f"[DEBUG] Feeding 저장 성공: {res.json()}")
-                self.page.snack_bar = ft.SnackBar(
-                    content=dogdog.basic_text("급여 기록이 저장되었습니다.", color=ft.Colors.WHITE),
-                    bgcolor=ft.Colors.GREEN_400
-                )
-                self.page.snack_bar.open = True
-                self.grid_bottom_sheet.open = False
-                
-                # 성공 콜백 실행 (홈 화면 새로고침)
-                if self.on_refresh_callback:
-                    await self.on_refresh_callback()
-                
-                self.page.update()
-            else:
-                error_detail = res.json().get("detail", "알 수 없는 오류")
-                print(f"[ERROR] Feeding 저장 실패 ({res.status_code}): {error_detail}")
-                self.page.snack_bar = ft.SnackBar(
-                    content=dogdog.basic_text(f"저장에 실패했습니다: {error_detail}", color=ft.Colors.WHITE),
-                    bgcolor=ft.Colors.RED_400
-                )
-                self.page.snack_bar.open = True
-                self.page.update()
-
-        except Exception as ex:
-            print(f"[ERROR] API 통신 중 예외 발생: {str(ex)}")
-            self.page.snack_bar = ft.SnackBar(
-                content=dogdog.basic_text("서버 통신 중 오류가 발생했습니다.", color=ft.Colors.WHITE),
-                bgcolor=ft.Colors.RED_400
-            )
-            self.page.snack_bar.open = True
+    async def save_feeding_api_wrapper(self, call):
+        """GridController의 저장 로직 호출"""
+        success = await self.ctrl.save_feeding_api(call, self.on_refresh_callback)
+        if success:
+            self.grid_bottom_sheet.open = False
             self.page.update()
 
     # ---------------------------------------------------------------------------------------------------
@@ -207,9 +161,9 @@ class StatusController:
                     print(f"[DEBUG] {call_title}: {call_message}")
                     return
                 
-                # 비동기 API 전송 태스크 실행
-                self.page.run_task(self.save_feeding_api, call, event_text)
-                return  # API 처리 함수에서 시트 닫기와 업데이트를 수행하므로 여기서 중단
+                # 컨트롤러의 저장 태스크 실행
+                self.page.run_task(self.save_feeding_api_wrapper, call)
+                return
 
             if self.storage.get(f"{call}_weight"):
                 event_text.update(
@@ -320,10 +274,6 @@ class StatusController:
 
 # -------------------------------------------------------------------------------------------------------
 async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
-    # 🚨🚨🚨 [경로 디버깅] 진짜 실행 중인 파일의 절대 경로를 출력합니다 🚨🚨🚨
-    print("=" * 50)
-    print(f"🚨🚨🚨 진짜 실행 중인 grid.py 경로: {os.path.abspath(__file__)} 🚨🚨🚨")
-    print("=" * 50)
 
     # ---------------------------------------------------------------------------------------------------
     # Default Value
@@ -383,59 +333,52 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
         print("✅ 밥주기(feeding) 조건문 진입 성공!")
         s_control.bottom_sheet_title("밥주기")
 
-        # 1. API를 통한 사료 정보 실시간 조회
-        api_client = ApiClient(page)
+        # 1. 컨트롤러 인스턴스화 및 데이터 조회
+        ctrl = GridController(page)
+        
         # 1-1. 세션 Key 다중 탐색 (Fallback 적용)
         pet_id = (
             storage.get("pet_id")
             or storage.get("customer_pet_id")
             or storage.get("current_pet_id")
         )
-        print(f"[DEBUG] 진짜 실행 중인 파일에서 출력! pet_id: {pet_id}")
+        print(f"[DEBUG] Grid View - pet_id: {pet_id}")
+
+        # 1-2. 비동기로 1회 권장 급여량 가져오기
+        recommended_amount = await ctrl.get_one_time_feeding_amount(pet_id)
+        pet_name = storage.get('customer_pet_name') or '아이'
 
         food_options = []
         initial_value = None
         has_food = False
 
         try:
-            # 1-2. API 호출 전 방어 코드 (Guard Clause)
+            # 1-3. 사료 정보 조회
             if not pet_id:
                 raise ValueError("세션에서 강아지 ID를 찾을 수 없습니다.")
 
-            res = await api_client.get(f"/pets/{pet_id}/pet_food")
-            if res.status_code == 200:
-                data = res.json().get("data", {})
-                p_id = data.get("product_id")
-                brand = data.get("product_brand") or ""
-                name = data.get("product_name") or ""
-                weight = data.get("product_weight") or 0
+            food_data = await ctrl.get_pet_food_info(pet_id)
+            if food_data:
+                p_id = food_data.get("product_id")
+                brand = food_data.get("product_brand") or ""
+                name = food_data.get("product_name") or ""
+                weight = food_data.get("product_weight") or 0
 
-                if not brand and not name:
-                    label = f"알 수 없는 사료 ({weight}g)"
-                else:
-                    label = f"[{brand}] {name} ({weight}g)"
+                label = f"[{brand}] {name} ({weight}g)" if brand or name else f"알 수 없는 사료 ({weight}g)"
 
                 food_options = [dogdog.dropdown_menu_option(key=str(p_id), text=label)]
                 initial_value = str(p_id)
                 storage.set("customer_food_id", p_id)
                 has_food = True
             else:
-                food_options = [
-                    dogdog.dropdown_menu_option(
-                        key="none", text="현재 급여 중인 사료가 없습니다."
-                    )
-                ]
+                food_options = [dogdog.dropdown_menu_option(key="none", text="현재 급여 중인 사료가 없습니다.")]
         except Exception as err:
             print(f"[ERROR] 사료 정보 조회 중 오류: {err}")
-            food_options = [
-                dogdog.dropdown_menu_option(
-                    key="none", text="사료 정보를 불러올 수 없습니다."
-                )
-            ]
+            food_options = [dogdog.dropdown_menu_option(key="none", text="사료 정보를 불러올 수 없습니다.")]
 
         if has_food:
             feeding_guide = ft.Column(
-                visible=False,
+                visible=True, #전부사료등록으로시뮬레이션예정이라 변경 
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=0,
@@ -444,7 +387,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
                         margin=ft.margin.only(bottom=10),
                         controls=[
                             dogdog.basic_text(
-                                value=f"오늘 {storage.get('customer_pet_name')}에게 딱 알맞는 1회 급여량은 ...",
+                                value=f"오늘 {pet_name}에게 딱 알맞는 1회 급여량은 ...",
                                 size=16,
                                 weight="bold",
                                 color=ft.Colors.GREY_600,
@@ -457,7 +400,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
                             ft.Image(
                                 src="speech_bubble.png", height=100, color="#FEF3B9"
                             ),
-                            dogdog.basic_text("40g", weight="bold", size=40),
+                            dogdog.basic_text(recommended_amount, weight="bold", size=40),
                         ],
                         spacing=-90,
                     ),

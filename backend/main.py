@@ -89,6 +89,7 @@ if __name__ == "__main__":
     - 아래 명령어를 통해 서버를 실행해주세요.
     
     실행 명령어: uvicorn main:app --reload
+    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     ========================================================================
     """
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

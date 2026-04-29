@@ -11,8 +11,9 @@ test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
 # flet build apk --verbose --compile-app --compile-packages --arch arm64-v8a
+# flet build apk --verbose --compile-app --compile-packages #맥용
 # -------------------------------------------------------------------------------------------------------
-test_page = "Browser"  # APP Build Test 시 주석 처리
+# test_page = "Browser"  # APP Build Test 시 주석 처리
 
 
 # -------------------------------------------------------------------------------------------------------

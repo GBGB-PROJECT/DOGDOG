@@ -2,7 +2,10 @@ import httpx
 import flet as ft
 from typing import Dict, Any, Optional
 
-BASE_URL = "http://localhost:8000/api/v1"
+# 브라우저 테스트
+# BASE_URL = "http://localhost:8000/api/v1"
+# 빌드용
+BASE_URL = "http://192.168.1.3:8000/api/v1"
 
 
 class ApiClient:

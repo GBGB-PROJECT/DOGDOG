@@ -221,6 +221,9 @@ def erp_product_detail_view():
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
 
+    # 🔥 추가: 검색조건/검색어 사용 후에만 보이는 초기화 버튼 자리
+    reset_button_holder = ft.Container(visible=False)
+
     dim_bg = ft.Container(
         visible=False,
         expand=True,
@@ -259,10 +262,24 @@ def erp_product_detail_view():
         text_align=ft.TextAlign.CENTER,
     )
 
-    def set_search_type(value: str):
+    def update_reset_button_visibility():
+        # 🔥 추가: 고객관리 3총사와 동일하게 기본 상태가 아니면 초기화 버튼 표시
+        has_filter = (
+            (search_field.value or "").strip() != ""
+            or search_type_value["value"] != "product_name"
+            or (pagination_state["keyword"] or "").strip() != ""
+        )
+        reset_button_holder.visible = has_filter
+
+    def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
         search_type_text.value = search_type_labels[value]
-        search_type_text.update()
+        update_reset_button_visibility()
+
+        if page:
+            page.update()
+        else:
+            search_type_text.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -278,7 +295,7 @@ def erp_product_detail_view():
                     text_align=ft.TextAlign.CENTER,
                 ),
             ),
-            on_click=lambda e: set_search_type(value),
+            on_click=lambda e: set_search_type(value, e.page),
         )
 
     search_type = ft.Container(
@@ -579,6 +596,7 @@ def erp_product_detail_view():
             math.ceil(pagination_state["total_count"] / PAGE_SIZE),
         )
         reload_current_page()
+        update_reset_button_visibility()
 
     def run_search(page_ref: ft.Page | None = None):
         keyword = (search_field.value or "").strip()
@@ -592,6 +610,21 @@ def erp_product_detail_view():
             math.ceil(pagination_state["total_count"] / PAGE_SIZE),
         )
         reload_current_page()
+        update_reset_button_visibility()
+
+    def on_reset_click(e):
+        # 🔥 추가: 검색조건/검색어를 기본값으로 되돌리고 첫 화면 재조회
+        search_type_value["value"] = "product_name"
+        search_type_text.value = search_type_labels["product_name"]
+        search_field.value = ""
+
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = e.page
+
+        load_rows(e.page)
+        update_reset_button_visibility()
+        e.page.update()
 
     def on_download(e):
         result_text.value = "다운로드 기능은 아직 연결 전입니다."
@@ -639,7 +672,11 @@ def erp_product_detail_view():
         e.page.update()
 
     dim_bg.on_click = close_register_modal
-    search_field.on_submit = lambda e: (run_search(e.page), e.page.update())
+    search_field.on_submit = lambda e: (run_search(e.page), update_reset_button_visibility(), e.page.update())
+
+    # 🔥 추가: 처음에는 숨겨두고, 검색조건/검색어가 생기면 표시
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
+    update_reset_button_visibility()
 
     try:
         load_rows()
@@ -659,10 +696,12 @@ def erp_product_detail_view():
                     "조회",
                     on_click=lambda e: (
                         load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
+                        update_reset_button_visibility(),
                         e.page.update(),
                     ),
                     width=78,
                 ),
+                reset_button_holder,
                 action_button("인쇄", on_click=on_print, width=78),
                 action_button("다운로드", on_click=on_download, width=104),
                 action_button("등록", on_click=open_register_modal, width=78),

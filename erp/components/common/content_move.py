@@ -72,8 +72,8 @@ MENU_ITEMS = {
     "발주 관리": purchase_order_view.erp_purchase_order_view,
     "거래처 관리": production_supplier_view.erp_production_supplier_view,
 
-    # ☑️ 수정: 임시 텍스트 → 실제 재고관리 메인 화면 연결
-    "재고관리": stock_view.erp_stock_view,
+    # 🔥 수정: 재고관리 대분류를 누르면 안내 화면이 아니라 기본 화면(재고 현황)을 바로 표시
+    "재고관리": stock_status_view.erp_stock_status_view,
 
     # ☑️ 추가: 재고관리 하위 메뉴 연결
     "재고 현황": stock_status_view.erp_stock_status_view,
@@ -84,8 +84,8 @@ MENU_ITEMS = {
 
     "입고/출고 관리": stock_inout_view.erp_stock_inout_view,
 
-    # 🔥 수정: 고객관리 대분류는 메인 텍스트 화면만 표시
-    "고객관리": erp_customer_view,
+    # 🔥 수정: 고객관리 대분류를 누르면 안내/텍스트 화면이 아니라 기본 화면(고객 정보 관리)을 바로 표시
+    "고객관리": erp_customer_info_view,
 
     # 🔥 추가: 고객관리 하위 메뉴 화면 연결
     "고객 정보 관리": erp_customer_info_view,
@@ -231,16 +231,20 @@ MENU_TO_ROUTE = {
     "발주 관리": "/production/order",
     "품질 및 이력 관리": "/production/quality",
     "거래처 관리": "/production/supplier",
-    "재고관리": "/stock",
+    # 🔥 수정: 재고관리 클릭 시 /stock 안내 화면이 아니라 재고 현황 route로 바로 이동
+    "재고관리": "/stock/product/status",
     "창고관리": "/stock/warehouse",
     "원자재 재고 관리": "/stock/raw-material",
-    "상품 재고 관리": "/stock/product",
+
+    # 🔥 수정: 상품 재고 관리도 기본 하위 화면인 재고 현황으로 바로 이동
+    "상품 재고 관리": "/stock/product/status",
     "재고 현황": "/stock/product/status",
     "상품별 재고 상세": "/stock/product/detail",
     "입고/출고 관리": "/stock/product/inout",
     "상품 부자재 관리": "/stock/sub-material",
     "물류관리": "/logistics",
-    "고객관리": "/customer",
+    # 🔥 수정: 고객관리 클릭 시 /customer 안내 화면이 아니라 고객 정보 관리 route로 바로 이동
+    "고객관리": "/customer/info",
     # 🔥 추가: 고객관리 하위 메뉴 route 연결
     "고객 정보 관리": "/customer/info",
     "고객 주문 관리": "/customer/order",
@@ -255,6 +259,16 @@ ROUTE_TO_MENU = {route: menu for menu, route in MENU_TO_ROUTE.items()}
 LOGIN_ROUTE = "/login"
 DEFAULT_AUTH_ROUTE = "/home"
 
+# 🔥 추가: 중간 메뉴 route로 들어와도 실제 기본 화면 route로 보정
+# - /stock 은 재고관리 안내 화면이 아니라 재고 현황 화면으로 연결
+# - /stock/product 는 상품 재고 관리의 기본 하위 화면인 재고 현황으로 연결
+# - /customer 는 고객관리 안내/텍스트 화면이 아니라 고객 정보 관리 화면으로 연결
+ROUTE_ALIASES = {
+    "/stock": "/stock/product/status",
+    "/stock/product": "/stock/product/status",
+    "/customer": "/customer/info",
+}
+
 def normalize_route(route: str | None) -> str:
     """빈 route나 끝 슬래시를 정리합니다."""
     if not route:
@@ -266,7 +280,9 @@ def normalize_route(route: str | None) -> str:
 
     if cleaned != "/" and cleaned.endswith("/"):
         cleaned = cleaned[:-1]
-    return cleaned
+
+    # 🔥 추가: 대분류/중간 메뉴 route를 실제 기본 하위 화면 route로 변환
+    return ROUTE_ALIASES.get(cleaned, cleaned)
 
 def get_menu_by_route(route: str | None) -> str | None:
     """route에 대응하는 메뉴명을 반환합니다."""

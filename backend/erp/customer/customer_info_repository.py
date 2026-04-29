@@ -1,8 +1,8 @@
-from sqlalchemy import cast
+from sqlalchemy import cast, false
 from sqlalchemy.types import String
 
 from db.db import SessionLocal
-from db.models import CompanionCustomer, CompanionCustomerDetail
+from db.models import CompanionCustomer, CompanionCustomerDetail, OpdSubs
 from ..common.query_utils import (
     like_keyword,
     normalize_bool_keyword,
@@ -15,9 +15,10 @@ from ..common.mutation_utils import (
 # =========================================================
 # ☑️ 고객관리 Repository
 # - Companion.customer + Companion.customer_detail JOIN 기반 조회
-# - 고객ID / 이메일 / oauth유형 / 닉네임 / 전화번호 / 구독여부 / 구독횟수 / 상태 / 가입일 검색 처리
-# - count + limit/offset 페이지네이션 처리
-# - 가입일(create_date) 날짜 범위 필터를 count/fetch 모두 동일하게 적용
+# - 구독여부는 Companion.customer.is_subscribed 원본값만 믿지 않고
+#   OPD.subs에 활성 구독(is_subs_status=True)이 있는지 기준으로 계산
+# - Swagger UI에서 생성한 구독은 subs_plan_id가 비어 있어도
+#   is_subs_status=True면 실제 구독중으로 인정한다.
 # =========================================================
 
 CUSTOMER_COLUMNS = [
@@ -31,6 +32,62 @@ CUSTOMER_COLUMNS = [
     "active",
     "create_date",
 ]
+
+
+def _active_subscription_exists_expr(db):
+    # 🔥 수정: 구독여부 판단 기준
+    # - subs_plan_id 유무로 걸러내지 않는다.
+    # - Swagger UI에서 만든 구독 데이터도 is_subs_status=True면 구독중으로 인정한다.
+    return (
+        db.query(OpdSubs.subs_id)
+        .filter(
+            OpdSubs.customer_id == CompanionCustomer.customer_id,
+            OpdSubs.is_subs_status.is_(True),
+        )
+        .exists()
+    )
+
+
+def _normalize_subscription_keyword(value):
+    # 🔥 추가: 구독여부 검색어 전용 정규화
+    # - t / true / y / 구독 => 구독함
+    # - f / false / n / 미구독 => 미구독
+    clean = str(value or "").strip().lower()
+
+    true_words = {
+        "t",
+        "true",
+        "y",
+        "yes",
+        "1",
+        "구독",
+        "구독함",
+        "구독중",
+        "활성",
+        "사용",
+    }
+
+    false_words = {
+        "f",
+        "false",
+        "n",
+        "no",
+        "0",
+        "미구독",
+        "비구독",
+        "구독안함",
+        "해지",
+        "비활성",
+        "미사용",
+    }
+
+    if clean in true_words:
+        return True
+
+    if clean in false_words:
+        return False
+
+    return None
 
 
 def _row_to_dict(row):
@@ -48,6 +105,8 @@ def _row_to_dict(row):
 
 
 def _base_customer_query(db):
+    active_subscription_exists = _active_subscription_exists_expr(db)
+
     return (
         db.query(
             CompanionCustomer.customer_id.label("customer_id"),
@@ -55,7 +114,10 @@ def _base_customer_query(db):
             CompanionCustomerDetail.oauth_type.label("oauth_type"),
             CompanionCustomerDetail.nickname.label("nickname"),
             CompanionCustomerDetail.phone.label("phone"),
-            CompanionCustomer.is_subscribed.label("is_subscribed"),
+
+            # 🔥 수정: 화면 구독여부는 OPD.subs의 활성 구독 존재 여부로 계산
+            active_subscription_exists.label("is_subscribed"),
+
             CompanionCustomer.subs_count.label("subs_count"),
             CompanionCustomer.active.label("active"),
             CompanionCustomerDetail.create_date.label("create_date"),
@@ -67,7 +129,7 @@ def _base_customer_query(db):
     )
 
 
-def _apply_customer_filter(query, search_type: str, keyword: str, start_date=None, end_date=None):
+def _apply_customer_filter(db, query, search_type: str, keyword: str, start_date=None, end_date=None):
     clean = (keyword or "").strip()
 
     if clean:
@@ -97,17 +159,19 @@ def _apply_customer_filter(query, search_type: str, keyword: str, start_date=Non
             )
 
         elif search_type == "is_subscribed":
-            bool_value = normalize_bool_keyword(
-                clean,
-                true_words={"구독"},
-                false_words={"미구독", "비구독"},
-            )
+            bool_value = _normalize_subscription_keyword(clean)
+
             if bool_value is not None:
-                query = query.filter(CompanionCustomer.is_subscribed.is_(bool_value))
+                active_subscription_exists = _active_subscription_exists_expr(db)
+
+                if bool_value is True:
+                    query = query.filter(active_subscription_exists)
+                else:
+                    query = query.filter(~active_subscription_exists)
             else:
-                query = query.filter(
-                    cast(CompanionCustomer.is_subscribed, String).ilike(like_keyword(clean))
-                )
+                # 🔥 수정: 애매한 검색어는 원본 customer.is_subscribed로 fallback하지 않는다.
+                # - 화면 표시 기준과 검색 기준이 갈라지는 문제 방지
+                query = query.filter(false())
 
         elif search_type == "subs_count":
             query = query.filter(
@@ -146,6 +210,7 @@ def count_customers(search_type="customer_id", keyword="", start_date=None, end_
     try:
         query = _base_customer_query(db)
         query = _apply_customer_filter(
+            db,
             query,
             search_type=search_type,
             keyword=keyword,
@@ -162,6 +227,7 @@ def fetch_customers(search_type="customer_id", keyword="", limit=50, offset=0, s
     try:
         query = _base_customer_query(db)
         query = _apply_customer_filter(
+            db,
             query,
             search_type=search_type,
             keyword=keyword,

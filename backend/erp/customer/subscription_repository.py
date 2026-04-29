@@ -93,6 +93,8 @@ def _format_bool_yn(value):
 
 
 def _format_subs_status(value):
+    # 🔥 재수정: Swagger UI에서 생성된 구독은 subs_plan_id가 비어 있어도
+    # is_subs_status=True면 정상적으로 구독중으로 표시한다.
     if value is None:
         return ""
     return "구독중" if value else "해지"

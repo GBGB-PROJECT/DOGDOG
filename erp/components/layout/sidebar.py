@@ -229,8 +229,8 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             com.PRODUCTION_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
-            # 🔥 추가: 생산입고/불량 현황/발주 관리/거래처 관리만 클릭 가능
-            # 🔥 생산실적, 품질 및 이력 관리는 클릭 불가
+            # 🔥 수정: 생산현황/생산입고/불량 현황/발주 관리/거래처 관리는 클릭 가능
+            # 🔥 품질 및 이력 관리는 클릭 불가
             disabled_items=com.DISABLED_PRODUCTION_MENU_ITEMS,
         )
 
@@ -253,6 +253,20 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         return _build_expanded_sidebar(
             header_control=_section_header("고객관리", on_menu_click),
             menu_controls=customer_controls,
+        )
+
+    # 🔥 추가: 인사관리 확장형
+    # - 인사관리 대분류 클릭 시에도 사원 관리가 선택된 상태로 열린다.
+    if selected_menu in com.HR_ALL_ITEMS:
+        hr_controls = _build_expanded_menu_controls(
+            com.HR_MAIN_ITEMS,
+            selected_menu,
+            on_menu_click,
+        )
+
+        return _build_expanded_sidebar(
+            header_control=_section_header("인사관리", on_menu_click),
+            menu_controls=hr_controls,
         )
 
     menu_controls = [

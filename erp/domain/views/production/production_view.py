@@ -536,10 +536,10 @@ def erp_production_view():
     def build_purchase_menu_box():
         return ft.Container(
             width=180,
-            height=260,
+            height=310,  # 🔥 수정: 최근 발주 내역 상자 높이와 맞춤
             bgcolor=CARD_BG,
             border_radius=12,
-            padding=12,
+            padding=20,  # 🔥 수정: 오른쪽 상자 padding과 맞춰 자연스럽게 정렬
             border=ft.border.all(1, BORDER_COLOR),
             ink=True,
             on_click=open_purchase_order_page,

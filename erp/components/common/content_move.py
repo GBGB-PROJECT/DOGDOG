@@ -78,7 +78,12 @@ MENU_ITEMS = {
 
     "상품 상세 정보 관리": product_detail_view.erp_product_detail_view,
 
+    # 🔥 수정: 생산관리 대분류 화면을 생산현황 메뉴의 실제 화면으로 사용
     "생산관리": production_view.erp_production_view,
+
+    # 🔥 추가: 기존 생산관리 대시보드 화면을 생산현황 하위 메뉴로 이동
+    "생산현황": production_view.erp_production_view,
+
     "생산입고": inbound_view.erp_inbound_view,  # 🔥 추가: 생산입고 실제 입고 현황 화면 연결
     "불량 현황": defective_view.erp_defective_view,  # 🔥 추가: 불량현황조회 화면 연결
     "발주 관리": purchase_order_view.erp_purchase_order_view,
@@ -119,8 +124,11 @@ MENU_ITEMS = {
     "영업관리": lambda: ft.Container(content=ft.Text("영업관리 준비 중")),
     "회계관리": lambda: ft.Container(content=ft.Text("회계관리 준비 중")),
 
-    # ☑️ 수정: 인사관리 실제 화면 연결
+    # 🔥 수정: 인사관리 대분류를 누르면 바로 실제 사원 관리 화면을 표시
     "인사관리": erp_employee_view,
+
+    # 🔥 추가: 인사관리 하위 메뉴 - 사원 관리 실제 화면 연결
+    "사원 관리": erp_employee_view,
 
     "시스템관리": lambda: ft.Container(content=ft.Text("시스템관리 준비 중")),
 
@@ -194,7 +202,8 @@ PRODUCT_ALL_ITEMS = [
 
 # ☑️ 추가: 생산관리 1차 메뉴
 PRODUCTION_MAIN_ITEMS = [
-    "생산실적",
+    # 🔥 수정: 기존 생산관리 기본 화면을 생산실적이 아니라 생산현황 메뉴로 표시
+    "생산현황",
     "생산입고",
     "불량 현황",  # 🔥 추가: 불량현황조회 메뉴
     "발주 관리",
@@ -205,14 +214,14 @@ PRODUCTION_MAIN_ITEMS = [
 # 🔥 추가: 아직 실제 화면이 없거나 의미 없는 화면으로 이어지는 생산관리 하위 메뉴
 # - 글자색은 그대로 두고 클릭만 막는다.
 DISABLED_PRODUCTION_MENU_ITEMS = [
-    "생산실적",
+    # 🔥 수정: 생산현황은 실제 화면이 있으므로 비활성에서 제외
     "품질 및 이력 관리",
 ]
 
 # ☑️ 추가: 생산관리 전체 묶음
 PRODUCTION_ALL_ITEMS = [
     "생산관리",
-    "생산실적",
+    "생산현황",
     "생산입고",
     "불량 현황",  # 🔥 추가: 불량현황조회 메뉴
     "발주 관리",
@@ -245,6 +254,18 @@ CUSTOMER_ALL_ITEMS = [
     "고객 문의 관리",
     "고객 센터 관리",
 ]
+
+# 🔥 추가: 인사관리 하위 메뉴
+# - 현재 실제 화면이 있는 항목은 사원 관리 하나만 둔다.
+HR_MAIN_ITEMS = [
+    "사원 관리",
+]
+
+# 🔥 추가: 인사관리 확장 사이드바 진입 조건 묶음
+HR_ALL_ITEMS = [
+    "인사관리",
+    "사원 관리",
+]
 '''==================== 상품관리 종료 ===================='''
 
 ## =============== 라우트 연결목적
@@ -259,8 +280,10 @@ MENU_TO_ROUTE = {
     "상품카테고리관리": "/merchandise/category",
     "상품 상세 정보 관리": "/merchandise/detail",
     "자재명세서": "/merchandise/bom",
-    "생산관리": "/production",
-    "생산실적": "/production/performance",
+    # 🔥 수정: 생산관리 클릭 시 중간/기본 화면 대신 생산현황 route로 바로 이동
+    "생산관리": "/production/status",
+    # 🔥 추가: 기존 생산관리 화면을 생산현황 메뉴 route로 연결
+    "생산현황": "/production/status",
     "생산입고": "/production/inbound",
     "불량 현황": "/production/defective",  # 🔥 추가: 불량현황조회 route 연결
     "발주 관리": "/production/order",
@@ -286,7 +309,10 @@ MENU_TO_ROUTE = {
     "고객 구독 관리": "/customer/subscription",
     "영업관리": "/business",
     "회계관리": "/accounting",
-    "인사관리": "/hr",
+    # 🔥 수정: 인사관리 클릭 시 바로 사원 관리 route로 이동
+    "인사관리": "/hr/employee",
+    # 🔥 추가: 인사관리 하위 메뉴 route
+    "사원 관리": "/hr/employee",
     "시스템관리": "/system",
 }
 
@@ -299,11 +325,15 @@ DEFAULT_AUTH_ROUTE = "/home"
 # - /stock/product 는 상품 재고 관리의 기본 하위 화면인 재고 현황으로 연결
 # - /customer 는 고객관리 안내/텍스트 화면이 아니라 고객 정보 관리 화면으로 연결
 # - /merchandise 는 상품관리 안내/텍스트 화면이 아니라 상품 상세 정보 관리 화면으로 연결
+# - /hr 은 인사관리 대분류 route가 아니라 사원 관리 화면으로 연결
+# - /production 은 생산관리 대분류 route가 아니라 생산현황 화면으로 연결
 ROUTE_ALIASES = {
     "/stock": "/stock/product/status",
     "/stock/product": "/stock/product/status",
     "/customer": "/customer/info",
     "/merchandise": "/merchandise/detail",
+    "/hr": "/hr/employee",
+    "/production": "/production/status",
 }
 
 def normalize_route(route: str | None) -> str:

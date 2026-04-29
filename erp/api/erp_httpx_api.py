@@ -90,6 +90,8 @@ def count_customers(search_type="customer_id", keyword="", start_date=None, end_
         size=1,
         start_date=start_date,
         end_date=end_date,
+        # 🔥 추가: 검색조건과 날짜 기준 분리
+        date_filter_type=date_filter_type,
     )
 
     return result["pagination"].get("total_count", 0)
@@ -545,6 +547,7 @@ def fetch_defectives(
     end_date=None,
     offset=None,  # 🔥 기존 view 호출 호환용
     limit=None,   # 🔥 기존 view 호출 호환용
+    date_filter_type="inbound_complete",  # 🔥 추가: DatePicker 날짜 기준
 ):
     # 🔥 defective_view.py가 offset/limit를 같이 넘겨도 기존 조회 화면들과 같은 방식으로 page/size 계산
     if limit:
@@ -561,6 +564,8 @@ def fetch_defectives(
         size=size,
         start_date=start_date,
         end_date=end_date,
+        # 🔥 추가: 검색조건과 날짜 기준 분리
+        date_filter_type=date_filter_type,
     )
 
     return result["items"]
@@ -571,6 +576,7 @@ def count_defectives(
     keyword="",
     start_date=None,
     end_date=None,
+    date_filter_type="inbound_complete",  # 🔥 추가: DatePicker 날짜 기준
 ):
     result = _list_request(
         "/erp/production/defective",

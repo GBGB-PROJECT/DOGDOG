@@ -3,7 +3,8 @@
 # - 생산관리 메인 대시보드의 "불량 내역 n건 >" 클릭 시 해당 월 불량만 조회
 # - ERP.purchase_order_item.defective 기준 불량수량/불량금액 표시
 # - 50개씩 페이지네이션
-# - DatePicker 선택값은 별도 시간 보정 없이 그대로 사용
+# - DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
+# - DatePicker 기간 검색 기준은 테이블에 보이는 입고완료일(inbound_complete)로 고정
 # =========================================================
 
 import math
@@ -225,9 +226,6 @@ def erp_defective_view():
         "brand",
         "product_name",
         "employee_id",
-        "inbound_scheduled_date",
-        "inbound_start",
-        "inbound_complete",
     }:
         initial_search_type = "inbound_id"
 
@@ -236,6 +234,10 @@ def erp_defective_view():
     selected_start = {"value": _parse_prefilter_date(initial_prefilter.get("start_date"))}
     selected_end = {"value": _parse_prefilter_date(initial_prefilter.get("end_date"))}
     search_type_value = {"value": initial_search_type}
+    # 🔥 추가: DatePicker 날짜 기준은 검색조건과 분리해서 입고완료일로 고정
+    # 🔥 수정: 검색조건 드롭다운에서는 입고예정일/입고시작일/입고완료일 제거
+    # - 테이블에 입고시작일 컬럼이 없으므로 화면에서 검증 가능한 입고완료일 기준으로 조회
+    date_filter_type_value = {"value": "inbound_complete"}
 
     pagination_state = {
         "current_page": 1,
@@ -252,6 +254,9 @@ def erp_defective_view():
     result_text = ft.Text("불러오는 중입니다.", size=13, color=TEXT_SECONDARY)
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
+
+    # 🔥 추가: 고객 3총사와 동일하게 조건 사용 후에만 보이는 초기화 버튼 자리
+    reset_button_holder = ft.Container(visible=False)
 
     # =========================================================
     # 🔥 불량현황 컬럼 비율
@@ -284,9 +289,6 @@ def erp_defective_view():
         "brand": "브랜드",
         "product_name": "상품명",
         "employee_id": "담당자ID",
-        "inbound_scheduled_date": "입고예정일",
-        "inbound_start": "입고시작일",
-        "inbound_complete": "입고완료일",
     }
 
     def format_picker_date(value):
@@ -313,21 +315,23 @@ def erp_defective_view():
         end_icon_holder.content = calendar_icon_box(on_click=open_end_picker)
 
     # =========================================================
-    # 🔥 DatePicker 선택값은 시간 보정 없이 그대로 사용
+    # 🔥 DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
+# - DatePicker 기간 검색 기준은 테이블에 보이는 입고완료일(inbound_complete)로 고정
     # =========================================================
     def on_start_date_change(e):
         if e.control.value:
-            selected_start["value"] = e.control.value.replace(tzinfo=None)
+            selected_start["value"] = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     def on_end_date_change(e):
         if e.control.value:
-            picked_date = e.control.value.replace(tzinfo=None)
+            picked_date = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
 
             if selected_start["value"] and picked_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -335,6 +339,7 @@ def erp_defective_view():
                 selected_end["value"] = picked_date
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     start_date_picker = ft.DatePicker(
@@ -380,10 +385,26 @@ def erp_defective_view():
         weight=ft.FontWeight.W_500,
     )
 
-    def set_search_type(value: str):
+    def update_reset_button_visibility():
+        # 🔥 추가: 기본 상태가 아니면 초기화 버튼 표시
+        has_filter = (
+            selected_start["value"] is not None
+            or selected_end["value"] is not None
+            or (search_field.value or "").strip() != ""
+            or search_type_value["value"] != "inbound_id"
+            or (pagination_state["keyword"] or "").strip() != ""
+        )
+        reset_button_holder.visible = has_filter
+
+    def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
         search_type_text.value = search_type_labels[value]
-        search_type_text.update()
+        update_reset_button_visibility()
+
+        if page:
+            page.update()
+        else:
+            search_type_text.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -392,7 +413,7 @@ def erp_defective_view():
                 alignment=ft.Alignment(-1, 0),
                 content=ft.Text(label, size=13, color=FIELD_TEXT, weight=ft.FontWeight.W_500),
             ),
-            on_click=lambda e: set_search_type(value),
+            on_click=lambda e: set_search_type(value, e.page),
         )
 
     search_type = ft.Container(
@@ -526,6 +547,8 @@ def erp_defective_view():
             keyword=keyword,
             start_date=start_date,
             end_date=end_date,
+            # 🔥 추가: DatePicker 기간은 항상 입고완료일 기준
+            date_filter_type=date_filter_type_value["value"],
         )
 
     def fetch_page_rows(page_no=1, keyword=""):
@@ -541,21 +564,26 @@ def erp_defective_view():
             end_date=end_date,
             offset=offset,
             limit=PAGE_SIZE,
+            # 🔥 추가: DatePicker 기간은 항상 입고완료일 기준
+            date_filter_type=date_filter_type_value["value"],
         )
 
     def refresh_result_text():
         keyword = pagination_state.get("keyword", "")
         start_date, end_date = get_selected_date_range()
-
-        range_text = ""
-        if start_date or end_date:
-            range_text = f"기간 {start_date or '-'} ~ {end_date or '-'} · "
-
-        keyword_text = f"검색어 '{keyword}' · " if keyword else ""
+        start_text = start_date.strftime("%Y.%m.%d") if start_date else "미선택"
+        end_text = end_date.strftime("%Y.%m.%d") if end_date else "미선택"
+        search_label = search_type_labels.get(search_type_value["value"], "입고ID")
+        keyword_text = keyword if keyword else "없음"
 
         result_text.value = (
-            f"{range_text}{keyword_text}전체 {pagination_state['total_count']:,}건 "
-            f"/ {pagination_state['current_page']:,}페이지"
+            f"기간: {start_text} ~ {end_text} / "
+            f"날짜기준: 입고완료일 / "
+            f"검색조건: {search_label} / "
+            f"검색어: {keyword_text} / "
+            f"전체 {pagination_state['total_count']:,}건 / "
+            f"현재 페이지 {len(rows_state):,}건 / "
+            f"{pagination_state['current_page']:,} / {pagination_state['total_pages']:,} 페이지"
         )
 
     # =========================================================
@@ -669,18 +697,29 @@ def erp_defective_view():
     def on_search(e):
         pagination_state["keyword"] = (search_field.value or "").strip()
         load_page(1, e.page)
+        update_reset_button_visibility()
+        e.page.update()
 
     def on_reset(e):
+        # 🔥 수정: 고객 3총사와 동일하게 모든 조건을 기본값으로 복구
         search_field.value = ""
         selected_start["value"] = None
         selected_end["value"] = None
         search_type_value["value"] = "inbound_id"
         search_type_text.value = search_type_labels["inbound_id"]
         pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
         refresh_picker_fields()
         load_page(1, e.page)
+        update_reset_button_visibility()
+        e.page.update()
 
     refresh_picker_fields()
+
+    # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
+    reset_button_holder.content = action_button("초기화", on_click=on_reset, width=78)
+    update_reset_button_visibility()
+
     load_page(1)
 
     return ft.Column(
@@ -704,7 +743,7 @@ def erp_defective_view():
                         search_type,
                         search_field,
                         action_button("조회", on_click=on_search),
-                        action_button("초기화", on_click=on_reset, width=88),
+                        reset_button_holder,
                     ],
                 ),
             ),

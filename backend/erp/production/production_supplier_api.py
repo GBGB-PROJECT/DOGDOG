@@ -22,6 +22,7 @@ SEARCH_TYPE_LABELS = {
     "supplier_id": "거래처ID",
     "supplier_name": "거래처명",
     "brn": "사업자번호",
+    "designated_payment_date": "지정결제일",  # 🔥 추가
     "is_contact_status": "연락상태",
     "sup_manager": "담당자명",
     "phone": "전화번호",
@@ -73,7 +74,7 @@ def build_response_rows(items: list, page: int, size: int):
     summary="거래처 관리 목록 조회",
     description=(
         "생산관리 > 거래처 관리 화면에서 사용하는 목록 조회 API입니다. "
-        "ERP.supplier 테이블 기준으로 검색 조건, 검색어, 최종수정일 날짜 범위, 페이지 정보를 받아 거래처 목록을 반환합니다."
+        "ERP.supplier 테이블 기준으로 검색 조건, 검색어, 예정결제일 날짜 범위, 페이지 정보를 받아 거래처 목록을 반환합니다."
     ),
     response_model=ErpProductionSupplierListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
@@ -82,6 +83,7 @@ def get_suppliers(
         "supplier_id",
         "supplier_name",
         "brn",
+        "designated_payment_date",  # 🔥 추가: 지정결제일 검색조건
         "is_contact_status",
         "sup_manager",
         "phone",
@@ -89,8 +91,8 @@ def get_suppliers(
     keyword: str = Query(default="", description="검색어", examples=["하림"]),
     page: int = Query(default=1, ge=1, description="페이지 번호", examples=[1]),
     size: int = Query(default=50, ge=1, le=100, description="페이지당 조회 건수", examples=[50]),
-    start_date: date | None = Query(default=None, description="최종수정일 시작일", examples=["2026-04-01"]),
-    end_date: date | None = Query(default=None, description="최종수정일 종료일", examples=["2026-04-30"]),
+    start_date: date | None = Query(default=None, description="예정결제일 시작일", examples=["2026-04-01"]),
+    end_date: date | None = Query(default=None, description="예정결제일 종료일", examples=["2026-04-30"]),
 ):
     try:
         clean_search_type = (search_type or "supplier_name").strip()

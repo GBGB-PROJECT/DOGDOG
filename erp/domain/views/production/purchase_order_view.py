@@ -337,6 +337,9 @@ def erp_purchase_order_view():
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
 
+    # 🔥 추가: 고객 3총사와 동일하게 조건 사용 후에만 보이는 초기화 버튼 자리
+    reset_button_holder = ft.Container(visible=False)
+
     row_spacing = 10
     row_padding_x = 14
     row_padding_y = 14
@@ -372,21 +375,22 @@ def erp_purchase_order_view():
         end_icon_holder.content = calendar_icon_box(on_click=open_end_picker)
 
     # =========================================================
-    # 🔥 DatePicker 선택값은 inbound_view.py처럼 시간 보정 없이 그대로 사용
+    # 🔥 DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
     # =========================================================
     def on_start_date_change(e):
         if e.control.value:
-            selected_start["value"] = e.control.value.replace(tzinfo=None)
+            selected_start["value"] = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     def on_end_date_change(e):
         if e.control.value:
-            picked_date = e.control.value.replace(tzinfo=None)
+            picked_date = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
 
             if selected_start["value"] and picked_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -394,6 +398,7 @@ def erp_purchase_order_view():
                 selected_end["value"] = picked_date
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     start_date_picker = ft.DatePicker(
@@ -463,15 +468,37 @@ def erp_purchase_order_view():
         weight=ft.FontWeight.W_500,
     )
 
-    def set_search_type(value: str):
+    def update_reset_button_visibility():
+        # 🔥 추가: 기본 상태가 아니면 초기화 버튼 표시
+        has_filter = (
+            selected_start["value"] is not None
+            or selected_end["value"] is not None
+            or (search_field.value or "").strip() != ""
+            or search_type_value["value"] != "purchase_order_id"
+            or date_type_value["value"] != "contract_date"
+            or (pagination_state["keyword"] or "").strip() != ""
+        )
+        reset_button_holder.visible = has_filter
+
+    def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
         search_type_text.value = search_type_labels[value]
-        search_type_text.update()
+        update_reset_button_visibility()
 
-    def set_date_type(value: str):
+        if page:
+            page.update()
+        else:
+            search_type_text.update()
+
+    def set_date_type(value: str, page: ft.Page | None = None):
         date_type_value["value"] = value
         date_type_text.value = date_type_labels[value]
-        date_type_text.update()
+        update_reset_button_visibility()
+
+        if page:
+            page.update()
+        else:
+            date_type_text.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -486,7 +513,7 @@ def erp_purchase_order_view():
                     weight=ft.FontWeight.W_500,
                 ),
             ),
-            on_click=lambda e: set_search_type(value),
+            on_click=lambda e: set_search_type(value, e.page),
         )
 
     def build_date_type_menu_item(label: str, value: str):
@@ -502,7 +529,7 @@ def erp_purchase_order_view():
                     weight=ft.FontWeight.W_500,
                 ),
             ),
-            on_click=lambda e: set_date_type(value),
+            on_click=lambda e: set_date_type(value, e.page),
         )
 
     search_type = ft.Container(
@@ -904,11 +931,32 @@ def erp_purchase_order_view():
         reload_current_page()
 
     def on_search_click(e):
-        if not (search_field.value or "").strip():
-            load_rows(e.page)
-        else:
-            run_search(e.page)
+        pagination_state["keyword"] = (search_field.value or "").strip()
+        pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = e.page
 
+        reload_current_page()
+        update_reset_button_visibility()
+        e.page.update()
+
+    def on_reset_click(e):
+        # 🔥 추가: 검색/날짜 조건을 전부 기본값으로 되돌리고 첫 화면 재조회
+        selected_start["value"] = None
+        selected_end["value"] = None
+
+        search_type_value["value"] = "purchase_order_id"
+        search_type_text.value = search_type_labels["purchase_order_id"]
+        date_type_value["value"] = "contract_date"
+        date_type_text.value = date_type_labels["contract_date"]
+        search_field.value = ""
+
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+        pagination_state["page_ref"] = e.page
+
+        refresh_picker_fields()
+        reload_current_page()
+        update_reset_button_visibility()
         e.page.update()
 
     def on_download(e):
@@ -928,6 +976,10 @@ def erp_purchase_order_view():
     except Exception as exc:
         result_text.value = f"DB 조회 실패: {exc}"
 
+    # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
+    update_reset_button_visibility()
+
     filter_bar = ft.Container(
         bgcolor="#F3F4F6",
         padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
@@ -946,6 +998,7 @@ def erp_purchase_order_view():
                 search_type,
                 search_field,
                 action_button("조회", on_click=on_search_click),
+                reset_button_holder,
                 action_button("인쇄", on_click=on_print),
                 action_button("다운로드", on_click=on_download, width=92),
             ],

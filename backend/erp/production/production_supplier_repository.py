@@ -45,6 +45,16 @@ def _apply_supplier_filter(query, search_type: str, keyword: str, start_date=Non
             query = query.filter(ErpSupplier.supplier_name.ilike(like_keyword(clean)))
         elif search_type == "brn":
             query = query.filter(ErpSupplier.brn.ilike(like_keyword(clean)))
+        elif search_type == "designated_payment_date":
+            # 🔥 추가: 지정결제일 검색조건
+            # - DB 값은 1~31 숫자이므로 숫자 검색은 정확히 매칭
+            # - 예외적으로 문자열 입력도 받을 수 있게 LIKE 보조 처리
+            if clean.isdigit():
+                query = query.filter(ErpSupplier.designated_payment_date == int(clean))
+            else:
+                query = query.filter(
+                    cast(ErpSupplier.designated_payment_date, String).like(like_keyword(clean))
+                )
         elif search_type == "is_contact_status":
             bool_value = normalize_bool_keyword(clean, true_words={"가능"}, false_words={"불가"})
             if bool_value is not None:
@@ -58,10 +68,13 @@ def _apply_supplier_filter(query, search_type: str, keyword: str, start_date=Non
 
     parsed_start = parse_date(start_date)
     parsed_end = parse_date(end_date)
+
+    # 🔥 수정: DatePicker 기간 검색 기준을 최종수정일(last_update)에서
+    # 예정결제일(scheduled_payment_date)로 변경
     if parsed_start:
-        query = query.filter(func.date(ErpSupplier.last_update) >= parsed_start)
+        query = query.filter(ErpSupplier.scheduled_payment_date >= parsed_start)
     if parsed_end:
-        query = query.filter(func.date(ErpSupplier.last_update) <= parsed_end)
+        query = query.filter(ErpSupplier.scheduled_payment_date <= parsed_end)
     return query
 
 

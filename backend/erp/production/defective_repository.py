@@ -221,22 +221,24 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
 
 # =========================================================
 # 🔥 날짜 범위 처리
-# - 기본 기준: 입고 시작일(inbound_start)
-# - 검색조건이 입고완료일/입고예정일이면 해당 컬럼 기준
+# - DatePicker 기준은 검색조건과 분리해서 date_filter_type으로 받는다.
+# - 불량현황조회 화면 기본 기준: 입고완료일(inbound_complete)
 # =========================================================
-def _apply_date_filter(query, search_type="inbound_id", start_date=None, end_date=None):
+def _apply_date_filter(query, date_filter_type="inbound_complete", start_date=None, end_date=None):
     start_dt = _normalize_start_datetime(start_date)
     end_dt = _normalize_end_datetime(end_date)
 
     if not start_dt and not end_dt:
         return query
 
-    date_column = ErpInbound.inbound_start
+    date_column = ErpInbound.inbound_complete
 
-    if search_type == "inbound_complete":
-        date_column = ErpInbound.inbound_complete
-    elif search_type == "inbound_scheduled_date":
+    if date_filter_type == "inbound_start":
+        date_column = ErpInbound.inbound_start
+    elif date_filter_type == "inbound_scheduled_date":
         date_column = ErpPurchaseOrder.inbound_scheduled_date
+    elif date_filter_type == "inbound_complete":
+        date_column = ErpInbound.inbound_complete
 
     if start_dt:
         query = query.filter(date_column >= start_dt)
@@ -257,12 +259,13 @@ def fetch_defectives(
     offset=0,
     start_date=None,
     end_date=None,
+    date_filter_type="inbound_complete",
 ):
     db = SessionLocal()
     try:
         query = _base_query(db)
         query = _apply_filter(query, search_type, keyword)
-        query = _apply_date_filter(query, search_type, start_date, end_date)
+        query = _apply_date_filter(query, date_filter_type, start_date, end_date)
 
         rows = (
             query
@@ -290,12 +293,13 @@ def count_defectives(
     keyword="",
     start_date=None,
     end_date=None,
+    date_filter_type="inbound_complete",
 ):
     db = SessionLocal()
     try:
         query = _base_query(db)
         query = _apply_filter(query, search_type, keyword)
-        query = _apply_date_filter(query, search_type, start_date, end_date)
+        query = _apply_date_filter(query, date_filter_type, start_date, end_date)
         return query.count()
 
     finally:

@@ -210,6 +210,9 @@ def erp_production_supplier_view():
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
 
+    # 🔥 추가: 고객 3총사와 동일하게 조건 사용 후에만 보이는 초기화 버튼 자리
+    reset_button_holder = ft.Container(visible=False)
+
     dim_bg = ft.Container(
         visible=False,
         expand=True,
@@ -244,6 +247,7 @@ def erp_production_supplier_view():
         "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
         "brn": "사업자번호",
+        "designated_payment_date": "지정결제일",  # 🔥 추가: 지정결제일도 검색조건에 포함
         "is_contact_status": "연락상태",
         "sup_manager": "담당자명",
         "phone": "전화번호",
@@ -276,6 +280,7 @@ def erp_production_supplier_view():
                 selected_end["value"] = selected_start["value"]
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     def on_end_date_change(e):
@@ -288,6 +293,7 @@ def erp_production_supplier_view():
                 selected_end["value"] = corrected_date
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     start_date_picker = ft.DatePicker(
@@ -338,10 +344,26 @@ def erp_production_supplier_view():
         weight=ft.FontWeight.W_500,
     )
 
-    def set_search_type(value: str):
+    def update_reset_button_visibility():
+        # 🔥 추가: 기본 상태가 아니면 초기화 버튼 표시
+        has_filter = (
+            selected_start["value"] is not None
+            or selected_end["value"] is not None
+            or (search_field.value or "").strip() != ""
+            or search_type_value["value"] != "supplier_name"
+            or (pagination_state["keyword"] or "").strip() != ""
+        )
+        reset_button_holder.visible = has_filter
+
+    def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
         search_type_text.value = search_type_labels[value]
-        search_type_text.update()
+        update_reset_button_visibility()
+
+        if page:
+            page.update()
+        else:
+            search_type_text.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -356,7 +378,7 @@ def erp_production_supplier_view():
                     weight=ft.FontWeight.W_500,
                 ),
             ),
-            on_click=lambda e: set_search_type(value),
+            on_click=lambda e: set_search_type(value, e.page),
         )
 
     search_type = ft.Container(
@@ -546,7 +568,8 @@ def erp_production_supplier_view():
     # =========================================================
     # ☑️ SQLAlchemy ORM: 거래처 count/list 조회
     # - SQL 문자열을 직접 실행하지 않고 SupplierModel 기반 ORM 함수 사용
-    # - 검색조건/날짜조건은 ORM filter로 처리
+    # - 🔥 수정: DatePicker 기간은 예정결제일(scheduled_payment_date) 기준으로 처리
+    # - 🔥 추가: 지정결제일(designated_payment_date)은 검색조건으로 처리
     # =========================================================
     def get_selected_date_text(value):
         if not value:
@@ -606,6 +629,8 @@ def erp_production_supplier_view():
 
         result_text.value = (
             f"기간: {start_text} ~ {end_text} / "
+            f"날짜기준: 예정결제일 / "  # 🔥 수정: DatePicker가 어떤 날짜 컬럼을 보는지 표시
+            f"검색조건: {search_type_labels[search_type_value['value']]} / "
             f"검색어: {keyword if keyword else '없음'} / "
             f"전체 조회 건수: {total_count}건 / "
             f"현재 페이지: {page_no}/{total_pages}"
@@ -613,6 +638,7 @@ def erp_production_supplier_view():
 
         refresh_table(rows_state)
         build_pagination()
+        update_reset_button_visibility()
 
     search_field.on_submit = lambda e: run_search(1)
 
@@ -659,8 +685,30 @@ def erp_production_supplier_view():
     refresh_picker_fields()
     run_search(1)
 
+    def on_reset_click(e):
+        # 🔥 추가: 검색/날짜 조건을 전부 기본값으로 되돌리고 첫 화면 재조회
+        selected_start["value"] = None
+        selected_end["value"] = None
+
+        search_type_value["value"] = "supplier_name"
+        search_type_text.value = search_type_labels["supplier_name"]
+        search_field.value = ""
+
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+
+        refresh_picker_fields()
+        run_search(1)
+        update_reset_button_visibility()
+        e.page.update()
+
+    # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
+    update_reset_button_visibility()
+
     action_controls = [
-        action_button("조회", on_click=lambda e: run_search(1), width=78),
+        action_button("조회", on_click=lambda e: (run_search(1), update_reset_button_visibility(), e.page.update()), width=78),
+        reset_button_holder,
         action_button("인쇄", on_click=on_print, width=78),
         action_button("다운로드", on_click=on_download, width=92),
         action_button("등록", on_click=open_register_modal, width=78),

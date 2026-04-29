@@ -108,6 +108,15 @@ def get_defective_list(
         description="검색 조건",
         examples=["product_name"],
     ),
+    date_filter_type: Literal[
+        "inbound_scheduled_date",
+        "inbound_start",
+        "inbound_complete",
+    ] = Query(
+        default="inbound_complete",
+        description="DatePicker 기간 검색 기준. 불량현황조회 화면 기본값은 테이블에 보이는 입고완료일입니다.",
+        examples=["inbound_complete"],
+    ),
     keyword: str = Query(
         default="",
         description="검색어",
@@ -128,17 +137,18 @@ def get_defective_list(
     ),
     start_date: date | None = Query(
         default=None,
-        description="조회 시작일. 기본은 입고시작일 기준이며, 검색조건이 입고완료일/입고예정일이면 해당 날짜 기준입니다.",
+        description="조회 시작일. date_filter_type 기준 컬럼으로 기간을 필터링합니다.",
         examples=["2026-04-01"],
     ),
     end_date: date | None = Query(
         default=None,
-        description="조회 종료일. 기본은 입고시작일 기준이며, 검색조건이 입고완료일/입고예정일이면 해당 날짜 기준입니다.",
+        description="조회 종료일. date_filter_type 기준 컬럼으로 기간을 필터링합니다.",
         examples=["2026-04-30"],
     ),
 ):
     try:
         clean_search_type = (search_type or "inbound_id").strip()
+        clean_date_filter_type = (date_filter_type or "inbound_complete").strip()
         clean_keyword = (keyword or "").strip()
 
         total_count = count_defectives(
@@ -146,6 +156,7 @@ def get_defective_list(
             keyword=clean_keyword,
             start_date=start_date,
             end_date=end_date,
+            date_filter_type=clean_date_filter_type,
         )
 
         total_pages = max(1, ceil(total_count / size))
@@ -158,6 +169,7 @@ def get_defective_list(
             offset=offset,
             start_date=start_date,
             end_date=end_date,
+            date_filter_type=clean_date_filter_type,
         )
 
         result_items = build_response_rows(items, page, size)
@@ -177,6 +189,8 @@ def get_defective_list(
                     "search": {
                         "search_type": clean_search_type,
                         "search_type_label": SEARCH_TYPE_LABELS.get(clean_search_type, clean_search_type),
+                        "date_filter_type": clean_date_filter_type,
+                        "date_filter_type_label": SEARCH_TYPE_LABELS.get(clean_date_filter_type, clean_date_filter_type),
                         "keyword": clean_keyword,
                         "start_date": start_date,
                         "end_date": end_date,

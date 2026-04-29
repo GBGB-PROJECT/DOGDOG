@@ -5,7 +5,7 @@
 # - 입고 상태는 숫자 ID가 아니라 상태명 문자로 표시
 # - 생산관리 대시보드 카드와 이어지도록 상품명/입고수량/입고금액 표시
 # - 50개씩 페이지네이션
-# - DatePicker 선택값은 별도 시간 보정 없이 그대로 사용
+# - DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
 # =========================================================
 
 import math
@@ -236,23 +236,21 @@ def erp_inbound_view():
         "brand",
         "product_name",
         "employee_id",
-        "expiration_date",
-        "inbound_scheduled_date",
-        "inbound_start",
-        "inbound_complete",
     }:
         initial_search_type = "inbound_id"
 
     rows_state = []
 
     # 🔥 날짜 검색 기준과 검색조건을 분리
+    # 🔥 수정: DatePicker 기본 기준은 테이블에 보이는 입고완료일로 고정
+    # 🔥 수정: 검색조건 드롭다운에서는 입고예정일/입고시작일/입고완료일 제거
     # - 기존 문제: 생산관리 68건 > 클릭 시 입고완료일 기준 월 필터가 걸렸는데,
     #   화면에서 검색조건을 거래처명/상품명으로 바꾸는 순간 백엔드가 날짜 기준을 입고시작일로 바꿔버림
     # - 수정: 대시보드에서 넘어온 날짜 기준은 inbound_complete로 고정 유지
-    date_search_types = {"expiration_date", "inbound_scheduled_date", "inbound_start", "inbound_complete"}
+    date_search_types = {"inbound_complete"}
     initial_date_filter_type = initial_prefilter.get("date_filter_type")
     if initial_date_filter_type not in date_search_types:
-        initial_date_filter_type = initial_search_type if initial_search_type in date_search_types else "inbound_start"
+        initial_date_filter_type = initial_search_type if initial_search_type in date_search_types else "inbound_complete"
 
     selected_start = {"value": _parse_prefilter_date(initial_prefilter.get("start_date"))}
     selected_end = {"value": _parse_prefilter_date(initial_prefilter.get("end_date"))}
@@ -274,6 +272,9 @@ def erp_inbound_view():
     result_text = ft.Text("불러오는 중입니다.", size=13, color=TEXT_SECONDARY)
     table_rows_holder = ft.Column(spacing=0)
     pagination_holder = ft.Container()
+
+    # 🔥 추가: 고객 3총사와 동일하게 조건 사용 후에만 보이는 초기화 버튼 자리
+    reset_button_holder = ft.Container(visible=False)
 
     # =========================================================
     # 🔥 입고 현황 컬럼 비율
@@ -306,9 +307,6 @@ def erp_inbound_view():
         "product_name": "상품명",
         "employee_id": "담당자ID",
         "expiration_date": "유통기한",
-        "inbound_scheduled_date": "입고예정일",
-        "inbound_start": "입고시작일",
-        "inbound_complete": "입고완료일",
     }
 
     def format_picker_date(value):
@@ -335,21 +333,22 @@ def erp_inbound_view():
         end_icon_holder.content = calendar_icon_box(on_click=open_end_picker)
 
     # =========================================================
-    # 🔥 DatePicker 선택값은 시간 보정 없이 그대로 사용
+    # 🔥 DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
     # =========================================================
     def on_start_date_change(e):
         if e.control.value:
-            selected_start["value"] = e.control.value.replace(tzinfo=None)
+            selected_start["value"] = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     def on_end_date_change(e):
         if e.control.value:
-            picked_date = e.control.value.replace(tzinfo=None)
+            picked_date = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
 
             if selected_start["value"] and picked_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -357,6 +356,7 @@ def erp_inbound_view():
                 selected_end["value"] = picked_date
 
         refresh_picker_fields()
+        update_reset_button_visibility()
         e.page.update()
 
     start_date_picker = ft.DatePicker(
@@ -402,7 +402,19 @@ def erp_inbound_view():
         weight=ft.FontWeight.W_500,
     )
 
-    def set_search_type(value: str):
+    def update_reset_button_visibility():
+        # 🔥 추가: 기본 상태가 아니면 초기화 버튼 표시
+        has_filter = (
+            selected_start["value"] is not None
+            or selected_end["value"] is not None
+            or (search_field.value or "").strip() != ""
+            or search_type_value["value"] != "inbound_id"
+            or date_filter_type_value["value"] != "inbound_complete"
+            or (pagination_state["keyword"] or "").strip() != ""
+        )
+        reset_button_holder.visible = has_filter
+
+    def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
 
         # 🔥 날짜형 검색조건을 직접 선택한 경우에만 날짜 기준도 같이 변경
@@ -411,7 +423,12 @@ def erp_inbound_view():
             date_filter_type_value["value"] = value
 
         search_type_text.value = search_type_labels[value]
-        search_type_text.update()
+        update_reset_button_visibility()
+
+        if page:
+            page.update()
+        else:
+            search_type_text.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -420,7 +437,7 @@ def erp_inbound_view():
                 alignment=ft.Alignment(-1, 0),
                 content=ft.Text(label, size=13, color=FIELD_TEXT, weight=ft.FontWeight.W_500),
             ),
-            on_click=lambda e: set_search_type(value),
+            on_click=lambda e: set_search_type(value, e.page),
         )
 
     search_type = ft.Container(
@@ -634,7 +651,7 @@ def erp_inbound_view():
         start_text = format_picker_date(selected_start["value"]) or "미선택"
         end_text = format_picker_date(selected_end["value"]) or "미선택"
         search_label = search_type_labels.get(search_type_value["value"], "입고ID")
-        date_filter_label = search_type_labels.get(date_filter_type_value["value"], "입고시작일")
+        date_filter_label = search_type_labels.get(date_filter_type_value["value"], "입고완료일")
         keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
 
         result_text.value = (
@@ -674,9 +691,32 @@ def erp_inbound_view():
         pagination_state["keyword"] = (search_field.value or "").strip()
         pagination_state["current_page"] = 1
         reload_current_page()
+        update_reset_button_visibility()
+        e.page.update()
+
+    def on_reset_click(e):
+        # 🔥 추가: 검색/날짜 조건을 전부 기본값으로 되돌리고 첫 화면 재조회
+        selected_start["value"] = None
+        selected_end["value"] = None
+
+        search_type_value["value"] = "inbound_id"
+        search_type_text.value = search_type_labels["inbound_id"]
+        date_filter_type_value["value"] = "inbound_complete"
+        search_field.value = ""
+
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+
+        refresh_picker_fields()
+        reload_current_page()
+        update_reset_button_visibility()
         e.page.update()
 
     refresh_picker_fields()
+
+    # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
+    update_reset_button_visibility()
 
     pagination_state["keyword"] = ""
     pagination_state["current_page"] = 1
@@ -703,6 +743,7 @@ def erp_inbound_view():
                         search_type,
                         search_field,
                         action_button("조회", on_click=on_search_click),
+                        reset_button_holder,
                         action_button("인쇄"),
                         action_button("다운로드", width=92),
                     ],

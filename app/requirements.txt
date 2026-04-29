@@ -1,0 +1,5 @@
+certifi
+flet==0.81.0
+flet_charts==0.81.0
+pg8000
+python-dateutil

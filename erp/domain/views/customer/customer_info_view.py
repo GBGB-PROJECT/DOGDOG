@@ -147,6 +147,39 @@ def customer_row_adapter(saved_data: dict, next_no: int):
     }
 
 
+def _to_yn(value):
+    # 🔥 수정: API에서 이미 "Y" / "N" 문자열로 내려오는 경우까지 정확히 처리
+    # - 기존 코드: "N"도 비어있지 않은 문자열이라 True로 판단되어 전부 Y로 표시됨
+    if isinstance(value, bool):
+        return "Y" if value else "N"
+
+    text = str(value or "").strip().lower()
+
+    if text in ["y", "yes", "true", "1", "구독", "구독함", "사용", "활성"]:
+        return "Y"
+
+    if text in ["n", "no", "false", "0", "미구독", "비구독", "구독안함", "해지", "비활성"]:
+        return "N"
+
+    return "N"
+
+
+def _to_active_text(value):
+    # 🔥 수정: API에서 "비활성" 문자열이 내려와도 활성으로 오판하지 않게 처리
+    if isinstance(value, bool):
+        return "활성" if value else "비활성"
+
+    text = str(value or "").strip().lower()
+
+    if text in ["활성", "active", "y", "yes", "true", "1", "사용"]:
+        return "활성"
+
+    if text in ["비활성", "inactive", "n", "no", "false", "0", "미사용"]:
+        return "비활성"
+
+    return "비활성"
+
+
 def customer_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
@@ -160,16 +193,14 @@ def customer_db_row_adapter(db_rows: list, page_no: int):
                 "oauth_type": row.get("oauth_type", ""),
                 "nickname": row.get("nickname", ""),
                 "phone": row.get("phone", ""),
-                "is_subscribed": "Y" if row.get("is_subscribed") else "N",
+                "is_subscribed": _to_yn(row.get("is_subscribed")),
                 "subs_count": row.get("subs_count", ""),
-                "active": "활성" if row.get("active") else "비활성",
+                "active": _to_active_text(row.get("active")),
                 "create_date": row.get("create_date", ""),
             }
         )
 
     return rows
-
-
 # 🔥 수정: 기존 customer_view.py의 고객 목록/검색/등록 화면을 고객 정보 관리 전용 화면으로 분리
 def erp_customer_info_view():
     # 🔥 수정: 고객관리 대분류가 아니라 고객 정보 관리 하위 화면 제목으로 변경

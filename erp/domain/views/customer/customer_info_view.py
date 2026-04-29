@@ -272,7 +272,6 @@ def erp_customer_info_view():
         "is_subscribed": "구독여부",
         "subs_count": "구독횟수",
         "active": "상태",
-        "create_date": "가입일",
     }
 
     def format_date_text(value):

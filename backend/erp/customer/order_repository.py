@@ -2,7 +2,7 @@
 # 🔥 고객 주문 관리 Repository
 # - OPD.sales_order + OPD.sales_order_item JOIN
 # - 주문ID / 고객ID / 상품ID / 결제ID 숫자 검색 보강
-# - 날짜 필터 start_date/end_date 처리
+# - 주문일은 검색조건에서 제외하고 start_date/end_date DatePicker 값으로만 필터링
 # - 🔥 address + detail_address를 합쳐 배송지(address)로 반환
 # =========================================================
 
@@ -130,10 +130,11 @@ def _apply_filter(query, search_type, keyword):
             cast(OpdSalesOrder.phone, String).ilike(like_keyword(clean))
         )
 
+    # 🔥 수정: 주문일(order_date)은 검색창 키워드 검색에서 제외
+    # - 주문일 검색은 DatePicker의 start_date / end_date로만 처리한다.
+    # - 따라서 search_type="order_date"가 들어와도 키워드 검색은 적용하지 않는다.
     if search_type == "order_date":
-        return query.filter(
-            cast(OpdSalesOrder.order_date, String).like(like_keyword(clean))
-        )
+        return query
 
     # 🔥 추가: 배송지 검색
     if search_type == "address":

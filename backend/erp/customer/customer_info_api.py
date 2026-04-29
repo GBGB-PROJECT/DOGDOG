@@ -21,7 +21,6 @@ SEARCH_TYPE_LABELS = {
     "is_subscribed": "구독여부",
     "subs_count": "구독횟수",
     "active": "상태",
-    "create_date": "가입일",
 }
 
 
@@ -75,7 +74,6 @@ def get_customer_list(
         "is_subscribed",
         "subs_count",
         "active",
-        "create_date",
     ] = Query(
         default="customer_id",
         description="검색 조건",

@@ -187,13 +187,10 @@ def _apply_customer_filter(db, query, search_type: str, keyword: str, start_date
                     cast(CompanionCustomer.active, String).ilike(like_keyword(clean))
                 )
 
-        elif search_type == "create_date":
-            query = query.filter(
-                cast(CompanionCustomerDetail.create_date, String).like(like_keyword(clean))
-            )
 
     # =========================================================
     # ☑️ 가입일 날짜 범위 필터
+    # - 가입일은 검색조건 드롭다운에서 제외하고 DatePicker로만 조회한다.
     # - count / fetch 모두 같은 조건을 타야 페이지네이션이 맞는다.
     # =========================================================
     if start_date is not None:

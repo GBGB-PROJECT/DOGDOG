@@ -10,7 +10,7 @@ from api.erp_httpx_api import count_customer_orders, fetch_customer_orders
 # 🔥 고객 주문 관리 화면
 # - OPD.sales_order + OPD.sales_order_item JOIN 데이터 조회
 # - 주문번호 / 주문ID / 고객ID / 수령인 / 전화번호 / 배송지 / 상품ID / 결제ID 검색
-# - 주문일 날짜 필터
+# - 주문일은 검색조건에서 제외하고 DatePicker(start_date/end_date)로만 필터링
 # - 50개씩 페이지네이션
 # - 🔥 추가: address + detail_address를 합친 배송지 컬럼 표시
 # =========================================================
@@ -196,7 +196,6 @@ def erp_customer_order_view():
         "address": "배송지",  # 🔥 추가: 배송지 검색조건
         "product_id": "상품ID",
         "payment_billing_id": "결제ID",
-        "order_date": "주문일",
     }
 
     def format_date_text(value):

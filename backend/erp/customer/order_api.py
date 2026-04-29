@@ -25,7 +25,6 @@ SEARCH_TYPE_LABELS = {
     "address": "배송지",  # 🔥 추가: repository/view와 검색조건 맞춤
     "product_id": "상품ID",
     "payment_billing_id": "결제ID",
-    "order_date": "주문일",
 }
 
 
@@ -73,7 +72,6 @@ def get_customer_orders(
         "address",  # 🔥 추가: 배송지 검색조건
         "product_id",
         "payment_billing_id",
-        "order_date",
     ] = Query(
         default="order_number",
         description="검색 조건",

@@ -31,7 +31,7 @@ def get_dashboard_highlight_api(db: Session = Depends(get_db)):
 
     service = DashboardService(db)
 
-    status_code, text_code, message, data = service.get_dashboard_hightlight(2026)
+    status_code, text_code, message, data = service.get_dashboard_hightlight()
 
     ## 최종 포장
     if status_code != 200:

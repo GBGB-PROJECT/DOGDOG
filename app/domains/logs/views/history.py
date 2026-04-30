@@ -26,7 +26,7 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Icon(icon=ft.Icons.ADD, size=30),
-                dogdog.basic_text(value="기록추가", size=16, weight="bold"),
+                dogdog.basic_text(value="기록추가", size=13, weight="bold"),
             ],
         ),
     )

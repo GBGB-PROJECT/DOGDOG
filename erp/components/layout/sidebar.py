@@ -155,6 +155,8 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
                 text_color=com.EXPANDED_TEXT_COLOR,
                 active_color=com.PAGE_BG,
                 active_bgcolor=com.EXPANDED_ACTIVE_BG,
+                # 🔥 추가: 창고관리는 글자색은 유지하고 클릭만 막는다.
+                is_disabled="창고관리" in com.DISABLED_STOCK_MENU_ITEMS,
             ),
             _menu_item(
                 text="원자재 재고 관리",
@@ -163,6 +165,8 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
                 text_color=com.EXPANDED_TEXT_COLOR,
                 active_color=com.PAGE_BG,
                 active_bgcolor=com.EXPANDED_ACTIVE_BG,
+                # 🔥 추가: 원자재 재고 관리는 글자색은 유지하고 클릭만 막는다.
+                is_disabled="원자재 재고 관리" in com.DISABLED_STOCK_MENU_ITEMS,
             ),
             _menu_item(
                 text="상품 재고 관리",
@@ -200,6 +204,8 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
                 text_color=com.EXPANDED_TEXT_COLOR,
                 active_color=com.PAGE_BG,
                 active_bgcolor=com.EXPANDED_ACTIVE_BG,
+                # 🔥 추가: 상품 부자재 관리는 글자색은 유지하고 클릭만 막는다.
+                is_disabled="상품 부자재 관리" in com.DISABLED_STOCK_MENU_ITEMS,
             )
         )
 

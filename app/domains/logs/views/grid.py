@@ -377,7 +377,7 @@ def status_update_menu(page :ft.Page, popup):
         ("활동기록", "dogwalking.png", lambda e, call="daily_walks":bottom_sheet(e, page, popup, call)),
     ]
     content_list_bottom = [
-        ("위생/배변", "poop.png", lambda e, call="hygiene_bowel":bottom_sheet(e, page, popup, call)),
+        ("배변", "poop.png", lambda e, call="hygiene_bowel":bottom_sheet(e, page, popup, call)),
         ("건강기록", "injection.png", lambda e, call="health_log":bottom_sheet(e, page, popup, call)),
         ("상태기록", "note.png", lambda e, call="status_log":bottom_sheet(e, page, popup, call)),
     ]

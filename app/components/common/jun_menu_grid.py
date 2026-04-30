@@ -41,7 +41,7 @@ def menu_grid(
         [
             menu_box(
                 "poop.png",
-                "위생/배변",
+                "배변",
                 on_hygiene_click,
             ),
             menu_box(

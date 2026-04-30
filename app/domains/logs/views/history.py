@@ -39,6 +39,8 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
     feeding_log = []
     watering_log = []
     daily_work_log = []
+    poop_log = []
+    health_log = []
     
     # 전달받은 logs_data를 domain 기준으로 필터링하여 컨테이너 생성
     for log in logs_data:
@@ -50,16 +52,23 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
         
         if domain == "feeding":
             feeding_log.append(container)
-        elif domain == "water":
-            watering_log.append(container)
-        elif domain == "walk":
-            daily_work_log.append(container)
+        elif domain == "numeric":
+            category = log.get("category", "")
+            if category == "water":
+                watering_log.append(container)
+            elif category == "walk":
+                daily_work_log.append(container)
+            elif category == "poop":
+                poop_log.append(container)
+            elif category in ["weight", "bcs"]:
+                health_log.append(container)
 
     logs_tab = [
         ft.Tab(label="전체"),
         ft.Tab(label="급여량"),
         ft.Tab(label="음수량"),
-        ft.Tab(label="위생/배변"),
+        ft.Tab(label="활동기록"),
+        ft.Tab(label="배변"),
         ft.Tab(label="건강기록"),
     ]
 
@@ -108,6 +117,8 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
         content_column(feeding_log),
         content_column(watering_log),
         content_column(daily_work_log),
+        content_column(poop_log),
+        content_column(health_log),
     ]
 
     logs_tabs = ft.Tabs(

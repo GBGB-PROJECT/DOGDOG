@@ -238,7 +238,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
         bottom_sheet_contents.extend([daily_walks, daily_walks_memo])
 
     elif call == "hygiene_bowel":
-        add_title("위생/배변", "bowel")
+        add_title("배변", "bowel")
         hygiene_bowel_score = dogdog.dropdown_menu(
             label="배변 스코어를 선택해주세요.",
             options=[dogdog.dropdown_menu_option(text=f"{row}") for row in range(1, 8)],
@@ -296,7 +296,7 @@ def status_update_menu(page: ft.Page, popup, on_refresh_callback=None):
         ("활동기록", "dogwalking.png", lambda e: page.run_task(bottom_sheet, e, page, popup, "daily_walks", on_refresh_callback)),
     ]
     content_list_bottom = [
-        ("위생/배변", "poop.png", lambda e: page.run_task(bottom_sheet, e, page, popup, "hygiene_bowel", on_refresh_callback)),
+        ("배변", "poop.png", lambda e: page.run_task(bottom_sheet, e, page, popup, "hygiene_bowel", on_refresh_callback)),
         ("건강기록", "injection.png", lambda e: page.run_task(bottom_sheet, e, page, popup, "health_log", on_refresh_callback)),
         ("상태기록", "note.png", lambda e: page.run_task(bottom_sheet, e, page, popup, "status_log", on_refresh_callback)),
     ]

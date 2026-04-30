@@ -96,7 +96,7 @@ class Front_dogdog:
             print("[DEV] Starting auto login relay...")
             print(">> 로그인을 시도합니다...")
             # Step A: Login
-            payload = {"email": "test0429001@test.com", "password": "A12345678!"}
+            payload = {"email": "test042806@test.com", "password": "A12345678!"}
             res_login = await api_client.post("/auth/login", data=payload)
             if res_login.status_code != 200:
                 raise Exception(f"Login failed: {res_login.text}")
@@ -179,6 +179,16 @@ class Front_dogdog:
 
             print("<< 대시보드 데이터 조회 성공!")
 
+            # 사료 상세 정보 조회 및 세션 저장
+            try:
+                res_food = await api_client.get(f"/pets/{pet_id}/pet_food")
+                pet_food_data = res_food.json().get("data") or {} if res_food.status_code == 200 else {}
+                self.storage.set("pet_food_detail", pet_food_data)
+                print("<< 사료 상세 정보 조회 및 저장 성공!")
+            except Exception as e:
+                print(f"[DEV] 사료 정보 조회 실패 (무시): {e}")
+                self.storage.set("pet_food_detail", {})
+
             # 2. 활동 로그 동기화 (history)
             real_history = dash_data.get("history", {})
             if not isinstance(real_history, dict):
@@ -223,6 +233,16 @@ class Front_dogdog:
                 dash_data = res_dash.json().get("data") or {}
                 print(f"🏠 [HOME DEBUG] 수신된 데이터: {res_dash.json()}")
 
+                # 사료 상세 정보 조회 및 세션 저장
+                try:
+                    res_food = await api_client.get(f"/pets/{pet_id}/pet_food")
+                    pet_food_data = res_food.json().get("data") or {} if res_food.status_code == 200 else {}
+                    self.storage.set("pet_food_detail", pet_food_data)
+                    print("🏠 [HOME DEBUG] 사료 상세 정보 갱신 완료!")
+                except Exception as e:
+                    print(f"[HOME DEBUG] 사료 정보 갱신 실패 (무시): {e}")
+                    self.storage.set("pet_food_detail", {})
+
                 # 1. 활동 로그 동기화
                 real_history = dash_data.get("history", {})
                 self.page.session.store.set("history", real_history)
@@ -254,8 +274,8 @@ class Front_dogdog:
         ):
             self.page.views.pop()
         elif len(self.page.views) == 0 or self.page.views[-1].route != route:
-            # 새 페이지로 이동 시 기존 뷰 스택을 비워 메모리 누수 및 잔상 방지
-            self.page.views.clear()
+            # 새 페이지로 이동 시 기존 뷰 스택을 유지하여 뒤로가기 기능을 지원함
+            # self.page.views.clear()  # 스택 유지를 위해 주석 처리
             await self.routing_view(page_name=route)
 
     def handle_back(self, e=None):
@@ -347,6 +367,7 @@ class Front_dogdog:
                 change_page_callback=self.page.go,
                 on_refresh_callback=self.refresh_home_data,
             )
+            print("refresh_home_data: ", self.refresh_home_data)
             main_container = ft.Container(
                 expand=True,
                 padding=ft.Padding.only(left=10, right=10),

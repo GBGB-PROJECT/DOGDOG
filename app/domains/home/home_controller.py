@@ -109,3 +109,5 @@ class HomeController:
                 
             logs.append({"message": msg, "time": time_str})
         return logs
+
+        

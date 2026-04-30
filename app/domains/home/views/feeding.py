@@ -2,6 +2,7 @@ import flet as ft
 import components as dogdog
 import datetime
 import domains
+from domains.logs.controller.grid_controller import GridController
 
 
 def content_container_detail(
@@ -18,45 +19,47 @@ def content_container_detail(
         storage.set("select_feeding_data", feeding_data)
         page.go("/feeding_edit")
 
-    now = datetime.datetime.now()
-    days = (
-        datetime.timedelta(days=feeding_data.get("left_food_count", 0))
-        if feeding_data
-        else 0
-    )
-    last_feeding_food_count = (
-        (now + days).strftime("%Y.%m.%d") if days != 0 else "????.??.??"
+    # 1. 데이터 추출 및 계산식 동기화 (Home Dashboard 로직 이식)
+    if not feeding_data:
+        feeding_data = {}
+
+    left_intake = feeding_data.get("left_intake") or feeding_data.get("left_weight", 0)
+    total_weight_g = feeding_data.get("total_weight", 0)
+    total_weight_kg = round(float(total_weight_g) / 1000, 1) if total_weight_g else 0.0
+
+    left_percent = feeding_data.get("left_percent", 0)
+    progress_value = (
+        float(left_percent) / 100 if float(left_percent) > 1 else float(left_percent)
     )
 
-    feeding_food_weight = feeding_data.get("left_intake", 0) if feeding_data else 0
-    g_product_weight = feeding_data.get("total_weight", 0) if feeding_data else 5
-    kg_product_weight = float(g_product_weight / 1000)
-    view_product_weight = (
-        (
-            f"{kg_product_weight}Kg"
-            if len(str(kg_product_weight).replace(".0", "")) > 2
-            else f"{g_product_weight}g"
-        )
-        if feeding_data
-        else "???Kg"
+    left_days = feeding_data.get("left_food_count") or feeding_data.get(
+        "expected_left_days", 0
+    )
+    expected_exdate = feeding_data.get("expected_exdate") or feeding_data.get(
+        "expected_last_day", "????-??-??"
+    )
+    expected_exdate_formatted = str(expected_exdate).replace("-", ".")
+
+    brand = feeding_data.get("product_brand") or feeding_data.get("brand") or ""
+    product_name = feeding_data.get("product_name") or feeding_data.get("name") or ""
+    thumbnail = (
+        feeding_data.get("product_thumbnail")
+        or feeding_data.get("thumbnail")
+        or "dogbowl.png"
     )
 
     product_detail = ft.Row(
         height=100,
         expand=True,
         controls=[
-            ft.Image(
-                src=feeding_data.get("thumbnail", ""), fit=ft.BoxFit.CONTAIN, expand=2
-            ),
+            ft.Image(src=thumbnail, fit=ft.BoxFit.CONTAIN, expand=2),
             ft.Column(
                 expand=3,
                 spacing=0,
                 alignment=ft.MainAxisAlignment.CENTER,
                 controls=[
-                    dogdog.basic_text(value=feeding_data.get("brand", "")),
-                    dogdog.basic_text(
-                        value=feeding_data.get("product_name", ""), weight="bold"
-                    ),
+                    dogdog.basic_text(value=brand),
+                    dogdog.basic_text(value=product_name, weight="bold"),
                 ],
             ),
             ft.Column(
@@ -70,10 +73,7 @@ def content_container_detail(
         if feeding_data
         else [
             dogdog.basic_text(
-                spans=[
-                    ft.TextSpan(" 등록된 제품이 없습니다."),
-                    # ft.TextSpan("\n제품을 등록하시겠습니까?")
-                ],
+                spans=[ft.TextSpan(" 등록된 제품이 없습니다.")],
                 color=ft.Colors.GREY_600,
                 size=14,
             )
@@ -93,17 +93,17 @@ def content_container_detail(
                         dogdog.basic_text(
                             spans=[
                                 ft.TextSpan(
-                                    text=f"{feeding_food_weight if feeding_food_weight != 0 else '???'}g",
+                                    text=f"{left_intake if left_intake != 0 else '???'}g",
                                     style=dogdog.TextStyle(size=16, height=-1),
                                 ),
-                                ft.TextSpan(text=f" / {view_product_weight}"),
+                                ft.TextSpan(text=f" / {total_weight_kg}Kg"),
                             ],
                             color=ft.Colors.GREY_400,
                             weight="bold",
                             size=16,
                         ),
                         dogdog.flat_button(
-                            text=f"{feeding_data.get('left_food_count', 0) if feeding_data else '?'} 일치 남음",
+                            text=f"{round(float(left_days), 1) if left_days else '?'} 일치 남음",
                             scale=0.7,
                             disabled=True,
                         ),
@@ -111,18 +111,15 @@ def content_container_detail(
                 ),
                 ft.ProgressBar(
                     height=10,
-                    value=feeding_food_weight / g_product_weight if g_product_weight else 0,
+                    value=progress_value,
                     bgcolor=ft.Colors.GREY_300,
-                    # 20% 미만이면 빨간색(#E6001A), 아니면 원래 로직적용!
-                    color="#E6001A"
-                    if (feeding_food_weight / g_product_weight if g_product_weight else 0) < 0.2
-                    else ft.Colors.YELLOW_600,
+                    color="#E6001A" if progress_value < 0.2 else ft.Colors.YELLOW_600,
                     border_radius=10,
                 ),
                 dogdog.basic_text(
                     spans=[
                         ft.TextSpan("예상 소진일 "),
-                        ft.TextSpan(last_feeding_food_count),
+                        ft.TextSpan(expected_exdate_formatted),
                     ],
                     size=12,
                     color=ft.Colors.GREY_600,
@@ -138,32 +135,43 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None):
     storage = page.session.store
 
     def feeding_view_case(page, set=False):
-        customer_food_detail = storage.get("customer_detail")
-        content_column = (
-            [
+        # [1] 세션 데이터 경로 정규화 (홈 화면 대시보드 소스 동기화)
+        customer_detail = storage.get("customer_detail") or {}
+        dash_data = customer_detail.get("dashboard_sync") or {}
+        inventory = dash_data.get("food_inventory") or {}
+
+        # [2] 메인에서 미리 저장해 둔 사료 상세 정보 가져오기
+        pet_food_detail = storage.get("pet_food_detail") or {}
+
+        # [3] 데이터 병합 (재고 데이터 + 상세 정보)
+        merged_data = {**inventory, **pet_food_detail}
+
+        # [4] 데이터 존재 여부에 따른 UI 조립
+        if set and (inventory or pet_food_detail):
+            # 병합된 데이터를 UI 컴포넌트에 주입
+            content_column_controls = [
                 dogdog.content_container(
                     content_list=content_container_detail(
                         page=page,
-                        customer_food_id=customer_food_id,
-                        feeding_data=detail,
+                        customer_food_id=None,
+                        feeding_data=merged_data,
                     )
                 )
-                for customer_food_id, detail in customer_food_detail.items()
             ]
-            if customer_food_detail and set
-            else [
+        else:
+            # 데이터가 없거나 Fallback이 필요한 경우 (간식, 영양제 탭 등)
+            content_column_controls = [
                 dogdog.content_container(
                     content_list=content_container_detail(page=page),
                     on_click=lambda _: page.go("/feeding_add"),
                 )
             ]
-        )
 
         return ft.Container(
             bgcolor="#ffffff",
             content=ft.Column(
                 margin=ft.margin.only(bottom=10),
-                controls=content_column,  # type: ignore
+                controls=content_column_controls,  # type: ignore
             ),
         )
 
@@ -220,12 +228,6 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None):
                 ft.TabBarView(
                     expand=True, margin=ft.margin.only(top=10), controls=feeding_content
                 ),  # type: ignore
-                # 상태 업데이트 메뉴 추가 (밥주기 버튼 등)
-                domains.grid.status_update_menu(
-                    page=page,
-                    popup=dogdog.Popup(page),
-                    on_refresh_callback=on_refresh_callback,
-                ),
             ],
         ),
     )

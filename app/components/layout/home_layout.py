@@ -3,7 +3,7 @@ import flet as ft
 import components as dogdog
 import datetime
 # -------------------------------------------------------------------------------------------------------
-def home_layout(page, view=None, text=None, pet_list=None):
+def home_layout(page, view=None, text=None, pet_list=None, back_event=None):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
@@ -151,7 +151,8 @@ def home_layout(page, view=None, text=None, pet_list=None):
     else:
         header_container_padding = 50
         left_header = ft.IconButton(
-            icon=ft.Icons.ARROW_BACK_IOS_NEW, icon_color=ft.Colors.GREY_500, icon_size=26, on_click=handle_back
+            icon=ft.Icons.ARROW_BACK_IOS_NEW, icon_color=ft.Colors.GREY_500, icon_size=26, 
+            on_click=back_event if back_event else handle_back
         ) if text != "개밥개밥푸드" else dogdog.basic_text(value=text, weight="bold", size=16, color=ft.Colors.WHITE)
         center_header = dogdog.basic_text(value=text, weight="bold", size=16) # type: ignore
     # ---------------------------------------------------------------------------------------------------

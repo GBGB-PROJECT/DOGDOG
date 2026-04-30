@@ -14,19 +14,19 @@ class GridController:
         """
         try:
             if not pet_id:
-                return "?g"
+                return "?"
 
             res = await self.api_client.get(f"/calc_feeding/{pet_id}/one-time")
             if res.status_code == 200:
                 data = res.json().get("data", {})
                 amount = data.get("one_time_intake", 0)
-                return f"{int(amount)}g" if amount > 0 else "0g"
+                return f"{int(amount)}" if amount > 0 else "0"
             else:
                 print(f"[GridController] API 호출 실패 ({res.status_code}): {res.text}")
-                return "?g"
+                return "?"
         except Exception as e:
             print(f"[GridController] 1회 급여량 조회 중 오류: {e}")
-            return "-g"
+            return "-"
 
     async def get_pet_food_info(self, pet_id: int):
         """

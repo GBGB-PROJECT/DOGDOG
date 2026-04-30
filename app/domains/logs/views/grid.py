@@ -123,11 +123,17 @@ class StatusController:
     # API 전송 태스크
     # ---------------------------------------------------------------------------------------------------
     async def save_feeding_api_wrapper(self, call):
-        """GridController의 저장 로직 호출"""
-        success = await self.ctrl.save_feeding_api(call, self.on_refresh_callback)
+        """GridController의 저장 로직 호출 및 후처리"""
+        success = await self.ctrl.save_feeding_api(call)
         if success:
+            # 1. 팝업 닫기 및 UI 동기화
             self.grid_bottom_sheet.open = False
             self.page.update()
+
+            # 2. 홈 화면 데이터 갱신 콜백 명시적 호출
+            if self.on_refresh_callback:
+                print(f"🔄 [StatusController] '{call}' 저장 성공 -> 홈 화면 갱신 시작")
+                await self.on_refresh_callback()
 
     # ---------------------------------------------------------------------------------------------------
     # Button Push Event
@@ -400,7 +406,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
                         margin=ft.margin.only(bottom=10),
                         controls=[
                             dogdog.basic_text(
-                                value=f"오늘 {pet_name}에게 딱 알맞는 1회 급여량은 ...",
+                                value=f"오늘 {pet_name}에게 딱 맞춘 1회 급여량은 ...",
                                 size=16,
                                 weight="bold",
                                 color=ft.Colors.GREY_600,
@@ -414,7 +420,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
                                 src="speech_bubble.png", height=100, color="#FEF3B9"
                             ),
                             dogdog.basic_text(
-                                recommended_amount, weight="bold", size=40
+                                f"{recommended_amount}g", weight="bold", size=40
                             ),
                         ],
                         spacing=-90,
@@ -440,15 +446,18 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None):
             )
 
             feeding_weight = dogdog.input_textfield(
-                hint_text= recommended_amount,
+                hint_text = "급여량(g)을 입력하세요.",
                 input_type="int",
                 suffix="g",
                 on_change=lambda e, change=f"{call}_weight": s_control.change_event(
                     e, change
                 ),
             )
-            if storage.get(f"{call}_weight"):
-                storage.remove(f"{call}_weight")
+            feeding_weight.value = str(int(recommended_amount))
+
+            storage.set(f"{call}_weight", int(recommended_amount))
+            # if storage.get(f"{call}_weight"):
+            #     storage.remove(f"{call}_weight")
 
             feeding_memo = dogdog.input_textfield(
                 hint_text="메모 (선택)",

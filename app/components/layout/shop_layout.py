@@ -1,7 +1,7 @@
 import flet as ft
 import components as dogdog
 
-def product(page, p_id, image_src, image_size, title, price):
+def product(page, p_id, image_src, image_size, brand, title, price):
     print("이미지 URL:", image_src)
     image = ft.Container(
         width=image_size,
@@ -14,8 +14,9 @@ def product(page, p_id, image_src, image_size, title, price):
             fit=ft.BoxFit.CONTAIN
         )
     )
+    product_brand = dogdog.basic_text(value=brand, size=12, color=ft.Colors.GREY_800)
     product_name = dogdog.basic_text(value=title, size=12, color=ft.Colors.GREY_800)
-    product_name.max_lines = 1
+    product_name.max_lines = 2
     product_name.overflow = ft.TextOverflow.ELLIPSIS
     product_name.width = image_size
     product_name.text_align = ft.TextAlign.CENTER
@@ -25,7 +26,7 @@ def product(page, p_id, image_src, image_size, title, price):
         on_click=lambda _:page.go(f"/shop/product/{p_id}"),
         ink=True,
         content=ft.Column(spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
-            controls=[image, product_name, product_price]
+            controls=[image, product_brand, product_name, product_price]
     ))
 
 def products(page, data_dict, image_size):
@@ -40,7 +41,9 @@ def products(page, data_dict, image_size):
                     p_id, 
                     p_d["thumbnail"], 
                     image_size, 
-                    f"{p_d['brand']} {p_d['product_name']}", 
+                    # f"{p_d['brand']} {p_d['product_name']}", 
+                    p_d['brand'],
+                    p_d['product_name'], 
                     f"{int(p_d['sales_price']):,}원"
                 )
             )

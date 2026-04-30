@@ -138,37 +138,104 @@ def shop_product_detail(page: ft.Page, popup, content_page):
     # Default Value
     # ---------------------------------------------------------------------------------------------------
     dd = Default_data(page, popup, content_page)
-    content_column = []
+    content_column = ft.Column(
+        controls=[
+            ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                controls=[
+                    ft.ProgressRing()
+                ]
+            )
+        ]
+    )
     # ---------------------------------------------------------------------------------------------------
     # Product View
     # ---------------------------------------------------------------------------------------------------
-    if dd.is_detail_page:
-        product_brand = dogdog.basic_text(dd.p_brand, size=20, weight="bold", color=ft.Colors.GREY_900)
+    def error_message(image_count):
+        message = ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            controls=[
+                dogdog.basic_text(
+                    f"{image_count}번 이미지가 로딩되지 않았어요.\nCORS 설정을 확인해주세요."
+                )
+            ]
+        )
+        message.controls[0].text_align = ft.TextAlign.CENTER
+        return message
+
+    def render_detail():
+        content_column.controls.clear()
+
+        if not dd.is_detail_page:
+            content_column.controls.append(
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        dogdog.basic_text("해당 상품은 존재하지 않습니다.")
+                    ]
+                )
+            )
+            page.update()
+            return
+
+        product_brand = dogdog.basic_text(
+            dd.p_brand,
+            size=20,
+            weight="bold",
+            color=ft.Colors.GREY_900
+        )
         product_brand.expand = True
         product_brand.text_align = ft.TextAlign.CENTER
-        product_name = dogdog.basic_text(dd.p_name, weight="bold", color=ft.Colors.GREY_700)
+
+        product_name = dogdog.basic_text(
+            dd.p_name,
+            weight="bold",
+            color=ft.Colors.GREY_700
+        )
         product_name.max_lines = 3
         product_name.overflow = ft.TextOverflow.ELLIPSIS
         product_name.text_align = ft.TextAlign.CENTER
         product_name.width = dd.header_width * 1.4
-        product_price = dogdog.basic_text(spans=[
-            ft.TextSpan(f"{dd.p_price:,}원\n"),
-            ft.TextSpan(f"똑똑 배송 적용가: {int(dd.p_price*0.9):,}원",
-                style=dogdog.TextStyle(size=12, color="#E6001A")) # type: ignore
-            ], weight="bold", color=ft.Colors.GREY_700)
+
+        product_price = dogdog.basic_text(
+            spans=[
+                ft.TextSpan(f"{dd.p_price:,}원\n"),
+                ft.TextSpan(
+                    f"똑똑 배송 적용가: {int(dd.p_price * 0.9):,}원",
+                    style=dogdog.TextStyle(size=12, color="#E6001A")
+                )
+            ],
+            weight="bold",
+            color=ft.Colors.GREY_700
+        )
         product_price.text_align = ft.TextAlign.CENTER
-        # -----------------------------------------------------------------------------------------------
-        page_header_brand = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK_IOS, icon_size=10, 
-                on_click=lambda _:page.go("/shop")),
-            product_brand,
-            ft.Container(width=24)
-        ])
+
+        page_header_brand = ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            controls=[
+                ft.IconButton(
+                    icon=ft.Icons.ARROW_BACK_IOS,
+                    icon_size=10,
+                    on_click=lambda _: page.go("/shop")
+                ),
+                product_brand,
+                ft.Container(width=24)
+            ]
+        )
+
         page_header = ft.Row(
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
-                ft.Container(width=dd.header_width, height=dd.header_width, image=ft.DecorationImage(src=dd.p_thumbnail)),
+                ft.Container(
+                    width=dd.header_width,
+                    height=dd.header_width,
+                    content=ft.Image(
+                        src=dd.p_thumbnail,
+                        width=dd.header_width,
+                        height=dd.header_width,
+                        fit="contain"
+                    )
+                ),
                 ft.Column(
                     height=dd.header_width,
                     alignment=ft.MainAxisAlignment.SPACE_AROUND,
@@ -176,72 +243,82 @@ def shop_product_detail(page: ft.Page, popup, content_page):
                     controls=[
                         product_name,
                         product_price
-        ])])
-        wish_list = dogdog.flat_over_button(bgcolor="#FBDD30", # type: ignore
-            text="♥", size=30, text_color=ft.Colors.WHITE,
-            on_click=lambda _:print("wish_list"))
+                    ]
+                )
+            ]
+        )
+
+        wish_list = dogdog.flat_over_button(
+            bgcolor="#FBDD30",
+            text="♥",
+            size=30,
+            text_color=ft.Colors.WHITE,
+            on_click=lambda _: print("wish_list")
+        )
         wish_list.padding = ft.padding.only(left=10, right=10)
-        page_header_order = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-            dogdog.flat_over_button(bgcolor="#FBDD30", # type: ignore
-                text="장바구니", size=16, text_color=ft.Colors.WHITE, expand=True,
-                on_click=lambda e:dd.bottom_sheet_open(e=e, key="cart")),
-            dogdog.flat_over_button(bgcolor="#FBDD30", # type: ignore
-                text="바로구매", size=16, text_color=ft.Colors.WHITE, expand=True,
-                on_click=lambda e:dd.bottom_sheet_open(e=e, key="order")),
-            wish_list
-        ])
-        subs_order = dogdog.flat_over_button(bgcolor="#E6001A", # type: ignore
-            text="🔔 똑똑 배송으로 주문하기 🔔", expand=True, size=16, text_color=ft.Colors.WHITE,
-            on_click=lambda e:dd.bottom_sheet_open(e=e, key="subs_order"))
-        subs_order.ink_color = "#80000F" # type: ignore
-        page_header_subs_order = ft.Row(margin=ft.margin.only(top=5, bottom=5), controls=[subs_order])
-        # -----------------------------------------------------------------------------------------------
-        content_column.append(page_header_brand)
-        content_column.append(page_header)
-        content_column.append(page_header_order)
-        content_column.append(page_header_subs_order)
-        content_column.append(ft.Divider())
-        # -----------------------------------------------------------------------------------------------
-        # Product Detail Image Append
-        # -----------------------------------------------------------------------------------------------
-        def error_message(image_count):
-            message = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                dogdog.basic_text(f"{image_count}번 이미지가 로딩되지 않았어요.\nCORS 설정을 확인해주세요.")
-            ])
-            message.controls[0].text_align = ft.TextAlign.CENTER # type: ignore
-            return message
 
-        # harim_url = "https://m.harimpetfood.com"
-        # for i, image in enumerate(dd.p_detail_images, start=1):
-        #     if image.startswith("http"):
-        #         image_src_link = image
-        #     else:
-        #         image_src_link = f"{harim_url}{image}"
+        page_header_order = ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            controls=[
+                dogdog.flat_over_button(
+                    bgcolor="#FBDD30",
+                    text="장바구니",
+                    size=16,
+                    text_color=ft.Colors.WHITE,
+                    expand=True,
+                    on_click=lambda e: dd.bottom_sheet_open(e=e, key="cart")
+                ),
+                dogdog.flat_over_button(
+                    bgcolor="#FBDD30",
+                    text="바로구매",
+                    size=16,
+                    text_color=ft.Colors.WHITE,
+                    expand=True,
+                    on_click=lambda e: dd.bottom_sheet_open(e=e, key="order")
+                ),
+                wish_list
+            ]
+        )
 
-        #     content_column.append(
-        #         ft.Image(
-        #             src=image_src_link,
-        #             error_content=error_message(i)
-        #         )
-        #     )
+        subs_order = dogdog.flat_over_button(
+            bgcolor="#E6001A",
+            text="🔔 똑똑 배송으로 주문하기 🔔",
+            expand=True,
+            size=16,
+            text_color=ft.Colors.WHITE,
+            on_click=lambda e: dd.bottom_sheet_open(e=e, key="subs_order")
+        )
+        subs_order.ink_color = "#80000F"
+
+        page_header_subs_order = ft.Row(
+            margin=ft.margin.only(top=5, bottom=5),
+            controls=[subs_order]
+        )
+
+        content_column.controls.append(page_header_brand)
+        content_column.controls.append(page_header)
+        content_column.controls.append(page_header_order)
+        content_column.controls.append(page_header_subs_order)
+        content_column.controls.append(ft.Divider())
+
         if dd.pdi:
-            content_column.append(
+            content_column.controls.append(
                 ft.Image(
                     src=dd.pdi,
                     error_content=error_message(1)
                 )
             )
-    else:
-        content_column.append(
-            ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                dogdog.basic_text("해당 상품은 존재하지 않습니다.")
-            ])
-        )
-    # ---------------------------------------------------------------------------------------------------
+
+        page.update()
+
+    async def load_and_render():
+        await dd.load_product_detail()
+        render_detail()
+
+    page.run_task(load_and_render)
+
     return ft.Container(
         padding=ft.Padding.only(left=20, right=20, top=20),
         bgcolor="#ffffff",
-        content=ft.Column(
-            controls=content_column # type: ignore
-        )
+        content=content_column
     )

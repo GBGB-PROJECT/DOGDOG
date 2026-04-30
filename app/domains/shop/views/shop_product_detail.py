@@ -22,6 +22,7 @@ class Default_data:
         self.p_brand = ""
         self.p_name =""
         self.p_price = 0
+        self.pdi = None
 
         self.default_bottom_sheet = popup.bottom_sheet_popup
         self.default_bottom_sheet_content = popup.bottom_sheet_controls
@@ -45,6 +46,7 @@ class Default_data:
         self.p_brand = product.get("brand") or ""
         self.p_name = product.get("product_name") or ""
         self.p_price = int(product.get("retail_price") or 0)
+        self.pdi = product.get("pdi")
 
         self.is_detail_page = True
         self.page.update()
@@ -209,17 +211,24 @@ def shop_product_detail(page: ft.Page, popup, content_page):
             message.controls[0].text_align = ft.TextAlign.CENTER # type: ignore
             return message
 
-        harim_url = "https://m.harimpetfood.com"
-        for i, image in enumerate(dd.p_detail_images, start=1):
-            if image.startswith("http"):
-                image_src_link = image
-            else:
-                image_src_link = f"{harim_url}{image}"
+        # harim_url = "https://m.harimpetfood.com"
+        # for i, image in enumerate(dd.p_detail_images, start=1):
+        #     if image.startswith("http"):
+        #         image_src_link = image
+        #     else:
+        #         image_src_link = f"{harim_url}{image}"
 
+        #     content_column.append(
+        #         ft.Image(
+        #             src=image_src_link,
+        #             error_content=error_message(i)
+        #         )
+        #     )
+        if dd.pdi:
             content_column.append(
                 ft.Image(
-                    src=image_src_link,
-                    error_content=error_message(i)
+                    src=dd.pdi,
+                    error_content=error_message(1)
                 )
             )
     else:

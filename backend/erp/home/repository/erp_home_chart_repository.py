@@ -72,14 +72,14 @@ class DashboardRepo:
         구독 상품과 일반 상품의 매출액(revenue)과 판매량(volume)을 그룹화하여 반환합니다.
         """
         today = date.today()
+        end_date = today
         
         # 1. 기간에 따른 그룹화 기준(DB) 및 조회 시작일 설정
         if period == "1주일":
-            # 최근 7일 (일별)
             start_date = today - timedelta(days=6)
             group_subs = func.date(OpdSubsItem.last_update)
             group_sales = func.date(OpdSalesOrderItem.last_update)
-            
+        
         elif period == "1개월":
             # 올해 데이터 (월별)
             start_date = date(today.year, 1, 1)
@@ -95,28 +95,54 @@ class DashboardRepo:
         else:
             return []
 
-        # 2. 두 장부의 데이터를 합치기 위한 기본 딕셔너리 준비
-        # 구조 예시: { "4/1": {"revenue": 0, "volume": 0}, "4/2": ... }
         merged_data = defaultdict(lambda: {"revenue": 0, "volume": 0})
+
+        # [추가된 부분] 1주일의 경우 데이터가 없는 날도 포함하여 정확히 7개 출력 보장
+        if period == "1주일":
+            for i in range(6, -1, -1):
+                target_date = today - timedelta(days=i)
+                merged_data[target_date.strftime("%m/%d")] = {"revenue": 0, "volume": 0}
 
 # 3. 구독 상품 조회 (Group By)
         subs_data = self.db.query(
             group_subs.label("label"),
-            func.coalesce(func.sum(OpdSubsItem.final_amount), 0).label("revenue"), # 수정됨
+            func.coalesce(func.sum(OpdSubsItem.final_amount), 0).label("revenue"),
             func.coalesce(func.sum(OpdSubsItem.quantity), 0).label("volume")
-        ).filter(OpdSubsItem.last_update >= start_date).group_by(group_subs).all()
+        ).filter(
+            func.date(OpdSubsItem.last_update) >= start_date,
+            func.date(OpdSubsItem.last_update) <= end_date  
+        ).group_by(group_subs).all()
 
         for row in subs_data:
             label_str = self._format_label(period, row.label)
             merged_data[label_str]["revenue"] += int(row.revenue)
             merged_data[label_str]["volume"] += int(row.volume)
 
-        # 4. 일반 판매 상품 조회 (Group By)
+    # 일반 판매 상품 조회 부분
         sales_data = self.db.query(
             group_sales.label("label"),
-            func.coalesce(func.sum(OpdSalesOrderItem.total_amount), 0).label("revenue"), # 수정됨
+            func.coalesce(func.sum(OpdSalesOrderItem.total_amount), 0).label("revenue"),
             func.coalesce(func.sum(OpdSalesOrderItem.quantity), 0).label("volume")
-        ).filter(OpdSalesOrderItem.last_update >= start_date).group_by(group_sales).all()
+        ).filter(
+            func.date(OpdSalesOrderItem.last_update) >= start_date,
+            func.date(OpdSalesOrderItem.last_update) <= end_date  # 이 부분이 반드시 포함되어야 합니다.
+        ).group_by(group_sales).all()
+
+    # 구독 상품 조회 부분
+        subs_data = self.db.query(
+            group_subs.label("label"),
+            func.coalesce(func.sum(OpdSubsItem.final_amount), 0).label("revenue"),
+            func.coalesce(func.sum(OpdSubsItem.quantity), 0).label("volume")
+        ).filter(
+            func.date(OpdSubsItem.last_update) >= start_date,
+            func.date(OpdSubsItem.last_update) <= end_date  # 이 부분이 반드시 포함되어야 합니다.
+        ).group_by(group_subs).all()
+
+        # 누락되었던 반복문 복구
+        for row in subs_data:
+            label_str = self._format_label(period, row.label)
+            merged_data[label_str]["revenue"] += int(row.revenue)
+            merged_data[label_str]["volume"] += int(row.volume)
 
         # 5. 프론트엔드가 요구하는 형식의 리스트로 변환 후 시간순 정렬
         formatted_data = []

@@ -56,3 +56,29 @@ class HomeViewMain:
     except httpx.ConnectError: raise Exception("서버 연결 실패")
     except httpx.TimeoutException: raise Exception("응답 시간 초과")
     except Exception as e: raise Exception(f"기타 오류 발생: {e}")
+  
+  @staticmethod
+  def sale_chart(period: str = "1개월"):
+    """상단 매출, 판매량 차트데이터"""
+    url = f"{BASE_URL}/erp/home/chart_dashboard_sale?period={period}"
+
+    try:
+      ## 1. Get 요청 전송
+      response = httpx.get(url, timeout=5.0)
+
+      ## 2. 성공 시 (200 ok)
+      if response.status_code == 200:
+        data = response.json() # 성공 시 응답값을 json으로 출력
+        return data.get("data")# 형태가 키 내부에 data 박스 구조임
+
+      ## 3. 실패 시(서버 메시지 출력)
+      try:
+        errr_info = response.json()
+        message = errr_info.get("detail", "데이터 불러오기 실패.")
+      except Exception:
+        message = f"서버코드 오류: (코드: {response.status_code})"
+    
+    ## 공통예외처리
+    except httpx.ConnectError: raise Exception("서버 연결 실패")
+    except httpx.TimeoutException: raise Exception("응답 시간 초과")
+    except Exception as e: raise Exception(f"기타 오류 발생: {e}")

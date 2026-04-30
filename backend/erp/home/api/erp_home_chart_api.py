@@ -15,8 +15,6 @@ router = APIRouter(
 
 @router.get("/chart_dashboard_summary")
 def get_dashboard_summary(
-    employee_id: str,
-    target_year: Optional[int] = Query(None, description="조회할 연도 (입력하지 않으면 올해 기준)"),
     db: Session = Depends(get_db)
 ):
     """
@@ -25,7 +23,7 @@ def get_dashboard_summary(
     service = DashboardService(db)
 
     # 데이터 수집
-    status_code, text_code, message, data = service.get_summary_metrics(target_year)
+    status_code, text_code, message, data = service.get_summary_metrics()
 
     # 에러 발생 시 포장
     if status_code != 200:

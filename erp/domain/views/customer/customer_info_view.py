@@ -330,7 +330,6 @@ def erp_customer_info_view():
         "is_subscribed": "구독여부",
         "subs_count": "구독횟수",
         "active": "상태",
-        "create_date": "가입일",
     }
 
     def format_date_text(value):
@@ -758,6 +757,7 @@ def erp_customer_info_view():
         keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
 
         result_text.value = (
+            f"기간기준: 가입일 / "
             f"기간: {start_text} ~ {end_text} / "
             f"검색조건: {search_label} / "
             f"검색어: {keyword_text} / "

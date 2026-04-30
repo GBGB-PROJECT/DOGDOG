@@ -209,7 +209,6 @@ def erp_customer_subscription_view():
         "address": "배송지",
         "name": "이름",
         "phone": "전화번호",
-        "subs_date": "구독시작일",
     }
 
     def format_date_text(value):
@@ -572,6 +571,7 @@ def erp_customer_subscription_view():
         keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
 
         result_text.value = (
+            f"기간기준: 구독시작일 / "
             f"기간: {start_text} ~ {end_text} / "
             f"검색조건: {search_label} / "
             f"검색어: {keyword_text} / "

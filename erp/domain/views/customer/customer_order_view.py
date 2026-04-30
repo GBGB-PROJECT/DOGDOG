@@ -533,6 +533,7 @@ def erp_customer_order_view():
         keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
 
         result_text.value = (
+            f"기간기준: 주문일 / "
             f"기간: {start_text} ~ {end_text} / "
             f"검색조건: {search_label} / "
             f"검색어: {keyword_text} / "

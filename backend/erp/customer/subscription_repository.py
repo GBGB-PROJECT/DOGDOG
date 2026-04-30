@@ -5,7 +5,7 @@
 #   이유: subs_item은 구독 상품 단위라서 JOIN하면 구독 1건이 여러 행으로 뻥튀기됨
 # - 구독ID / 고객ID / 구독플랜ID / 자동배송여부 / 구독상태 / 배송신청요일
 # - 배송주기 / 할인율 / 배송지 / 이름 / 전화번호 검색
-# - 구독시작일(subs_date) 날짜 필터
+# - 구독시작일(subs_date)은 DatePicker start_date/end_date로만 필터
 # =========================================================
 
 import datetime
@@ -346,11 +346,6 @@ def _apply_filter(query, search_type, keyword):
     if search_type == "phone":
         return query.filter(
             cast(OpdSubsDetail.phone, String).ilike(like_keyword(clean))
-        )
-
-    if search_type == "subs_date":
-        return query.filter(
-            cast(OpdSubs.subs_date, String).like(like_keyword(clean))
         )
 
     return query

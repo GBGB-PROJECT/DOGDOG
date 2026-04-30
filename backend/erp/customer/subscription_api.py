@@ -33,7 +33,6 @@ SEARCH_TYPE_LABELS = {
     "address": "배송지",
     "name": "이름",
     "phone": "전화번호",
-    "subs_date": "구독시작일",
 }
 
 
@@ -85,7 +84,6 @@ def get_customer_subscription_list(
         "address",
         "name",
         "phone",
-        "subs_date",
     ] = Query(
         default="subs_id",
         description="검색 조건",

@@ -130,12 +130,6 @@ def _apply_filter(query, search_type, keyword):
             cast(OpdSalesOrder.phone, String).ilike(like_keyword(clean))
         )
 
-    # 🔥 수정: 주문일(order_date)은 검색창 키워드 검색에서 제외
-    # - 주문일 검색은 DatePicker의 start_date / end_date로만 처리한다.
-    # - 따라서 search_type="order_date"가 들어와도 키워드 검색은 적용하지 않는다.
-    if search_type == "order_date":
-        return query
-
     # 🔥 추가: 배송지 검색
     if search_type == "address":
         return query.filter(

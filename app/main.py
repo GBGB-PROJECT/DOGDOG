@@ -56,7 +56,7 @@ class Front_dogdog:
             self.is_onboarding_complete = False  # Default until sync
 
             # 임시 로딩 뷰 생성 및 저장 (텍스트 갱신용)
-            self.loading_text = ft.Text(
+            self.loading_text = dogdog.basic_text(
                 "데이터를 불러오는 중입니다...", size=16, weight="bold"
             )
 
@@ -65,6 +65,7 @@ class Front_dogdog:
                 bgcolor="#FFFFFF",
                 controls=[
                     ft.Column(
+                        width=float('inf'),
                         expand=True,
                         alignment=ft.MainAxisAlignment.CENTER,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -297,15 +298,12 @@ class Front_dogdog:
     async def routing_view(self, page_name):
         # 1. 하단 앱바 설정
         appbar_status = [
-            (ft.Icons.HOME, "Home", lambda _: self.page.go("/home")),
-            (ft.Icons.CALENDAR_MONTH, "Log", lambda _: self.page.go("/log")),
-            ("skeleton.png", None, lambda _: self.page.go("/shop")),
-            (
-                ft.Icons.MESSENGER_OUTLINE_ROUNDED,
-                "Contents",
-                lambda _: self.page.go("/contents"),
-            ),
-            (ft.Icons.PERSON_OUTLINE, "MyPage", lambda _: self.page.go("/mypage")),
+            # Icon , Text , On_click
+            (ft.Icons.HOME, "Home", lambda _:self.page.go("/home")),
+            (ft.Icons.CALENDAR_MONTH, "Log", lambda _:self.page.go("/log")),
+            ("skeleton.png" if not "/shop" in page_name else "shop.png", None, lambda _:self.page.go("/shop")),
+            (ft.Icons.MESSENGER_OUTLINE_ROUNDED, "Contents", lambda _:self.page.go("/contents")),
+            (ft.Icons.PERSON_OUTLINE, "MyPage", lambda _:self.page.go("/mypage")),
         ]
 
         # 2. 라우트 성격 분류
@@ -389,9 +387,8 @@ class Front_dogdog:
                 bgcolor="#FFFFFF",
                 controls=[layout],
             )
-            # 일반 서비스 뷰에는 하단 앱바를 붙임
-            new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
-
+            if not "/shop/" in page_name:
+                new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
         self.page.views.append(new_view)
         self.page.update()  # 최종 뷰 추가 후 갱신
 

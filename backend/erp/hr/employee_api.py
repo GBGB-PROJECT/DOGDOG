@@ -22,7 +22,6 @@ SEARCH_TYPE_LABELS = {
     "position_name": "직책",
     "phone": "전화번호",
     "email": "이메일",
-    "hire_date": "입사일",
 }
 
 
@@ -45,7 +44,6 @@ def get_employees(
         "position_name",
         "phone",
         "email",
-        "hire_date",
     ] = Query(
         default="username",
         description="검색 조건",

@@ -23,8 +23,20 @@ def _get(path: str, params: dict | None = None):
         response.raise_for_status()
         result = response.json()
         return result.get("data", {})
+
+    except httpx.HTTPStatusError as e:
+        print(f"🔥 API 응답 오류: {url}")
+        print(f"status_code={e.response.status_code}")
+        print(e.response.text)
+        return {}
+
     except httpx.RequestError as e:
         print(f"🔥 API 요청 실패: {url}")
+        print(e)
+        return {}
+
+    except Exception as e:
+        print(f"🔥 API 처리 중 알 수 없는 오류: {url}")
         print(e)
         return {}
 
@@ -101,7 +113,7 @@ def count_customers(search_type="customer_id", keyword="", start_date=None, end_
 # ☑️ 고객 주문 조회
 # =========================================================
 
-def fetch_customer_orders(search_type="order_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+def fetch_customer_orders(search_type="order_number", keyword="", limit=50, offset=0, start_date=None, end_date=None):
     page = (offset // limit) + 1
 
     result = _list_request(
@@ -117,7 +129,7 @@ def fetch_customer_orders(search_type="order_id", keyword="", limit=50, offset=0
     return result["items"]
 
 
-def count_customer_orders(search_type="order_id", keyword="", start_date=None, end_date=None):
+def count_customer_orders(search_type="order_number", keyword="", start_date=None, end_date=None):
     result = _list_request(
         "/erp/customer/order",
         search_type=search_type,
@@ -135,7 +147,7 @@ def count_customer_orders(search_type="order_id", keyword="", start_date=None, e
 # ☑️ 고객 구독 조회
 # =========================================================
 
-def fetch_customer_subscriptions(search_type="subscription_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+def fetch_customer_subscriptions(search_type="subs_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
     page = (offset // limit) + 1
 
     result = _list_request(
@@ -151,7 +163,7 @@ def fetch_customer_subscriptions(search_type="subscription_id", keyword="", limi
     return result["items"]
 
 
-def count_customer_subscriptions(search_type="subscription_id", keyword="", start_date=None, end_date=None):
+def count_customer_subscriptions(search_type="subs_id", keyword="", start_date=None, end_date=None):
     result = _list_request(
         "/erp/customer/subscription",
         search_type=search_type,
@@ -509,33 +521,30 @@ def fetch_purchase_order_items(purchase_order_id):
     return data.get("items", [])
 
 
+
 # =========================================================
-# ⚠️ 등록 기능은 현재 API에 POST가 없으면 httpx 전환 불가
+# ☑️ 등록 기능은 현재 사용하지 않음
 # =========================================================
 
 def create_customer(*args, **kwargs):
-    print("🔥 create_customer는 아직 POST API가 필요합니다.")
+    print("🔥 create_customer는 현재 조회 전용 화면에서 사용하지 않습니다.")
     return None
 
 
 def create_employee(*args, **kwargs):
-    print("🔥 create_employee는 아직 POST API가 필요합니다.")
+    print("🔥 create_employee는 현재 조회 전용 화면에서 사용하지 않습니다.")
     return None
 
 
 def create_product_detail(*args, **kwargs):
-    print("🔥 create_product_detail는 아직 POST API가 필요합니다.")
+    print("🔥 create_product_detail는 현재 조회 전용 화면에서 사용하지 않습니다.")
     return None
 
 
 def create_supplier(*args, **kwargs):
-    print("🔥 create_supplier는 아직 POST API가 필요합니다.")
+    print("🔥 create_supplier는 현재 조회 전용 화면에서 사용하지 않습니다.")
     return None
 
-# =========================================================
-# ☑️ 불량현황조회
-# - 기존 공통 _list_request() 사용
-# - _request_json 함수는 이 파일에 없으므로 사용하면 NameError 발생
 # =========================================================
 
 def fetch_defectives(

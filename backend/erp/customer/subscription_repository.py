@@ -201,6 +201,46 @@ def _subs_day_search_values(keyword):
     return [clean]
 
 
+
+def _subs_status_search_values(keyword):
+    # 🔥 추가: 구독상태 표시값(구독중/해지) 기준 부분검색 처리
+    # - DB는 boolean 값이라서 "독중", "해", "지" 같은 화면 표시 텍스트 부분검색이 바로 안 된다.
+    # - 검색어가 표시 텍스트의 일부이면 True/False 조건으로 변환해서 조회한다.
+    clean = str(keyword or "").strip()
+    lowered = clean.lower()
+
+    if not clean:
+        return []
+
+    status_words = {
+        True: {
+            "구독중", "구독", "구", "독", "중", "독중",
+            "활성", "y", "yes", "true", "1",
+        },
+        False: {
+            "해지", "해", "지",
+            "중지", "비활성", "n", "no", "false", "0",
+        },
+    }
+
+    matched_values = []
+
+    for bool_value, words in status_words.items():
+        for word in words:
+            word_text = str(word).strip()
+            word_lower = word_text.lower()
+
+            if (
+                clean == word_text
+                or lowered == word_lower
+                or clean in word_text
+                or lowered in word_lower
+            ):
+                matched_values.append(bool_value)
+                break
+
+    return matched_values
+
 def _apply_filter(query, search_type, keyword):
     clean = (keyword or "").strip()
 
@@ -266,6 +306,18 @@ def _apply_filter(query, search_type, keyword):
         )
 
     if search_type == "is_subs_status":
+        status_values = _subs_status_search_values(clean)
+
+        if len(status_values) == 1:
+            return query.filter(OpdSubs.is_subs_status.is_(status_values[0]))
+
+        if len(status_values) > 1:
+            return query.filter(
+                or_(
+                    *[OpdSubs.is_subs_status.is_(status_value) for status_value in status_values]
+                )
+            )
+
         bool_value = normalize_bool_keyword(
             clean,
             true_words={

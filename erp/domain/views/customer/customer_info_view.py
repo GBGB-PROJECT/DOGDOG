@@ -126,13 +126,98 @@ def build_table_cell(
     )
 
 
+def _to_yn(value):
+    # 🔥 수정: API에서 "Y" / "N" 문자열로 내려오는 경우까지 정확히 처리
+    # - 기존 코드: "N" 문자열도 비어있지 않아 True로 판정되어 화면에서 전부 Y처럼 보였음
+    # - 구독여부 검색 n/f/false 결과가 N이어도 화면에서 Y로 보이는 문제 해결
+    if isinstance(value, bool):
+        return "Y" if value else "N"
+
+    if value is None:
+        return "N"
+
+    text = str(value).strip().lower()
+
+    true_words = {
+        "y",
+        "yes",
+        "true",
+        "t",
+        "1",
+        "구독",
+        "구독함",
+        "구독중",
+        "사용",
+        "활성",
+    }
+
+    false_words = {
+        "n",
+        "no",
+        "false",
+        "f",
+        "0",
+        "",
+        "미구독",
+        "비구독",
+        "구독안함",
+        "해지",
+        "비활성",
+        "미사용",
+    }
+
+    if text in true_words:
+        return "Y"
+
+    if text in false_words:
+        return "N"
+
+    return "N"
+
+
+def _to_active_text(value):
+    # 🔥 수정: API에서 "비활성" 문자열로 내려오는 경우도 정확히 처리
+    if isinstance(value, bool):
+        return "활성" if value else "비활성"
+
+    if value is None:
+        return "비활성"
+
+    text = str(value).strip().lower()
+
+    true_words = {
+        "활성",
+        "active",
+        "y",
+        "yes",
+        "true",
+        "t",
+        "1",
+        "사용",
+    }
+
+    false_words = {
+        "비활성",
+        "inactive",
+        "n",
+        "no",
+        "false",
+        "f",
+        "0",
+        "",
+        "미사용",
+    }
+
+    if text in true_words:
+        return "활성"
+
+    if text in false_words:
+        return "비활성"
+
+    return "비활성"
+
+
 def customer_row_adapter(saved_data: dict, next_no: int):
-    subscribed_raw = str(saved_data.get("is_subscribed", "") or "").strip().lower()
-    active_raw = str(saved_data.get("active", "") or "").strip().lower()
-
-    subscribed_text = "Y" if subscribed_raw in ["true", "1", "y", "yes", "구독", "사용", "활성"] else "N"
-    active_text = "활성" if active_raw in ["true", "1", "y", "yes", "활성", "사용"] else "비활성"
-
     return {
         "no": str(next_no),
         "customer_id": saved_data.get("customer_id", ""),
@@ -140,9 +225,9 @@ def customer_row_adapter(saved_data: dict, next_no: int):
         "oauth_type": saved_data.get("oauth_type", ""),
         "nickname": saved_data.get("nickname", ""),
         "phone": saved_data.get("phone", ""),
-        "is_subscribed": subscribed_text,
+        "is_subscribed": _to_yn(saved_data.get("is_subscribed")),
         "subs_count": saved_data.get("subs_count", ""),
-        "active": active_text,
+        "active": _to_active_text(saved_data.get("active")),
         "create_date": saved_data.get("create_date", ""),
     }
 
@@ -160,9 +245,10 @@ def customer_db_row_adapter(db_rows: list, page_no: int):
                 "oauth_type": row.get("oauth_type", ""),
                 "nickname": row.get("nickname", ""),
                 "phone": row.get("phone", ""),
-                "is_subscribed": "Y" if row.get("is_subscribed") else "N",
+                # 🔥 수정: API 응답 "N" 문자열을 True처럼 오판하지 않도록 변환 함수 사용
+                "is_subscribed": _to_yn(row.get("is_subscribed")),
                 "subs_count": row.get("subs_count", ""),
-                "active": "활성" if row.get("active") else "비활성",
+                "active": _to_active_text(row.get("active")),
                 "create_date": row.get("create_date", ""),
             }
         )

@@ -90,8 +90,8 @@ def count_customers(search_type="customer_id", keyword="", start_date=None, end_
         size=1,
         start_date=start_date,
         end_date=end_date,
-        # 🔥 추가: 검색조건과 날짜 기준 분리
-        date_filter_type=date_filter_type,
+        # 🔥 수정: 고객 정보 조회는 가입일 기준 DatePicker만 사용하므로
+        # 🔥 정의되지 않은 date_filter_type을 전송하지 않음
     )
 
     return result["pagination"].get("total_count", 0)
@@ -586,6 +586,8 @@ def count_defectives(
         size=1,
         start_date=start_date,
         end_date=end_date,
+        # 🔥 수정: 목록 조회와 count 조회의 날짜 기준을 동일하게 전달
+        date_filter_type=date_filter_type,
     )
 
     return result["pagination"].get("total_count", 0)

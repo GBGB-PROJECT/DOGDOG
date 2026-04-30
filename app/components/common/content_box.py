@@ -25,28 +25,46 @@ def log_container(page: ft.Page, pet_log_numeric_id, details):
 
     # 1. 시간 변환 로직 (API의 display_time "13:23" 활용)
     display_time = details.get("display_time", "00:00")
-    time_parts = display_time.split(":")
-    hour = int(time_parts[0])
-    minute = time_parts[1]
+    try:
+        time_parts = display_time.split(":")
+        hour = int(time_parts[0])
+        minute = time_parts[1]
+    except (ValueError, IndexError):
+        hour = 0
+        minute = "00"
     
     ampm = "오전" if hour < 12 else "오후"
     display_hour = hour if hour <= 12 else hour - 12
     if display_hour == 0: display_hour = 12
     log_time = f"{ampm} {display_hour}:{minute}"
 
-    # 2. 메시지 변환 로직 (API의 domain과 amount, unit 활용)
+    # 2. 메시지 변환 로직 (Domain 및 Category 분기 처리)
     domain = details.get("domain", "")
+    category = details.get("category", "")  # numeric 도메인일 때 사용되는 세부 분류
     amount = details.get("amount", 0)
     unit = details.get("unit", "")
-    
+
+    # 2-1. 사료(feeding)는 독자적인 도메인이므로 최우선 처리
     if domain == "feeding":
-        message = f"사료를 {amount}{unit} 먹었습니다."
-    elif domain == "water":
-        message = f"물을 {amount}{unit} 마셨습니다."
-    elif domain == "walk":
-        message = f"산책을 {amount}분 했습니다."
+        product_name = details.get("product_name", "사료") # 사료명이 있으면 가져오고 없으면 '사료'
+        message = f"{product_name}를 {amount}{unit} 먹었습니다."
+
+    # 2-2. numeric 도메인은 내부 category값에 따라 메시지 결정
+    elif domain == "numeric":
+        # 카테고리별 메시지 템플릿
+        numeric_messages = {
+            "water": f"물을 {amount}{unit} 마셨습니다.",
+            "walk": f"산책을 {amount}분 했습니다.",
+            "poop": f"배변 기록을 {amount}점 남겼습니다.",
+            "bcs": f"BCS 기록을 {amount}점 남겼습니다.",
+            "weight": f"체중 기록을 {amount}kg 남겼습니다.",
+        }
+        # 매핑된 메시지가 있으면 사용하고, 없으면 기본 방어 문구 출력
+        message = numeric_messages.get(category, f"기록을 {amount}{unit} 남겼습니다.")
+
+    # 2-3. 그 외 알 수 없는 도메인 방어 코드
     else:
-        message = f"기록을 {amount}{unit} 남겼습니다." # 혹시 모를 기타 기록 방어코드
+        message = f"새로운 기록을 {amount}{unit} 남겼습니다."
 
     # 3. UI 조립
     content = ft.Container(
@@ -68,41 +86,3 @@ def log_container(page: ft.Page, pet_log_numeric_id, details):
     )
     
     return content
-# def log_container(page: ft.Page, pet_log_numeric_id, details):
-#     # select_log.clear()
-#     # storage = page.session.store
-#     bgcolor = None
-#     def click_test(e):
-#         content.bgcolor = ft.Colors.GREY_300 if content.bgcolor == None else None
-#         # if not select_log.get(pet_log_numeric_id):
-#         #     select_log.update({pet_log_numeric_id:pet_log_numeric_id})
-#         # else: select_log.pop(pet_log_numeric_id,None)
-#         # storage.set("select_log",select_log)
-#     time = details["log_date"].split()[1].split(":")
-#     ampm = "오전" if int(time[0]) < 12 else "오후"
-#     hour = time[0] if int(time[0]) < 12 else int(time[0]) - 12
-#     if hour == 0: hour = 12
-#     message = (
-#         f"물을 {details['log_status']}ml를 마셨습니다." if details['category'] == "음수량" else 
-#         f"사료를 {details['log_status']}g을 먹었습니다." if details['category'] == "급여량" else 
-#         f"산책을 {details['log_status']}분 했습니다." if details['category'] == "산책" else None
-#     )
-#     log_time = f"{ampm} {hour}:{time[1]}"
-
-#     content = ft.Container(
-#         padding=ft.Padding.only(right=10, left=10),
-#         width=3000,
-#         ink=True,
-#         on_click=click_test,
-#         bgcolor=bgcolor,
-#         height=50,
-#         border_radius=10,
-#         border=ft.Border.all(width=1, color=ft.Colors.GREY_300),
-#         content=ft.Row(
-#             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-#             controls=[
-#             dogdog.basic_text(str(message), size=14, color=ft.Colors.GREY_700),
-#             dogdog.basic_text(log_time, size=14, color=ft.Colors.GREY_700)
-#     ]))
-    
-#     return content

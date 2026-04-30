@@ -59,7 +59,8 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
         ft.Tab(label="전체"),
         ft.Tab(label="급여량"),
         ft.Tab(label="음수량"),
-        ft.Tab(label="활동량"),
+        ft.Tab(label="위생/배변"),
+        ft.Tab(label="건강기록"),
     ]
 
     def content_column(content):

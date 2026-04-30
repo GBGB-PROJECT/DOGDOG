@@ -108,7 +108,7 @@ def mypage_view(page: ft.Page):
                 on_click=select_banner(0),
             ),
             dogdog.banner(
-                text="급여중인 제품 보러가기",
+                text="급여 중인 제품 보러가기",
                 selected=(selected_banner["index"] == 1),
                 on_click=select_and_open_food_remain,
             ),

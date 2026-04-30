@@ -2,6 +2,7 @@
 import flet as ft
 import domains as domains
 import components as dogdog
+from .home.home_controller import HomeController
 
 
 # -------------------------------------------------------------------------------------------------------
@@ -12,6 +13,11 @@ def home_tile(
     change_page_callback=None,
     on_refresh_callback=None,
 ):
+    # ---------------------------------------------------------------------------------------------------
+    # Controller Init
+    # ---------------------------------------------------------------------------------------------------
+    controller = HomeController(page)
+
     # ---------------------------------------------------------------------------------------------------
     # Default Layout
     # ---------------------------------------------------------------------------------------------------
@@ -39,7 +45,14 @@ def home_tile(
         main_container_content.append(top_banner)
         main_container_content.append(body_column)
         # -----------------------------------------------------------------------------------------------
-        body_column.controls.append(domains.home.now_history(page=page, popup=popup))
+        body_column.controls.append(
+            domains.home.now_history(
+                page=page, 
+                popup=popup, 
+                stats_data=controller.get_today_record_stats(),
+                history_logs=controller.get_formatted_history(count=3)
+            )
+        )
         body_column.expand = False
         body_column.margin = None
         # -----------------------------------------------------------------------------------------------
@@ -47,7 +60,9 @@ def home_tile(
         body_scroll_column.controls.append(
             dogdog.content_container(
                 content_list=domains.home.feeding_food_count(
-                    page=page, content_page=content_page
+                    page=page, 
+                    content_page=content_page,
+                    inventory_stats=controller.get_food_inventory_stats()
                 ),
                 on_click=lambda e: appbar_on_change(e, "/feeding"),
             )
@@ -71,7 +86,9 @@ def home_tile(
         body_scroll_column.controls.append(
             dogdog.content_container(
                 content_list=domains.home.feeding_food_count(
-                    page=page, content_page=content_page
+                    page=page, 
+                    content_page=content_page,
+                    inventory_stats=controller.get_food_inventory_stats()
                 ),
                 on_click=lambda e: appbar_on_change(e, "/feeding"),
             )
@@ -98,7 +115,13 @@ def home_tile(
             page=page, text="급여 중인 제품"
         )
         main_container_content.append(top_banner)
-        main_container_content.append(domains.feeding.feeding_tabs_view(page=page))
+        main_container_content.append(
+            domains.feeding.feeding_tabs_view(
+                page=page,
+                on_refresh_callback=on_refresh_callback,
+                feeding_detail_data=controller.get_feeding_detail_data()
+            )
+        )
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding_edit":
         home_background, top_banner = dogdog.home_layout(

@@ -1,12 +1,11 @@
 import flet as ft
 import components as dogdog
-import datetime
-import domains
 
-
-def content_container_detail(
-    page: ft.Page, customer_food_id=None, feeding_data: dict = None
-):  # type: ignore
+def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data: dict = None):
+    """
+    급여 상세 컨테이너 뷰 컴포넌트 (순수 View)
+    - 컨트롤러가 제공한 가공된 feeding_data를 사용하여 렌더링합니다.
+    """
     storage = page.session.store
 
     def feeding_edit_event(e):
@@ -15,68 +14,49 @@ def content_container_detail(
         if storage.get("select_feeding_data"):
             storage.remove("select_feeding_data")
         storage.set("select_customer_food_id", customer_food_id)
-        storage.set("select_feeding_data", feeding_data)
+        # raw_data는 컨트롤러에서 원본 데이터를 넘겨준 것이라고 가정
+        storage.set("select_feeding_data", feeding_data.get("raw_data") if feeding_data else {})
         page.go("/feeding_edit")
 
-    now = datetime.datetime.now()
-    days = (
-        datetime.timedelta(days=feeding_data.get("left_food_count", 0))
-        if feeding_data
-        else 0
-    )
-    last_feeding_food_count = (
-        (now + days).strftime("%Y.%m.%d") if days != 0 else "????.??.??"
-    )
-
-    feeding_food_weight = feeding_data["left_intake"] if feeding_data else 0
-    g_product_weight = feeding_data["total_weight"] if feeding_data else 5
-    kg_product_weight = float(g_product_weight / 1000)
-    view_product_weight = (
-        (
-            f"{kg_product_weight}Kg"
-            if len(str(kg_product_weight).replace(".0", "")) > 2
-            else f"{g_product_weight}g"
+    if not feeding_data:
+        # 데이터가 없을 때의 UI
+        product_detail = ft.Row(
+            height=100,
+            expand=True,
+            controls=[
+                dogdog.basic_text(
+                    spans=[ft.TextSpan(" 등록된 제품이 없습니다.")],
+                    color=ft.Colors.GREY_600,
+                    size=14,
+                )
+            ],
+            alignment=ft.MainAxisAlignment.CENTER
         )
-        if feeding_data
-        else "???Kg"
-    )
+        return [product_detail]
+
+    # 데이터가 있을 때의 UI (컨트롤러에서 가공한 데이터 사용)
+    progress_value = feeding_data.get("progress_value", 0.0)
 
     product_detail = ft.Row(
         height=100,
         expand=True,
         controls=[
-            ft.Image(src=feeding_data["thumbnail"], fit=ft.BoxFit.CONTAIN, expand=2),
+            ft.Image(src=feeding_data.get("thumbnail"), fit=ft.BoxFit.CONTAIN, expand=2),
             ft.Column(
                 expand=3,
                 spacing=0,
                 alignment=ft.MainAxisAlignment.CENTER,
                 controls=[
-                    dogdog.basic_text(value=feeding_data["brand"]),
-                    dogdog.basic_text(
-                        value=feeding_data["product_name"], weight="bold"
-                    ),
+                    dogdog.basic_text(value=feeding_data.get("brand")),
+                    dogdog.basic_text(value=feeding_data.get("product_name"), weight="bold"),
                 ],
             ),
             ft.Column(
                 controls=[
-                    dogdog.flat_button(
-                        text="변경", scale=0.8, on_click=feeding_edit_event
-                    )
+                    dogdog.flat_button(text="변경", scale=0.8, on_click=feeding_edit_event)
                 ]
             ),
         ]
-        if feeding_data
-        else [
-            dogdog.basic_text(
-                spans=[
-                    ft.TextSpan(" 등록된 제품이 없습니다."),
-                    # ft.TextSpan("\n제품을 등록하시겠습니까?")
-                ],
-                color=ft.Colors.GREY_600,
-                size=14,
-            )
-        ],
-        alignment=ft.MainAxisAlignment.CENTER if not feeding_data else None,  # type: ignore
     )
 
     detail = [
@@ -91,17 +71,17 @@ def content_container_detail(
                         dogdog.basic_text(
                             spans=[
                                 ft.TextSpan(
-                                    text=f"{feeding_food_weight if feeding_food_weight != 0 else '???'}g",
+                                    text=f"{feeding_data.get('left_intake', '???')}g",
                                     style=dogdog.TextStyle(size=16, height=-1),
                                 ),
-                                ft.TextSpan(text=f" / {view_product_weight}"),
+                                ft.TextSpan(text=f" / {feeding_data.get('total_weight_kg', 0.0)}Kg"),
                             ],
                             color=ft.Colors.GREY_400,
                             weight="bold",
                             size=16,
                         ),
                         dogdog.flat_button(
-                            text=f"{feeding_data['left_food_count'] if feeding_data else '?'} 일치 남음",
+                            text=f"{feeding_data.get('left_days', '?')} 일치 남음",
                             scale=0.7,
                             disabled=True,
                         ),
@@ -109,18 +89,15 @@ def content_container_detail(
                 ),
                 ft.ProgressBar(
                     height=10,
-                    value=feeding_food_weight / g_product_weight,
+                    value=progress_value,
                     bgcolor=ft.Colors.GREY_300,
-                    # 20% 미만이면 빨간색(#E6001A), 아니면 원래 로직(노란색 또는 샵 전용 빨간색) 적용!
-                    color="#E6001A"
-                    if (feeding_food_weight / g_product_weight) < 0.2
-                    else ft.Colors.YELLOW_600,
+                    color="#E6001A" if progress_value < 0.2 else ft.Colors.YELLOW_600,
                     border_radius=10,
                 ),
                 dogdog.basic_text(
                     spans=[
                         ft.TextSpan("예상 소진일 "),
-                        ft.TextSpan(last_feeding_food_count),
+                        ft.TextSpan(feeding_data.get("expected_exdate_formatted", "????.??.??")),
                     ],
                     size=12,
                     color=ft.Colors.GREY_600,
@@ -131,37 +108,37 @@ def content_container_detail(
 
     return detail
 
-
-def feeding_tabs_view(page: ft.Page, on_refresh_callback=None):
-    storage = page.session.store
-
+def feeding_tabs_view(page: ft.Page, on_refresh_callback=None, feeding_detail_data=None):
+    """
+    급여 탭 뷰 컴포넌트 (순수 View)
+    - 컨트롤러가 제공한 feeding_detail_data를 넘겨받아 탭 화면을 구성합니다.
+    """
     def feeding_view_case(page, set=False):
-        customer_food_detail = storage.get("customer_detail")
-        content_column = (
-            [
+        if set and feeding_detail_data:
+            # 병합/가공된 데이터를 UI 컴포넌트에 주입
+            content_column_controls = [
                 dogdog.content_container(
                     content_list=content_container_detail(
                         page=page,
-                        customer_food_id=customer_food_id,
-                        feeding_data=detail,
+                        customer_food_id=None,
+                        feeding_data=feeding_detail_data,
                     )
                 )
-                for customer_food_id, detail in customer_food_detail.items()
             ]
-            if customer_food_detail and set
-            else [
+        else:
+            # 데이터가 없거나 Fallback이 필요한 경우 (간식, 영양제 탭 등)
+            content_column_controls = [
                 dogdog.content_container(
-                    content_list=content_container_detail(page=page),
+                    content_list=content_container_detail(page=page, feeding_data=None),
                     on_click=lambda _: page.go("/feeding_add"),
                 )
             ]
-        )
 
         return ft.Container(
             bgcolor="#ffffff",
             content=ft.Column(
                 margin=ft.margin.only(bottom=10),
-                controls=content_column,  # type: ignore
+                controls=content_column_controls,
             ),
         )
 
@@ -183,8 +160,8 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None):
     feeding_content = [
         content_column(feeding_view_case(page=page, set=True)),  # 전체 탭
         content_column(feeding_view_case(page=page, set=True)),  # 사료 탭
-        content_column(feeding_view_case(page=page)),  # 간식 탭
-        content_column(feeding_view_case(page=page)),  # 영양제 탭
+        content_column(feeding_view_case(page=page)),            # 간식 탭
+        content_column(feeding_view_case(page=page)),            # 영양제 탭
     ]
 
     feeding_view = ft.Tabs(
@@ -205,7 +182,7 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None):
                             label_text_style=dogdog.TextStyle(size=14),
                             expand=True,
                             height=-1,
-                        ),  # type: ignore
+                        ),
                         dogdog.flat_button(
                             text="사료 등록",
                             scale=0.8,
@@ -217,12 +194,6 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None):
                 ft.Divider(height=1),
                 ft.TabBarView(
                     expand=True, margin=ft.margin.only(top=10), controls=feeding_content
-                ),  # type: ignore
-                # 상태 업데이트 메뉴 추가 (밥주기 버튼 등)
-                domains.grid.status_update_menu(
-                    page=page,
-                    popup=dogdog.Popup(page),
-                    on_refresh_callback=on_refresh_callback,
                 ),
             ],
         ),

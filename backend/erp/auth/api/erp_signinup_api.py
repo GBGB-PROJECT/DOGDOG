@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from db.db import SessionLocal
 from erp.auth.service.erp_signinup_service import AuthService
 
-router = APIRouter(prefix="/employee", tags=["로그인 인증"])
+router = APIRouter(prefix="/erp/employee", tags=["employee_login"])
 
 # Swagger에 보일 입력 양식 정의
 class LoginRequest(BaseModel):
@@ -20,7 +20,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/login")
+@router.post("/signup")
 def login_employee(request: LoginRequest, db: Session = Depends(get_db)):
     """Swagger에서 3가지 정보를 입력받아 검증합니다."""
     service = AuthService(db)

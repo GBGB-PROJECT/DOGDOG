@@ -1,17 +1,45 @@
 import flet as ft
 from components import common as cm
-from erp.domain.controller.home.erp_home_input import get_home_view_data
+from erp.domain.controller.home.erp_home_controller import HomeViewMain
+
+
 
 def erp_home_view():
-    # 데이터 가져오기
-    sale_data, inventory_data, feed_data = get_home_view_data()
+    ## 컨트롤러에서 실제 데이터 가지고 오기
+    try:
+        data = HomeViewMain.sale_dashboard()
+
+        ## 데이터가 없는 경우
+        if not data:
+            raise Exception("데이터 없음")
+        sale_data = data
+    except Exception as e:
+        print(f"UI 연결을 실패했습니다: {e}") 
+        ## 서버 연결 실패를 대비해 미리 0으로 초기화된 데이터를 준비한다.
+        sale_data = {
+            "total_sale": 0, "year": 2026, "growth_goal": 0, 
+            "last_year_growth": 0, "total_sale_value": 0,
+            "month_rate_text": 0, "month_goal": 0, 
+            "week_rate_text": 0, "week_goal": 0
+    }
+
+    # 하드코딩된 테스트 데이터
+    inventory_data = {
+        "monthly_production_qty": 450,
+        "expected_incoming_qty": 120,
+        "current_total_inventory": 850,
+        "monthly_avg_sales_qty": 380
+    }
+    
+    feed_data = {}
+
     return ft.Container(
         expand=True,
         bgcolor=cm.PAGE_BG,
         padding=20,
         content=ft.Column(
             spacing=20,
-            scroll=ft.ScrollMode.AUTO,   # 🔥 이거 추가
+            scroll=ft.ScrollMode.AUTO,
             controls=[
                 ft.Text(
                     "매출 하이라이트",
@@ -23,10 +51,10 @@ def erp_home_view():
                     expand=True,
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        cm.erp_info_box("총 매출 ",f"{sale_data.get('total_sale',0)} 원", f"{sale_data.get('year',0)}년 누계 실적"),
-                        cm.erp_info_box("연간 목표대비 달성", f"{sale_data.get('growth_goal',0)}%", "연간 목표:"),
-                        cm.erp_info_box("전년대비 성장", f"{sale_data.get('last_year_growth',0)}%", ""),
-                        cm.erp_info_box("총 판매량수", f"{sale_data.get('total_sale_value',0)}개", f"{sale_data.get('year',0)}년 누적 판매량수"),
+                        cm.erp_info_box("총 매출 ", f"{sale_data.get('total_amount',0):,} 원", f"{sale_data.get('year',0)}년 누계"),
+                        cm.erp_info_box("연간 목표대비 달성", f"{sale_data.get('target_achievement_rate',0)}%", "연간 목표:"),
+                        cm.erp_info_box("전년 동월대비 성장", f"{sale_data.get('growth_rate',0)}%", ""),
+                        cm.erp_info_box("총 판매량수", f"{sale_data.get('total_qty',0)}개", f"{sale_data.get('year',0)}년 누적 판매량수"),
                     ],
                 ),
                 ft.Row(
@@ -59,12 +87,12 @@ def erp_home_view():
                     ],
                 ),
                 ft.Row(
-                spacing=16,
-                controls=[
-                    cm.build_production_status_box(),
-                    cm.build_stock_pie_chart_box(),
-                ],
-            ),
+                    spacing=16,
+                    controls=[
+                        cm.build_production_status_box(),
+                        cm.build_stock_pie_chart_box(),
+                    ],
+                ),
             ],
         ),
     )

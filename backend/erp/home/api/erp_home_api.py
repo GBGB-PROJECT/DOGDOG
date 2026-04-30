@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from db.db import get_db 
 from erp.home.service.erp_home_service import DashboardService
 
-router = APIRouter(prefix="/home/{account_id}", tags=['대시보드보기'])
+router = APIRouter(prefix="/erp/home", tags=['home_view'])
 
-@router.get("/highlight")
-def get_dashboard_highlight_api(employee_id: str, db: Session = Depends(get_db)):
+@router.get("/sale_dashboard")
+def get_dashboard_highlight_api(db: Session = Depends(get_db)):
     """
     [대시보드 하이라이트 API]
     프론트엔드에서 account_id와 target_year를 넘겨주면, 

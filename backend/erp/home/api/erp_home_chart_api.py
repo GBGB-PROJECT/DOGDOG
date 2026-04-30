@@ -9,11 +9,11 @@ from erp.home.service.erp_home_chart_service import DashboardService
 
 # 라우터 설정
 router = APIRouter(
-    prefix="/erp/home/{employee_id}",
-    tags=["Dashboard_chart"]
+    prefix="/erp/home",
+    tags=["home_view"]
 )
 
-@router.get("/Dashboard")
+@router.get("/chart_dashboard_summary")
 def get_dashboard_summary(
     employee_id: str,
     target_year: Optional[int] = Query(None, description="조회할 연도 (입력하지 않으면 올해 기준)"),
@@ -45,7 +45,7 @@ def get_dashboard_summary(
         "data": data
     }
 
-@router.get("/chart")
+@router.get("/chart_dashboard_sale")
 def get_dashboard_chart(
     period: str = Query("1주일", description="조회 기간 (1주일, 1개월, 1년)중 택 1"),
     db: Session = Depends(get_db)

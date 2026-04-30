@@ -6,9 +6,9 @@ from db.db import get_db
 from erp.home.service.erp_home_inventory_service import InvenDashboardService
 
 # [수정] API() -> APIRouter() 로 변경하고, 주소(prefix)를 설정합니다.
-router = APIRouter(prefix="/home/{account_id}/inventory", tags=['생산/재고 대시보드'])
+router = APIRouter(prefix="/erp/home", tags=['home_view'])
 
-@router.get("/highlight")
+@router.get("/iventory_dashboard")
 def get_inventory_highlight_api(account_id: str, db: Session = Depends(get_db)):
     """
     [생산/재고 하이라이트 API]

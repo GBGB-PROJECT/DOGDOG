@@ -19,7 +19,7 @@ class AuthController:
     @staticmethod
     def login_user(account_id: str, email: str, password: str):
         """실제 Backend 서버와 통신하여 로그인 수행"""
-        url = f"{BASE_URL}/employee/login"
+        url = f"{BASE_URL}/erp/employee/signup"
         
         payload = {
             "account_id": account_id,

@@ -76,7 +76,7 @@ CUSTOMER_FIELDS = [
 # =========================================================
 EMPLOYEE_FIELDS = [
     {"label": "사원ID", "key": "employee_id", "type": "int", "required": True, "max_length": 10, "min_value": 1},
-    {"label": "계정ID", "key": "account_id", "type": "text", "required": True, "max_length": 255},
+    {"label": "계정", "key": "account_id", "type": "text", "required": True, "max_length": 255},
     {"label": "비밀번호", "key": "password", "type": "password", "required": True, "max_length": 255},
     {"label": "이름", "key": "username", "type": "name", "required": True, "max_length": 10},
     {"label": "입사일", "key": "hire_date", "type": "date", "required": True, "max_length": 10},

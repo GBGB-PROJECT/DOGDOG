@@ -20,7 +20,7 @@ from ..common.mutation_utils import (
 # ☑️ 인사관리 Repository
 # - ERP.employee ORM 모델 기반 조회
 # - ERP.emp_position JOIN으로 직책명(position_name) 조회
-# - 이름 / 사원ID / 계정ID / 직책명 / 전화번호 / 이메일 검색 처리
+# - 이름 / 사원ID / 계정 / 직책명 / 전화번호 / 이메일 검색 처리
 # - 입사일 기간 검색 + count + limit/offset 페이지네이션 처리
 # =========================================================
 
@@ -154,7 +154,7 @@ def create_employee(data: dict):
     db = SessionLocal()
     try:
         employee_id = require_int(data.get("employee_id"), "사원ID")
-        account_id = require_text(data.get("account_id"), "계정ID")
+        account_id = require_text(data.get("account_id"), "계정")
         email = require_text(data.get("email"), "이메일")
         emp_position_id = to_int_or_none(data.get("emp_position_id"))
         manager_id = to_int_or_none(data.get("manager_id"))
@@ -162,7 +162,7 @@ def create_employee(data: dict):
         if db.query(ErpEmployee).filter(ErpEmployee.employee_id == employee_id).first():
             raise ValueError(f"이미 존재하는 사원ID입니다: {employee_id}")
         if db.query(ErpEmployee).filter(ErpEmployee.account_id == account_id).first():
-            raise ValueError(f"이미 존재하는 계정ID입니다: {account_id}")
+            raise ValueError(f"이미 존재하는 계정입니다: {account_id}")
         if db.query(ErpEmployee).filter(ErpEmployee.email == email).first():
             raise ValueError(f"이미 존재하는 이메일입니다: {email}")
         if emp_position_id and not db.query(ErpEmpPosition).filter(ErpEmpPosition.emp_position_id == emp_position_id).first():

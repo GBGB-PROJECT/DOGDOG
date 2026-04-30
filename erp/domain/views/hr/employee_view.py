@@ -277,7 +277,7 @@ def erp_employee_view():
     search_type_labels = {
         "username": "이름",
         "employee_id": "사원ID",
-        "account_id": "계정ID",
+        "account_id": "계정",
         "position_name": "직책",
         "phone": "전화번호",
         "email": "이메일",
@@ -457,7 +457,7 @@ def erp_employee_view():
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
                     build_table_cell("사원ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("계정ID", col_expand["account_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("계정", col_expand["account_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("이름", col_expand["username"], 0, ft.FontWeight.W_700),
                     build_table_cell("입사일", col_expand["hire_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("직책", col_expand["position_name"], 0, ft.FontWeight.W_700),

@@ -18,7 +18,7 @@ router = APIRouter(
 SEARCH_TYPE_LABELS = {
     "username": "이름",
     "employee_id": "사원ID",
-    "account_id": "계정ID",
+    "account_id": "계정",
     "position_name": "직책",
     "phone": "전화번호",
     "email": "이메일",

@@ -106,7 +106,7 @@ def erp_home_view():
                     spacing=16,
                     controls=[
                         cm.build_production_status_box(),
-                        cm.build_stock_pie_chart_box(),
+                        cm.build_stock_pie_chart_box(feed_data),
                     ],
                 ),
             ],

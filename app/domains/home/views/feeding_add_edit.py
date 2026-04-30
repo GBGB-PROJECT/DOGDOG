@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
 import components as dogdog
-from domains.onboarding.pet_food_controller import PetFoodController
+import domains.onboarding.pet_food_controller as pet_food_view
 
 
 # -------------------------------------------------------------------------------------------------------
@@ -65,10 +65,7 @@ def feeding_add_edit(page: ft.Page, view):
             page.go("/feeding")
             popup.show_popup_close(e)
             storage.set(f"customer_feeding_{call}_data", data)
-            show_error(
-                f"customer_feeding_{call}_data: {storage.get(f'customer_feeding_{call}_data')}"
-            )
-
+            show_error(f"customer_feeding_{call}_data: {storage.get(f'customer_feeding_{call}_data')}")
         # -----------------------------------------------------------------------------------------------
         if call == "delete":
             if delete_popup not in page.overlay:
@@ -93,9 +90,7 @@ def feeding_add_edit(page: ft.Page, view):
                     {"customer_feeding_food_id": storage.get("select_customer_food_id")}
                 )
             storage.set(f"customer_feeding_{call}_data", data)
-            show_error(
-                f"customer_feeding_{call}_data: {storage.get(f'customer_feeding_{call}_data')}"
-            )
+            show_error(f"customer_feeding_{call}_data: {storage.get(f'customer_feeding_{call}_data')}")
             page.go("/feeding")
         page.update()
 
@@ -108,13 +103,8 @@ def feeding_add_edit(page: ft.Page, view):
         ):
             page.go("/feeding")
             show_error("정상적이지 않은 접근입니다.")
-            return ft.Container(
-                padding=ft.Padding.only(left=20, right=20, top=20), bgcolor="#ffffff"
-            )
-        storage.set(
-            key="food_text",
-            value=f"{feeding_data['brand']} {feeding_data['product_name']}",
-        )
+            return ft.Container(padding=ft.Padding.only(left=20, right=20, top=20), bgcolor="#ffffff")
+        storage.set(key="food_text", value=f"{feeding_data['brand']} {feeding_data['product_name']}")
         storage.set(key="product_id", value=feeding_data["product_id"])
         storage.set(key="food_id", value=feeding_data["product_detail_id"])
         feeding_start_date = ft.Row(
@@ -132,9 +122,9 @@ def feeding_add_edit(page: ft.Page, view):
             ],
         )
     # ---------------------------------------------------------------------------------------------------
-    food_controller = PetFoodController(page=page, popup=popup)
-    food_select_field = food_controller.food_picker_field.content.controls[0] # type: ignore
-    product_weight_field = food_controller.product_weight_list
+    food_controller = pet_food_view.PetFoodController(page=page, popup=popup)
+    # food_select_field = food_controller.food_picker_field.content.controls[0] # type: ignore
+    # product_weight_field = food_controller.product_weight_list
     # ---------------------------------------------------------------------------------------------------
     # View Page
     # ---------------------------------------------------------------------------------------------------
@@ -142,40 +132,19 @@ def feeding_add_edit(page: ft.Page, view):
         column_text = "현재 급여 중인 사료"
         feeding_setting_content = [
             dogdog.flat_button(
-                text="삭제",
-                scale=1,
-                disabled=False,
-                on_click=lambda e, content="delete": button_event(e, content),
-            ),
-            dogdog.flat_button(
-                bgcolor="#FEF3B9",  # type: ignore
-                text="수정",
-                scale=1,
-                disabled=False,
-                on_click=lambda e, content="edit": button_event(e, content),
-            ),
-            dogdog.flat_button(
-                bgcolor="#FEF3B9",  # type: ignore
-                text="저장",
-                scale=1,
-                disabled=False,
-                on_click=lambda e, content="save": button_event(e, content),
-            ),
+                text="삭제", on_click=lambda e, content="delete": button_event(e, content)),
+            dogdog.flat_button(bgcolor="#FEF3B9", # type: ignore
+                text="수정", on_click=lambda e, content="edit": button_event(e, content)),
+            dogdog.flat_button(bgcolor="#FEF3B9", # type: ignore
+                text="저장", on_click=lambda e, content="save": button_event(e, content))
         ]
-        food_select_field.color = ft.Colors.BLACK
+        # food_select_field.color = ft.Colors.BLACK
     # ---------------------------------------------------------------------------------------------------
     elif view == "add":
         column_text = "신규 등록 사료"
-        feeding_setting_content = [
-            dogdog.flat_button(
-                bgcolor="#FEF3B9",  # type: ignore
-                text="저장",
-                scale=1,
-                disabled=False,
-                on_click=lambda e, content="add_save": button_event(e, content),
-            )
-        ]
-        food_select_field.value = "사료를 선택해주세요."
+        feeding_setting_content = [dogdog.flat_button(bgcolor="#FEF3B9", # type: ignore
+                text="저장", on_click=lambda e, content="add_save": button_event(e, content))]
+        # food_select_field.value = "사료를 선택해주세요."
     selected_food_weight = dogdog.input_textfield(
         hint_text="사료의 잔여량을 적어주세요",
         input_type="int",
@@ -193,8 +162,8 @@ def feeding_add_edit(page: ft.Page, view):
     # ---------------------------------------------------------------------------------------------------
     content_column = [
         dogdog.basic_text(value=column_text, weight="bold"),
-        food_controller.food_picker_field,
-        food_controller.product_weight_list,
+        # food_select_field,
+        # food_controller.product_weight_list,
         ft.Container(height=10),
         dogdog.basic_text(value="사료 잔여량", weight="bold"),
         selected_food_weight,

@@ -26,7 +26,7 @@ def open_now_history_popup(page: ft.Page, popup, history_logs: list):
     now_log_bottom_sheet_contents.append(ft.Divider())
     
     # 컨트롤러가 주입한 history_logs 사용 (API 배열 데이터 반복)
-    for log in history_logs:
+    for log in history_logs[:4]:
         now_log_bottom_sheet_contents.append(
             dogdog.log_container(page, log.get('id'), details=log)
         )
@@ -86,12 +86,12 @@ def now_history(page: ft.Page, popup, stats_data: dict, history_logs: list, on_c
             ]
         ),
         ft.Row(
-            spacing=10,
+            spacing=0,
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
-                dogdog.flat_button(f"급여량: {stats_data.get('current_amount', 0)}g"),
-                dogdog.flat_button(f"음수량: {stats_data.get('water_total', 0)}ml"),
-                dogdog.flat_button(f"산책: {stats_data.get('walk_total', 0)}분"),
+                dogdog.flat_button(f"급여량: {int(stats_data.get('current_amount', 0))}g", disabled=True, scale=0.8),
+                dogdog.flat_button(f"음수량: {int(stats_data.get('water_total', 0))}ml", disabled=True, scale=0.8),
+                dogdog.flat_button(f"산책: {int(stats_data.get('walk_total', 0))}분", disabled=True, scale=0.8),
             ],
         ),
         ft.Row(
@@ -111,7 +111,7 @@ def now_history(page: ft.Page, popup, stats_data: dict, history_logs: list, on_c
                             border_radius=10,
                         ),
                         dogdog.basic_text(
-                            value=f"{stats_data.get('current_kcal', 0)} / {stats_data.get('target_kcal', 0)}kcal",
+                            value=f"{int(stats_data.get('current_kcal', 0))} / {int(stats_data.get('target_kcal', 0))}kcal",
                             size=12,
                             color=ft.Colors.GREY_500,
                             weight="bold",
@@ -138,7 +138,7 @@ def feeding_food_count(page: ft.Page, content_page: str, inventory_stats: dict):
                 dogdog.basic_text(
                     spans=[
                         ft.TextSpan(
-                            f"{inventory_stats.get('left_intake', '???')}g",
+                            f"{int(inventory_stats.get('left_intake', '???'))}g",
                             style=dogdog.TextStyle(size=16, height=-1),
                         ),
                         ft.TextSpan(f" / {inventory_stats.get('total_weight_kg', 0.0)}Kg"),
@@ -148,7 +148,7 @@ def feeding_food_count(page: ft.Page, content_page: str, inventory_stats: dict):
                     size=16,
                 ),
                 dogdog.flat_button(
-                    f"{inventory_stats.get('left_days', '?')} 일치 남음",
+                    f"{int(inventory_stats.get('left_days', '?'))} 일치 남음",
                     scale=0.7,
                     disabled=True,
                 ),

@@ -2,7 +2,18 @@ import flet as ft
 import components as dogdog
 
 def product(page, p_id, image_src, image_size, title, price):
-    image = ft.Container(width=image_size, height=image_size, image=ft.DecorationImage(src=image_src))
+    print("이미지 URL:", image_src)
+    image = ft.Container(
+        width=image_size,
+        height=image_size,
+        alignment=ft.Alignment.CENTER,
+        content=ft.Image(
+            src=image_src,
+            width=image_size,
+            height=image_size,
+            fit=ft.BoxFit.CONTAIN
+        )
+    )
     product_name = dogdog.basic_text(value=title, size=12, color=ft.Colors.GREY_800)
     product_name.max_lines = 1
     product_name.overflow = ft.TextOverflow.ELLIPSIS

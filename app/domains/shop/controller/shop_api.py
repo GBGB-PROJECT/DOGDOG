@@ -1,5 +1,58 @@
 from api_client import ApiClient
 
+# def normalize_thumbnail(url):
+#     if not url:
+#         return "test_product_4.jpg"
+
+#     url = str(url).strip()
+
+#     if "photo3.enuri.info/data/images/service/big" in url:
+#         return url.replace(
+#             "https://photo3.enuri.info/data/images/service/big",
+#             "https://image.enuri.info/webimage_300"
+#         )
+
+#     return url
+
+# def normalize_thumbnail(url):
+#     try:
+#         # 이미 성공 패턴이면 그대로
+#         if "webimage_300" in url:
+#             return url if url.endswith(".jpg") else url + ".jpg"
+
+#         # photo3 계열 처리
+#         if "photo3.enuri.info" in url:
+#             if "service/" in url:
+#                 # service/ 이후 경로 추출
+#                 path = url.split("service/")[1]
+
+#                 # big / dnw/master 제거
+#                 path = path.replace("big/", "")
+#                 path = path.replace("dnw/master/", "")
+
+#                 # 새 URL 생성
+#                 new_url = f"https://image.enuri.info/webimage_300/{path}"
+
+#                 # 확장자 보정
+#                 if not new_url.endswith(".jpg"):
+#                     new_url += ".jpg"
+
+#                 return new_url
+
+#         # image인데 webimage_300 없는 경우
+#         if "image.enuri.info" in url and "webimage_300" not in url:
+#             parts = url.split("/")
+#             new_url = "https://image.enuri.info/webimage_300/" + "/".join(parts[-2:])
+#             if not new_url.endswith(".jpg"):
+#                 new_url += ".jpg"
+#             return new_url
+
+#         # 마지막 fallback
+#         return url
+
+#     except Exception:
+#         return url
+
 '''
 상품 목록 조회 API
 - keyword: 상품명, 브랜드명, 기능, 타입, 단백질 관련 검색
@@ -21,6 +74,15 @@ data = [
     }
 ]
 '''
+'''
+{
+"thumbnail":"test_product_4.jpg",
+"brand":"더리얼 독",
+"product_name":"3",
+"sales_price":"999799"
+},
+'''
+
 async def get_shop_product_list(page, sort=None, keyword=None):
     api = ApiClient(page)
 
@@ -46,15 +108,19 @@ async def get_shop_product_list(page, sort=None, keyword=None):
 
     product_dict = {}
 
+    
+
     for item in products:
         product_id = item.get("product_id")
 
+        # thumbnail = normalize_thumbnail(item.get("thumbnail"))
+        thumbnail = item.get("thumbnail")
+
         product_dict[product_id] = {
-            "thumbnail": item.get("thumbnail", "test_product_4.jpg"),
-            "product_name": item.get("product_name", ""),
-            "sales_price": item.get("retail_price", 0),
-            "product_id": item.get("product_id"),
-            "product_detail_id": item.get("product_detail_id"),
+            "thumbnail": thumbnail,
+            "brand": item.get("brand") or "",
+            "product_name": item.get("product_name") or "",
+            "sales_price": item.get("retail_price") or 0,
         }
 
     return product_dict

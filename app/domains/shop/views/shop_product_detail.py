@@ -5,25 +5,24 @@ import components as dogdog
 class Default_data:
     def __init__(self, page, popup, content_page,):
         # -----------------------------------------------------------------------------------------------
-        from api.product_guide import Product
+        # from api.product_guide import Product
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
-        self.Product = Product
+        # self.Product = Product
         self.popup = popup
         self.page = page
         self.header_width = page.width / 3 # type: ignore
-        self.product_id = int(content_page.strip("/shop/product/"))
+        # self.product_id = int(content_page.strip("/shop/product/"))
+        self.product_id = int(content_page.split("/shop/product/")[-1])
         # print(f"product_id: {self.product_id}")
         self.is_detail_page = False
-        for p_id , p_d in self.Product.guide_product_list.items():
-            if p_id == self.product_id:
-                self.p_thumbnail = p_d["thumbnail"]
-                self.p_brand = p_d["brand"]
-                self.p_name = p_d["product_name"]
-                self.p_price = int(p_d["sales_price"])
-                self.is_detail_page = True
-                break
+
+        self.p_thumbnail = None
+        self.p_brand = ""
+        self.p_name =""
+        self.p_price = 0
+
         self.default_bottom_sheet = popup.bottom_sheet_popup
         self.default_bottom_sheet_content = popup.bottom_sheet_controls
         self.message = {
@@ -31,6 +30,24 @@ class Default_data:
             "order":"원 바로 구매",
             "subs_order":"원 똑똑 배송으로 주문하기 🔔"
         }
+
+    async def load_product_detail(self):
+        from domains.shop.controller.shop_api import get_shop_product_detail
+
+        product = await get_shop_product_detail(self.page, self.product_id)
+
+        if not product:
+            self.is_detail_page = False
+            self.page.update()
+            return
+
+        self.p_thumbnail = product.get("thumbnail")
+        self.p_brand = product.get("brand") or ""
+        self.p_name = product.get("product_name") or ""
+        self.p_price = int(product.get("retail_price") or 0)
+
+        self.is_detail_page = True
+        self.page.update()
     # ---------------------------------------------------------------------------------------------------
     # Button Bottom Sheet
     # ---------------------------------------------------------------------------------------------------
@@ -192,15 +209,19 @@ def shop_product_detail(page: ft.Page, popup, content_page):
             message.controls[0].text_align = ft.TextAlign.CENTER # type: ignore
             return message
 
-        for p_id , p_images in dd.Product.product_detail_src.items():
-            harim_url = "https://m.harimpetfood.com"
-            if p_id == dd.product_id:
-                i = 0
-                for image in p_images:
-                    i = i + 1
-                    image_src_link = f"{harim_url}{image}"
-                    content_column.append(ft.Image(
-                        src=image_src_link, error_content=error_message(i)))
+        harim_url = "https://m.harimpetfood.com"
+        for i, image in enumerate(dd.p_detail_images, start=1):
+            if image.startswith("http"):
+                image_src_link = image
+            else:
+                image_src_link = f"{harim_url}{image}"
+
+            content_column.append(
+                ft.Image(
+                    src=image_src_link,
+                    error_content=error_message(i)
+                )
+            )
     else:
         content_column.append(
             ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[

@@ -86,7 +86,7 @@ def product_guide(page: ft.Page):
         content=ft.Column(
             controls=[
                 ft.Container(
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                     content=ft.ProgressRing()
                 )
             ]
@@ -108,6 +108,7 @@ def product_guide(page: ft.Page):
                 ]
             )
         else:
+            print("상품 리스트 출력")
             product_list.content = ft.Column(
                 controls=dogdog.products(
                     page,

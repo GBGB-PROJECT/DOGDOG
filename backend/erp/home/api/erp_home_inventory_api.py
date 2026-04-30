@@ -8,8 +8,8 @@ from erp.home.service.erp_home_inventory_service import InvenDashboardService
 # [수정] API() -> APIRouter() 로 변경하고, 주소(prefix)를 설정합니다.
 router = APIRouter(prefix="/erp/home", tags=['home_view'])
 
-@router.get("/iventory_dashboard")
-def get_inventory_highlight_api(account_id: str, db: Session = Depends(get_db)):
+@router.get("/inventory_dashboard")
+def get_inventory_highlight_api(db: Session = Depends(get_db)):
     """
     [생산/재고 하이라이트 API]
     프론트엔드에서 호출하면 세팅된 기간(3월/4월)의 

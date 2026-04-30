@@ -18,103 +18,91 @@ class InvenDashboardRepo:
         current_year = today.year
         current_month = today.month
         
-        # 이번 달의 시작일과 다음 달의 시작일 구하기 (이번 달 생산량 계산용)
-        # 예: 오늘이 3월이라면, start_date는 3월 1일, end_date는 4월 1일 직전까지
-        this_month_start = date(current_year, current_month, 1)
-        next_month_start = this_month_start + relativedelta(months=1) 
-        
-        # [수정: 익월 구하기] 입고 예정량은 보통 "다음 달" 기준이므로
-        next_month = (current_month % 12) + 1
-        target_year_for_expected = current_year if next_month > 1 else current_year + 1
+        # 입고 예정을 구하기 위한 연/월 계산
+        next_month_date = today + relativedelta(months=1)
+        next_month = next_month_date.month
+        target_year_for_expected = next_month_date.year
 
         # ==========================================
-        # [당월 생산량(입고량)] - 시스템 연/월 기준 필터링
+        # [1] 이번 달 생산량(입고량이 더 맞음)
         # ==========================================
-        monthly_stock_data = (
-            self.db.query(
-                # 중복 합산을 방지하기 위해 ErpStock의 합계를 구하되,
-                # 조인으로 인해 늘어난 행을 고려하여 로직을 점검해야 합니다.
-                func.coalesce(func.sum(ErpStock.save_stock), 0).label("monthly_stock")
-            )
+        monthly_production = (
+            self.db.query(func.coalesce(func.sum(ErpStock.stock_available), 0))
             .join(ErpInbound, ErpStock.inbound_id == ErpInbound.inbound_id)
-            .filter(  
-                # [수정] extract를 사용하여 시스템 연도와 월을 정확히 매칭합니다.
+            .filter(
                 extract('year', ErpInbound.inbound_complete) == current_year,
                 extract('month', ErpInbound.inbound_complete) == current_month
             )
-            .first()
+            .scalar()
         )
 
         # ==========================================
-        # [익월 입고 예정량 - 구매 주문 기준] - 시스템 날짜의 '다음 달' 기준
+        # [2] 입고 예정
         # ==========================================
-        expected_inbound_data = (
-            self.db.query(
-                func.coalesce(func.sum(ErpPurchaseOrderItem.quantity), 0).label("expected_qty")
-            )
+        expected_incoming = (
+            self.db.query(func.coalesce(func.sum(ErpPurchaseOrderItem.quantity), 0))
             .join(ErpPurchaseOrder, ErpPurchaseOrderItem.purchase_order_id == ErpPurchaseOrder.purchase_order_id)
             .filter(
                 extract('year', ErpPurchaseOrder.inbound_scheduled_date) == target_year_for_expected,
                 extract('month', ErpPurchaseOrder.inbound_scheduled_date) == next_month
             )
-            .first()
+            .scalar()
         )
 
         # ==========================================
         # [현재 총 재고량 조회]
         # ==========================================
-        current_stock_data = (
-            self.db.query(
-                func.coalesce(func.sum(ErpStock.stock_available), 0).label("total_available")
-            )
-            .first()
+        ## 현재 총 가용 재고
+        current_total_stock = self.db.query(func.coalesce(func.sum(ErpStock.stock_available), 0)).scalar()
+        
+        # 작년 이맘때(또는 작년말) 총 재고 (비교용)
+        last_year_stock = (
+            self.db.query(func.coalesce(func.sum(ErpStock.save_stock), 0))
+            .join(ErpInbound, ErpStock.inbound_id == ErpInbound.inbound_id)
+            .filter(extract('year', ErpInbound.inbound_complete) < current_year)
+            .scalar()
         )
+        # 이미지의 '850'처럼 현재의 총 재고 상태를 반환하거나 성장 수치를 계산하여 반환
+        inventory_growth_val = current_total_stock
 
         # ==========================================
         # [월평균 판매량] - 수정: '올해' 총 판매량을 '현재 월'로 나눔
         # ==========================================
-        # 올해 누적 일반 판매량
-        sales_data = self.db.query(
-            func.coalesce(func.sum(OpdSalesOrderItem.quantity), 0)
-        ).filter(extract('year', OpdSalesOrderItem.last_update) == current_year).scalar() 
+        monthly_sales = self.db.query(func.coalesce(func.sum(OpdSalesOrderItem.quantity), 0)).filter(
+            extract('year', OpdSalesOrderItem.last_update) == current_year,
+            extract('month', OpdSalesOrderItem.last_update) == current_month
+        ).scalar()
 
-        # 올해 누적 구독 판매량
-        subs_data = self.db.query(
-            func.coalesce(func.sum(OpdSubsItem.quantity), 0)
-        ).filter(extract('year', OpdSubsItem.last_update) == current_year).scalar() 
+        monthly_subs = self.db.query(func.coalesce(func.sum(OpdSubsItem.quantity), 0)).filter(
+            extract('year', OpdSubsItem.last_update) == current_year,
+            extract('month', OpdSubsItem.last_update) == current_month
+        ).scalar()
 
-        total_qty_this_year = (sales_data or 0) + (subs_data or 0)
-        
-        # 예: 5월이라면 올해 총판매량을 5로 나누어 월평균 계산
-        monthly_avg_sales = total_qty_this_year // current_month 
+        total_monthly_sales_qty = (monthly_sales or 0) + (monthly_subs or 0)
 
         # ===========================================
         # [판매 사료의 각 타입의 합]
         # ===========================================
-        feed_size_count_data = (
+        stock_by_type_data = (
             self.db.query(
                 OpdProductDetail.type.label("feed_type"),
-                func.count(OpdProduct.product_id).label("type_count")
+                func.coalesce(func.sum(ErpStock.stock_available), 0).label("stock_sum")
             )
-            # [수정됨] 어떤 테이블을 메인으로 삼을지 명시적으로 선언해줍니다.
-            .select_from(OpdProduct) 
+            .select_from(ErpStock)
+            .join(OpdProduct, ErpStock.product_id == OpdProduct.product_id)
             .join(OpdProductDetail, OpdProduct.product_id == OpdProductDetail.product_detail_id)
-            .filter(
-                OpdProduct.active == True
-            )
             .group_by(OpdProductDetail.type)
             .all()
         )
 
-        feed_type_counts = {row.feed_type: row.type_count for row in feed_size_count_data}
-
+        stock_type_status = {row.feed_type: row.stock_sum for row in stock_by_type_data}
         # ===========================================
         # [최종 바구니(Return)]
         # ===========================================
         return {
-            "monthly_stock": monthly_stock_data.monthly_stock,             # 당월 생산(입고)량
-            "expected_inbound_stock": expected_inbound_data.expected_qty,  # 익월 입고 예정량
-            "monthly_available_stock": current_stock_data.total_available, # 현재 총 재고량
-            "monthly_avg_sales": monthly_avg_sales,                        # 당해 연도 누적 월평균 판매량
-            "feed_type_counts": feed_type_counts                           # 사료 타입별 개수 
+            "monthly_production_qty": monthly_production,      # 이번달 생산량
+            "expected_incoming_qty": expected_incoming,        # 입고 예정
+            "current_total_inventory": inventory_growth_val,   # 전년 대비 성장(현재고)
+            "monthly_total_sales": total_monthly_sales_qty,    # 총 판매량수
+            "stock_type_status": stock_type_status             # 사료별 재고 현황(차트용)                     # 사료 타입별 개수 
         }

@@ -71,7 +71,7 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                         dogdog.basic_text(
                             spans=[
                                 ft.TextSpan(
-                                    text=f"{feeding_data.get('left_intake', '???')}g",
+                                    text=f"{int(feeding_data.get('left_intake', '???'))}g",
                                     style=dogdog.TextStyle(size=16, height=-1),
                                 ),
                                 ft.TextSpan(text=f" / {feeding_data.get('total_weight_kg', 0.0)}Kg"),
@@ -81,7 +81,7 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                             size=16,
                         ),
                         dogdog.flat_button(
-                            text=f"{feeding_data.get('left_days', '?')} 일치 남음",
+                            text=f"{int(feeding_data.get('left_days', '?'))} 일치 남음",
                             scale=0.7,
                             disabled=True,
                         ),

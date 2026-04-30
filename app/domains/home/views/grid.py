@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # # -------------------------------------------------------------------------------------------------------
 # import flet as ft
 # import components as dogdog
@@ -173,6 +174,206 @@
 #                     return
 #             event_text.update({f"{call}_date": self.storage.get(f"{call}_date")})
 #             event_text.update({f"{call}_time": self.storage.get(f"{call}_time")})
+=======
+# -------------------------------------------------------------------------------------------------------
+import flet as ft
+import components as dogdog
+import datetime
+# -------------------------------------------------------------------------------------------------------
+class StatusController:
+    def __init__(self, page: ft.Page):
+        # -----------------------------------------------------------------------------------------------
+        # Default Value
+        # -----------------------------------------------------------------------------------------------
+        self.page = page
+        self.storage = page.session.store
+        self.popup = dogdog.Popup(page=page)
+        self.popup.event_popup.actions[0] = ft.Row()
+        self.popup.event_popup.actions[1].content = "닫기" # type: ignore
+        self.popup.event_popup.modal = False
+        if self.storage.get("customer_food_id"): self.storage.remove("customer_food_id")
+        # -----------------------------------------------------------------------------------------------
+        # Bottom Sheet
+        # -----------------------------------------------------------------------------------------------
+        self.grid_bottom_sheet = self.popup.bottom_sheet_popup
+        self.bottom_sheet_contents = self.grid_bottom_sheet.content.content.controls # type: ignore
+        # -----------------------------------------------------------------------------------------------
+        self.date_picker = ft.DatePicker(
+            first_date=datetime.datetime.now() - datetime.timedelta(days=7),
+            last_date=datetime.datetime.now())
+        if self.date_picker not in page.overlay:
+            page.overlay.append(self.date_picker)
+        self.data_button = dogdog.flat_icon_text_button(
+            ft.Icons.CALENDAR_MONTH, datetime.datetime.now().strftime("%Y.%m.%d")
+        )
+        self.data_button.on_click = lambda e, picker=self.date_picker: self.open_event(e, picker)
+        # -----------------------------------------------------------------------------------------------
+        self.time_picker = ft.TimePicker(
+            entry_mode=ft.TimePickerEntryMode.DIAL_ONLY)
+        self.time_button = dogdog.flat_icon_text_button(
+            ft.Icons.ACCESS_TIME, 
+            datetime.datetime.now().strftime("%p %H:%M").replace("AM", "오전").replace("PM", "오후"))
+        self.time_button.on_click = lambda e, picker=self.time_picker: self.open_event(e, picker)
+    # ---------------------------------------------------------------------------------------------------
+    # Picker Open Event
+    # ---------------------------------------------------------------------------------------------------
+    def open_event(self, e, picker):
+        if picker not in self.page.overlay: self.page.overlay.append(picker)
+        try: picker.open = True
+        except Exception as err: print(err)
+    # ---------------------------------------------------------------------------------------------------
+    # Input Field Change Event
+    # ---------------------------------------------------------------------------------------------------
+    def change_event(self, e, change, case=None):
+        value = e.control.value
+        if change == "customer_food_id":
+            if case.visible == False: case.visible = True # type: ignore
+            try: self.storage.set("customer_food_id", int(value))
+            except ValueError: pass
+        elif "weight" in change:
+            if "_float_weight" in change:
+                try: self.storage.set(change, float(value))
+                except ValueError: pass
+            else:
+                try: self.storage.set(change, int(value))
+                except ValueError: pass
+        elif "memo" in change:
+            try: self.storage.set(change, value)
+            except ValueError: pass
+        elif "date" in change:
+            if value and case:
+                now = datetime.timedelta(hours=9)
+                self.storage.set(key=change, value=(value + now).strftime("%Y-%m-%d"))
+                case.content.controls[1].value = (value + now).strftime("%Y.%m.%d")
+        elif "time" in change:
+            if value and case:
+                self.storage.set(key=change, value=value.strftime("%H:%M"))
+                case.content.controls[1].value = (
+                    value.strftime("%p %H:%M").replace("AM", "오전").replace("PM", "오후"))
+        self.grid_bottom_sheet.update()
+    # ---------------------------------------------------------------------------------------------------
+    # Button Push Event
+    # ---------------------------------------------------------------------------------------------------
+    def button_event(self, e, call, content):
+        callcase = {
+            "feeding":{"밥주기":"사료, 급여량을 선택 / 작성해주세요."},
+            "watering": {"물주기":"물 섭취량을 적어주세요."},
+            "daily_walks": {"활동기록":"산책시간을 적어주세요."}, 
+            "hygiene_bowel": {"위생/배변":"배변 스코어를 선택해주세요."},
+            "health_log": {"건강기록":"건강상태를 작성해주세요."},
+            "status_log": {"상태기록":"기타상태를 작성해주세요."},
+        }
+        for for_call_title, for_call_message in callcase.get(call).items(): # type: ignore
+            call_title = for_call_title
+            call_message = for_call_message
+        event_text = {}
+        if content == "edit": pass
+            # self.show_error(content)
+        elif content == "delete": pass
+            # self.show_error(content)
+        elif content == "save":
+            if call == "feeding":
+                if self.storage.get("customer_food_id"):
+                    event_text.update({"customer_food_id":self.storage.get("customer_food_id")})
+                else:
+                    self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
+                    return
+            if self.storage.get(f"{call}_weight"):
+                event_text.update({f"{call}_weight":self.storage.get(f"{call}_weight")})
+            elif self.storage.get(f"{call}_float_weight"):
+                event_text.update({f"{call}_float_weight":self.storage.get(f"{call}_float_weight")})
+                event_text.update({f"{call}_bcs_weight":self.storage.get(f"{call}_bcs_weight")})
+            elif call == "status_log": pass
+            else:
+                self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
+                return
+            if self.storage.get(f"{call}_memo"):
+                event_text.update({f"{call}_memo":self.storage.get("customer_food_id")})
+            else:
+                if call == "status_log":
+                    self.popup.show_popup_open(e=e, case="event_popup", title=call_title, text=call_message)
+                    return
+            event_text.update({f"{call}_date":self.storage.get(f"{call}_date")})
+            event_text.update({f"{call}_time":self.storage.get(f"{call}_time")})
+            self.popup.show_popup_open(e=e, case="event_popup", title=call, text=event_text)
+        elif content == "feeding_add": self.page.go("/feeding_add")
+        elif content == "cancel": pass
+        self.grid_bottom_sheet.open = False
+        self.page.update()
+    # ---------------------------------------------------------------------------------------------------
+    # Bottom Sheet Append Def
+    # ---------------------------------------------------------------------------------------------------
+    def bottom_sheet_title(self, text, link=None):
+        if link: 
+            self.bottom_sheet_contents.append(ft.Row(spacing=5, controls=[
+                dogdog.basic_text(value=text, size=25, weight="bold"),
+                ft.Container(scale=0.8,
+                    width=25, height=25, ink=True, on_click=link, border_radius=25, bgcolor=ft.Colors.GREY_300,
+                    content=ft.Icon(icon=ft.Icons.QUESTION_MARK, color=ft.Colors.WHITE, size=20))
+            ]))
+        else: self.bottom_sheet_contents.append(dogdog.basic_text(value=text, size=25, weight="bold"))
+        self.bottom_sheet_contents.append(ft.Divider())
+# -------------------------------------------------------------------------------------------------------
+def bottom_sheet(e, page: ft.Page, call):
+    # ---------------------------------------------------------------------------------------------------
+    # Default Value
+    # ---------------------------------------------------------------------------------------------------
+    storage = page.session.store
+    s_control = StatusController(page=page)
+    customer_detail = storage.get("customer_detail")
+    is_customer_detail = True
+    # ---------------------------------------------------------------------------------------------------
+    def setting_content(call):
+        return ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            controls=[
+                dogdog.flat_button(
+                    "취소", disabled=False, scale=1,
+                    on_click=lambda e, menu=call, content="cancel": s_control.button_event(e, call,content)),
+                dogdog.flat_button(
+                    "저장", disabled=False, scale=1, bgcolor="#FEF3B9", # type: ignore
+                    on_click=lambda e, menu=call, content="save": s_control.button_event(e, call, content)),
+            ] # type: ignore
+        )
+    # ---------------------------------------------------------------------------------------------------
+    def data_time_select(call):
+        s_control.date_picker.on_change=lambda e, change=f"{call}_date", case=s_control.data_button: s_control.change_event(e, change, case)
+        storage.set(f"{call}_date", datetime.datetime.now().strftime("%Y-%m-%d"))
+        s_control.time_picker.on_change=lambda e, change=f"{call}_time", case=s_control.time_button: s_control.change_event(e, change, case)
+        storage.set(f"{call}_time", datetime.datetime.now().strftime("%H:%M"))
+        return ft.Row(spacing=30, alignment=ft.MainAxisAlignment.CENTER, controls=[s_control.data_button, s_control.time_button])
+    # ---------------------------------------------------------------------------------------------------    
+    s_control.bottom_sheet_contents.clear()
+    # ---------------------------------------------------------------------------------------------------
+    if call == "feeding":
+        s_control.bottom_sheet_title("밥주기")
+        if customer_detail:
+            feeding_guide = ft.Column(
+                visible=False,
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=0,
+                controls=[
+                    ft.Row(margin=ft.margin.only(bottom=10), controls=[
+                        dogdog.basic_text(
+                            value=f"오늘 {storage.get('customer_pet_name')}에게 딱 알맞는 1회 급여량은 ...",
+                            size=16, weight="bold", color=ft.Colors.GREY_600)]),
+                    ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, controls=[
+                        ft.Image(src="speech_bubble.png", height=100, color="#FEF3B9"),
+                        dogdog.basic_text("40g", weight="bold", size=40),
+                    ], spacing=-90),
+                    ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20))
+            ])
+            food = [dogdog.dropdown_menu_option(
+                key=customer_food_id, text=f"{detail.get('brand')} {detail.get('product_name')}"
+                    ) for customer_food_id , detail in customer_detail.items()]
+            feeding_food_list = ft.Row(margin=ft.margin.only(bottom=18),
+                controls=[
+                    dogdog.dropdown_menu(label="사료를 선택해주세요.", options=food, 
+                        event=lambda e, change="customer_food_id", 
+                        case=feeding_guide: s_control.change_event(e, change, case)
+            )])
+>>>>>>> origin/feat/frontend/app_v2
             
 #             # 🚨 [AttributeError 방지] 정의되지 않은 show_popup_open 주석 처리
 #             # self.popup.show_popup_open(

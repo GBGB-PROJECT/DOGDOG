@@ -46,12 +46,19 @@ def home_tile(
         main_container_content.append(top_banner)
         main_container_content.append(body_column)
         # -----------------------------------------------------------------------------------------------
+        async def on_timeline_click(e):
+            pet_id = page.session.store.get("current_pet_id")
+            if pet_id:
+                logs = await controller.get_today_timeline_logs(pet_id)
+                # 추출된 유틸리티 함수를 호출하여 팝업을 띄우고 데이터 주입
+                domains.home.open_now_history_popup(page, popup, logs)
         body_column.controls.append(
             domains.home.now_history(
                 page=page, 
                 popup=popup, 
                 stats_data=controller.get_today_record_stats(),
-                history_logs=controller.get_formatted_history(count=3)
+                history_logs=controller.get_formatted_history(count=3),
+                on_click=on_timeline_click
             )
         )
         body_column.expand = False
@@ -88,7 +95,8 @@ def home_tile(
                             page=page, 
                             popup=popup, 
                             stats_data=controller.get_today_record_stats(),
-                            history_logs=controller.get_formatted_history(count=3)
+                            history_logs=controller.get_formatted_history(count=3),
+                            on_click=on_timeline_click
                         )
                         body_column.update()
                         

@@ -4,16 +4,11 @@ import components as dogdog
 import datetime
 
 # -------------------------------------------------------------------------------------------------------
-def now_history(page: ft.Page, popup, stats_data: dict, history_logs: list):
+def open_now_history_popup(page: ft.Page, popup, history_logs: list):
     """
-    오늘의 기록 뷰 컴포넌트 (순수 View)
-    - 컨트롤러가 제공한 stats_data와 history_logs만 사용하여 렌더링합니다.
+    오늘의 기록 팝업(타임라인)을 열고, 주입받은 API 로그 데이터를 렌더링합니다.
     """
     now = datetime.datetime.now().strftime("%Y-%m-%d")
-    
-    # ---------------------------------------------------------------------------------------------------
-    # Popup Bottom Sheet Event
-    # ---------------------------------------------------------------------------------------------------
     now_log_bottom_sheet = popup.bottom_sheet_popup
     now_log_bottom_sheet_contents = popup.bottom_sheet_controls
 
@@ -23,58 +18,62 @@ def now_history(page: ft.Page, popup, stats_data: dict, history_logs: list):
             page.session.store.remove("select_log_date")
         page.go("/history")
 
-    def now_history_open(e):
-        now_log_bottom_sheet_contents.clear()
-        history_title = dogdog.basic_text(
-            f"오늘의 기록 : {now}", size=18, weight="bold"
+    now_log_bottom_sheet_contents.clear()
+    history_title = dogdog.basic_text(
+        f"오늘의 기록 : {now}", size=18, weight="bold"
+    )
+    now_log_bottom_sheet_contents.append(history_title)
+    now_log_bottom_sheet_contents.append(ft.Divider())
+    
+    # 컨트롤러가 주입한 history_logs 사용 (API 배열 데이터 반복)
+    for log in history_logs:
+        now_log_bottom_sheet_contents.append(
+            dogdog.log_container(page, log.get('id'), details=log)
         )
-        now_log_bottom_sheet_contents.append(history_title)
-        now_log_bottom_sheet_contents.append(ft.Divider())
-        
-        # 컨트롤러가 주입한 history_logs 사용
-        storage_history = page.session.store.get("history") or {}
-        for pet_log_numeric_id, details in list(storage_history.items()):
-            if details["log_date"].split()[0] == now:
-                now_log_bottom_sheet_contents.append(
-                    dogdog.log_container(page, pet_log_numeric_id, details=details)
-                )
-                
-        if len(now_log_bottom_sheet_contents) - 2 <= 0:
-            now_log_bottom_sheet_contents.append(
-                ft.Container(
-                    padding=ft.Padding.only(right=10, left=10),
-                    width=3000,
-                    ink=True,
-                    height=50,
-                    border_radius=10,
-                    border=ft.Border.all(width=1, color=ft.Colors.GREY_300),
-                    content=ft.Row(
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        controls=[
-                            dogdog.basic_text("오늘의 기록이 없어요 ㅠㅠ", size=14, color=ft.Colors.GREY_700),
-                        ],
-                    ),
-                )
-            )
             
-        history_page = ft.Row(
-            alignment=ft.MainAxisAlignment.CENTER,
-            controls=[
-                ft.TextButton(
-                    content=dogdog.basic_text("더보기", size=14, color=ft.Colors.GREY_500),
-                    on_click=lambda e: history_event(e),
-                )
-            ],
+    if len(now_log_bottom_sheet_contents) - 2 <= 0:
+        now_log_bottom_sheet_contents.append(
+            ft.Container(
+                padding=ft.Padding.only(right=10, left=10),
+                width=3000,
+                ink=True,
+                height=50,
+                border_radius=10,
+                border=ft.Border.all(width=1, color=ft.Colors.GREY_300),
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        dogdog.basic_text("오늘의 기록이 없어요 ㅠㅠ", size=14, color=ft.Colors.GREY_700),
+                    ],
+                ),
+            )
         )
-        now_log_bottom_sheet_contents.append(history_page)
         
-        if now_log_bottom_sheet not in page.overlay:
-            page.overlay.append(now_log_bottom_sheet)
-        else:
-            page.overlay.clear()
-            page.overlay.append(now_log_bottom_sheet)
-        now_log_bottom_sheet.open = True
-        page.update()
+    history_page = ft.Row(
+        alignment=ft.MainAxisAlignment.CENTER,
+        controls=[
+            ft.TextButton(
+                content=dogdog.basic_text("더보기", size=14, color=ft.Colors.GREY_500),
+                on_click=lambda e: history_event(e),
+            )
+        ],
+    )
+    now_log_bottom_sheet_contents.append(history_page)
+    
+    if now_log_bottom_sheet not in page.overlay:
+        page.overlay.append(now_log_bottom_sheet)
+    else:
+        page.overlay.clear()
+        page.overlay.append(now_log_bottom_sheet)
+    now_log_bottom_sheet.open = True
+    page.update()
+
+def now_history(page: ft.Page, popup, stats_data: dict, history_logs: list, on_click=None):
+    """
+    오늘의 기록 뷰 컴포넌트 (순수 View)
+    - 컨트롤러가 제공한 stats_data와 history_logs만 사용하여 렌더링합니다.
+    """
+    now = datetime.datetime.now().strftime("%Y-%m-%d")
 
     # ---------------------------------------------------------------------------------------------------
     # UI 조립 (데이터는 컨트롤러에서 주입)
@@ -122,7 +121,7 @@ def now_history(page: ft.Page, popup, stats_data: dict, history_logs: list):
             ],
         ),
     ]
-    return dogdog.content_container(content_list=content_column, on_click=lambda e: now_history_open(e))
+    return dogdog.content_container(content_list=content_column, on_click=on_click)
 
 
 def feeding_food_count(page: ft.Page, content_page: str, inventory_stats: dict):

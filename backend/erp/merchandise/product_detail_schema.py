@@ -6,7 +6,8 @@ class ErpMerchandiseDetailItem(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     no: int | None = None
-    product_display_id: Any = None
+    product_detail_id: Any = None
+    product_id: Any = None
     type: Any = None
     brand: Any = None
     product_name: Any = None

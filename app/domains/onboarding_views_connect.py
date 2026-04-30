@@ -42,6 +42,8 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
     # Controller Initialization
     # ---------------------------------------------------------------------------------------------------
     from .onboarding.onboarding_controller import OnboardingController
+    from .onboarding.pet_info_controller import PetInfoController
+    from .onboarding.pet_food_controller import PetFoodController
 
     # 뷰와 로직을 연결하는 컨트롤러 인스턴스 생성
     controller = OnboardingController(
@@ -51,6 +53,9 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
         focus_field=focus_field,
         popup=popup,
     )
+    
+    pet_info_controller = PetInfoController(page=page, popup=popup)
+    pet_food_controller = PetFoodController(page=page, popup=popup)
 
     # ---------------------------------------------------------------------------------------------------
     # On Boarding Tile Routeing (View)
@@ -58,14 +63,14 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
     if content_page == "/sign_up":
         top = ft.Row(controls=[dogdog.onboarding_top_bar(case=1)])
         content = domains.sign_up_view(
-            page=page, check_email_callback=controller.check_email_duplicate
+            page=page, controller=controller, check_email_callback=controller.check_email_duplicate
         )
         bottom = ft.Row(
             controls=[dogdog.continue_button(on_click=controller.process_user_sign_up)]
         )
 
     elif content_page == "/pet_info":
-        content = domains.pet_info_view(page=page, popup=popup)
+        content = domains.pet_info_view(page=page, popup=popup, controller=pet_info_controller)
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(on_click=lambda e: change_page_callback("/sign_up")),
@@ -74,7 +79,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
         )
 
     elif content_page == "/pet_obesity":
-        content = domains.pet_obesity_view(page=page)
+        content = domains.pet_obesity_view(page=page, controller=controller)
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(on_click=lambda e: change_page_callback("/pet_info")),
@@ -83,7 +88,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
         )
 
     elif content_page == "/pet_activity":
-        content = domains.pet_activity_view(page=page)
+        content = domains.pet_activity_view(page=page, controller=controller)
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(
@@ -94,7 +99,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
         )
 
     elif content_page == "/pet_health":
-        content = domains.pet_health_view(page=page)
+        content = domains.pet_health_view(page=page, controller=controller)
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(
@@ -105,7 +110,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
         )
 
     elif content_page == "/pet_food":
-        content = domains.pet_food_view(page=page, popup=popup)
+        content = domains.pet_food_view(page=page, popup=popup, controller=pet_food_controller)
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(

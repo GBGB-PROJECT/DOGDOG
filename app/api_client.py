@@ -45,7 +45,7 @@ class ApiClient:
         self, endpoint: str, params: Optional[Dict[str, Any]] = None
     ) -> httpx.Response:
         url = f"{BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url, headers=self._get_headers(), params=params)
         return await self._handle_response(response)
 
@@ -53,7 +53,7 @@ class ApiClient:
         self, endpoint: str, data: Optional[Dict[str, Any]] = None
     ) -> httpx.Response:
         url = f"{BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(url, headers=self._get_headers(), json=data)
         return await self._handle_response(response)
 
@@ -61,7 +61,7 @@ class ApiClient:
         self, endpoint: str, data: Optional[Dict[str, Any]] = None
     ) -> httpx.Response:
         url = f"{BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.put(url, headers=self._get_headers(), json=data)
         return await self._handle_response(response)
 
@@ -69,12 +69,12 @@ class ApiClient:
         self, endpoint: str, data: Optional[Dict[str, Any]] = None
     ) -> httpx.Response:
         url = f"{BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.patch(url, headers=self._get_headers(), json=data)
         return await self._handle_response(response)
 
     async def delete(self, endpoint: str) -> httpx.Response:
         url = f"{BASE_URL.rstrip('/')}/{endpoint.lstrip('/')}"
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.delete(url, headers=self._get_headers())
         return await self._handle_response(response)

@@ -1,281 +1,196 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
 import components as dogdog
-import api.breed_data as Breed
 import datetime
-# -------------------------------------------------------------------------------------------------------
-class PetInfoController:
-    def __init__(self, page: ft.Page, popup):
-        # -----------------------------------------------------------------------------------------------
-        # Default Value
-        # -----------------------------------------------------------------------------------------------
-        self.page = page
-        self.popup = popup
-        self.storage = page.session.store
-        # -----------------------------------------------------------------------------------------------
-        # Image View and Selected Picker
-        # -----------------------------------------------------------------------------------------------
-        self.image_container = dogdog.image_circle(event=self.pick_profile_image, size=200)
-        self.image_container.visible = False
-        self.image_picker_field = dogdog.picker_field(
-            text="이미지를 등록해주세요.",
-            on_click=self.pick_profile_image,
-            icon=ft.Icons.UPLOAD_FILE,
-        )
-        if self.storage.get(key="image_path"):
-            self.image_picker_field.content.controls[0].value = ( # type: ignore
-                self.storage.get(key="image_name")
-            )
-            self.image_container.visible = True
-            self.image_container.image.src = ( # type: ignore
-                self.storage.get(key="image_path")
-            )
-        # -----------------------------------------------------------------------------------------------
-        # Breed List Selected Picker and Bottom Sheet
-        # -----------------------------------------------------------------------------------------------
-        self.selected_breed_id = None
-        self.breed_list_column = ft.Column(
-            height=(self.page.height/7)*2, # type: ignore
-            spacing=6,
-            scroll=ft.ScrollMode.HIDDEN)
-        self.breed_search_field = dogdog.list_input_textfield(
-            hint_text="견종 검색", on_change=self.on_breed_search_change)
-        self.breed_search_field.autofocus = True
-        self.breed_bottom_sheet = self.popup.bottom_sheet_popup
-        self.breed_bottom_sheet_contents = self.popup.bottom_sheet_controls
-        self.breed_bottom_sheet_contents.clear()
-        self.breed_bottom_sheet_contents.append(dogdog.basic_text(value="우리 아이의 견종은?", size=25, weight="bold"))
-        self.breed_bottom_sheet_contents.append(ft.Divider())
-        self.breed_bottom_sheet_contents.append(self.breed_search_field)
-        self.breed_bottom_sheet_contents.append(self.breed_list_column)
-        self.breed_picker_field = dogdog.picker_field(
-            text="반려동물 품종을 선택해주세요.",
-            on_click=self.open_breed_bottom_sheet,
-            icon=ft.Icons.KEYBOARD_ARROW_DOWN_ROUNDED,
-        )
-        if self.storage.get(key="breed_text"):
-            self.breed_picker_field.content.controls[0].value = ( # type: ignore
-                self.storage.get(key="breed_text")
-            )
-        self.breed_list = dogdog.update_item_list(
-            list_column=self.breed_list_column, 
-            search_data=Breed.BREED_LIST,
-            select_key=self.selected_breed_id, 
-            select_value=self.select_breed, 
-            keyword=""
-        )
-        # -----------------------------------------------------------------------------------------------
-        # Pet Birth Day Selected Picker and Dropdown Menu
-        # -----------------------------------------------------------------------------------------------
-        self.birth_input_mode = dogdog.radio_group(
-            value=None,
-            on_change=self.change_birth_mode,
-            layout_type="column",
-            contents=[
-                ft.Radio(value="birthday", label="생년월일을 알아요"),
-                ft.Radio(value="age", label="대략적인 나이만 알고 있어요")
-        ])
-        self.date_picker = ft.DatePicker(
-            first_date=datetime.datetime(year=2000, month=1, day=1),
-            last_date=datetime.datetime.now(),
-            on_change=self.on_date_change,
-        )
-        if self.date_picker not in page.overlay:
-            page.overlay.append(self.date_picker)
-        self.birthday_picker_field = dogdog.picker_field(
-            text="생년월일을 선택해주세요.",
-            on_click=self.open_date_picker,
-            icon=ft.Icons.CALENDAR_MONTH,
-        )
-        if self.storage.get(key="pet_birth_day"):
-            self.birth_input_mode.value = "birthday"
-            self.birthday_picker_field.visible = True
-            self.birthday_picker_field.content.controls[0].value = ( # type: ignore
-                self.storage.get(key="pet_birth_day"))
-            self.page.update()
-        else: self.birthday_picker_field.visible = False
-        self.year_dropdown = dogdog.dropdown_menu(
-            label="년 선택",
-            event=self.age_year_event,
-            options=[dogdog.dropdown_menu_option(text=f"{year} 년") for year in range(0, 31)],
-        )
-        self.month_dropdown = dogdog.dropdown_menu(
-            label="개월 선택",
-            event=self.age_month_event,
-            options=[dogdog.dropdown_menu_option(text=f"{month} 개월") for month in range(0, 12)],
-        )
-        self.birthday_dropdown = ft.Row(
-            height=48,
-            controls=[
-                self.year_dropdown,
-                self.month_dropdown,
-            ],
-        )
-        if self.storage.get(key="pet_age_year") and self.storage.get(key="pet_age_month"):
-            self.birth_input_mode.value = "age"
-            self.birthday_dropdown.visible = True
-            self.year_dropdown.value = self.storage.get(key="pet_age_year")
-            self.month_dropdown.value = self.storage.get(key="pet_age_month")
-            self.page.update()
-        else: self.birthday_dropdown.visible = False
-    # ---------------------------------------------------------------------------------------------------
-    # Image Selected Picker Event
-    # ---------------------------------------------------------------------------------------------------
-    async def pick_profile_image(self, e):
-        file_picker = ft.FilePicker()
-        files = await file_picker.pick_files(
-            allow_multiple=False,
-            file_type=ft.FilePickerFileType.IMAGE,
-        )
-        if files:
-            file = files[0]
-            try:
-                if file.path is None:
-                    print("\n"
-                        "☆ -------------------------------------------------------------------------- ☆\n"
-                        "☆ ----- Pick Profile Image Path Error: 파일 경로를 가져올 수 없습니다. ----- ☆\n"
-                        "☆ -------------------------------------------------------------------------- ☆"
-                    )
-                    self.image_picker_field.content.controls[0].value = ( # type: ignore
-                        "파일 경로를 가져올 수 없습니다."
-                    )
-                    return
-                self.storage.set(key="image_path", value=file.path)
-                self.storage.set(key="image_name", value=file.name)
-                self.image_picker_field.content.controls[0].value = file.name # type: ignore
-                self.image_container.visible = True
-                self.image_container.image.src = file.path # type: ignore
-            except:
-                pass
-        else:
-            if self.storage.get(key="image_path"):
-                self.storage.remove(key="image_path")
-                self.storage.remove(key="image_name")
-            self.image_container.visible = False
-            self.image_container.image = None
-    # ---------------------------------------------------------------------------------------------------
-    # Breed List Picker Event
-    # ---------------------------------------------------------------------------------------------------
-    def open_breed_bottom_sheet(self, e):
-        self.breed_search_field.value = ""
-        self.breed_list
-        if self.breed_bottom_sheet not in self.page.overlay:
-            self.page.overlay.append(self.breed_bottom_sheet)
-        else:
-            self.page.overlay.clear()
-            self.page.overlay.append(self.breed_bottom_sheet)
-        self.breed_bottom_sheet.open = True
-        self.page.update()
-    def on_breed_search_change(self, e):
-        self.breed_list = dogdog.update_item_list(
-            list_column=self.breed_list_column, 
-            search_data=Breed.BREED_LIST,
-            select_key=self.selected_breed_id, 
-            select_value=self.select_breed, 
-            keyword=e.control.value)
-    def select_breed(self, breed_id, breed_name):
-        self.selected_breed_id = breed_id
-        self.storage.set(key="breed_id", value=breed_id)
-        self.breed_picker_field.content.controls[0].value = breed_name # type: ignore
-        self.storage.set(key="breed_text", value=breed_name)
-        self.breed_bottom_sheet.open = False
-        self.page.update() # Overlay Error 방지
-    # ---------------------------------------------------------------------------------------------------
-    # Birth Day Picker Event
-    # ---------------------------------------------------------------------------------------------------
-    def open_date_picker(self, e):
-        self.date_picker.open = True
-        self.page.update() # Overlay Error 방지
-    def change_birth_mode(self, e):
-        birth_input_mode = e.control.value
-        self.storage.set(key="birth_input_mode", value=birth_input_mode)
-        if birth_input_mode == "age":
-            self.birthday_dropdown.visible = True
-            self.birthday_picker_field.visible = False
-            self.birthday_picker_field.content.controls[0].value = "생년월일을 선택해주세요." # type: ignore
-            if self.storage.get(key="pet_birth_day"):
-                self.storage.remove(key="pet_birth_day")
-        else:
-            self.birthday_dropdown.visible = False
-            self.birthday_picker_field.visible = True
-            self.year_dropdown.value = "년 선택"
-            self.month_dropdown.value = "개월 선택"
-            if self.storage.get(key="pet_age_year"):
-                self.storage.remove(key="pet_age_year")
-            if self.storage.get(key="pet_age_month"):
-                self.storage.remove(key="pet_age_month")
-        self.page.update() # Overlay Error 방지
-    def on_date_change(self, e):
-        if e.control.value:
-            birth_day = (e.control.value + datetime.timedelta(hours=9)).strftime("%Y-%m-%d")
-            self.storage.set(key="pet_birth_day", value=birth_day)
-            self.birthday_picker_field.content.controls[0].value = birth_day # type: ignore
-    def age_year_event(self, e): self.storage.set(key="pet_age_year", value=e.control.value)
-    def age_month_event(self, e): self.storage.set(key="pet_age_month", value=e.control.value)
-# -------------------------------------------------------------------------------------------------------
 
-
-def pet_info_view(page: ft.Page, popup):
-    # ---------------------------------------------------------------------------------------------------
-    # Default Value Class
-    # ---------------------------------------------------------------------------------------------------
-    pet_info_controller = PetInfoController(page=page, popup=popup)
+# -------------------------------------------------------------------------------------------------------
+def pet_info_view(page: ft.Page, popup, controller):
+    """
+    [View] pet_info_view
+    - 순수 Dumb Component: 외부에서 주입된 controller를 사용하여 상태 관리를 위임합니다.
+    """
     storage = page.session.store
+    
     # ---------------------------------------------------------------------------------------------------
     # Pet Name Input Field
     # ---------------------------------------------------------------------------------------------------
-    def petname_on_change(e):
-        storage.set("pet_name", e.control.value)
-    pet_name_field = dogdog.input_textfield(hint_text="이름을 입력해주세요.", on_change=petname_on_change)
+    pet_name_field = dogdog.input_textfield(
+        hint_text="이름을 입력해주세요.", 
+        on_change=lambda e: controller.update_field("pet_name", e.control.value)
+    )
     if storage.get("pet_name"):
-        pet_name_field.value = storage.get("pet_name") # type: ignore
+        pet_name_field.value = storage.get("pet_name")
+        
+    # ---------------------------------------------------------------------------------------------------
+    # Image View and Picker
+    # ---------------------------------------------------------------------------------------------------
+    image_container = dogdog.image_circle(event=lambda e: page.run_task(controller.pick_profile_image, e, image_picker_field, image_container), size=200)
+    image_container.visible = False
+    
+    image_picker_field = dogdog.picker_field(
+        text="이미지를 등록해주세요.",
+        on_click=lambda e: page.run_task(controller.pick_profile_image, e, image_picker_field, image_container),
+        icon=ft.Icons.UPLOAD_FILE,
+    )
+    
+    if storage.get("image_path"):
+        image_picker_field.content.controls[0].value = storage.get("image_name") # type: ignore
+        image_container.visible = True
+        image_container.image.src = storage.get("image_path") # type: ignore
+
+    # ---------------------------------------------------------------------------------------------------
+    # Breed List Picker and Bottom Sheet
+    # ---------------------------------------------------------------------------------------------------
+    breed_list_column = ft.Column(
+        height=(page.height/7)*2, # type: ignore
+        spacing=6,
+        scroll=ft.ScrollMode.HIDDEN
+    )
+    
+    def select_breed_wrapper(breed_id, breed_name):
+        controller.select_breed(breed_id, breed_name, breed_picker_field)
+        
+    breed_search_field = dogdog.list_input_textfield(
+        hint_text="견종 검색", 
+        on_change=lambda e: controller.on_breed_search_change(e, breed_list_column, select_breed_wrapper)
+    )
+    breed_search_field.autofocus = True
+    
+    breed_bottom_sheet_contents = popup.bottom_sheet_controls
+    breed_picker_field = dogdog.picker_field(
+        text="반려동물 품종을 선택해주세요.",
+        on_click=lambda e: _open_breed_bottom_sheet(e),
+        icon=ft.Icons.KEYBOARD_ARROW_DOWN_ROUNDED,
+    )
+    
+    def _open_breed_bottom_sheet(e):
+        breed_bottom_sheet_contents.clear()
+        breed_bottom_sheet_contents.append(dogdog.basic_text(value="우리 아이의 견종은?", size=25, weight="bold"))
+        breed_bottom_sheet_contents.append(ft.Divider())
+        breed_bottom_sheet_contents.append(breed_search_field)
+        breed_bottom_sheet_contents.append(breed_list_column)
+        controller.open_breed_bottom_sheet(e, breed_search_field, breed_list_column, select_breed_wrapper)
+
+    if storage.get("breed_text"):
+        breed_picker_field.content.controls[0].value = storage.get("breed_text") # type: ignore
+
+    # ---------------------------------------------------------------------------------------------------
+    # Pet Birth Day Picker and Dropdown
+    # ---------------------------------------------------------------------------------------------------
+    year_dropdown = dogdog.dropdown_menu(
+        label="년 선택",
+        event=lambda e: controller.update_field("pet_age_year", e.control.value),
+        options=[dogdog.dropdown_menu_option(text=f"{year} 년") for year in range(0, 31)],
+    )
+    
+    month_dropdown = dogdog.dropdown_menu(
+        label="개월 선택",
+        event=lambda e: controller.update_field("pet_age_month", e.control.value),
+        options=[dogdog.dropdown_menu_option(text=f"{month} 개월") for month in range(0, 12)],
+    )
+    
+    birthday_dropdown = ft.Row(
+        height=48,
+        controls=[year_dropdown, month_dropdown],
+    )
+    
+    birthday_picker_field = dogdog.picker_field(
+        text="생년월일을 선택해주세요.",
+        on_click=lambda e: _open_date_picker(e),
+        icon=ft.Icons.CALENDAR_MONTH,
+    )
+    
+    date_picker = ft.DatePicker(
+        first_date=datetime.datetime(year=2000, month=1, day=1),
+        last_date=datetime.datetime.now(),
+        on_change=lambda e: controller.on_date_change(e, birthday_picker_field),
+    )
+    
+    def _open_date_picker(e):
+        if date_picker not in page.overlay:
+            page.overlay.append(date_picker)
+        date_picker.open = True
+        page.update()
+
+    birth_input_mode = dogdog.radio_group(
+        value="birthday",
+        on_change=lambda e: controller.change_birth_mode(e, birthday_picker_field, birthday_dropdown, year_dropdown, month_dropdown),
+        layout_type="column",
+        contents=[
+            ft.Radio(value="birthday", label="생년월일을 알아요"),
+            ft.Radio(value="age", label="대략적인 나이만 알고 있어요")
+        ]
+    )
+
+    if storage.get("pet_birth_day"):
+        birth_input_mode.value = "birthday"
+        birthday_picker_field.visible = True
+        birthday_dropdown.visible = False
+        birthday_picker_field.content.controls[0].value = storage.get("pet_birth_day") # type: ignore
+    elif storage.get("pet_age_year") and storage.get("pet_age_month"):
+        birth_input_mode.value = "age"
+        birthday_dropdown.visible = True
+        birthday_picker_field.visible = False
+        year_dropdown.value = storage.get("pet_age_year")
+        month_dropdown.value = storage.get("pet_age_month")
+    else:
+        birthday_picker_field.visible = False
+        birthday_dropdown.visible = False
+
     # --------------------------------------------------------------------------------------------------- 
     # Pet Gender Dropdown Menu
     # ---------------------------------------------------------------------------------------------------
-    def gender_event(e):
-        storage.set("pet_gender", e.control.value)
     pet_gender_dropdown = dogdog.dropdown_menu(
         label="성별 / 중성화",
-        event=gender_event,
+        event=lambda e: controller.update_field("pet_gender", e.control.value),
         options=[
             dogdog.dropdown_menu_option(text="수컷", icon=ft.Icons.MALE, icon_color=ft.Colors.BLUE),
             dogdog.dropdown_menu_option(text="수컷 (중성화)", icon=ft.Icons.CUT, icon_color=ft.Colors.BLUE),
             dogdog.dropdown_menu_option(text="암컷", icon=ft.Icons.FEMALE, icon_color=ft.Colors.PINK),
             dogdog.dropdown_menu_option(text="암컷 (중성화)", icon=ft.Icons.CUT, icon_color=ft.Colors.PINK),
-    ])
+        ]
+    )
     if storage.get("pet_gender"):
         pet_gender_dropdown.value = storage.get("pet_gender")
+
     # ---------------------------------------------------------------------------------------------------
     # Pet Weight Input Field
     # ---------------------------------------------------------------------------------------------------
     def weight_event(e):
-        try: storage.set("pet_weight", e.control.value)
-        except: pass
+        try: 
+            if e.control.value:
+                controller.update_field("pet_weight", float(e.control.value))
+            else:
+                controller.update_field("pet_weight", None)
+        except: 
+            pass
+            
     pet_weight_field = dogdog.input_textfield(
         hint_text="무게를 입력해주세요.", suffix="Kg", input_type="float", on_change=weight_event
     )
     if storage.get("pet_weight"):
         pet_weight_field.value = storage.get("pet_weight") # type: ignore
+
     # ---------------------------------------------------------------------------------------------------
-    # Pet Info Page
+    # Pet Info Page Assembly
     # ---------------------------------------------------------------------------------------------------
     content_column = [
         dogdog.basic_text(value="이름", weight="bold"),
         pet_name_field,
         ft.Container(
-            content=pet_info_controller.image_container, 
+            content=image_container, 
             alignment=ft.Alignment.CENTER
         ),
         dogdog.basic_text(value="프로필 이미지", weight="bold"),
-        pet_info_controller.image_picker_field,
+        image_picker_field,
         ft.Container(height=8),
         dogdog.basic_text(value="품종", weight="bold"),
-        pet_info_controller.breed_picker_field,
+        breed_picker_field,
         ft.Container(height=8),
         dogdog.basic_text(value="생년월일", weight="bold"),
-        pet_info_controller.birth_input_mode,
-        pet_info_controller.birthday_picker_field,
-        pet_info_controller.birthday_dropdown,
+        birth_input_mode,
+        birthday_picker_field,
+        birthday_dropdown,
         ft.Container(height=8),
         dogdog.basic_text(value="성별", weight="bold"),
         pet_gender_dropdown,

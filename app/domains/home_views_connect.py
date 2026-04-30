@@ -14,7 +14,8 @@ def home_tile(
     on_refresh_callback=None,
 ):
     # ---------------------------------------------------------------------------------------------------
-    # Controller Init
+    # ---------------------------------------------------------------------------------------------------
+    # Controller Init & PubSub
     # ---------------------------------------------------------------------------------------------------
     controller = HomeController(page)
 
@@ -70,6 +71,42 @@ def home_tile(
         body_scroll_column.controls.append(
             domains.grid.status_update_menu(page=page, popup=popup)
         )
+
+        # -----------------------------------------------------------------------------------------------
+        # PubSub: 대시보드 동기화 이벤트 구독 및 컴포넌트 부분 업데이트
+        # -----------------------------------------------------------------------------------------------
+        async def refresh_dashboard_task(msg):
+            if msg == "update_dashboard" and content_page == "/home":
+                pet_id = page.session.store.get("current_pet_id")
+                if pet_id:
+                    # 최신 데이터 API 패치
+                    await controller.fetch_dashboard_data(pet_id)
+                    
+                    # 1. 상단 '오늘의 기록' 컴포넌트 교체
+                    if len(body_column.controls) > 0:
+                        body_column.controls[0] = domains.home.now_history(
+                            page=page, 
+                            popup=popup, 
+                            stats_data=controller.get_today_record_stats(),
+                            history_logs=controller.get_formatted_history(count=3)
+                        )
+                        body_column.update()
+                        
+                    # 2. 하단 '사료 잔여량' 컴포넌트 교체 (index 0)
+                    if len(body_scroll_column.controls) > 0:
+                        body_scroll_column.controls[0] = dogdog.content_container(
+                            content_list=domains.home.feeding_food_count(
+                                page=page, 
+                                content_page=content_page,
+                                inventory_stats=controller.get_food_inventory_stats()
+                            ),
+                            on_click=lambda e: appbar_on_change(e, "/feeding"),
+                        )
+                        body_scroll_column.update()
+
+        # 기존 구독된 함수가 있다면 제거하여 중복 실행 방지
+        page.pubsub.unsubscribe_all()
+        page.pubsub.subscribe(lambda msg: page.run_task(refresh_dashboard_task, msg))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/log":
         home_background, top_banner = dogdog.home_layout(page=page, text="Log")

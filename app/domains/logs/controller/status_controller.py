@@ -113,6 +113,10 @@ class StatusController:
         success = await self.grid_ctrl.save_feeding_api(call)
         if success:
             self.popup.bottom_sheet_popup.open = False
+            
+            # PubSub을 통해 대시보드 데이터 갱신 이벤트 발행
+            self.page.pubsub.send_all("update_dashboard")
             self.page.update()
+            
             if self.on_refresh_callback:
                 await self.on_refresh_callback()

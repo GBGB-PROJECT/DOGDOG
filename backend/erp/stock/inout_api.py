@@ -1,12 +1,15 @@
 # =========================================================
 # 🔥 재고 입고/출고 관리 API
-# - stock_inout_view.py에서 requests 방식으로 호출
+# - stock_inout_view.py에서 httpx 방식으로 호출
 # - URL: GET /erp/stock/inout
 # =========================================================
+
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 
 from .inout_service import get_stock_inout_list
+from .inout_schema import ErpStockInoutListResponse
 
 
 router = APIRouter(
@@ -22,11 +25,24 @@ router = APIRouter(
         "상품 재고 관리의 입고/출고 관리 화면에서 사용하는 API입니다. "
         "입고 내역과 출고 내역을 한 화면에서 조회합니다."
     ),
+    response_model=ErpStockInoutListResponse,  # 🔥 추가: 재고 입고/출고 응답 Schema 연결
 )
 def get_stock_inout(
-    search_type: str = Query(default="all", description="검색조건"),
+    search_type: Literal[
+        "all",
+        "inout_type",
+        "inbound_id",
+        "sales_order_id",
+        "product_id",
+        "brand",
+        "product_name",
+        "status",
+    ] = Query(default="all", description="검색조건"),
     keyword: str = Query(default="", description="검색어"),
-    inout_type: str = Query(default="all", description="입고/출고 구분: all, inbound, outbound"),
+    inout_type: Literal["all", "inbound", "outbound", "입고", "출고"] = Query(
+        default="all",
+        description="입고/출고 구분",
+    ),
     page: int = Query(default=1, ge=1, description="페이지 번호"),
     size: int = Query(default=50, ge=1, le=500, description="페이지 크기"),
     start_date: str | None = Query(default=None, description="조회 시작일"),

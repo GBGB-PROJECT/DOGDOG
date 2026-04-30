@@ -7,6 +7,7 @@
 from fastapi import APIRouter, HTTPException, Query
 
 from .dashboard_service import fetch_stock_dashboard
+from .dashboard_schema import ErpStockDashboardResponse
 
 
 router = APIRouter(
@@ -22,6 +23,7 @@ router = APIRouter(
         "재고 현황 화면에서 사용하는 대시보드 조회 API입니다. "
         "선택한 연월 기준으로 입고, 출고, 입출고 차트, 매출 TOP 3 재고 데이터를 반환합니다."
     ),
+    response_model=ErpStockDashboardResponse,  # 🔥 추가: 재고 대시보드 응답 Schema 연결
 )
 def get_stock_dashboard(
     year: int | None = Query(

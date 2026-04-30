@@ -110,4 +110,116 @@ class HomeController:
             logs.append({"message": msg, "time": time_str})
         return logs
 
-        
+    def get_today_record_stats(self):
+        """
+        오늘의 기록 상단 통계(급여량, 음수량, 산책시간) 및 목표 칼로리 진행률을 계산하여 반환합니다.
+        (home.py에서 추출된 로직)
+        """
+        storage = self.page.session.store
+        customer_detail = storage.get("customer_detail") or {}
+        dash_data = customer_detail.get("dashboard_sync") or {}
+
+        feeding_stats = dash_data.get("feeding_stats") or {}
+        activity_stats = dash_data.get("activity_stats") or {}
+
+        current_amount = feeding_stats.get("current_amount", 0)
+        water_total = activity_stats.get("water_total", 0)
+        walk_total = activity_stats.get("walk_total", 0)
+
+        current_kcal = feeding_stats.get("current_kcal", 0)
+        target_kcal = feeding_stats.get("target_kcal", 0)
+        progress_rate = feeding_stats.get("progress_rate", 0)
+
+        try:
+            progress_val = float(progress_rate)
+            kcal_progress_value = (
+                progress_val / 100.0 if progress_val > 1.0 else progress_val
+            )
+        except (ValueError, TypeError, ZeroDivisionError):
+            kcal_progress_value = 0.0
+
+        return {
+            "current_amount": current_amount,
+            "water_total": water_total,
+            "walk_total": walk_total,
+            "current_kcal": current_kcal,
+            "target_kcal": target_kcal,
+            "kcal_progress_value": kcal_progress_value
+        }
+
+    def get_food_inventory_stats(self):
+        """
+        홈 대시보드의 사료 잔여량 데이터를 가공하여 반환합니다.
+        (home.py에서 추출된 로직)
+        """
+        storage = self.page.session.store
+        customer_detail = storage.get("customer_detail") or {}
+        dash_data = customer_detail.get("dashboard_sync") or {}
+        inventory = dash_data.get("food_inventory") or {}
+
+        left_intake = inventory.get("left_intake", 0)
+        total_weight_g = inventory.get("total_weight", 0)
+        total_weight_kg = round(float(total_weight_g) / 1000, 1) if total_weight_g else 0.0
+
+        left_percent = inventory.get("left_percent", 0)
+        progress_value = (
+            float(left_percent) / 100 if float(left_percent) > 1 else float(left_percent)
+        )
+
+        left_days = inventory.get("left_food_count", 0)
+        expected_exdate = inventory.get("expected_exdate", "????-??-??")
+        expected_exdate_formatted = str(expected_exdate).replace("-", ".")
+
+        return {
+            "left_intake": left_intake,
+            "total_weight_kg": total_weight_kg,
+            "left_days": round(float(left_days), 1) if left_days else "?",
+            "progress_value": progress_value,
+            "expected_exdate_formatted": expected_exdate_formatted
+        }
+
+    def get_feeding_detail_data(self):
+        """
+        급여 상세 페이지(feeding.py)를 위한 사료 잔여량 및 상세 스펙 병합 데이터를 제공합니다.
+        """
+        storage = self.page.session.store
+        customer_detail = storage.get("customer_detail") or {}
+        dash_data = customer_detail.get("dashboard_sync") or {}
+        inventory = dash_data.get("food_inventory") or {}
+        pet_food_detail = storage.get("pet_food_detail") or {}
+
+        # 데이터 병합
+        feeding_data = {**inventory, **pet_food_detail}
+
+        if not feeding_data:
+            return None
+
+        # 가공
+        left_intake = feeding_data.get("left_intake") or feeding_data.get("left_weight", 0)
+        total_weight_g = feeding_data.get("total_weight", 0)
+        total_weight_kg = round(float(total_weight_g) / 1000, 1) if total_weight_g else 0.0
+
+        left_percent = feeding_data.get("left_percent", 0)
+        progress_value = (
+            float(left_percent) / 100 if float(left_percent) > 1 else float(left_percent)
+        )
+
+        left_days = feeding_data.get("left_food_count") or feeding_data.get("expected_left_days", 0)
+        expected_exdate = feeding_data.get("expected_exdate") or feeding_data.get("expected_last_day", "????-??-??")
+        expected_exdate_formatted = str(expected_exdate).replace("-", ".")
+
+        brand = feeding_data.get("product_brand") or feeding_data.get("brand") or ""
+        product_name = feeding_data.get("product_name") or feeding_data.get("name") or ""
+        thumbnail = feeding_data.get("product_thumbnail") or feeding_data.get("thumbnail") or "dogbowl.png"
+
+        return {
+            "raw_data": feeding_data,
+            "left_intake": left_intake,
+            "total_weight_kg": total_weight_kg,
+            "left_days": round(float(left_days), 1) if left_days else "?",
+            "progress_value": progress_value,
+            "expected_exdate_formatted": expected_exdate_formatted,
+            "brand": brand,
+            "product_name": product_name,
+            "thumbnail": thumbnail
+        }

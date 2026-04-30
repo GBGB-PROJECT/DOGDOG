@@ -70,8 +70,17 @@ async def home_tile(
             print("♻️ [DEBUG] 자체 UI 강제 재렌더링 시도")
             if content_page == "/home":
                 try:
-                    history_card.content.controls = domains.home.now_history(page=page, popup=popup)
-                    inventory_card.content.controls = domains.home.feeding_food_count(page=page, content_page="/home")
+                    history_card.content.controls = domains.home.now_history(
+                        page=page, 
+                        popup=popup,
+                        stats_data=controller.get_today_record_stats(),
+                        history_logs=controller.get_formatted_history(count=3)
+                    )
+                    inventory_card.content.controls = domains.home.feeding_food_count(
+                        page=page, 
+                        content_page="/home",
+                        inventory_stats=controller.get_food_inventory_stats()
+                    )
                     history_card.update()
                     inventory_card.update()
                 except Exception as e:
@@ -124,7 +133,12 @@ async def home_tile(
         
         # 오늘의 기록 (칼로리 & 활동 요약) 카드
         history_card = dogdog.content_container(
-            content_list=domains.home.now_history(page=page, popup=popup),
+            content_list=domains.home.now_history(
+                page=page, 
+                popup=popup,
+                stats_data=controller.get_today_record_stats(),
+                history_logs=history_logs
+            ),
             on_click=lambda e: popup.show_popup_open(e, "bottom_sheet")
         )
         body_column.controls.append(history_card)
@@ -132,7 +146,11 @@ async def home_tile(
 
         # 사료 잔여량 게이지 카드
         inventory_card = dogdog.content_container(
-            content_list=domains.home.feeding_food_count(page=page, content_page="/home"),
+            content_list=domains.home.feeding_food_count(
+                page=page, 
+                content_page="/home",
+                inventory_stats=controller.get_food_inventory_stats()
+            ),
             on_click=lambda e: appbar_on_change(e, "/feeding")
         )
         body_scroll_column.controls.append(inventory_card)
@@ -165,7 +183,9 @@ async def home_tile(
         main_container_content.append(top_banner)
         main_container_content.append(
             domains.feeding.feeding_tabs_view(
-                page=page, on_refresh_callback=local_refresh_callback
+                page=page, 
+                on_refresh_callback=local_refresh_callback,
+                feeding_detail_data=controller.get_feeding_detail_data()
             )
         )
 

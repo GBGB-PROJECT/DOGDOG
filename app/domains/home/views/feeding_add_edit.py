@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
 import components as dogdog
-import domains.onboarding.views.pet_food_view as pet_food_view
+from domains.onboarding.pet_food_controller import PetFoodController
 
 
 # -------------------------------------------------------------------------------------------------------
@@ -132,7 +132,7 @@ def feeding_add_edit(page: ft.Page, view):
             ],
         )
     # ---------------------------------------------------------------------------------------------------
-    food_controller = pet_food_view.PetfoodController(page=page, popup=popup)
+    food_controller = PetFoodController(page=page, popup=popup)
     food_select_field = food_controller.food_picker_field.content.controls[0] # type: ignore
     product_weight_field = food_controller.product_weight_list
     # ---------------------------------------------------------------------------------------------------

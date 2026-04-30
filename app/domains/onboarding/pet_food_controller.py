@@ -12,8 +12,54 @@ class PetFoodController:
         self.storage = page.session.store
         self._search_task = None
         self.selected_product_detail_id = None
+        
+        # UI 컴포넌트 초기화 (레거시 뷰 호환성 및 코드 재사용을 위해 컨트롤러에서 관리)
+        import components as dogdog
+        self.food_picker_field = dogdog.picker_field(
+            text="현재 급여 중인 사료를 선택해주세요.",
+            on_click=self.open_food_bottom_sheet_ui,
+            icon=ft.Icons.KEYBOARD_ARROW_DOWN_ROUNDED,
+        )
+        self.product_weight_list = dogdog.dropdown_menu(
+            label="사료의 용량을 선택해주세요.",
+            event=lambda e: self.food_product_weight_set(e, self.product_weight_list),
+            options=[],
+        )
 
-    def open_food_bottom_sheet(self, e, food_search_field, food_list_column):
+    def open_food_bottom_sheet_ui(self, e):
+        """
+        내부 관리 필드(food_picker_field)를 사용하여 사료 검색 팝업을 엽니다.
+        """
+        import components as dogdog
+        
+        # 검색 필드와 리스트 컬럼을 팝업용으로 생성
+        food_list_column = ft.Column(
+            height=(self.page.height / 7) * 2,
+            spacing=6,
+            scroll=ft.ScrollMode.AUTO,
+        )
+        
+        def select_food_wrapper(product_detail_id, product_name):
+            self.page.run_task(self.select_food, product_detail_id, product_name, self.food_picker_field, self.product_weight_list)
+
+        food_search_field = dogdog.list_input_textfield(
+            hint_text="Search", 
+            on_change=lambda ev: self.page.run_task(self.on_food_search_change, ev, food_list_column, select_food_wrapper)
+        )
+        food_search_field.autofocus = True
+
+        # 팝업 내용 조립
+        food_bottom_sheet_contents = self.popup.bottom_sheet_controls
+        food_bottom_sheet_contents.clear()
+        food_bottom_sheet_contents.append(dogdog.basic_text(value="사료 검색", size=25, weight="bold"))
+        food_bottom_sheet_contents.append(ft.Divider())
+        food_bottom_sheet_contents.append(food_search_field)
+        food_bottom_sheet_contents.append(food_list_column)
+
+        # 기존 로직 호출
+        self.open_food_bottom_sheet(e, food_search_field, food_list_column, select_food_wrapper)
+
+    def open_food_bottom_sheet(self, e, food_search_field, food_list_column, select_food_callback):
         food_search_field.value = ""
         food_list_column.controls.clear()
         
@@ -24,7 +70,50 @@ class PetFoodController:
             self.page.overlay.clear()
             self.page.overlay.append(food_bottom_sheet)
         food_bottom_sheet.open = True
+        
+        # 팝업 오픈 시 기본 사료 리스트 로딩 (초기화)
+        self.page.run_task(self.fetch_initial_food_list, food_list_column, select_food_callback)
         self.page.update()
+
+    async def fetch_initial_food_list(self, food_list_column, select_food_callback):
+        import components as dogdog
+        food_list_column.controls.clear()
+        food_list_column.controls.append(dogdog.basic_text(value="사료 목록을 불러오는 중...", size=14))
+        self.page.update()
+
+        try:
+            api_client = ApiClient(self.page)
+            # 파라미터 없이 호출하여 전체/기본 사료 목록을 가져옴
+            res = await api_client.get("/products/name", params={"keyword": ""})
+            
+            if res.status_code != 200:
+                food_list_column.controls.clear()
+                food_list_column.controls.append(dogdog.basic_text(value="기본 사료 목록을 가져올 수 없습니다.", size=14))
+                self.page.update()
+                return
+
+            products = res.json().get("data", [])
+            if not products:
+                food_list_column.controls.clear()
+                food_list_column.controls.append(dogdog.basic_text(value="사료 목록이 없습니다.", size=14))
+                self.page.update()
+                return
+
+            search_list = [[str(p.get("product_detail_id")), p.get("product_name")] for p in products]
+
+            dogdog.update_item_list(
+                list_column=food_list_column,
+                search_data=search_list,
+                select_key=self.selected_product_detail_id,
+                select_value=select_food_callback,
+                keyword="",
+            )
+            self.page.update()
+        except Exception as err:
+            print(f"[API Error] 기본 사료 목록 조회 실패: {err}")
+            food_list_column.controls.clear()
+            food_list_column.controls.append(dogdog.basic_text(value="서버 오류가 발생했습니다.", size=14))
+            self.page.update()
 
     async def on_food_search_change(self, e, food_list_column, select_food_callback):
         import asyncio
@@ -40,9 +129,8 @@ class PetFoodController:
                 await asyncio.sleep(0.5)
 
                 if not keyword or len(keyword) < 1:
-                    food_list_column.controls.clear()
-                    food_list_column.controls.append(dogdog.basic_text(value="검색어를 입력해 주세요.", size=14))
-                    self.page.update()
+                    # 검색어가 없으면 다시 기본 리스트로 복귀
+                    await self.fetch_initial_food_list(food_list_column, select_food_callback)
                     return
 
                 food_list_column.controls.clear()

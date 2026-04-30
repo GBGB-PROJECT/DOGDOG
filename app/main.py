@@ -6,7 +6,7 @@ import asyncio
 import components as dogdog
 
 # 테스트 아이디(test7)로 테스트 설정
-IS_TEST_MODE = True
+IS_TEST_MODE = False
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform

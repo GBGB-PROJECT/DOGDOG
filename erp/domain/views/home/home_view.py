@@ -7,12 +7,11 @@ from erp.domain.controller.home.erp_home_controller import HomeViewMain
 def erp_home_view():
     ## 컨트롤러에서 실제 데이터 가지고 오기
     try:
-        data = HomeViewMain.sale_dashboard()
-
+        raw_sale_data = HomeViewMain.sale_dashboard()
         ## 데이터가 없는 경우
-        if not data:
-            raise Exception("데이터 없음")
-        sale_data = data
+        if not raw_sale_data:
+            raise Exception("sale 데이터 없음")      
+        sale_data = raw_sale_data
     except Exception as e:
         print(f"UI 연결을 실패했습니다: {e}") 
         ## 서버 연결 실패를 대비해 미리 0으로 초기화된 데이터를 준비한다.
@@ -21,17 +20,34 @@ def erp_home_view():
             "last_year_growth": 0, "total_sale_value": 0,
             "month_rate_text": 0, "month_goal": 0, 
             "week_rate_text": 0, "week_goal": 0
-    }
-
-    # 하드코딩된 테스트 데이터
-    inventory_data = {
-        "monthly_production_qty": 450,
-        "expected_incoming_qty": 120,
-        "current_total_inventory": 850,
-        "monthly_avg_sales_qty": 380
-    }
+        }
     
-    feed_data = {}
+    try:
+        raw_inven_data = HomeViewMain.inventory_dashboard()
+    ## 데이터가 없는 경우
+        if not raw_inven_data:
+            raise Exception("sale 데이터 없음")
+        inven_data = raw_inven_data
+    except Exception as e:
+        print(f"UI 연결을 실패했습니다: {e}") 
+        # 불러오기 실패 시 0을 가지고 옴
+        inven_data = {
+            "monthly_production_qty": 0,
+            "expected_incoming_qty": 0,
+            "current_total_inventory": 0,
+            "monthly_avg_sales_qty": 0,
+            "stock_type_status": {}
+        }
+    stock_status = inven_data.get("stock_type_status", {})
+    total_stock_sum = sum(stock_status.values())
+
+    if total_stock_sum > 0:
+        feed_data = {
+            k: round((v / total_stock_sum) * 100, 1)
+            for k, v in stock_status.items()
+        }
+    else:
+        feed_data = {}    
 
     return ft.Container(
         expand=True,
@@ -64,8 +80,8 @@ def erp_home_view():
                         ft.Column(
                             spacing=16,
                             controls=[
-                                cm.gauge_chart(float(sale_data.get('monthly_achievement_rate', 0)), f"월간 목표 : {sale_data.get('monthly_target', 0) // 10000}만 원"),
-                                cm.gauge_chart(float(sale_data.get('weekly_achievement_rate', 0)), f"주간 목표 : {sale_data.get('weekly_target', 0) // 10000}만 원"),
+                                cm.gauge_chart(float(sale_data.get('monthly_achievement_rate', 0)), f"월간 목표 : {sale_data.get('monthly_target', 0) // 10000:,}만 원"),
+                                cm.gauge_chart(float(sale_data.get('weekly_achievement_rate', 0)), f"주간 목표 : {sale_data.get('weekly_target', 0) // 10000:,}만 원"),
                             ],
                         ),
                         cm.build_sales_linechart(),
@@ -80,10 +96,10 @@ def erp_home_view():
                 ft.Row(
                     spacing=16,
                     controls=[
-                        cm.erp_info_box("이번달 생산량", f"{inventory_data.get('monthly_production_qty',0)}",""),
-                        cm.erp_info_box("입고 예정", f"{inventory_data.get('expected_incoming_qty',0)}",""),
-                        cm.erp_info_box("전년대비 성장", f"{inventory_data.get('current_total_inventory',0)}",""),
-                        cm.erp_info_box("총 판매량수", f"{inventory_data.get('monthly_avg_sales_qty',0)}",""),
+                        cm.erp_info_box("입고", f"{inven_data.get('monthly_production_qty',0):,}개",""),
+                        cm.erp_info_box("입고 예정", f"{inven_data.get('expected_incoming_qty',0):,}개",""),
+                        cm.erp_info_box("전년대비 성장", f"{inven_data.get('current_total_inventory',0):,}개",""),
+                        cm.erp_info_box("총 판매량수", f"{inven_data.get('monthly_total_sales',0):,}개",""),
                     ],
                 ),
                 ft.Row(

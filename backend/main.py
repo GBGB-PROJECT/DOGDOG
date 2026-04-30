@@ -26,8 +26,6 @@ from erp.production.inbound_api import router as erp_inbound_router
 from erp.production.production_supplier_api import router as erp_supplier_router
 from erp.stock.stock_product_detail_api import router as erp_stock_router
 from erp.hr.employee_api import router as erp_hr_router
-from erp.production.inbound_api import router as erp_inbound_router  # 🔥 수정: 생산입고현황조회 API
-from erp.stock.stock_product_detail_api import router as erp_stock_router
 from erp.production.dashboard_api import router as erp_production_dashboard_router
 from erp.production.purchase_order_api import router as erp_purchase_order_router  # 🔥 추가: 발주관리 API
 from erp.stock.dashboard_api import router as stock_dashboard_router

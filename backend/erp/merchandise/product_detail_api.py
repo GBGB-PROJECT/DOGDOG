@@ -17,6 +17,7 @@ SEARCH_TYPE_LABELS = {
     "brand": "브랜드",
     "function": "기능",
     "main_protein": "주원료",
+    "life": "생애주기",  # 🔥 추가: 생애주기 부분검색 조건
 }
 
 
@@ -52,17 +53,11 @@ def build_response_rows(items: list, page: int, size: int):
     rows = []
 
     for index, row in enumerate(items, start=start_no):
-        product_detail_id = row.get("product_detail_id", "")
-        product_id = row.get("product_id", "")
-
         rows.append(
             {
                 "no": index,
-                "product_display_id": (
-                    f"{product_detail_id}-{product_id}"
-                    if product_detail_id != "" and product_id != ""
-                    else ""
-                ),
+                "product_detail_id": row.get("product_detail_id", ""),  # 🔥 수정: 상품상세ID 분리 반환
+                "product_id": row.get("product_id", ""),  # 🔥 수정: 상품ID 분리 반환
                 "type": row.get("type", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
@@ -85,7 +80,7 @@ def build_response_rows(items: list, page: int, size: int):
     description=(
         "상품관리 > 상품 상세 정보 관리 화면에서 사용하는 JOIN 기반 목록 조회 API입니다. "
         "OPD.product_detail 과 OPD.product 를 함께 조회하여 "
-        "상품ID, 타입, 브랜드, 상품명, 기능, 주원료, 생애주기, 중량, 판매가, 수량, 판매상태를 반환합니다."
+        "상품상세ID, 상품ID, 타입, 브랜드, 상품명, 기능, 주원료, 생애주기, 중량, 판매가, 수량, 판매상태를 반환합니다."
     ),
     response_model=ErpMerchandiseDetailListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
@@ -96,6 +91,7 @@ def get_product_detail_list(
         "brand",
         "function",
         "main_protein",
+        "life",  # 🔥 추가: 생애주기 검색조건
     ] = Query(
         default="product_name",
         description="검색 조건",

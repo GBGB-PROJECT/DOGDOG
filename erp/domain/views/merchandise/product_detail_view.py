@@ -123,25 +123,11 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
     for index, row in enumerate(db_rows, start=start_no):
-        # 🔥 httpx 방식에서는 API가 이미 product_display_id를 만들어서 내려준다.
-        # - 기존 직접 service 호출 방식: product_detail_id + product_id 조합 필요
-        # - 현재 httpx API 방식: product_display_id 그대로 사용
-        product_display_id = row.get("product_display_id", "")
-
-        # 🔥 혹시 나중에 raw id가 내려오는 구조로 바뀌어도 대응
-        if not product_display_id:
-            product_detail_id = row.get("product_detail_id", "")
-            product_id = row.get("product_id", "")
-            product_display_id = (
-                f"{product_detail_id}-{product_id}"
-                if product_detail_id != "" and product_id != ""
-                else ""
-            )
-
         rows.append(
             {
                 "no": str(row.get("no", index)),  # 🔥 API에서 내려준 no가 있으면 우선 사용
-                "product_display_id": product_display_id,
+                "product_detail_id": row.get("product_detail_id", ""),  # 🔥 수정: 상품상세ID 분리 표시
+                "product_id": row.get("product_id", ""),  # 🔥 수정: 상품ID 분리 표시
                 "type": row.get("type", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
@@ -164,7 +150,8 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
 def product_detail_row_adapter(saved_data: dict, next_no: int):
     return {
         "no": str(next_no),
-        "product_display_id": "",
+        "product_detail_id": "",
+        "product_id": "",
         "type": saved_data.get("type", ""),
         "brand": saved_data.get("brand", ""),
         "product_name": saved_data.get("product_name", ""),
@@ -188,11 +175,13 @@ def erp_product_detail_view():
         "brand": "브랜드",
         "function": "기능",
         "main_protein": "주원료",
+        "life": "생애주기",  # 🔥 추가: 생애주기 부분검색 조건
     }
 
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product_display_id", "label": "상품ID", "width": 110, "align_x": 0},
+        {"key": "product_detail_id", "label": "상품상세ID", "width": 100, "align_x": 0},  # 🔥 수정: ID 분리
+        {"key": "product_id", "label": "상품ID", "width": 90, "align_x": 0},  # 🔥 수정: ID 분리
         {"key": "type", "label": "타입", "width": 90, "align_x": 0},
         {"key": "brand", "label": "브랜드", "width": 100, "align_x": 0},
         {"key": "product_name", "label": "상품명", "width": 250, "align_x": 0},

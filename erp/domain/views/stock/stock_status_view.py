@@ -198,10 +198,16 @@ def erp_stock_status_view():
         # 🔥 추가: 생산지시서 상단 기본 정보 자동 입력
         # - DB에 없는 계약번호/LOT/TEL/FAX는 억지로 채우지 않음
         # - 화면에서 이미 가지고 있는 월 범위와 클릭 상품ID만 안전하게 사용
-        today_text = datetime.today().strftime("%Y.%m.%d")
-        month_start = str(state["data"].get("month_start") or "")[:10].replace("-", ".")
-        month_end = str(state["data"].get("month_end") or "")[:10].replace("-", ".")
-        period_text = f"{month_start} ~ {month_end}" if month_start and month_end else ""
+        today = datetime.today()
+        today_text = today.strftime("%Y.%m.%d")
+
+        # 🔥 수정: 생산기간은 조회 월 전체가 아니라 실제 즉시 생산 예정 기간으로 입력
+        # - 기존: 선택 월 시작일 ~ 종료일 예) 2026.05.01 ~ 2026.05.31
+        # - 수정: 지시일자 기준 5일 예) 2026.04.28 ~ 2026.05.02
+        # - 즉시 생산 버튼으로 여는 생산지시서이므로 한 달 전체보다 짧은 예정 기간이 자연스러움
+        production_start_text = today.strftime("%Y.%m.%d")
+        production_end_text = (today + timedelta(days=4)).strftime("%Y.%m.%d")
+        period_text = f"{production_start_text} ~ {production_end_text}"
 
         dialog.instruction_date.value = today_text
         dialog.doc_no.value = f"PRD-{state['year']}{state['month']:02d}-{product_id or 'AUTO'}"

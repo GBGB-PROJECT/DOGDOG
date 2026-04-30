@@ -44,6 +44,25 @@ class OnboardingController:
             pattern=r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$"
         )
 
+    def update_field(self, key: str, value):
+        """
+        [공통 상태 관리] Dumb View에서 발생하는 입력 변경 이벤트를 처리하여 세션 스토리지에 저장합니다.
+        """
+        if value is None or str(value).strip() == "":
+            self.storage.remove(key)
+        else:
+            self.storage.set(key, value)
+
+    def validate_password(self, password: str) -> tuple[bool, str]:
+        """
+        비밀번호 유효성 검사 (8자 이상, 영문/숫자/특수문자 포함)
+        """
+        if not password:
+            return False, "비밀번호를 입력해주세요."
+        if not re.fullmatch(self.regex_password, password):
+            return False, "8자 이상, 영문/숫자/특수문자를 포함해야 합니다."
+        return True, ""
+
     async def check_email_duplicate(self, e):
         """이메일 중복 확인 로직"""
         email = self.storage.get("user_email")
@@ -110,10 +129,9 @@ class OnboardingController:
             return
 
         # 3. 🔥 비밀번호 유효성 검사 (신규 기능)
-        if not re.fullmatch(self.regex_password, password):
-            self.show_error(
-                text="비밀번호는 8자 이상, 영문/숫자/특수문자를 포함해야 합니다."
-            )
+        is_valid, error_msg = self.validate_password(password)
+        if not is_valid:
+            self.show_error(text=error_msg)
             return
 
         # 4. 데이터 누적 및 다음 단계 이동
@@ -358,11 +376,11 @@ class OnboardingController:
                 auth_ctrl = AuthController(self.page)
 
                 success = await auth_ctrl.complete_relay(
-                    auth_data, new_pet_id, customer_id=customer_id
+                    auth_data, new_pet_id, customer_id=customer_id, redirect_to=None
                 )
 
                 if success:
-                    self.change_page_callback("/sign_up_success")
+                    self.page.go("/sign_up_success")
                 else:
                     self.show_error(text="세션 동기화 중 오류가 발생했습니다.")
 
@@ -375,6 +393,12 @@ class OnboardingController:
         except Exception as ex:
             if self.popup:
                 await self.popup.show_api_insert_close(e)
-            print(f"❌ [Onboarding FATAL] {str(ex)}")
-            self.show_error(text=f"통신 중 오류가 발생했습니다: {str(ex)}")
-            self.show_error(text=f"서버 통신 중 오류 발생: {str(ex)}")
+            
+            # 파이썬 에러의 실제 원인(Traceback)을 터미널에 출력
+            import traceback
+            print("❌ [Onboarding FATAL ERROR] ==================================")
+            traceback.print_exc()
+            print("=============================================================")
+            
+            # 사용자에게는 간략한 에러 원인만 노출
+            self.show_error(text=f"처리 중 오류 발생: {str(ex)}")

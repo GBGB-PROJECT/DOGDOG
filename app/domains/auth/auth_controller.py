@@ -13,11 +13,11 @@ class AuthController:
         self.api_client = ApiClient(page)
 
     async def complete_relay(
-        self, auth_data: dict, pet_id: int, customer_id: int = 1001
+        self, auth_data: dict, pet_id: int, customer_id: int = 1001, redirect_to: str = "/home"
     ):
         """
-        가입 또는 로그인 성공 직후, 발급된 토큰과 정보를 세션에 안전하게 저장하고
-        홈 화면으로 리다이렉트합니다.
+        가입 또는 로그인 성공 직후, 발급된 토큰과 정보를 세션에 안전하게 저장하고 지정된 경로로 리다이렉트합니다.
+        redirect_to가 None이면 리다이렉트하지 않습니다.
         """
         try:
             print(
@@ -89,8 +89,12 @@ class AuthController:
 
             # 5. 세션 업데이트 보장 및 이동
             self.page.update()
-            print("[AuthController] Relay complete. Navigating to /home")
-            self.page.go("/home")
+            
+            if redirect_to:
+                print(f"[AuthController] Relay complete. Navigating to {redirect_to}")
+                self.page.go(redirect_to)
+            else:
+                print("[AuthController] Relay complete. Skipping navigation as redirect_to is None.")
 
             return True
 

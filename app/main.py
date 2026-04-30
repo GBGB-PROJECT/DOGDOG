@@ -6,7 +6,7 @@ import asyncio
 import components as dogdog
 
 # 테스트 아이디(test7)로 테스트 설정
-IS_TEST_MODE = True
+IS_TEST_MODE = False
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
@@ -182,7 +182,11 @@ class Front_dogdog:
             # 사료 상세 정보 조회 및 세션 저장
             try:
                 res_food = await api_client.get(f"/pets/{pet_id}/pet_food")
-                pet_food_data = res_food.json().get("data") or {} if res_food.status_code == 200 else {}
+                pet_food_data = (
+                    res_food.json().get("data") or {}
+                    if res_food.status_code == 200
+                    else {}
+                )
                 self.storage.set("pet_food_detail", pet_food_data)
                 print("<< 사료 상세 정보 조회 및 저장 성공!")
             except Exception as e:
@@ -236,7 +240,11 @@ class Front_dogdog:
                 # 사료 상세 정보 조회 및 세션 저장
                 try:
                     res_food = await api_client.get(f"/pets/{pet_id}/pet_food")
-                    pet_food_data = res_food.json().get("data") or {} if res_food.status_code == 200 else {}
+                    pet_food_data = (
+                        res_food.json().get("data") or {}
+                        if res_food.status_code == 200
+                        else {}
+                    )
                     self.storage.set("pet_food_detail", pet_food_data)
                     print("🏠 [HOME DEBUG] 사료 상세 정보 갱신 완료!")
                 except Exception as e:
@@ -417,4 +425,3 @@ if test_page == "Browser":
 else:
     if __name__ == "__main__":
         ft.run(main=main, assets_dir="assets", web_renderer=ft.WebRenderer.CANVAS_KIT)
-            

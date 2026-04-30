@@ -4,20 +4,35 @@ import components as dogdog
 
 
 # -------------------------------------------------------------------------------------------------------
-def sign_up_view(page: ft.Page, check_email_callback=None):
+def sign_up_view(page: ft.Page, controller, check_email_callback=None):
+    """
+    [View] sign_up_view
+    - 순수 Dumb Component: UI만 렌더링하고 상태 변경은 모두 controller에 위임합니다.
+    """
     storage = page.session.store
 
     # -----------------------------------------------------------------------------------------------
     # Default Value
     # -----------------------------------------------------------------------------------------------
     def email_on_change(e):
-        storage.set("user_email", e.control.value)
+        controller.update_field("user_email", e.control.value)
 
     def name_on_change(e):
-        storage.set("user_name", e.control.value)
+        controller.update_field("user_name", e.control.value)
 
     def password_on_change(e):
-        storage.set("user_password", e.control.value)
+        value = e.control.value
+        controller.update_field("user_password", value)
+        
+        if value:
+            is_valid, error_msg = controller.validate_password(value)
+            if not is_valid:
+                password_input.error_text = error_msg
+            else:
+                password_input.error_text = None
+        else:
+            password_input.error_text = None
+        password_input.update()
 
     # 이메일 확인 버튼 (suffix) - 크기 붕괴 방지용 명시적 사이즈 할당
     email_suffix = None
@@ -49,12 +64,14 @@ def sign_up_view(page: ft.Page, check_email_callback=None):
         on_change=password_on_change,
         input_type="password",
     )
+    
     if storage.get("user_email"):
         email_input.value = storage.get("user_email")  # type: ignore
     if storage.get("user_name"):
         name_input.value = storage.get("user_name")  # type: ignore
     if storage.get("user_password"):
         password_input.value = storage.get("user_password")  # type: ignore
+        
     # ---------------------------------------------------------------------------------------------------
     # Sign Up Page
     # ---------------------------------------------------------------------------------------------------

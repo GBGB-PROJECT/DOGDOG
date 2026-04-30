@@ -53,7 +53,7 @@ def erp_home_view():
                     controls=[
                         cm.erp_info_box("총 매출 ", f"{sale_data.get('total_amount',0):,} 원", f"{sale_data.get('year',0)}년 누계"),
                         cm.erp_info_box("연간 목표대비 달성", f"{sale_data.get('target_achievement_rate',0)}%", "연간 목표:"),
-                        cm.erp_info_box("전년 동월대비 성장", f"{sale_data.get('growth_rate',0)}%", ""),
+                        cm.erp_info_box("전년 동월대비 성장", f"{sale_data.get('growth_rate',0)}%", "전년도 기준: "),
                         cm.erp_info_box("총 판매량수", f"{sale_data.get('total_qty',0)}개", f"{sale_data.get('year',0)}년 누적 판매량수"),
                     ],
                 ),
@@ -64,8 +64,8 @@ def erp_home_view():
                         ft.Column(
                             spacing=16,
                             controls=[
-                                cm.gauge_chart(float(sale_data.get('month_rate_text', 0)), f"월간 목표 : {sale_data.get('month_goal', 0)}만 원"),
-                                cm.gauge_chart(float(sale_data.get('week_rate_text', 0)), f"주간 목표 : {sale_data.get('week_goal', 0)}만 원"),
+                                cm.gauge_chart(float(sale_data.get('monthly_achievement_rate', 0)), f"월간 목표 : {sale_data.get('monthly_target', 0)}만 원"),
+                                cm.gauge_chart(float(sale_data.get('weekly_achievement_rate', 0)), f"주간 목표 : {sale_data.get('weekly_target', 0)}만 원"),
                             ],
                         ),
                         cm.build_sales_linechart(),

@@ -57,18 +57,17 @@ class ErpLoginView(ft.Container):
         if not response.get("success"):
           raise Exception(response.get("msg", "로그인에 실패했습니다."))
 
-        ## 데이터 계ㅡㅊㅇ에서 가져오기
+        ## 데이터 테이블 속성에서 가져오기( 속셩 명을 작성함)
         emp_id = actual_data.get("employee_id")
         emp_name = actual_data.get("username")
         emp_email = actual_data.get("email")
-        emp_pos = actual_data.get("emp_position_id")   
+        emp_pos = actual_data.get("position_name")   
 
-        # [수정] 가장 원시적이지만 확실한 방법: page 객체에 직접 저장
-        # 이렇게 하면 session이나 client_storage 에러를 피할 수 있습니다.
-        self.main_page.user_id = emp_id
-        self.main_page.user_name = emp_name
-        self.main_page.user_email = emp_email
-        self.main_page.user_pos = emp_pos
+        # 세션 저장하기(확인 완료)
+        self.page.session.store.set("emp_id", emp_id)
+        self.page.session.store.set("emp_name", emp_name)
+        self.page.session.store.set("emp_email", emp_email)
+        self.page.session.store.set("emp_pos", emp_pos)
 
         ## 터미널 확인용
         print(f"✅ 로그인 성공: {emp_name}({emp_pos}) | ID: {emp_id}")

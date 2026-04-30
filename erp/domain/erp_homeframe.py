@@ -52,7 +52,7 @@ class ErpFrame(ft.Container):
                     expand=True,
                     spacing=0,
                     controls=[
-                        ly.build_erp_topbar(),
+                        ly.build_erp_topbar(page),
                         self.content_area,
                     ],
                 ),

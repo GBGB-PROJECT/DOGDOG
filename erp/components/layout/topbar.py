@@ -41,10 +41,15 @@ def _build_topbar_popup_item(text: str):
 # =========================================================
 # ☑️ ERP 상단바
 # =========================================================
-def build_erp_topbar(on_top_menu_click=None):
+def build_erp_topbar(page: ft.Page, on_top_menu_click=None):
+    ## 세션 불러오기 erp_login에서 가져온 것(확인 완료)
+    client_name = page.session.store.get("emp_name") or "사용자1"
+    client_pos = page.session.store.get("emp_pos") or "사원"
+    client_email = page.session.store.get("emp_email") or "email@example.com"
+    
     # 🔥 드롭다운 메뉴 클릭 시 실행
     def _handle_top_menu_click(e: ft.ControlEvent):
-        selected_menu = e.control.data
+        selected_menu = e.data
 
         if on_top_menu_click:
             on_top_menu_click(selected_menu)
@@ -84,13 +89,13 @@ def build_erp_topbar(on_top_menu_click=None):
                     horizontal_alignment=ft.CrossAxisAlignment.START,
                     controls=[
                         ft.Text(
-                            value="나팀장",
+                            value=f"{client_name} ({client_pos})",
                             color=ft.Colors.WHITE,
                             size=13,
                             weight=ft.FontWeight.W_700,
                         ),
                         ft.Text(
-                            value="lmTimjang@gmail.com",
+                            value=client_email,
                             color=c.SUBTEXT_COLOR,
                             size=10,
                         ),

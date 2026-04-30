@@ -1,7 +1,8 @@
 import flet as ft
-from erp.domain.controller.home.erp_home_input import get_home_view_data
+#from erp.domain.controller.home.erp_home_input import get_home_view_data
 from components import common as cm
 import flet_charts as fch
+import datetime
 
 def _legend_item(color: str, label: str, percent: str):
     return ft.Container(
@@ -37,14 +38,30 @@ def _legend_item(color: str, label: str, percent: str):
     )
 
 
-def build_stock_pie_chart_box():
-    sale_data, stock_data, feed_data = get_home_view_data()
+def build_stock_pie_chart_box(feed_data: dict):
+    # 오늘 날짜 동적 생성
+    today_str = datetime.date.today().strftime("%Y/%m/%d")
 
-    categories = [
-    (cm.PIE_BLUE, "건사료", feed_data.get("dry_feed", 0)),
-    (cm.PIE_SKY, "습식사료", feed_data.get("wet_feed", 0)),
-    (cm.PIE_LIGHT, "간식", feed_data.get("snack", 0)),
+    # 동적으로 넣기 위한 색상 팔레트
+    color_categories = [
+        "#00C49F",  # 청록색 (Teal)
+        "#FF9F40",  # 주황색 (Orange)
+        "#0088FE",  # 파란색 (Blue)
+        "#FFBB28",  # 노란색 (Yellow)
+        "#FF8042",  # 다홍색 (Coral)
+        "#8884d8",  # 보라색 (Purple)
     ]
+
+    # 빈 데이터를 받을 경우 빈 차트가 나오는 것을 방지
+    if not feed_data:
+        categories = [(cm.PIE_LIGHT, "데이터 없음", "100")]
+    else:
+    # 4. feed_data 딕셔너리를 순회하며 (색상, 라벨, 값) 튜플 리스트 생성
+        categories = []
+        for i, (label, value) in enumerate(feed_data.items()):
+            # 데이터 개수가 팔레트 색상 수보다 많으면 색상을 순환해서 사용
+            color = color_categories[i % len(color_categories)]
+            categories.append((color, label, value))
 
     return ft.Container(
         width=480,  # ☑️ 수정: 기존 440 -> 480 / 카드 전체 조금 더 확대
@@ -61,7 +78,7 @@ def build_stock_pie_chart_box():
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         ft.Text(
-                            "재고 현황 (2026/04/01)",
+                            f"재고 현황 ({today_str})",
                             size=19,  # ☑️ 수정: 기존 18 -> 19
                             weight=ft.FontWeight.W_700,
                             color=cm.TEXT_PRIMARY,

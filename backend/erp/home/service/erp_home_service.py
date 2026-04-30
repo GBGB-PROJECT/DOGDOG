@@ -54,7 +54,7 @@ class DashboardService:
         # (임시) 목표액을 60억으로 가정했습니다.
         yearly_target_amount = (last_year_amount)* 1.2 
         monthly_target = yearly_target_amount / 12  # 월간 목표
-        weekly_target = monthly_target / 4 # 주간 목표
+        weekly_target = monthly_target / 4.345 # 주간 목표
 
         # 월간 기간 데이터(동적연결)
         monthly_amount = self.repo.get_sales_by_period(month_start, month_end)

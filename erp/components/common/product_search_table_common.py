@@ -1,5 +1,6 @@
 import flet as ft
 import datetime
+from components.common.erp_busy_cursor import with_busy_cursor
 
 # 👊 수정: 같은 common 패키지 아래 modals 폴더를 상대경로로 import
 # ⭐ 등록 버튼 클릭 시 띄울 모달 UI를 가져오는 import
@@ -127,7 +128,8 @@ def action_button(text, on_click=None, width=78):
         border=ft.Border.all(1, BUTTON_BORDER),
         border_radius=6,
         alignment=ft.Alignment(0, 0),
-        on_click=on_click,
+        # 🔥 추가: 공통 검색 화면 버튼 클릭 시 busy cursor 적용
+        on_click=with_busy_cursor(on_click) if on_click else None,
         content=ft.Text(
             value=text,
             size=13,

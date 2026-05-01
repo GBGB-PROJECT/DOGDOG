@@ -20,6 +20,7 @@ from domain.erp_homeframe import ErpFrame
 from domain.views.auth.erp_login import ErpLoginView
 # 라우터 인식을 위해서 content_move를 연결
 from components.common import content_move as cm
+from components.common.erp_busy_cursor import set_busy_cursor
 
 
 def main(page: ft.Page):
@@ -89,7 +90,11 @@ def main(page: ft.Page):
 
     # route 변경 시 재렌더하기
     def handle_route_change(e: ft.RouteChangeEvent):
-        render_route(e.route)
+        try:
+            render_route(e.route)
+        finally:
+            # 🔥 추가: 화면 이동 렌더링이 끝나면 커서를 원래대로 복구
+            set_busy_cursor(page, False)
 
     page.on_route_change = handle_route_change
 

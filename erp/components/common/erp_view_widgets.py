@@ -1,4 +1,5 @@
 import flet as ft
+from components.common.erp_busy_cursor import with_busy_cursor
 
 from components.common.erp_view_style import (
     FIELD_BG,
@@ -95,7 +96,8 @@ def action_button(text, on_click=None, width=78, bgcolor=BUTTON_BG, color=BUTTON
         border=ft.Border.all(1, BUTTON_BORDER),
         border_radius=6,
         alignment=ft.Alignment(0, 0),
-        on_click=on_click,
+        # 🔥 추가: 조회/초기화/다운로드 등 클릭 시 busy cursor 적용
+        on_click=with_busy_cursor(on_click) if on_click else None,
         content=ft.Text(
             value=text,
             size=13,

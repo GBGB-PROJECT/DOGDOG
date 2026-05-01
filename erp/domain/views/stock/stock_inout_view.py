@@ -8,6 +8,7 @@
 
 import datetime
 import flet as ft
+from components.common.erp_busy_cursor import with_busy_cursor
 
 from api.erp_httpx_api import count_stock_inouts, fetch_stock_inouts
 from components.common.erp_view_widgets import build_text, date_value_box_hint as date_value_box, calendar_icon_box, build_expand_table_cell as build_table_cell
@@ -82,7 +83,8 @@ def build_button(text, on_click=None, width=82):
         border=ft.Border.all(1, BUTTON_BORDER),
         border_radius=6,
         alignment=ft.Alignment(0, 0),
-        on_click=on_click,
+        # 🔥 추가: 입고/출고 관리 로컬 버튼에도 busy cursor 적용
+        on_click=with_busy_cursor(on_click) if on_click else None,
         content=ft.Text(
             value=text,
             size=13,

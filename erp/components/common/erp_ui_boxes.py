@@ -1,6 +1,7 @@
 from ..common import color as c
 import re
 import flet as ft
+from components.common.erp_busy_cursor import with_busy_cursor
 
 # ============================================================
 # ✅ ERP 3줄 정보 카드
@@ -97,5 +98,6 @@ def primary_button(text: str, on_click):
         height=50,
         width=float("inf"), # 부모 너비에 맞춤
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=25)),
-        on_click=on_click
+        # 🔥 추가: 로그인처럼 이동이 필요한 버튼에도 busy cursor 적용
+        on_click=with_busy_cursor(on_click) if on_click else None
     )

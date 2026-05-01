@@ -1,7 +1,15 @@
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
 
-from db.models import CompanionCustomerFood, CompanionPetProductFeeding
+from db.models import (
+    CompanionCustomerFood, 
+    CompanionPetProductFeeding,
+    OpdProduct, 
+    OpdProductDetail,
+    CompanionLifeStage, 
+    CompanionPet, 
+    CompanionBreed
+)
 
 from datetime import date, timedelta
 
@@ -122,3 +130,171 @@ def insert_pet_product_feeding(
         new_pet_food.one_gram_calories = one_gram_calories
 
     return new_pet_food
+
+# 추천 사료 --------------------------------------------------------------------------------
+# adult_stand_m
+def get_adult_stand_m(db: Session, pet_id: int):
+    query = (
+        select(CompanionLifeStage.life_start)
+        .select_from(CompanionPet)
+        .join(
+            CompanionBreed,
+            CompanionPet.breed_id == CompanionBreed.breed_id
+        )
+        .join(
+            CompanionLifeStage,
+            CompanionBreed.breed_size == CompanionLifeStage.breed_size
+        )
+        .where(
+            CompanionPet.pet_id == pet_id,
+            CompanionLifeStage.life == "어덜트" 
+        )
+    )
+
+    result = db.execute(query).scalar_one_or_none()
+    return result
+
+# senior_stand_m 받기
+def get_senior_stand_m(db: Session, pet_id: int):
+    query = (
+        select(CompanionLifeStage.life_start)
+        .select_from(CompanionPet)
+        .join(
+            CompanionBreed,
+            CompanionPet.breed_id == CompanionBreed.breed_id
+        )
+        .join(
+            CompanionLifeStage,
+            CompanionBreed.breed_size == CompanionLifeStage.breed_size
+        )
+        .where(
+            CompanionPet.pet_id == pet_id,
+            CompanionLifeStage.life == "시니어" 
+        )
+    )
+
+    result = db.execute(query).scalar_one_or_none()
+    return result
+
+
+# 현재 사료의 상품 + 상세 정보 조회
+def get_product_detail_by_product_id(db: Session, product_id: int):
+    query = (
+        select(OpdProduct, OpdProductDetail)
+        .join(
+            OpdProductDetail,
+            OpdProduct.product_detail_id == OpdProductDetail.product_detail_id
+        )
+        .where(OpdProduct.product_id == product_id)
+    )
+
+    result = db.execute(query)
+    return result.first()
+
+# 추천 사료 목록 조회
+def get_recommended_foods(
+    db: Session,
+    current_product_id: int,
+    brand: str,
+    current_main_protein: str,
+    current_weight: int,
+    current_life_stage: str,
+):
+    proteins = [
+        protein.strip()
+        for protein in current_main_protein.split(",")
+        if protein.strip()
+    ]
+
+    exclude_conditions = [
+        ~OpdProductDetail.main_protein.like(f"%{protein}%")
+        for protein in proteins
+    ]
+
+    min_weight = int(current_weight * 0.75)
+    max_weight = int(current_weight * 1.25)
+
+    query = (
+        select(
+            OpdProduct.product_id,
+            OpdProductDetail.product_name,
+            OpdProductDetail.brand,
+            OpdProductDetail.main_protein,
+            OpdProductDetail.life,
+            OpdProduct.weight,
+            OpdProduct.retail_price,
+            OpdProductDetail.thumbnail,
+        )
+        .join(
+            OpdProductDetail,
+            OpdProduct.product_detail_id == OpdProductDetail.product_detail_id
+        )
+        .where(
+            OpdProduct.active == True,
+            OpdProduct.product_id != current_product_id,
+            OpdProductDetail.brand == brand,
+            OpdProduct.weight.between(min_weight, max_weight),
+            or_(
+                OpdProductDetail.life == current_life_stage,
+                OpdProductDetail.life == "전연령"
+            ),
+            *exclude_conditions,
+        )
+        .order_by(OpdProductDetail.product_name.asc())
+    )
+
+    result = db.execute(query)
+    return result.all()
+
+# 추천 사료 목록이 없을 때
+def get_recommended_foods_2(
+    db: Session,
+    current_product_id: int,
+    current_main_protein: str,
+    current_weight: int,
+    current_life_stage: str,
+):
+    proteins = [
+        protein.strip()
+        for protein in current_main_protein.split(",")
+        if protein.strip()
+    ]
+
+    exclude_conditions = [
+        ~OpdProductDetail.main_protein.like(f"%{protein}%")
+        for protein in proteins
+    ]
+
+    min_weight = int(current_weight * 0.4)
+    max_weight = int(current_weight * 1.6)
+
+    query = (
+        select(
+            OpdProduct.product_id,
+            OpdProductDetail.product_name,
+            OpdProductDetail.brand,
+            OpdProductDetail.main_protein,
+            OpdProductDetail.life,
+            OpdProduct.weight,
+            OpdProduct.retail_price,
+            OpdProductDetail.thumbnail,
+        )
+        .join(
+            OpdProductDetail,
+            OpdProduct.product_detail_id == OpdProductDetail.product_detail_id
+        )
+        .where(
+            OpdProduct.active == True,
+            OpdProduct.product_id != current_product_id,
+            OpdProduct.weight.between(min_weight, max_weight),
+            or_(
+                OpdProductDetail.life == current_life_stage,
+                OpdProductDetail.life == "전연령"
+            ),
+            *exclude_conditions,
+        )
+        .order_by(OpdProductDetail.product_name.asc())
+    )
+
+    result = db.execute(query)
+    return result.all()

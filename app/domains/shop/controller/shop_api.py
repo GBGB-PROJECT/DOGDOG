@@ -1,4 +1,17 @@
-from api_client import ApiClient
+from urllib.parse import quote
+from api_client import ApiClient, BASE_URL
+
+def proxy_image_url(url):
+    if not url:
+        return "test_product_4.jpg"
+
+    image_url = str(url).strip()
+
+    if image_url.startswith("http://") or image_url.startswith("https://"):
+        return f"{BASE_URL}/images/proxy?url={quote(image_url, safe='')}"
+
+    return image_url
+
 
 # def normalize_thumbnail(url):
 #     if not url:
@@ -108,13 +121,12 @@ async def get_shop_product_list(page, sort=None, keyword=None):
 
     product_dict = {}
 
-    
-
     for item in products:
         product_id = item.get("product_id")
 
         # thumbnail = normalize_thumbnail(item.get("thumbnail"))
-        thumbnail = item.get("thumbnail")
+        # thumbnail = item.get("thumbnail")
+        thumbnail = proxy_image_url(item.get("thumbnail"))
 
         product_dict[product_id] = {
             "thumbnail": thumbnail,

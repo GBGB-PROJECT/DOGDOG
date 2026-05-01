@@ -247,7 +247,7 @@ def erp_inbound_view():
     # - 기존 문제: 생산관리 68건 > 클릭 시 입고완료일 기준 월 필터가 걸렸는데,
     #   화면에서 검색조건을 거래처명/상품명으로 바꾸는 순간 백엔드가 날짜 기준을 입고시작일로 바꿔버림
     # - 수정: 대시보드에서 넘어온 날짜 기준은 inbound_complete로 고정 유지
-    date_search_types = {"inbound_complete"}
+    date_search_types = {"inbound_complete", "expiration_date"}
     initial_date_filter_type = initial_prefilter.get("date_filter_type")
     if initial_date_filter_type not in date_search_types:
         initial_date_filter_type = initial_search_type if initial_search_type in date_search_types else "inbound_complete"
@@ -297,6 +297,13 @@ def erp_inbound_view():
         "last_update": 8,
     }
 
+    # 🔥 수정: 발주관리처럼 날짜조건과 입력 검색조건을 분리
+    # - 유통기한은 DatePicker로 검색하는 날짜 조건이므로 입력 검색조건에서 제외
+    date_type_labels = {
+        "inbound_complete": "입고완료일",
+        "expiration_date": "유통기한",
+    }
+
     search_type_labels = {
         "inbound_id": "입고ID",
         "supplier_id": "거래처ID",
@@ -306,7 +313,6 @@ def erp_inbound_view():
         "brand": "브랜드",
         "product_name": "상품명",
         "employee_id": "담당자ID",
-        "expiration_date": "유통기한",
     }
 
     def format_picker_date(value):
@@ -402,6 +408,14 @@ def erp_inbound_view():
         weight=ft.FontWeight.W_500,
     )
 
+    # 🔥 추가: 발주관리 검색 양식처럼 DatePicker 기준을 따로 선택
+    date_type_text = ft.Text(
+        date_type_labels[date_filter_type_value["value"]],
+        size=13,
+        color=FIELD_TEXT,
+        weight=ft.FontWeight.W_500,
+    )
+
     def update_reset_button_visibility():
         # 🔥 추가: 기본 상태가 아니면 초기화 버튼 표시
         has_filter = (
@@ -416,12 +430,6 @@ def erp_inbound_view():
 
     def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
-
-        # 🔥 날짜형 검색조건을 직접 선택한 경우에만 날짜 기준도 같이 변경
-        # - 거래처명/상품명 같은 일반 검색조건으로 바꿔도 대시보드 월 필터는 유지됨
-        if value in date_search_types:
-            date_filter_type_value["value"] = value
-
         search_type_text.value = search_type_labels[value]
         update_reset_button_visibility()
 
@@ -429,6 +437,17 @@ def erp_inbound_view():
             page.update()
         else:
             search_type_text.update()
+
+    # 🔥 추가: 날짜조건 드롭다운 전용 변경 함수
+    def set_date_filter_type(value: str, page: ft.Page | None = None):
+        date_filter_type_value["value"] = value
+        date_type_text.value = date_type_labels[value]
+        update_reset_button_visibility()
+
+        if page:
+            page.update()
+        else:
+            date_type_text.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -439,6 +458,46 @@ def erp_inbound_view():
             ),
             on_click=lambda e: set_search_type(value, e.page),
         )
+
+    # 🔥 추가: 날짜조건 드롭다운 메뉴 아이템
+    def build_date_type_menu_item(label: str, value: str):
+        return ft.PopupMenuItem(
+            height=34,
+            content=ft.Container(
+                alignment=ft.Alignment(-1, 0),
+                content=ft.Text(label, size=13, color=FIELD_TEXT, weight=ft.FontWeight.W_500),
+            ),
+            on_click=lambda e: set_date_filter_type(value, e.page),
+        )
+
+    date_type = ft.Container(
+        width=150,
+        height=38,
+        bgcolor=FIELD_BG,
+        border=ft.Border.all(1, FIELD_BORDER),
+        border_radius=6,
+        padding=ft.Padding.only(left=12, right=4),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                date_type_text,
+                ft.PopupMenuButton(
+                    tooltip="날짜 조건 선택",
+                    content=ft.Container(
+                        width=24,
+                        height=24,
+                        alignment=ft.Alignment(0, 0),
+                        content=ft.Icon(ft.Icons.ARROW_DROP_DOWN, size=18, color="#4B5563"),
+                    ),
+                    items=[
+                        build_date_type_menu_item(label, value)
+                        for value, label in date_type_labels.items()
+                    ],
+                ),
+            ],
+        ),
+    )
 
     search_type = ft.Container(
         width=170,
@@ -651,7 +710,7 @@ def erp_inbound_view():
         start_text = format_picker_date(selected_start["value"]) or "미선택"
         end_text = format_picker_date(selected_end["value"]) or "미선택"
         search_label = search_type_labels.get(search_type_value["value"], "입고ID")
-        date_filter_label = search_type_labels.get(date_filter_type_value["value"], "입고완료일")
+        date_filter_label = date_type_labels.get(date_filter_type_value["value"], "입고완료일")
         keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
 
         result_text.value = (
@@ -702,6 +761,7 @@ def erp_inbound_view():
         search_type_value["value"] = "inbound_id"
         search_type_text.value = search_type_labels["inbound_id"]
         date_filter_type_value["value"] = "inbound_complete"
+        date_type_text.value = date_type_labels["inbound_complete"]
         search_field.value = ""
 
         pagination_state["keyword"] = ""
@@ -740,6 +800,7 @@ def erp_inbound_view():
                         ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
                         end_field_holder,
                         end_icon_holder,
+                        date_type,
                         search_type,
                         search_field,
                         action_button("조회", on_click=on_search_click),

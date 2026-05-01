@@ -39,8 +39,8 @@ def shop_feeding_guide(page: ft.Page):
 # -------------------------------------------------------------------------------------------------------
 def product_guide(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
-    from api.product_guide import Product
-    from domains.shop.controller.shop_api import get_shop_product_list
+    # from api.product_guide import Product
+    from domains.shop.controller.shop_api import get_shop_product_list, get_recommended_foods
     import asyncio
     # ---------------------------------------------------------------------------------------------------
     # Default Value
@@ -71,12 +71,74 @@ def product_guide(page: ft.Page):
             ft.IconButton(
                 icon=ft.Icons.ARROW_BACK_IOS, icon_size=10, 
                 on_click=lambda e:product_guide_page(e=e, key="back")),
-            ft.TabBarView(expand=True, controls=dogdog.products(
-                page, Product.guide_product_list, guide_image_size)), # 수정예정
-            ft.IconButton(
+            #
+            ft.TabBarView(
+                expand=True,
+                controls=[
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        controls=[ft.ProgressRing()]
+                    )
+                ]
+            ),
+            ft.IconButton( 
                 icon=ft.Icons.ARROW_FORWARD_IOS, icon_size=10, 
                 on_click=lambda e:product_guide_page(e=e, key="forward")),
     ]))
+    async def load_recommended_foods():
+        storage = page.session.store
+        pet_id = pet_id = (
+                storage.get("pet_id")
+                or storage.get("customer_pet_id")
+                or storage.get("current_pet_id")
+            )
+
+        if not pet_id:
+            product_guide.content.controls[1].controls = [
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        dogdog.basic_text(
+                            "반려견 정보를 찾을 수 없습니다.",
+                            size=12,
+                            color=ft.Colors.GREY_500
+                        )
+                    ]
+                )
+            ]
+            product_guide.length = 1
+            product_guide.update()
+            return
+
+        foods = await get_recommended_foods(page, int(pet_id))
+
+        if not foods:
+            product_guide.content.controls[1].controls = [
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        dogdog.basic_text(
+                            "추천사료가 없습니다.",
+                            size=12,
+                            color=ft.Colors.GREY_500
+                        )
+                    ]
+                )
+            ]
+            product_guide.length = 1
+            product_guide.update()
+            return
+
+        recommended_views = dogdog.products(
+            page,
+            foods,
+            guide_image_size
+        )
+
+        product_guide.content.controls[1].controls = recommended_views
+        product_guide.length = len(recommended_views)
+        product_guide.selected_index = 0
+        product_guide.update()
     # ---------------------------------------------------------------------------------------------------
     # Product Filter Event
     # ---------------------------------------------------------------------------------------------------
@@ -162,6 +224,7 @@ def product_guide(page: ft.Page):
     page.run_task(timesleep)
     # ---------------------------------------------------------------------------------------------------
     page.run_task(load_products)
+    page.run_task(load_recommended_foods)
     return ft.Container(
         padding=ft.Padding.only(left=10, right=10),
         bgcolor="#ffffff",

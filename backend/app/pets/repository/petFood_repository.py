@@ -341,6 +341,7 @@ def get_recommended_foods(
             OpdProductDetail.main_protein,
             OpdProductDetail.life,
             OpdProduct.weight,
+            OpdProduct.quantity,
             OpdProduct.retail_price,
             OpdProductDetail.thumbnail,
         )
@@ -395,6 +396,7 @@ def get_recommended_foods_2(
             OpdProductDetail.main_protein,
             OpdProductDetail.life,
             OpdProduct.weight,
+            OpdProduct.quantity,
             OpdProduct.retail_price,
             OpdProductDetail.thumbnail,
         )

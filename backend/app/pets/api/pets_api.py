@@ -366,10 +366,10 @@ async def get_pet_info(
 # 추천 사료 조회 --------------------------------------------------------------------------
 @router.get("/{pet_id}/recommended-foods")
 def get_recommended_pet_foods(
-    customer_id: int,
+    # customer_id: int,
     pet_id: int,
     db: Session = Depends(get_db),
-    # customer_id: int = Depends(get_current_user),
+    customer_id: int = Depends(get_current_user),
 ):
     try:
         result = read_recommended_foods(

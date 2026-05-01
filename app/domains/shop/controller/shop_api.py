@@ -32,7 +32,7 @@ def parse_pdi_urls(pdi):
 
     return urls
 
-
+# 상품 목록 조회 ------------------------------------------------------------------------
 '''
 상품 목록 조회 API
 - keyword: 상품명, 브랜드명, 기능, 타입, 단백질 관련 검색
@@ -104,6 +104,39 @@ async def get_shop_product_list(page, sort=None, keyword=None):
 
     return product_dict
 
+# 추천사료 조회 -----------------------------------------------------------------------
+async def get_recommended_foods(page, pet_id: int):
+    api = ApiClient(page)
+
+    response = await api.get(f"/pets/{pet_id}/recommended-foods")
+
+    if response.status_code != 200:
+        print("추천사료 조회 실패:", response.text)
+        return {}
+
+    result = response.json()
+
+    if result.get("success") is False:
+        print("추천사료 조회 실패:", result.get("message"))
+        return {}
+
+    foods = result.get("data", [])
+
+    food_dict = {}
+
+    for item in foods:
+        product_id = item.get("product_id")
+
+        food_dict[product_id] = {
+            "thumbnail": proxy_image_url(item.get("thumbnail")) or "test_product_4.jpg",
+            "brand": item.get("brand") or "",
+            "product_name": item.get("product_name") or "",
+            "sales_price": item.get("retail_price") or 0,
+        }
+
+    return food_dict
+
+# 상품 상세 조회 -----------------------------------------------------------------------
 '''
 data = {
             "product_id": product.product_id,

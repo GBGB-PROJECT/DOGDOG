@@ -22,7 +22,7 @@ TOPBAR_MENU_ITEMS = [
 # =========================================================
 # ☑️ 드롭다운 내부 메뉴 아이템 1개
 # =========================================================
-def _build_topbar_popup_item(text: str):
+def _build_topbar_popup_item(text: str, on_click_handler):
     return ft.PopupMenuItem(
         content=ft.Container(
             width=180,
@@ -35,6 +35,7 @@ def _build_topbar_popup_item(text: str):
             ),
         ),
         data=text,
+        on_click=on_click_handler,
     )
 
 
@@ -49,7 +50,14 @@ def build_erp_topbar(page: ft.Page, on_top_menu_click=None):
     
     # 🔥 드롭다운 메뉴 클릭 시 실행
     def _handle_top_menu_click(e: ft.ControlEvent):
-        selected_menu = e.data
+        selected_menu = e.control.data
+
+        if selected_menu == "로그아웃":
+                print("✅ 로그아웃 클릭 이벤트 발생")  # 터미널에서 클릭 작동 여부 디버깅용
+                page.session.store.clear()        # 1. 세션 초기화
+                page.views.clear()            # 2. 현재 화면의 모든 위젯(ErpFrame 등) 강제 삭제
+                page.go("/login")                # 3. 로그인 라우트로 이동 (main.py의 라우팅 트리거)                   # 4. 화면 즉시 새로고침
+                return
 
         if on_top_menu_click:
             on_top_menu_click(selected_menu)
@@ -114,10 +122,10 @@ def build_erp_topbar(page: ft.Page, on_top_menu_click=None):
                         overlay_color=ft.Colors.TRANSPARENT,
                     ),
                     items=[
-                        _build_topbar_popup_item(item)
+                        _build_topbar_popup_item(item, _handle_top_menu_click)
                         for item in TOPBAR_MENU_ITEMS
                     ],
-                    on_select=_handle_top_menu_click,
+                    #on_select=_handle_top_menu_click,
                 ),
             ],
         ),

@@ -114,7 +114,7 @@ def build_production_status_box(data: dict):
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         ft.Text(
-                            f"생산현황 ({base_date})",
+                            f"입고현황 ({base_date})",
                             size=20,
                             weight=ft.FontWeight.W_700,
                             color=cm.TEXT_PRIMARY,
@@ -129,7 +129,7 @@ def build_production_status_box(data: dict):
                 ft.Row(
                     spacing=16,
                     controls=[
-                        _mini_progress_panel("생산 달성률", production_rate,prod_mom),
+                        _mini_progress_panel("목표 입고 달성", production_rate,prod_mom),
                         _mini_progress_panel("불량률", defect_rate,def_mom),
                     ],
                 ),

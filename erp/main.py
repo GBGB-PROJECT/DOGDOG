@@ -28,25 +28,34 @@ def main(page: ft.Page):
   page.padding = 0
   page.bgcolor = ft.Colors.WHITE
 
-  # router 기준의 단일 랜더 함수(router 변경 시 화면 조립)
+# router 기준의 단일 랜더 함수(router 변경 시 화면 조립)
   def render_route(route:str|None):
     normalized_route = cm.normalize_route(route)
+
+    # 화면 초기화 (page.clean 대신 views.clear 사용)
+    page.views.clear()
 
     # / or 빈 경로 => 로그인 화면 간주
     if normalized_route in ("/", cm.LOGIN_ROUTE):
       login_view = ErpLoginView(page, on_login_success=on_login_success)
-      page.clean()
-      page.add(login_view)
-      return
+      # ft.View 객체로 감싸서 views 배열에 추가
+      page.views.append(ft.View(route=normalized_route, controls=[login_view]))
+    else:
+      # 정의되지 않은 route => Home으로 보정
+      resolved_menu = cm.get_menu_by_route(normalized_route)
+      if resolved_menu is None:
+        normalized_route = cm.DEFAULT_AUTH_ROUTE
 
-    # 정의되지 않은 route => Home으로 보
-    resolved_menu = cm.get_menu_by_route(normalized_route)
-    if resolved_menu is None:
-      normalized_route = cm.DEFAULT_AUTH_ROUTE
-
-    page.clean()
-    page.add(ErpFrame(page, current_route=normalized_route))
-
+      # 메인 프레임을 ft.View 객체로 감싸서 추가
+      page.views.append(
+          ft.View(
+              route=normalized_route, 
+              controls=[ErpFrame(page, current_route=normalized_route)]
+          )
+      )
+    
+    # 렌더링 후 화면 업데이트
+    page.update()
   # 로그인 성공
   def on_login_success():
     page.go(cm.DEFAULT_AUTH_ROUTE)

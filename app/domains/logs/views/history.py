@@ -1,23 +1,24 @@
 import flet as ft
 import components as dogdog
-import datetime
-import domains
+from domains.logs.views import grid_view
 
 
-def history_view(page: ft.Page, logs_data: list, view_date_str: str):
+def history_view(page: ft.Page, logs_data: list, view_date_str: str, controller):
     """
     [View] History View
-    컨트롤러로부터 전달받은 logs_data와 view_date_str을 사용하여 타임라인 뷰를 렌더링합니다.
+    UI 렌더링만 담당하며, 이벤트 처리 및 팝업 제어 로직은 controller로 위임합니다.
     """
-    popup = dogdog.Popup(page)
+    # Controller에 필요한 객체들 연결 (Controller에서 UI 조작을 위해 참조)
+    controller.page = page
+    controller.popup = dogdog.Popup(page)
 
     def insert_event(e):
-        insert_grid.visible = True if insert_grid.visible == False else False
+        insert_grid.visible = not insert_grid.visible
         page.update()
 
     insert_log = ft.Container(
         ink=True,
-        on_click=lambda e: insert_event(e),
+        on_click=insert_event,
         border_radius=30,
         padding=10,
         content=ft.Column(
@@ -31,7 +32,8 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
         ),
     )
 
-    insert_grid = domains.grid.status_update_menu(page=page, popup=popup)
+    # 유물 참조 변경: domains.grid -> grid_view (올바른 뷰 경로)
+    insert_grid = grid_view.status_update_menu(page=page, popup=controller.popup, on_refresh_callback=controller.on_refresh_callback)
     insert_grid.visible = False
     insert_grid.margin = ft.margin.only(bottom=10)
     
@@ -42,12 +44,20 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
     poop_log = []
     health_log = []
     
-    # 전달받은 logs_data를 domain 기준으로 필터링하여 컨테이너 생성
+    # 컨트롤러 컨테이너 리스트 초기화
+    controller.log_containers = []
+    
+    # 도메인 및 카테고리별 로그 분류
     for log in logs_data:
         log_id = log.get("id")
         domain = log.get("domain", "")
         
         container = dogdog.log_container(page, log_id, details=log)
+        
+        # [Step 1] 클릭 이벤트 및 선택 로직 바인딩
+        container.on_click = lambda e, l=log, c=container: controller.select_log(l, c)
+        controller.log_containers.append(container)
+        
         all_log.append(container)
         
         if domain == "feeding":
@@ -79,35 +89,22 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
             controls=content,
             margin=ft.margin.only(bottom=10),
         )
+
     def setting_content(visible):
-        delete_popup = popup.event_popup
-        delete_popup.title = dogdog.basic_text("오늘의 기록")
-        delete_popup.content = dogdog.basic_text("선택하신 기록을 삭제하시겠습니까?")
-        delete_popup.actions[0].on_click = lambda e: delete_popup_close(e, options=True)  # type: ignore
-
-        def delete_popup_close(e, options=None):
-            delete_popup.open = False
-            if options:
-                print(e)
-            page.update()
-
-        def history_delete(e):
-            if delete_popup not in page.overlay:
-                page.overlay.append(delete_popup)
-            else:
-                page.overlay.clear()
-                page.overlay.append(delete_popup)
-            delete_popup.open = True
-            page.update()
-
+        """삭제 및 수정 버튼 섹션 (로직은 controller로 위임)"""
         return ft.Row(
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
                 dogdog.flat_button(
-                    "삭제", visible=visible, on_click=lambda e: history_delete(e)
+                    "삭제", 
+                    visible=visible, 
+                    on_click=controller.history_delete
                 ),
                 dogdog.flat_button(
-                    "수정", bgcolor="#FEF3B9", visible=visible, on_click=None
+                    "수정", 
+                    bgcolor="#FEF3B9", 
+                    visible=visible, 
+                    on_click=controller.history_edit
                 ),
             ],
         )
@@ -157,7 +154,7 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str):
                         "작성된 기록이 없습니다", size=20, weight="bold"
                     ),
                 ),
-                setting_content(True if len(all_log) > 0 else False),
+                setting_content(len(all_log) > 0),
             ],
         ),
     )

@@ -42,7 +42,7 @@ def sign_up_view(page: ft.Page, controller, check_email_callback=None):
             height=30,
             # ft.Colors.BLACK 대신 헥스 코드나 기본 색상을 사용하여 버전 충돌 원천 차단
             content=ft.Text(
-                value="이메일 확인", size=11, weight="bold", color="#222222"
+                value="중복확인", size=11, weight="bold", color="#222222"
             ),
             bgcolor="#EEEEEE",  # 예쁜 연그레이 색상 헥스코드
             border_radius=10,

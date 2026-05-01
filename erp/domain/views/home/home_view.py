@@ -48,6 +48,8 @@ def erp_home_view():
         }
     else:
         feed_data = {}    
+    
+    prod_data = HomeViewMain.prduct_defect_chart()
 
     return ft.Container(
         expand=True,
@@ -68,7 +70,7 @@ def erp_home_view():
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
                         cm.erp_info_box("총 매출 ", f"{sale_data.get('total_amount',0):,} 원", f"{sale_data.get('year',0)}년 누계 기준"),
-                        cm.erp_info_box("연간 목표대비 달성률", f"{sale_data.get('target_achievement_rate',0)}%", f"연간 목표매출: {sale_data.get('last_year_amount',0):,} 원"),
+                        cm.erp_info_box("연간 목표대비 달성률", f"{sale_data.get('target_achievement_rate',0)}%", f"연간 목표매출: {sale_data.get('yearly_target_amount',0):,} 원"),
                         cm.erp_info_box("전년 동월대비 달성률", f"{sale_data.get('growth_rate',0)}%", f"기준: {sale_data.get('year',0)-1}년 동월 기준"),
                         cm.erp_info_box("총 판매량수", f"{sale_data.get('total_qty',0):,}개", f"{sale_data.get('year',0)}년 누적 판매량수"),
                     ],
@@ -105,7 +107,7 @@ def erp_home_view():
                 ft.Row(
                     spacing=16,
                     controls=[
-                        cm.build_production_status_box(),
+                        cm.build_production_status_box(prod_data if prod_data else {}),
                         cm.build_stock_pie_chart_box(feed_data),
                     ],
                 ),

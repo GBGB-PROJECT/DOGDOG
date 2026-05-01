@@ -1,9 +1,10 @@
 import flet as ft
-from erp.domain.controller.home.erp_home_input import *
 from components import common as cm
 
 def _vertical_progress(value: float):
-    # value: 0.0 ~ 1.0
+    ## ProgressBar는 0.0에서 1.0 사이 => 1.0 초과 시 1.0을 출력함
+    display_value = min(value, 1.0)
+
     return ft.Container(
         width=28,
         height=150,
@@ -21,22 +22,28 @@ def _vertical_progress(value: float):
         ),
     )
 
-def _mini_progress_panel(title: str, values: list[float]):
-    bars = [_vertical_progress(v) for v in values[:7]]  # ☑️ 
+def _mini_progress_panel(title: str, values: list[float], mom_text: str):
+    # 증감률 수치에 따른 색상 분기 (음수면 빨간색 계열, 양수면 민트색 계열)
+    is_negative = "-" in mom_text
+    mom_bg_color = "#FEE2E2" if is_negative else "#99F6E4"  # 연빨강 vs 연민트
+    mom_text_color = "#B91C1C" if is_negative else "#0D9488" # 진빨강 vs 진청록
+    
+    bars = [_vertical_progress(v) for v in values]  # ☑️ 
 
     y_labels = ft.Column(
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
         height=150,
         controls=[
-            ft.Text(f"{i}k", size=11, color=cm.TEXT_SECONDARY)
-            for i in range(5,0,-1)
+            ft.Text("1.0", size=11, color=cm.TEXT_SECONDARY),
+            ft.Text("0.5", size=11, color=cm.TEXT_SECONDARY),
+            ft.Text("0", size=11, color=cm.TEXT_SECONDARY),
         ],
     )
 
     return ft.Container(
         expand=True,
         height=220,
-        bgcolor=cm.PAGE_BG,
+        bgcolor="#F8F9FA",
         border_radius=14,
         padding=16,
         content=ft.Column(
@@ -56,12 +63,12 @@ def _mini_progress_panel(title: str, values: list[float]):
                             height=30,
                             padding=ft.padding.symmetric(horizontal=10),
                             border_radius=8,
-                            bgcolor="#99F6E4",
+                            bgcolor=mom_bg_color,
                             alignment=ft.Alignment(0, 0),
                             content=ft.Text(
-                                "+12%",
+                                mom_text,
                                 size=12,
-                                color=cm.TEXT_PRIMARY,
+                                color=mom_text_color,
                                 weight=ft.FontWeight.W_500,
                             ),
                         ),
@@ -85,16 +92,19 @@ def _mini_progress_panel(title: str, values: list[float]):
         ),
     )
 
-def build_production_status_box():
-    data = get_production_defect_rate()
-    production_rate = data['production_rate']
-    defect_rate = data['defect_rate'] 
+def build_production_status_box(data: dict):
+# [수정] 컨트롤러가 이미 'data' 내부를 주므로 바로 접근합니다.
+    production_rate = data.get("production_rate", [0]*6)
+    defect_rate = data.get("defect_rate", [0]*6)
+    base_date = data.get("base_date", "날짜 없음")
+    prod_mom = data.get("production_mom", "0%")
+    def_mom = data.get("defect_mom", "0%")
 
     return ft.Container(
         expand=True,
-        bgcolor=cm.PAGE_BG,
+        bgcolor=cm.CARD_BG,
         border_radius=16,
-        border=ft.border.all(1, "#E0E1E2"),
+        border=ft.border.all(1, "#EFF0F1"), # 새깔이 이곳?
         padding=20,
         content=ft.Column(
             spacing=20,
@@ -104,7 +114,7 @@ def build_production_status_box():
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         ft.Text(
-                            "생산현황 (2026/04/13)",
+                            f"생산현황 ({base_date})",
                             size=20,
                             weight=ft.FontWeight.W_700,
                             color=cm.TEXT_PRIMARY,
@@ -119,8 +129,8 @@ def build_production_status_box():
                 ft.Row(
                     spacing=16,
                     controls=[
-                        _mini_progress_panel("생산 달성률", production_rate),
-                        _mini_progress_panel("불량률", defect_rate),
+                        _mini_progress_panel("생산 달성률", production_rate,prod_mom),
+                        _mini_progress_panel("불량률", defect_rate,def_mom),
                     ],
                 ),
             ],

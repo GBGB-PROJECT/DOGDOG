@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from dateutil.relativedelta import relativedelta
 from collections import defaultdict 
-from db.models import OpdSubsItem, OpdSalesOrderItem
+from db.models import OpdSubsItem, OpdSalesOrderItem, ErpStock, ErpInbound, ErpPurchaseOrderItem
 
 class DashboardRepo:
     """home_view의 매출 하이라이트를 채우기 위한 데이터"""
@@ -10,62 +11,7 @@ class DashboardRepo:
     def __init__(self, db: Session): 
         self.db = db
 
-    def get_sale_hightlight(self, target_year: int) -> dict:
-        """
-        주어진 년도와 작년 매출과 판매량을 구함
-        구독 상품과 일반 상품 테이블을 합산함
-        """
-        last_year = target_year - 1
-        today = date.today()
-        
-        # 올해 데이터 구하기 (구독 상품 + 일반 판매상품)
-        ## 구독상품 합계(매출액, 개수합계)
-        subs_current = self.db.query(
-            func.sum(OpdSubsItem.final_amount).label("subs_amount"),
-            func.sum(OpdSubsItem.quantity).label("subs_qty")
-        ).filter(extract('year',OpdSubsItem.last_update)==target_year).first()
-
-        ## 일반상품 합계(매출액, 개수 합계)
-        sales_current = self.db.query(
-            func.sum(OpdSalesOrderItem.total_amount).label("sales_amount"),
-            func.sum(OpdSalesOrderItem.quantity).label("sales_qty")
-        ).filter(extract('year',OpdSalesOrderItem.last_update)==target_year).first()
-
-        # 작년 데이터 조회 (매출액, 개수 필요함)
-        subs_last_current = self.db.query(
-            func.sum(OpdSubsItem.final_amount).label("subs_last_amount"),
-            func.sum(OpdSubsItem.quantity).label("subs_last_qty")
-            ).filter(
-            extract('year', OpdSubsItem.last_update) == last_year,
-            extract('month', OpdSubsItem.last_update) <= today.month
-            ).first()
-            
-        sales_last_current = self.db.query(
-            func.sum(OpdSalesOrderItem.total_amount).label("sales_last_amount"),
-            func.sum(OpdSalesOrderItem.quantity).label("sales_last_qty")
-            ).filter(
-            extract('year', OpdSalesOrderItem.last_update) == last_year,
-            extract('month', OpdSalesOrderItem.last_update) <= today.month                
-            ).first()
-        
-        ## 최종 조립
-        current_totalAmount = (subs_current.subs_amount or 0) + (sales_current.sales_amount or 0)# 매출 총액
-        current_totalQty = (subs_current.subs_qty or 0) + (sales_current.sales_qty or 0) # 총 판매 수량
-        last_current_totalAmount = (subs_last_current.subs_last_amount or 0) + (sales_last_current.sales_last_amount or 0) #지난 해 총액
-        last_current_totalQty = (subs_last_current.subs_last_qty or 0) + (sales_last_current.sales_last_qty or 0)#지난 해 총 판매 수량
-
-        # 4. 반환값 (Service 계층의 변수명과 일치시킴)
-        return {
-            "total_amount": int(current_totalAmount),
-            "total_qty": int(current_totalQty),
-            "last_year_amount": int(last_current_totalAmount),
-            "last_year_qty": int(last_current_totalQty),
-        }
-
-
-    # ==========================================
     # [추가할 부분] 차트용 주/월/년도별 매출 및 판매량 조회
-    # ==========================================
     def get_chart_data(self, period: str) -> list[dict]:
         """
         요청받은 기간(1주일/1개월/1년)에 맞춰 
@@ -174,3 +120,38 @@ class DashboardRepo:
             return str(int(raw_label))
             
         return str(raw_label)
+
+    ## 순수하게 데이터만 출력하는 repo
+    def get_monthly_production_stock(self) -> dict:
+        """
+        DB에서 월별 입고 완료된 재고 총량을 조회합니다.
+        범위: 전년 1월 1일부터 현재까지 (YoY 및 MoM 계산용)
+        """
+        today = date.today()
+        # 전년도 동월 데이터 및 전월 데이터를 비교하기 위해 작년 1월부터 조회
+        start_date = date(today.year - 1, 1, 1)
+
+        # PostgreSQL 환경에 최적화된 날짜 포맷팅 (YYYY-MM)
+        month_expr = func.to_char(ErpInbound.inbound_complete, 'YYYY-MM')
+
+        results = self.db.query(
+            month_expr.label('month'),
+            func.sum(ErpStock.save_stock).label('total_stock'),
+            func.sum(ErpPurchaseOrderItem.defective).label('total_defect') 
+        ).join(
+            ErpStock, ErpInbound.inbound_id == ErpStock.inbound_id  # Inbound와 Stock 연결
+        ).join(
+            ErpPurchaseOrderItem, ErpInbound.purchase_order_id == ErpPurchaseOrderItem.purchase_order_id # Inbound와 Purchase 연결
+        ).filter(
+            ErpInbound.inbound_complete >= start_date
+        ).group_by(
+            month_expr
+        ).all()
+
+        # { 'YYYY-MM': {'stock': 100, 'defect': 5} } 형태로 반환
+        return {
+            row.month: {
+                "stock": float(row.total_stock or 0),
+                "defect": float(row.total_defect or 0)
+            } for row in results
+        }

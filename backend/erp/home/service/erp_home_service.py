@@ -73,7 +73,7 @@ class DashboardService:
         highlight_data["target_achievement_rate"] = round(target_achievement_rate, 1)
         
         # 프론트엔드에서 목표 금액 텍스트를 그릴 때 쓸 수 있도록 같이 넘겨줍니다.
-        highlight_data["yearly_target_amount"] = yearly_target_amount 
+        highlight_data["yearly_target_amount"] = int(yearly_target_amount)
 
         highlight_data["monthly_amount"] = monthly_amount
         highlight_data["monthly_target"] = int(monthly_target) # 금액은 소수점이 나오지 않게 int()로 정수 처리

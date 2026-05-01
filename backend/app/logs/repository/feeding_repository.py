@@ -150,11 +150,11 @@ class FeedingRepository:
     def delete_log(self, log: CompanionPetFood):
         log.active = False
 
-    def get_log_by_id_and_date(self, pet_food_id: int, feeding_date):
-        """파티션 키(날짜)와 ID를 조합하여 정확한 단건 식별"""
+    def get_log_by_id(self, pet_food_id: int):
+        """고유키인 ID로 단건 식별 (삭제되지 않은 활성 데이터만)"""
         return (
             self.db.query(CompanionPetFood)
-            .filter_by(pet_food_id=pet_food_id, feeding_date=feeding_date, active=True)
+            .filter_by(pet_food_id=pet_food_id, active=True)
             .first()
         )
 

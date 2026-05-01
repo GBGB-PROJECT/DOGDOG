@@ -128,7 +128,6 @@ def get_feeding_logs(
 @router.patch("/{pet_food_id}")
 def update_feeding(
     pet_food_id: int,
-    feeding_date: date,
     request: FeedingUpdate,
     customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -141,7 +140,6 @@ def update_feeding(
         updated_log, inven = service.update_feeding(
             customer_id=customer_id,
             pet_food_id=pet_food_id,
-            old_date=feeding_date,
             new_data=request.model_dump(exclude_unset=True)
             if hasattr(request, "model_dump")  # pydantic 버젼 이슈 해결
             else request.dict(exclude_unset=True),  # 세팅된 데이터만 넘김
@@ -183,7 +181,6 @@ def update_feeding(
 @router.delete("/{pet_food_id}")
 def delete_feeding(
     pet_food_id: int, 
-    feeding_date: date = Query(...), 
     customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -192,7 +189,7 @@ def delete_feeding(
     service = FeedingService(repo)
 
     try:
-        service.delete_feeding(customer_id, pet_food_id, feeding_date)
+        service.delete_feeding(customer_id, pet_food_id)
         return {"status": "success", "message": "삭제 및 재고 복구가 완료되었습니다."}
     except ValueError as e:
         error_msg = str(e)

@@ -163,7 +163,25 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
         data = await s_control.fetch_feeding_init_data()
         
         if data["has_food"]:
-            feeding_guide = dogdog.basic_text("급여할 사료와 양을 확인해주세요.", size=14, color=ft.Colors.GREY_600)
+            # [UI 복구] 추천 급여량 가이드 (말풍선, 강아지 밥그릇 포함)
+            feeding_guide = ft.Column(
+                alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0,
+                controls=[
+                    ft.Row(
+                        margin=ft.margin.only(bottom=10),
+                        controls=[dogdog.basic_text(f"오늘 {data['pet_name']}에게 딱 알맞는 1회 급여량은 ...", size=16, weight="bold", color=ft.Colors.GREY_600)],
+                    ),
+                    ft.Column(
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=-90,
+                        controls=[
+                            ft.Image(src="speech_bubble.png", height=100, color="#FEF3B9"),
+                            dogdog.basic_text(f"{data['recommended_amount']}g", weight="bold", size=40),
+                        ],
+                    ),
+                    ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20)),
+                ],
+            )
+            
             food_options = [dogdog.dropdown_menu_option(key=item["key"], text=item["text"]) for item in data["food_options_data"]]
             food_dropdown = dogdog.dropdown_menu(
                 label="사료를 선택해주세요.",
@@ -197,7 +215,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
             )
             feeding_memo.value = initial_memo
             
-            # [문제 1 해결] 모든 컴포넌트가 정의된 후 if 블록 안에서 extend 실행
+            # 모든 컴포넌트가 정의된 후 if 블록 안에서 extend 실행 (가이드 UI가 맨 앞에 오도록 배치)
             bottom_sheet_contents.extend([feeding_guide, ft.Row(controls=[food_dropdown]), feeding_weight, feeding_memo])
         else:
             # 기존 "등록된 제품이 없습니다" 로직 유지

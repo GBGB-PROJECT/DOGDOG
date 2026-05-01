@@ -11,10 +11,11 @@ from .charts.stock_pie_chart_box import *
 from .charts.line_chart import *
 from .charts.production_status_box import *
 
-# 모달 components
+# 🔥 화면 전환 속도 개선
+# - common import 시 생산지시서/발주서/등록팝업 같은 무거운 모달을 자동 import하지 않는다.
+# - 필요한 화면에서 아래처럼 직접 import하는 방식은 그대로 유지한다.
+#   from components.common.modals.production_order import ProductionOrderDialog
+#   from components.common.modals.purchase_order import PurchaseOrderDialog
+#   from components.common.modals.modal import build_modal
 from .modals.field_defs import *
 from .modals.form_inputs import *
-from .modals.production_order import *
-from .modals.purchase_order import *
-from .modals.registration_popup import *
-from .modals.validators import *

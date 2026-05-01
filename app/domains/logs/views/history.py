@@ -47,23 +47,26 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str, controller)
     # 컨트롤러 컨테이너 리스트 초기화
     controller.log_containers = []
     
-    # 도메인 및 카테고리별 로그 분류
+    # [정렬 준수] 단일 루프 내에서 순서대로 UI 생성 및 각 탭별 배열 분배
     for log in logs_data:
         log_id = log.get("id")
         domain = log.get("domain", "")
+        category = log.get("category", "")
         
+        # 로그 타입별 공통 컨테이너 생성
         container = dogdog.log_container(page, log_id, details=log)
         
-        # [Step 1] 클릭 이벤트 및 선택 로직 바인딩
+        # 클릭 이벤트 및 선택 로직 바인딩
         container.on_click = lambda e, l=log, c=container: controller.select_log(l, c)
-        controller.log_containers.append(container)
         
+        # 컨트롤러 참조용 및 '전체' 탭용 리스트에 즉시 추가 (정렬 순서 보존)
+        controller.log_containers.append(container)
         all_log.append(container)
         
+        # 카테고리별 탭 필터링 (필요한 경우에만 추가 배열에 담음)
         if domain == "feeding":
             feeding_log.append(container)
         elif domain == "numeric":
-            category = log.get("category", "")
             if category == "water":
                 watering_log.append(container)
             elif category == "walk":

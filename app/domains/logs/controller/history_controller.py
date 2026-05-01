@@ -55,18 +55,23 @@ class HistoryController:
                 filtered_logs.append(log)
 
         # [Step 2] 도메인 상관없는 완벽한 통합 정렬
-        def get_sort_datetime(log):
-            dt = log.get("log_date")
+        def get_unified_datetime(log):
+            # 1. Numeric 테이블 형식 (단일 log_date 파라미터)
+            dt = log.get("log_date") or log.get("created_at")
             if dt:
-                return str(dt)
-
+                # "2026-05-01 14:16:00" 형식을 "2026-05-01T14:16:00"로 통일
+                return str(dt).replace(" ", "T")
+            
+            # 2. Feeding 테이블 형식 (date와 time이 분리된 경우)
             d = log.get("date") or log.get("feeding_date") or "1970-01-01"
             t = log.get("time") or log.get("feeding_time") or "00:00:00"
-            # 시간 포맷 정제 (.000Z 제거 등)
-            t = str(t).split(".")[0].replace("Z", "") 
+            
+            # 시간 문자열 깔끔하게 정리 (Z나 밀리초 제거)
+            t = str(t).split(".")[0].replace("Z", "")
             return f"{d}T{t}"
 
-        filtered_logs.sort(key=lambda x: (get_sort_datetime(x), x.get("id", 0)), reverse=True)
+        # 최신 시간(내림차순)으로 1차 정렬, 시간이 완벽히 같으면 id(최신순)로 2차 정렬
+        filtered_logs.sort(key=lambda x: (get_unified_datetime(x), x.get("id", 0)), reverse=True)
 
         return filtered_logs, date_str
 

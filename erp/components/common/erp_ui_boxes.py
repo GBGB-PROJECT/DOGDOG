@@ -47,8 +47,12 @@ def erp_info_box(title, main, sub):
 
 ## 규격화된 textfield
 
-def custom_textfield(label:str, hint:str, is_password=False):
-    """둥근 테두리의 규격화된 입력창"""
+def custom_textfield(label:str, hint:str, value: str="", is_password=False, on_submit=None):
+    """
+    둥근 테두리의 규격화된 입력창
+     value: 기본입력값
+     on_submit: enter 누를 때 실행되는 함수
+    """
     def on_text_change(e):
         current_value = e.control.value # 현재 입력된 값
 
@@ -63,6 +67,7 @@ def custom_textfield(label:str, hint:str, is_password=False):
         controls=[
             ft.Text(label, size=12, color=c.MAIN_COLOR, weight='bold'),
             ft.TextField(
+                value=value,
                 hint_text=hint,
                 password=is_password,
                 border_radius=20,
@@ -77,7 +82,8 @@ def custom_textfield(label:str, hint:str, is_password=False):
                     regex_string=r"[a-zA-Z0-9!@#$%^&*().,]*",
                     replacement_string=""
                 ),
-                on_change=on_text_change # 4. 정의한 함수 이름과 동일하게 맞춤
+                on_change=on_text_change, # 4. 정의한 함수 이름과 동일하게 맞춤
+                on_submit=on_submit
             )
         ],
     )

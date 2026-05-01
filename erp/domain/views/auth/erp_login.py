@@ -21,9 +21,9 @@ class ErpLoginView(ft.Container):
     self.on_login_success = on_login_success
 
     ## 입력창을 선언함
-    self.id_input = cm.custom_textfield('사번', "account1") # label값, placeholder값
-    self.email_input = cm.custom_textfield('이메일', "emp1@test.com")
-    self.password_input = cm.custom_textfield("비밀번호", "hashed_pw", is_password=True)
+    self.id_input = cm.custom_textfield('사번', "account1",value="account1") # label값, placeholder값
+    self.email_input = cm.custom_textfield('이메일', "emp1@test.com",value="emp1@test.com")
+    self.password_input = cm.custom_textfield("비밀번호", "hashed_pw", is_password=True,value="hashed_pw", on_submit=self.handle_login)
 
     self.content = self.build_login_erp()
 

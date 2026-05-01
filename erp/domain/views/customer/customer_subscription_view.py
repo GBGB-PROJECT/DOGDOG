@@ -642,7 +642,7 @@ def erp_customer_subscription_view():
         spacing=0,
         controls=[
             ft.Container(
-                bgcolor="#F3F4F6",
+                bgcolor=ft.Colors.WHITE,
                 padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
                 content=ft.Row(
                     wrap=True,
@@ -671,7 +671,7 @@ def erp_customer_subscription_view():
             ),
             ft.Container(
                 expand=True,
-                bgcolor="#F5F5F5",
+                bgcolor=ft.Colors.WHITE,
                 padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
                 content=ft.Column(
                     expand=True,

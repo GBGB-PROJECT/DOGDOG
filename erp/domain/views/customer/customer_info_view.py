@@ -867,9 +867,11 @@ def erp_customer_info_view():
     page_content = ft.Column(
         expand=True,
         spacing=0,
+        # 🔥 추가: 화면 배경이 컨텐츠 폭에서 끊겨 우측에 네모 얼룩이 생기는 현상 방지
+        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         controls=[
             ft.Container(
-                bgcolor="#F3F4F6",
+                bgcolor=ft.Colors.WHITE,
                 padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
                 content=ft.Row(
                     wrap=True,
@@ -894,7 +896,7 @@ def erp_customer_info_view():
             ),
             ft.Container(
                 expand=True,
-                bgcolor="#F5F5F5",
+                bgcolor=ft.Colors.WHITE,
                 padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
                 content=ft.Column(
                     expand=True,

@@ -750,6 +750,7 @@ def build_product_search_table_page(
         padding=0,
         content=ft.Column(
             spacing=0,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
                 filter_bar,
                 ft.Container(

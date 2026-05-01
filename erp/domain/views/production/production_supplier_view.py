@@ -741,7 +741,8 @@ def erp_production_supplier_view():
 
     return ft.Container(
         expand=True,
-        bgcolor=cm.PAGE_BG,
+        # 🔥 수정: 화면 우측에 회색/흰색 배경이 섞여 보이지 않도록 본문 배경을 흰색으로 통일
+        bgcolor=ft.Colors.WHITE,
         padding=20,
         content=ft.Stack(
             expand=True,

@@ -740,7 +740,7 @@ def erp_product_detail_view():
 
     main_content = ft.Container(
         expand=True,
-        bgcolor=cm.PAGE_BG,
+        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 화면 배경 흰색 통일
         padding=0,
         content=ft.Column(
             expand=True,
@@ -750,6 +750,7 @@ def erp_product_detail_view():
                 ft.Container(
                     padding=20,
                     expand=True,
+                    bgcolor=ft.Colors.WHITE,  # 🔥 수정: 본문 안쪽 배경 흰색 통일
                     content=ft.Column(
                         expand=True,
                         spacing=14,
@@ -772,6 +773,7 @@ def erp_product_detail_view():
 
     return ft.Container(
         expand=True,
+        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 최외곽 배경 흰색 통일
         content=ft.Stack(
             expand=True,
             controls=[

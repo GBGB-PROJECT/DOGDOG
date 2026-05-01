@@ -981,7 +981,7 @@ def erp_purchase_order_view():
     update_reset_button_visibility()
 
     filter_bar = ft.Container(
-        bgcolor="#F3F4F6",
+        bgcolor=ft.Colors.WHITE,
         padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
         content=ft.Row(
             wrap=True,
@@ -1039,7 +1039,8 @@ def erp_purchase_order_view():
 
     main_content = ft.Container(
         expand=True,
-        bgcolor=cm.PAGE_BG,
+        # 🔥 수정: 필터바만 흰색이고 본문은 회색으로 남는 문제 방지
+        bgcolor=ft.Colors.WHITE,
         padding=0,
         content=ft.Column(
             expand=True,
@@ -1049,6 +1050,8 @@ def erp_purchase_order_view():
                 ft.Container(
                     padding=20,
                     expand=True,
+                    # 🔥 수정: 발주관리 본문 영역도 흰색으로 통일
+                    bgcolor=ft.Colors.WHITE,
                     content=ft.Column(
                         expand=True,
                         spacing=14,
@@ -1072,5 +1075,7 @@ def erp_purchase_order_view():
 
     return ft.Container(
         expand=True,
+        # 🔥 수정: 최외곽 배경까지 흰색으로 고정
+        bgcolor=ft.Colors.WHITE,
         content=main_content,
     )

@@ -1,8 +1,8 @@
-# -------------------------------------------------------------------------------------------------------
 import flet as ft
-import domains as domains
 import components as dogdog
+import domains as domains
 from .home.home_controller import HomeController
+from domains.logs.controller.log_controller import LogController
 
 
 # -------------------------------------------------------------------------------------------------------
@@ -121,7 +121,10 @@ def home_tile(
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
         body_scroll_column.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-        body_scroll_column.controls = domains.log.log_view(page)
+        
+        # LogController 생성 및 주입
+        log_ctrl = LogController(page)
+        body_scroll_column.controls = domains.log.log_view(page, controller=log_ctrl)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/shop":
         home_background, top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
@@ -163,16 +166,29 @@ def home_tile(
             history_ctrl = HistoryController(page)
             pet_id = page.session.store.get("current_pet_id")
             
-            if pet_id:
-                logs = await history_ctrl.get_timeline_logs(pet_id)
-            else:
-                logs = []
-                
-            filtered_logs, date_str = history_ctrl.get_filtered_logs_and_date_str(logs)
+            # [Step 3] 최신 데이터를 가져와서 UI를 재렌더링하는 콜백 함수 정의
+            async def refresh_history_list():
+                if pet_id:
+                    # 1. API(get_timeline_logs)를 호출해 최신 데이터를 다시 가져옴
+                    logs = await history_ctrl.get_timeline_logs(pet_id)
+                    filtered_logs, date_str = history_ctrl.get_filtered_logs_and_date_str(logs)
+                    
+                    # 2. history_view를 다시 실행해 UI 컴포넌트를 새로 생성
+                    history_ui = domains.history.history_view(page, filtered_logs, date_str, controller=history_ctrl)
+                    
+                    # 3. 부모 컨테이너(history_container)를 새 UI로 교체
+                    # [Step 3 해결] 단순히 리스트를 교체하는 대신 clear()와 append()를 사용하여 확실하게 갱신
+                    history_container.controls.clear()
+                    history_container.controls.append(history_ui)
+                    history_container.update()
+                    # (선택사항) 전체 페이지 업데이트가 필요한 경우
+                    # page.update() 
+
+            # 컨트롤러에 콜백 주입
+            history_ctrl.on_refresh_callback = refresh_history_list
             
-            history_ui = domains.history.history_view(page, filtered_logs, date_str)
-            history_container.controls = [history_ui]
-            history_container.update()
+            # 초기 데이터 로드 실행
+            await refresh_history_list()
             
         page.run_task(load_history_data)
     # ---------------------------------------------------------------------------------------------------

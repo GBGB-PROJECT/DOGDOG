@@ -8,11 +8,13 @@ class StatusController:
     역할: 그리드(Logs) 팝업 메뉴의 데이터 처리, 세션 스토리지 관리, API 호출을 전담합니다.
     - View에서 분리되어 순수 비즈니스 로직과 이벤트 라우팅만 처리합니다.
     """
-    def __init__(self, page, popup, on_refresh_callback=None):
+    def __init__(self, page, popup, on_refresh_callback=None, edit_mode=False, log_data=None):
         self.page = page
         self.popup = popup
         self.storage = page.session.store
         self.on_refresh_callback = on_refresh_callback
+        self.edit_mode = edit_mode
+        self.log_data = log_data
         self.grid_ctrl = GridController(page)
         self.api_client = self.grid_ctrl.api_client  # GridController에서 초기화된 api_client 활용
         
@@ -55,10 +57,37 @@ class StatusController:
         return None
 
     def set_default_datetime(self, call):
-        """초기 진입 시 현재 날짜/시간을 세션에 세팅"""
+        """초기 진입 시 날짜/시간 및 기존 데이터를 세션에 세팅 (수정 모드 대응)"""
         now = datetime.datetime.now()
-        self.storage.set(f"{call}_date", now.strftime("%Y-%m-%d"))
-        self.storage.set(f"{call}_time", now.strftime("%H:%M"))
+        log_date_str = now.strftime("%Y-%m-%d")
+        log_time_str = now.strftime("%H:%M")
+        
+        if self.edit_mode and self.log_data:
+            raw_date = self.log_data.get("log_date") or self.log_data.get("date")
+            if raw_date:
+                try:
+                    dt = datetime.datetime.fromisoformat(raw_date.replace(" ", "T"))
+                    log_date_str = dt.strftime("%Y-%m-%d")
+                    log_time_str = dt.strftime("%H:%M")
+                except: pass
+            
+            # 기존 데이터 프리필 (세션 스토리지)
+            self.storage.set(f"{call}_memo", self.log_data.get("memo", ""))
+            
+            # 수치형 데이터 프리필
+            log_status = self.log_data.get("log_status")
+            if log_status is not None:
+                self.storage.set(f"{call}_weight", log_status)
+            
+            # 건강기록(몸무게, BCS) 프리필
+            if call == "health_log":
+                if self.log_data.get("weight") is not None:
+                    self.storage.set(f"{call}_float_weight", self.log_data.get("weight"))
+                if self.log_data.get("bcs") is not None:
+                    self.storage.set(f"{call}_bcs_weight", self.log_data.get("bcs"))
+
+        self.storage.set(f"{call}_date", log_date_str)
+        self.storage.set(f"{call}_time", log_time_str)
 
     async def fetch_feeding_init_data(self):
         """
@@ -123,17 +152,32 @@ class StatusController:
         else:
             full_log_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-        # 1. 밥주기(feeding)는 기존 전용 로직 활용
+        # 1. 밥주기(feeding)
         if call == "feeding":
             if not self.storage.get("customer_food_id") or not self.storage.get(f"{call}_weight"):
                 self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text("사료 정보 또는 급여량을 입력해주세요."))
                 self.page.snack_bar.open = True
                 self.page.update()
                 return
-            success = await self.grid_ctrl.save_feeding_api(call)
-            if success:
-                await self._post_save_process()
-            return
+            
+            if self.edit_mode and self.log_data:
+                # [문제 2 해결] log_id를 int로 형변환하여 전송
+                log_id = int(self.log_data.get("id"))
+                payload = {
+                    "pet_food_id": self.storage.get("customer_food_id"),
+                    "amount": self.storage.get(f"{call}_weight"),
+                    "log_date": full_log_date,
+                    "memo": self.storage.get(f"{call}_memo")
+                }
+                res = await self.api_client.put(f"/logs/feeding/{log_id}", data=payload)
+                if res.status_code in [200, 201]:
+                    await self._post_save_process()
+                return
+            else:
+                success = await self.grid_ctrl.save_feeding_api(call)
+                if success:
+                    await self._post_save_process()
+                return
 
         # 2. 통합 수치형 API (numeric) 처리
         category = None
@@ -141,61 +185,42 @@ class StatusController:
 
         if call == "watering":
             category = "water"
-            val = self.storage.get(f"{call}_weight")
-            if val is None:
-                self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text("물 섭취량을 입력해주세요."))
-                self.page.snack_bar.open = True
-                self.page.update()
-                return
-            payload["log_status"] = val
-
+            payload["log_status"] = self.storage.get(f"{call}_weight")
         elif call == "daily_walks":
             category = "walk"
-            val = self.storage.get(f"{call}_weight")
-            if val is None:
-                self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text("산책 시간을 입력해주세요."))
-                self.page.snack_bar.open = True
-                self.page.update()
-                return
-            payload["log_status"] = val
-
+            payload["log_status"] = self.storage.get(f"{call}_weight")
         elif call == "hygiene_bowel":
             category = "poop"
-            val = self.storage.get(f"{call}_weight")
-            if val is None:
-                self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text("배변 스코어를 선택해주세요."))
-                self.page.snack_bar.open = True
-                self.page.update()
-                return
-            payload["log_status"] = val
-
+            payload["log_status"] = self.storage.get(f"{call}_weight")
         elif call == "health_log":
             category = "weight_bcs"
-            weight = self.storage.get(f"{call}_float_weight")
-            bcs = self.storage.get(f"{call}_bcs_weight")
-            if weight is None and bcs is None:
-                self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text("몸무게 또는 BCS를 입력해주세요."))
-                self.page.snack_bar.open = True
-                self.page.update()
-                return
-            payload["weight"] = weight
-            payload["bcs"] = bcs
+            payload["weight"] = self.storage.get(f"{call}_float_weight")
+            payload["bcs"] = self.storage.get(f"{call}_bcs_weight")
+        elif call == "status_log":
+            category = "status"
 
         if not category:
             return
 
-        # 3. API 호출
+        # 3. API 호출 (POST or PUT)
         try:
-            res = await self.api_client.post(f"/logs/numeric/{category}/{pet_id}", data=payload)
+            if self.edit_mode and self.log_data:
+                # [문제 2 해결] PUT /logs/numeric/{int(log_id)} 로 수정 (카테고리 제거)
+                log_id = int(self.log_data.get("id"))
+                res = await self.api_client.put(f"/logs/numeric/{log_id}", data=payload)
+            else:
+                res = await self.api_client.post(f"/logs/numeric/{category}/{pet_id}", data=payload)
+
             if res.status_code in [200, 201]:
+                msg = "기록이 수정되었습니다." if self.edit_mode else "기록이 저장되었습니다."
                 self.page.snack_bar = ft.SnackBar(
-                    content=dogdog.basic_text("기록이 저장되었습니다.", color=ft.Colors.WHITE),
+                    content=dogdog.basic_text(msg, color=ft.Colors.WHITE),
                     bgcolor=ft.Colors.GREEN_400
                 )
                 self.page.snack_bar.open = True
                 await self._post_save_process()
             else:
-                error_msg = res.json().get("detail", "저장에 실패했습니다.")
+                error_msg = res.json().get("detail", "작업에 실패했습니다.")
                 self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text(f"오류: {error_msg}"))
                 self.page.snack_bar.open = True
                 self.page.update()

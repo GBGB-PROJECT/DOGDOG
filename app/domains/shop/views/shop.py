@@ -72,7 +72,7 @@ def product_guide(page: ft.Page):
                 icon=ft.Icons.ARROW_BACK_IOS, icon_size=10, 
                 on_click=lambda e:product_guide_page(e=e, key="back")),
             ft.TabBarView(expand=True, controls=dogdog.products(
-                page, Product.guide_product_list, guide_image_size)),
+                page, Product.guide_product_list, guide_image_size)), # 수정예정
             ft.IconButton(
                 icon=ft.Icons.ARROW_FORWARD_IOS, icon_size=10, 
                 on_click=lambda e:product_guide_page(e=e, key="forward")),

@@ -137,7 +137,29 @@ async def get_shop_product_list(page, sort=None, keyword=None):
 
     return product_dict
 
+'''
+data = {
+            "product_id": product.product_id,
+            "product_detail_id": product_detail.product_detail_id,
 
+            "brand": product_detail.brand,
+            "product_name": product_name,
+
+            "type": product_detail.type,
+            "life": product_detail.life,
+            "function": product_detail.function,
+            "description": product_detail.description,
+            "calories": float(product_detail.calories) if product_detail.calories is not None else None,
+            
+            "thumbnail": product_detail.thumbnail,
+            "pdi": product_detail.pdi,
+            
+            "quantity": product.quantity,
+            "weight": product.weight,
+            "retail_price": float(product.retail_price) if product.retail_price is not None else None,
+            "is_sample": product.is_sample
+        }
+'''
 async def get_shop_product_detail(page, product_id: int):
     api = ApiClient(page)
 
@@ -152,5 +174,14 @@ async def get_shop_product_detail(page, product_id: int):
     if result.get("success") is False:
         print("상품 상세 조회 실패:", result.get("message"))
         return None
+    
+    data = result.get("data")
+    print(data)
+    
+    if data:
+        data["thumbnail"] =  proxy_image_url(data.get("thumbnail"))
+        data["pdi"] = proxy_image_url(data.get("pdi"))
+    
+    print(data["pdi"])
 
-    return result.get("data")
+    return data

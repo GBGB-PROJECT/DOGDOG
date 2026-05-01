@@ -1,4 +1,3 @@
-import math
 import flet as ft
 import datetime
 
@@ -8,30 +7,19 @@ from components.common.modals.field_defs import EMPLOYEE_FIELDS
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_employees, fetch_employees, create_employee
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
+from components.common.erp_view_style import *
+from components.common.erp_pagination import calc_total_pages
+from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 
 
 # =========================================================
 # ☑️ product_master_view 스타일 참고용 공통 색상
 # =========================================================
-FIELD_BG = ft.Colors.WHITE
-FIELD_BORDER = "#D1D5DB"
-FIELD_TEXT = "#222222"
-HINT_TEXT = "#9CA3AF"
 
-BUTTON_BG = "#F3F4F6"
-BUTTON_TEXT = "#374151"
-BUTTON_BORDER = "#D1D5DB"
 
-CARD_BG = ft.Colors.WHITE
-TABLE_HEADER_BG = "#F9FAFB"
-TABLE_BORDER = "#E5E7EB"
 
-TEXT_PRIMARY = "#111827"
-TEXT_SECONDARY = "#6B7280"
-TEXT_ROW = "#374151"
 
 SESSION_PREFIX = "employee"
-PAGE_SIZE = 50
 
 
 # =========================================================
@@ -203,7 +191,7 @@ def erp_employee_view():
 
     def on_start_date_change(e):
         if e.control.value:
-            corrected_date = e.control.value + datetime.timedelta(hours=9)
+            corrected_date = normalize_datepicker_value(e.control.value)
             selected_start["value"] = corrected_date
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
@@ -214,7 +202,7 @@ def erp_employee_view():
 
     def on_end_date_change(e):
         if e.control.value:
-            corrected_date = e.control.value + datetime.timedelta(hours=9)
+            corrected_date = normalize_datepicker_value(e.control.value)
 
             if selected_start["value"] and corrected_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -641,10 +629,7 @@ def erp_employee_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
 
         reload_current_page()
 
@@ -655,10 +640,7 @@ def erp_employee_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count(keyword)
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
 
         reload_current_page()
 
@@ -687,10 +669,7 @@ def erp_employee_view():
         pagination_state["current_page"] = 1
         pagination_state["keyword"] = ""
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
         reload_current_page()
 
     def open_register_modal(e):

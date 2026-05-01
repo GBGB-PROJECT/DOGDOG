@@ -1,4 +1,3 @@
-import math
 import flet as ft
 from components import common as cm
 # 🔥 httpx 방식 API 호출로 변경
@@ -6,30 +5,18 @@ from api.erp_httpx_api import count_product_join_rows, fetch_product_join_rows, 
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
+from components.common.erp_view_style import *
+from components.common.erp_pagination import calc_total_pages
 
 
-FIELD_BG = ft.Colors.WHITE
-FIELD_BORDER = "#D1D5DB"
-FIELD_TEXT = "#222222"
-HINT_TEXT = "#9CA3AF"
 
-BUTTON_BG = "#F3F4F6"
-BUTTON_TEXT = "#374151"
-BUTTON_BORDER = "#D1D5DB"
 
-CARD_BG = ft.Colors.WHITE
-TABLE_HEADER_BG = "#F9FAFB"
-TABLE_BORDER = "#E5E7EB"
 
-TEXT_PRIMARY = "#111827"
-TEXT_SECONDARY = "#6B7280"
-TEXT_ROW = "#374151"
 
 # =========================================================
 # ☑️ 상품 상세 session prefix
 # =========================================================
 SESSION_PREFIX = "product_detail"
-PAGE_SIZE = 50
 
 
 def _format_number(value):
@@ -521,10 +508,7 @@ def erp_product_detail_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
         reload_current_page()
         update_reset_button_visibility()
 
@@ -535,10 +519,7 @@ def erp_product_detail_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count(keyword)
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
         reload_current_page()
         update_reset_button_visibility()
 
@@ -579,10 +560,7 @@ def erp_product_detail_view():
         pagination_state["current_page"] = 1
         pagination_state["keyword"] = ""
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
         reload_current_page()
 
     def open_register_modal(e):

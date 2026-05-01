@@ -1,4 +1,3 @@
-import math
 import datetime
 import flet as ft
 
@@ -6,26 +5,15 @@ from components import common as cm
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_stocks, fetch_stocks
 from components.common.erp_view_widgets import build_text, date_value_box_center as date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
+from components.common.erp_view_style import *
+from components.common.erp_pagination import calc_total_pages
+from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 
 
-FIELD_BG = ft.Colors.WHITE
-FIELD_BORDER = "#D1D5DB"
-FIELD_TEXT = "#222222"
-HINT_TEXT = "#9CA3AF"
 
-BUTTON_BG = "#F3F4F6"
-BUTTON_TEXT = "#374151"
-BUTTON_BORDER = "#D1D5DB"
 
-CARD_BG = ft.Colors.WHITE
-TABLE_HEADER_BG = "#F9FAFB"
-TABLE_BORDER = "#E5E7EB"
 
-TEXT_PRIMARY = "#111827"
-TEXT_SECONDARY = "#6B7280"
-TEXT_ROW = "#374151"
 
-PAGE_SIZE = 50
 
 
 # =========================================================
@@ -152,7 +140,7 @@ def normalize_to_date(value):
     # 🔥 수정: 생산관리 DatePicker와 동일하게 +9시간 보정 후 날짜만 사용
     # - Flet DatePicker가 UTC 기준 값으로 들어와 하루 전날로 표시되는 문제 방지
     if isinstance(value, datetime.datetime):
-        return (value + datetime.timedelta(hours=9)).date()
+        return normalize_datepicker_date(value)
 
     if isinstance(value, datetime.date):
         return value
@@ -832,10 +820,7 @@ def erp_stock_product_detail_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
 
         reload_current_page()
 
@@ -846,10 +831,7 @@ def erp_stock_product_detail_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = page_ref
         pagination_state["total_count"] = fetch_total_count(keyword)
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
 
         reload_current_page()
 
@@ -876,10 +858,7 @@ def erp_stock_product_detail_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = e.page
         pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = max(
-            1,
-            math.ceil(pagination_state["total_count"] / PAGE_SIZE),
-        )
+        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
 
         refresh_picker_fields()
         reload_current_page()

@@ -5,6 +5,9 @@ import flet as ft
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_customer_subscriptions, fetch_customer_subscriptions
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
+from components.common.erp_view_style import *
+from components.common.erp_pagination import calc_total_pages
+from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 
 
 # =========================================================
@@ -16,24 +19,10 @@ from components.common.erp_view_widgets import build_text, date_value_box, calen
 #   신청요일 / 자동배송 / 배송주기 / 할인율 / 배송지 / 전화번호 / 구독시작일
 # =========================================================
 
-FIELD_BG = ft.Colors.WHITE
-FIELD_BORDER = "#D1D5DB"
-FIELD_TEXT = "#222222"
-HINT_TEXT = "#9CA3AF"
 
-BUTTON_BG = "#F3F4F6"
-BUTTON_TEXT = "#374151"
-BUTTON_BORDER = "#D1D5DB"
 
-CARD_BG = ft.Colors.WHITE
-TABLE_HEADER_BG = "#F9FAFB"
-TABLE_BORDER = "#E5E7EB"
 
-TEXT_PRIMARY = "#111827"
-TEXT_SECONDARY = "#6B7280"
-TEXT_ROW = "#374151"
 
-PAGE_SIZE = 50
 
 
 def format_datetime_text(value):
@@ -159,7 +148,7 @@ def erp_customer_subscription_view():
 
     def on_start_date_change(e):
         if e.control.value:
-            corrected_date = e.control.value + datetime.timedelta(hours=9)
+            corrected_date = normalize_datepicker_value(e.control.value)
             corrected_date = corrected_date.replace(tzinfo=None)
             selected_start["value"] = corrected_date
 
@@ -172,7 +161,7 @@ def erp_customer_subscription_view():
 
     def on_end_date_change(e):
         if e.control.value:
-            corrected_date = e.control.value + datetime.timedelta(hours=9)
+            corrected_date = normalize_datepicker_value(e.control.value)
             corrected_date = corrected_date.replace(tzinfo=None)
 
             if selected_start["value"] and corrected_date < selected_start["value"]:
@@ -508,7 +497,7 @@ def erp_customer_subscription_view():
         current_page = pagination_state["current_page"]
 
         total_count = fetch_total_count(keyword=keyword)
-        total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
+        total_pages = calc_total_pages(total_count, PAGE_SIZE)
 
         if current_page > total_pages:
             current_page = total_pages

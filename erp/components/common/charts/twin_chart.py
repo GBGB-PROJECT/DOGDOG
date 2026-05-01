@@ -14,6 +14,10 @@ BAR_SECONDARY = "#AFAFAF"
 # ☑️ 기본 최대값
 CHART_MAX_Y = 100
 
+# 🔥 추가: 생산/재고 대시보드 twin chart 기본 축을 0 / 100K / 200K / 300K로 통일
+DASHBOARD_MIN_MAX_Y = 300000
+DASHBOARD_AXIS_STEP_UNIT = 100000
+
 # 🔥 생산관리 차트 고정 최대값
 # - 현재는 생산관리 차트에서 직접 사용하지 않음
 # - 다른 코드 참조 가능성 때문에 상수는 유지
@@ -29,7 +33,8 @@ BOTTOM_LABEL_AREA = 34
 CHART_HEIGHT = PLOT_HEIGHT + BOTTOM_LABEL_AREA
 
 # 🔥 Y축 구간 수
-Y_AXIS_DIVISIONS = 4
+# - 0 / 100K / 200K / 300K처럼 간결하게 보이도록 3구간으로 통일
+Y_AXIS_DIVISIONS = 3
 
 
 # =========================================================
@@ -66,19 +71,21 @@ def _nice_ceil(value):
 # - 50K 단위로만 올림
 # 예: 281,000 -> 300,000
 # =========================================================
-def _ceil_by_unit(value, unit=50000):
+def _ceil_by_unit(value, unit=50000, min_value=None):
     try:
         value = float(value or 0)
     except (TypeError, ValueError):
         value = 0
 
+    min_value = int(min_value or CHART_MAX_Y)
+
     if value <= 0:
-        return CHART_MAX_Y
+        return min_value
 
     unit = int(unit or 50000)
 
-    if value <= CHART_MAX_Y:
-        return CHART_MAX_Y
+    if value <= min_value:
+        return min_value
 
     return int(math.ceil(value / unit) * unit)
 
@@ -89,7 +96,7 @@ def _ceil_by_unit(value, unit=50000):
 # - axis_step_unit이 있으면 생산관리 전용 축 계산
 # - 둘 다 없으면 기존 방식 사용
 # =========================================================
-def _calc_chart_max_y(chart_data, fixed_max_y=None, axis_step_unit=None):
+def _calc_chart_max_y(chart_data, fixed_max_y=None, axis_step_unit=None, min_max_y=None):
     max_value = 0
 
     for _, v1, v2 in chart_data:
@@ -110,9 +117,9 @@ def _calc_chart_max_y(chart_data, fixed_max_y=None, axis_step_unit=None):
     if max_value <= CHART_MAX_Y:
         return CHART_MAX_Y
 
-    # 🔥 생산관리에서만 사용
+    # 🔥 생산/재고 대시보드 축 정리용
     if axis_step_unit:
-        return _ceil_by_unit(max_value, axis_step_unit)
+        return _ceil_by_unit(max_value, axis_step_unit, min_value=min_max_y)
 
     return _nice_ceil(max_value)
 
@@ -159,13 +166,14 @@ def build_twin_chart(
     title="입출고 현황",
     legend_primary="입고",
     legend_secondary="출고",
-    unit_text="단위: K",
+    unit_text="단위: 천원",
     chart_data=None,
     fixed_max_y=None,
 
-    # 🔥 생산관리 전용 옵션
-    # - 기본값 None이라 입출고/재고 차트에 영향 없음
+    # 🔥 생산/재고 대시보드 축 정리용 옵션
+    # - 0 / 100K / 200K / 300K처럼 보이게 통일할 때 사용
     axis_step_unit=None,
+    min_max_y=None,
 ):
     if chart_data is None:
         chart_data = [
@@ -187,6 +195,7 @@ def build_twin_chart(
         chart_data,
         fixed_max_y=fixed_max_y,
         axis_step_unit=axis_step_unit,
+        min_max_y=min_max_y,
     )
 
     y_axis_labels = _build_y_axis_labels(chart_max_y)
@@ -439,25 +448,24 @@ def build_twin_chart(
 
 # =========================================================
 # ☑️ 재고 현황 전용 차트
-# - 입출고내역 쪽은 기존 그대로
-# - 80K / 60K / 40K / 20K 기준 유지
+# - 생산 실적 차트와 동일하게 0 / 100K / 200K / 300K 기준으로 통일
 # =========================================================
 def build_stock_twin_chart(chart_data=None):
     return build_twin_chart(
         title="입출고 현황",
         legend_primary="입고",
         legend_secondary="출고",
-        unit_text="단위: K",
+        unit_text="단위: 천원",
         chart_data=chart_data,
-        fixed_max_y=STOCK_FIXED_MAX_Y,
+        fixed_max_y=None,
+        axis_step_unit=DASHBOARD_AXIS_STEP_UNIT,
+        min_max_y=DASHBOARD_MIN_MAX_Y,
     )
 
 
 # =========================================================
 # 🔥 생산관리 전용 차트
-# - 입출고/재고 차트에는 영향 없음
-# - 값 라벨 제거
-# - Y축만 50K 단위로 정리해서 500K 튀는 문제 방지
+# - 재고 현황 차트와 동일하게 0 / 100K / 200K / 300K 기준으로 통일
 # =========================================================
 def build_production_twin_chart(chart_data=None):
     return build_twin_chart(
@@ -467,10 +475,10 @@ def build_production_twin_chart(chart_data=None):
         unit_text="단위: 천원",
         chart_data=chart_data,
 
-        # 🔥 생산관리만 자동 축
+        # 🔥 생산/재고 대시보드 차트 축 통일
+        # - 기본: 0 / 100K / 200K / 300K
+        # - 데이터가 300K를 넘으면 400K, 500K처럼 100K 단위로 확장
         fixed_max_y=None,
-
-        # 🔥 생산관리만 50,000 단위 축 정리
-        # 예: 최대값 281,000 -> 300K 표시
-        axis_step_unit=50000,
+        axis_step_unit=DASHBOARD_AXIS_STEP_UNIT,
+        min_max_y=DASHBOARD_MIN_MAX_Y,
     )

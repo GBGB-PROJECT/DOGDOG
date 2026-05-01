@@ -7,6 +7,7 @@ from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import EMPLOYEE_FIELDS
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_employees, fetch_employees, create_employee
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 
 
 # =========================================================
@@ -36,119 +37,18 @@ PAGE_SIZE = 50
 # =========================================================
 # ☑️ 공통 텍스트
 # =========================================================
-def build_text(
-    value,
-    size=12,
-    color=TEXT_PRIMARY,
-    weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.LEFT,
-):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        text_align=text_align,
-        max_lines=1,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
 # =========================================================
 # ☑️ 날짜 표시 필드
 # =========================================================
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=FIELD_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
 # =========================================================
 # ☑️ 달력 버튼
 # =========================================================
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Icon(
-            ft.Icons.CALENDAR_MONTH_OUTLINED,
-            size=18,
-            color="#4B5563",
-        ),
-    )
-
-
 # =========================================================
 # ☑️ 공통 액션 버튼
 # =========================================================
-def action_button(text, on_click=None, width=78):
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=BUTTON_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
 # =========================================================
 # ☑️ 테이블 셀 공통
 # =========================================================
-def build_table_cell(
-    text,
-    expand,
-    align_x=-1,
-    weight=ft.FontWeight.W_400,
-    color=TEXT_ROW,
-    size=12,
-):
-    return ft.Container(
-        expand=expand,
-        alignment=ft.Alignment(align_x, 0),
-        content=build_text(
-            value=text,
-            size=size,
-            color=color,
-            weight=weight,
-            # 🔥 수정: align_x 값에 따라 실제 Text 정렬도 함께 맞춤
-            # - 0: 중앙 / 1: 오른쪽 / -1: 왼쪽
-            text_align=(
-                ft.TextAlign.CENTER
-                if align_x == 0
-                else ft.TextAlign.RIGHT
-                if align_x == 1
-                else ft.TextAlign.LEFT
-            ),
-        ),
-    )
-
-
 # =========================================================
 # ☑️ 저장 데이터 -> 사원 테이블 row 변환
 # - EMPLOYEE_FIELDS 실제 key 기준

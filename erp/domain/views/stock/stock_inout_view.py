@@ -11,6 +11,7 @@ import datetime
 import flet as ft
 
 from api.erp_httpx_api import count_stock_inouts, fetch_stock_inouts
+from components.common.erp_view_widgets import build_text, date_value_box_hint as date_value_box, calendar_icon_box, build_expand_table_cell as build_table_cell
 
 
 FIELD_BG = ft.Colors.WHITE
@@ -80,59 +81,6 @@ def _parse_prefilter_date(value):
             return datetime.datetime.strptime(clean.replace(".", "-"), "%Y-%m-%d")
         except ValueError:
             return None
-
-
-def build_text(
-    value,
-    size=12,
-    color=TEXT_PRIMARY,
-    weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.LEFT,
-    max_lines=1,
-):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        text_align=text_align,
-        max_lines=max_lines,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        ink=True if on_click else False,
-        on_click=on_click,
-        content=ft.Text(
-            value=text or "",
-            size=13,
-            color=FIELD_TEXT if text else HINT_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        ink=True if on_click else False,
-        on_click=on_click,
-        content=ft.Icon(ft.Icons.CALENDAR_MONTH, size=18, color="#4B5563"),
-    )
 
 
 def build_button(text, on_click=None, width=82):
@@ -434,21 +382,6 @@ def erp_stock_inout_view():
         bgcolor=FIELD_BG,
         content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
     )
-
-    def build_table_cell(text, expand, align=0, weight=ft.FontWeight.W_400, color=TEXT_ROW):
-        return ft.Container(
-            expand=expand,
-            alignment=ft.Alignment(align, 0),
-            content=ft.Text(
-                value=str(text if text is not None else ""),
-                size=12,
-                color=color,
-                weight=weight,
-                text_align=ft.TextAlign.CENTER if align == 0 else ft.TextAlign.LEFT,
-                max_lines=1,
-                overflow=ft.TextOverflow.ELLIPSIS,
-            ),
-        )
 
     def build_table_header():
         return ft.Container(

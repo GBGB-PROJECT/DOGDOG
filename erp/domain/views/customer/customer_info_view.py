@@ -7,6 +7,7 @@ from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import CUSTOMER_FIELDS
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_customers, fetch_customers, create_customer
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 
 
 # =========================================================
@@ -31,99 +32,6 @@ TEXT_ROW = "#374151"
 
 SESSION_PREFIX = "customer"
 PAGE_SIZE = 50
-
-
-def build_text(
-    value,
-    size=12,
-    color=TEXT_PRIMARY,
-    weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.LEFT,
-):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        text_align=text_align,
-        max_lines=1,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=FIELD_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Icon(
-            ft.Icons.CALENDAR_MONTH_OUTLINED,
-            size=18,
-            color="#4B5563",
-        ),
-    )
-
-
-def action_button(text, on_click=None, width=78):
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=BUTTON_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
-def build_table_cell(
-    text,
-    expand,
-    align_x=-1,
-    weight=ft.FontWeight.W_400,
-    color=TEXT_ROW,
-    size=12,
-):
-    return ft.Container(
-        expand=expand,
-        alignment=ft.Alignment(align_x, 0),
-        content=build_text(
-            value=text,
-            size=size,
-            color=color,
-            weight=weight,
-            text_align=ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT,
-        ),
-    )
 
 
 def _to_yn(value):

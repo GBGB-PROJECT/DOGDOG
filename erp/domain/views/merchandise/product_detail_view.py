@@ -5,6 +5,7 @@ from components import common as cm
 from api.erp_httpx_api import count_product_join_rows, fetch_product_join_rows, create_product_detail
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
 
 
 FIELD_BG = ft.Colors.WHITE
@@ -29,66 +30,6 @@ TEXT_ROW = "#374151"
 # =========================================================
 SESSION_PREFIX = "product_detail"
 PAGE_SIZE = 50
-
-
-def build_text(
-    value,
-    size=12,
-    color=TEXT_PRIMARY,
-    weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.CENTER,
-    max_lines=1,
-):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        text_align=text_align,
-        max_lines=max_lines,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
-def action_button(text, on_click=None, width=78):
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=BUTTON_TEXT,
-            weight=ft.FontWeight.W_500,
-            text_align=ft.TextAlign.CENTER,
-        ),
-    )
-
-
-def build_table_cell(
-    text,
-    width,
-    align_x=0,
-    weight=ft.FontWeight.W_400,
-    color=TEXT_ROW,
-    size=12,
-):
-    return ft.Container(
-        width=width,
-        alignment=ft.Alignment(0, 0),
-        content=build_text(
-            value=text,
-            size=size,
-            color=color,
-            weight=weight,
-            text_align=ft.TextAlign.CENTER,
-            max_lines=2,
-        ),
-    )
 
 
 def _format_number(value):

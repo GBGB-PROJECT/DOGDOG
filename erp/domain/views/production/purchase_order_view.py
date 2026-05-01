@@ -12,6 +12,7 @@ from api.erp_httpx_api import (
     fetch_purchase_order_detail,
     fetch_purchase_order_items,
 )
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
 
 
 FIELD_BG = ft.Colors.WHITE
@@ -87,64 +88,9 @@ def _parse_prefilter_date(value):
             return None
 
 
-def build_text(
-    value,
-    size=12,
-    color=TEXT_PRIMARY,
-    weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.LEFT,
-    max_lines=1,
-):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        text_align=text_align,
-        max_lines=max_lines,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
 # =========================================================
 # 🔥 inbound_view.py와 같은 DatePicker UI 함수
 # =========================================================
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        on_click=on_click,
-        content=ft.Text(
-            text,
-            size=13,
-            color=FIELD_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Icon(
-            ft.Icons.CALENDAR_MONTH_OUTLINED,
-            size=18,
-            color="#4B5563",
-        ),
-    )
-
-
 def format_number(value):
     if value in (None, ""):
         return ""
@@ -155,52 +101,11 @@ def format_number(value):
         return str(value)
 
 
-def action_button(text, on_click=None, width=78, bgcolor=BUTTON_BG, color=BUTTON_TEXT):
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=bgcolor,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=color,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
 # =========================================================
 # 🔥 테이블 셀
 # - 발주관리 테이블 헤더/본문 전체 중앙정렬
 # - ft.alignment.* 사용하지 않고 ft.Alignment(0, 0) 사용
 # =========================================================
-def build_table_cell(
-    text,
-    width,
-    align_x=0,
-    weight=ft.FontWeight.W_400,
-    color=TEXT_ROW,
-    size=12,
-    max_lines=1,
-):
-    return ft.Container(
-        width=width,
-        alignment=ft.Alignment(0, 0),
-        content=build_text(
-            value=text,
-            size=size,
-            color=color,
-            weight=weight,
-            text_align=ft.TextAlign.CENTER,
-            max_lines=max_lines,
-        ),
-    )
-
-
 def normalize_cancel_text(value):
     # 🔥 httpx 방식에서는 API가 이미 "정상" / "취소" 문자열로 내려줄 수 있다.
     # - True / "true" / "1" / "y"  → 취소

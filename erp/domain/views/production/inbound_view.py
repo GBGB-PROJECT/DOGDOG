@@ -14,6 +14,7 @@ import flet as ft
 
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_inbounds, fetch_inbounds
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 
 
 FIELD_BG = ft.Colors.WHITE
@@ -91,74 +92,15 @@ def _parse_prefilter_date(value):
 # =========================================================
 # 🔥 공통 텍스트
 # =========================================================
-def build_text(value, size=12, color=TEXT_PRIMARY, weight=ft.FontWeight.W_400):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        max_lines=1,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
 # =========================================================
 # 🔥 날짜 박스
 # =========================================================
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        on_click=on_click,
-        content=ft.Text(text, size=13, color=FIELD_TEXT, weight=ft.FontWeight.W_500),
-    )
-
-
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Icon(ft.Icons.CALENDAR_MONTH_OUTLINED, size=18, color="#4B5563"),
-    )
-
-
 # =========================================================
 # 🔥 버튼
 # =========================================================
-def action_button(text, on_click=None, width=78):
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(text, size=13, color=BUTTON_TEXT, weight=ft.FontWeight.W_500),
-    )
-
-
 # =========================================================
 # 🔥 테이블 셀
 # =========================================================
-def build_table_cell(text, expand, align_x=0, weight=ft.FontWeight.W_400, color=TEXT_ROW):
-    return ft.Container(
-        expand=expand,
-        alignment=ft.Alignment(align_x, 0),
-        content=build_text(text, size=12, color=color, weight=weight),
-    )
-
-
 # =========================================================
 # 🔥 날짜/시간 포맷
 # =========================================================

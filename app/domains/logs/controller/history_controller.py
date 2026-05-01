@@ -1,6 +1,7 @@
 import flet as ft
 from api_client import ApiClient
 import datetime
+import re
 
 class HistoryController:
     """
@@ -54,24 +55,43 @@ class HistoryController:
             else:
                 filtered_logs.append(log)
 
-        # [Step 2] 도메인 상관없는 완벽한 통합 정렬
         def get_unified_datetime(log):
-            # 1. Numeric 테이블 형식 (단일 log_date 파라미터)
-            dt = log.get("log_date") or log.get("created_at")
-            if dt:
-                # "2026-05-01 14:16:00" 형식을 "2026-05-01T14:16:00"로 통일
-                return str(dt).replace(" ", "T")
+            # 1. 최우선: 명시적인 키값이 있는지 먼저 확인 (사료 및 수치형 필드 가로채기 방지)
+            d = log.get("feeding_date") or log.get("date") or log.get("log_date")
+            t = log.get("feeding_time") or log.get("time") or log.get("log_time")
             
-            # 2. Feeding 테이블 형식 (date와 time이 분리된 경우)
-            d = log.get("date") or log.get("feeding_date") or "1970-01-01"
-            t = log.get("time") or log.get("feeding_time") or "00:00:00"
+            if d and t:
+                d_str = str(d).split("T")[0].split(" ")[0]
+                t_str = str(t).split(".")[0].replace("Z", "")
+                if len(t_str.split(":")) == 2: t_str += ":00"
+                if len(t_str.split(":")[0]) == 1: t_str = "0" + t_str
+                return f"{d_str}T{t_str}"
+
+            # 2. 명시적인 값이 없을 때만 기존 정규식(Regex)으로 폴백 스캔
+            log_str = str(log)
+            d = "1970-01-01"
+            t = "00:00:00"
             
-            # 시간 문자열 깔끔하게 정리 (Z나 밀리초 제거)
-            t = str(t).split(".")[0].replace("Z", "")
+            # 1. 정규식으로 YYYY-MM-DD 또는 YYYY.MM.DD 형태 추출
+            date_match = re.search(r"(\d{4}[-.]\d{2}[-.]\d{2})", log_str)
+            if date_match:
+                d = date_match.group(1).replace(".", "-")
+                
+            # 2. 정규식으로 HH:MM:SS 또는 HH:MM 형태 추출 (콜론 기준)
+            time_matches = re.findall(r"([0-2]\d:[0-5]\d(?::[0-5]\d)?)", log_str)
+            if time_matches:
+                t = time_matches[0]
+                if len(t.split(":")) == 2:
+                    t += ":00" # 초가 없으면 패딩
+            
             return f"{d}T{t}"
 
         # 최신 시간(내림차순)으로 1차 정렬, 시간이 완벽히 같으면 id(최신순)로 2차 정렬
         filtered_logs.sort(key=lambda x: (get_unified_datetime(x), x.get("id", 0)), reverse=True)
+        
+        # [임시 디버그] 정렬 확인용 출력
+        for log in filtered_logs:
+            print(f"정렬 확인: {get_unified_datetime(log)} - {log.get('domain')}")
 
         return filtered_logs, date_str
 
@@ -81,8 +101,10 @@ class HistoryController:
         for c in self.log_containers:
             c.bgcolor = None
             
-        # 새로운 선택 (토글링 지원)
-        if self.selected_log_data and self.selected_log_data.get("id") == log_data.get("id"):
+        # 새로운 선택 (토글링 지원 - ID와 Domain을 동시에 체크하여 충돌 방지)
+        if (self.selected_log_data and 
+            self.selected_log_data.get("id") == log_data.get("id") and 
+            self.selected_log_data.get("domain") == log_data.get("domain")):
             self.selected_log_data = None
             self.selected_ui_container = None
         else:

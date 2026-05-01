@@ -11,6 +11,12 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
     - StatusController를 인스턴스화하여 비즈니스 로직 및 상태 변경을 위임합니다.
     - 데이터 조회는 컨트롤러에서 수행하며, 이 뷰는 반환된 데이터로 시각적 요소만 렌더링합니다.
     """
+    # [Step 2] 기존 피커 찌꺼기 완벽 제거 (렉 방지)
+    pickers_to_remove = [c for c in page.overlay if isinstance(c, (ft.DatePicker, ft.TimePicker))]
+    for p in pickers_to_remove:
+        page.overlay.remove(p)
+    page.update()
+
     s_control = StatusController(page=page, popup=popup, on_refresh_callback=on_refresh_callback, edit_mode=edit_mode, log_data=log_data)
     s_control.set_default_datetime(call)
     
@@ -31,21 +37,26 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
                 initial_time = initial_dt
             except: pass
 
-    # 공통 UI 컴포넌트: 피커
+    # 안전한 피커 생성
     date_picker = ft.DatePicker(
-        first_date=datetime.datetime.now() - datetime.timedelta(days=365), # 수정 시 과거 기록도 가능하도록 범위 확대
-        last_date=datetime.datetime.now() + datetime.timedelta(days=1),
+        first_date=datetime.datetime.now() - datetime.timedelta(days=365),
+        last_date=datetime.datetime.now(), # 오늘까지만 선택 (내일 선택 방지 유지)
         value=initial_date
     )
-    if date_picker not in page.overlay:
-        page.overlay.append(date_picker)
-        
+    
     time_picker = ft.TimePicker(
         entry_mode=ft.TimePickerEntryMode.DIAL_ONLY,
         value=initial_time.time()
     )
-    if time_picker not in page.overlay:
-        page.overlay.append(time_picker)
+
+    # [수정] 중복 방지를 위해 기존 피커 찾아서 안전하게 제거 (page.overlay는 할당이 불가능함)
+    pickers_to_remove = [c for c in page.overlay if isinstance(c, (ft.DatePicker, ft.TimePicker))]
+    for p in pickers_to_remove:
+        page.overlay.remove(p)
+        
+    # 새 피커 추가
+    page.overlay.append(date_picker)
+    page.overlay.append(time_picker)
 
     def open_picker(e, picker):
         picker.open = True
@@ -360,8 +371,9 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
     if popup.bottom_sheet_popup not in page.overlay:
         page.overlay.append(popup.bottom_sheet_popup)
     else:
-        page.overlay.clear()
-        page.overlay.append(popup.bottom_sheet_popup)
+        # [수정] page.overlay.clear()는 피커(DatePicker 등)까지 지워버리므로 사용 금지.
+        # 대신 팝업이 이미 있다면 덮어쓰지 않고 바로 엽니다.
+        pass
         
     popup.bottom_sheet_popup.open = True
     page.update()

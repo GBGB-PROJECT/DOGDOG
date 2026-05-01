@@ -85,6 +85,15 @@ class StatusController:
                     self.storage.set(f"{call}_float_weight", self.log_data.get("weight"))
                 if self.log_data.get("bcs") is not None:
                     self.storage.set(f"{call}_bcs_weight", self.log_data.get("bcs"))
+            
+            # [Step 2 추가] 사료(Feeding) 데이터 프리필
+            if call == "feeding":
+                amount = self.log_data.get("amount")
+                if amount is not None:
+                    self.storage.set(f"{call}_weight", amount)
+                pet_food_id = self.log_data.get("pet_food_id")
+                if pet_food_id is not None:
+                    self.storage.set("customer_food_id", pet_food_id)
 
         self.storage.set(f"{call}_date", log_date_str)
         self.storage.set(f"{call}_time", log_time_str)
@@ -154,38 +163,54 @@ class StatusController:
 
         # 1. 밥주기(feeding)
         if call == "feeding":
-            if not self.storage.get("customer_food_id") or not self.storage.get(f"{call}_weight"):
-                self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text("사료 정보 또는 급여량을 입력해주세요."))
+            try:
+                if not self.storage.get("customer_food_id") or not self.storage.get(f"{call}_weight"):
+                    self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text("사료 정보 또는 급여량을 입력해주세요."))
+                    self.page.snack_bar.open = True
+                    self.page.update()
+                    return
+                
+                if self.edit_mode and self.log_data:
+                    # [Step 1] 사료 수정 API URL 간소화 및 시간 파라미터 분리
+                    log_id = int(self.log_data.get("id"))
+                    new_date = self.storage.get(f"{call}_date")
+                    new_time = self.storage.get(f"{call}_time") or "00:00"
+                    
+                    # Payload 구성 (명세에 맞게 필드명 조정: new_feeding_date, feeding_time)
+                    payload = {
+                        "amount": int(self.storage.get(f"{call}_weight")),
+                        "memo": self.storage.get(f"{call}_memo"),
+                        "new_feeding_date": new_date,
+                        "feeding_time": f"{new_time}:00.000Z"
+                    }
+                    
+                    # 간소화된 URL로 PATCH 요청 전송
+                    res = await self.api_client.patch(f"/logs/feeding/{log_id}", data=payload)
+                    
+                    if res.status_code in [200, 201]:
+                        self.page.snack_bar = ft.SnackBar(
+                            content=dogdog.basic_text("기록이 수정되었습니다.", color=ft.Colors.WHITE),
+                            bgcolor=ft.Colors.GREEN_400
+                        )
+                        self.page.snack_bar.open = True
+                        await self._post_save_process()
+                    else:
+                        error_msg = res.json().get("detail", "수정에 실패했습니다.")
+                        self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text(f"오류: {error_msg}"))
+                        self.page.snack_bar.open = True
+                        self.page.update()
+                    return
+                else:
+                    # 신규 저장
+                    success = await self.grid_ctrl.save_feeding_api(call)
+                    if success:
+                        await self._post_save_process()
+                    return
+            except Exception as e:
+                print(f"[ERROR] 사료 저장 중 예외 발생: {e}")
+                self.page.snack_bar = ft.SnackBar(content=dogdog.basic_text(f"저장 실패: {str(e)}"))
                 self.page.snack_bar.open = True
                 self.page.update()
-                return
-            
-            if self.edit_mode and self.log_data:
-                # [Step 1] 사료 수정 API URL 간소화
-                log_id = int(self.log_data.get("id"))
-                
-                # [Step 3 해결] feeding_time 포맷 맞추기 (HH:MM:SS.000Z)
-                log_time_str = self.storage.get(f"{call}_time") or "00:00"
-                
-                # Payload 구성 (명세에 맞게 필드명 조정)
-                payload = {
-                    "amount": int(self.storage.get(f"{call}_weight")),
-                    "memo": self.storage.get(f"{call}_memo"),
-                    "new_feeding_date": self.storage.get(f"{call}_date"), # 피커에서 선택된 날짜
-                    "feeding_time": f"{log_time_str}:00.000Z"            # 명세에 맞춘 시간 포맷
-                }
-                
-                # 간소화된 URL로 PATCH 요청 전송
-                endpoint = f"/logs/feeding/{log_id}"
-                res = await self.api_client.patch(endpoint, data=payload)
-                
-                if res.status_code in [200, 201]:
-                    await self._post_save_process()
-                return
-            else:
-                success = await self.grid_ctrl.save_feeding_api(call)
-                if success:
-                    await self._post_save_process()
                 return
 
         # 2. 통합 수치형 API (numeric) 처리

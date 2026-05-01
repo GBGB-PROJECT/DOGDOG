@@ -24,7 +24,7 @@ from components.common.modals.purchase_order import PurchaseOrderDialog
 # ==============================
 # ☑️ 공통 스타일
 # ==============================
-CARD_BG = "#F9FAFB"
+CARD_BG = "#FFFFFF"  # 🔥 수정: stock_status_view.py처럼 카드 배경 흰색 통일
 CARD_INNER_BG = "#FFFFFF"
 BORDER_COLOR = "#E5E7EB"
 
@@ -34,6 +34,9 @@ TEXT_TERTIARY = "#9CA3AF"
 TEXT_ROW = "#374151"
 ACTION_BLUE = "#2563EB"
 ACTION_RED = "#EF4444"
+# 🔥 추가: 최초 진입 기본 조회 월을 2026년 5월로 고정
+DEFAULT_DASHBOARD_YEAR = 2026
+DEFAULT_DASHBOARD_MONTH = 5
 
 
 # ==============================
@@ -69,7 +72,7 @@ def get_production_dashboard_month_state():
 # 🔥 DB 오류/빈 데이터 fallback
 # - DB 연결 실패로 화면 자체가 죽는 것 방지
 # ==============================
-def _empty_dashboard_data(year=2026, month=4):
+def _empty_dashboard_data(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_MONTH):
     return {
         "current_year": year,
         "current_month": month,
@@ -127,17 +130,18 @@ def erp_production_view():
                 month=saved_month,
             )
         else:
-            initial_data = fetch_production_dashboard()
+            # 🔥 수정: 화면 최초 진입 시에는 데이터가 많은 2026년 5월을 기본 조회
+            initial_data = fetch_production_dashboard(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_MONTH)
     except Exception as exc:
         print(f"생산관리 대시보드 조회 실패: {exc}")
         initial_data = _empty_dashboard_data(
-            saved_year or 2026,
-            saved_month or 4,
+            saved_year or DEFAULT_DASHBOARD_YEAR,
+            saved_month or DEFAULT_DASHBOARD_MONTH,
         )
 
     state = {
-        "year": int(initial_data.get("current_year") or saved_year or 2026),
-        "month": int(initial_data.get("current_month") or saved_month or 4),
+        "year": int(initial_data.get("current_year") or saved_year or DEFAULT_DASHBOARD_YEAR),
+        "month": int(initial_data.get("current_month") or saved_month or DEFAULT_DASHBOARD_MONTH),
         "data": initial_data,
     }
 
@@ -413,7 +417,7 @@ def erp_production_view():
 
     def build_recent_purchase_item_box(item_data):
         return ft.Container(
-            width=220,
+            expand=1,  # 🔥 수정: 최근 발주 카드 5개가 남는 여백 없이 고르게 퍼지도록 고정 width 제거
             height=220,
             padding=16,
             border_radius=12,
@@ -467,8 +471,9 @@ def erp_production_view():
                 clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 content=ft.Row(
                     spacing=12,
-                    scroll=ft.ScrollMode.AUTO,
-                    alignment=ft.MainAxisAlignment.START,
+                    # 🔥 수정: stock_status_view.py처럼 내부 카드들을 가용 폭 전체에 고르게 분배
+                    # - 최근 발주 내역은 최대 5개만 보여주므로 가로 스크롤 대신 expand 카드로 배치
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         build_recent_purchase_item_box(item)
@@ -613,9 +618,19 @@ def erp_production_view():
             chart_data=dashboard_data.get("chart_data", [])
         )
 
-        recent_purchase_holder.content = build_recent_purchase_box(section_data)
-
+        # 🔥 수정: stock_status_view.py의 top_stock_holder 구조처럼
+        # - 왼쪽 작은 이동 카드 + 오른쪽 목록 카드를 하나의 Row holder에 묶음
+        # - 최종 화면에서는 recent_purchase_holder 하나만 배치하면 되도록 통일
         purchase_month_text_holder.content = build_purchase_month_text()
+
+        recent_purchase_holder.content = ft.Row(
+            spacing=6,
+            vertical_alignment=ft.CrossAxisAlignment.START,
+            controls=[
+                build_purchase_menu_box(),
+                build_recent_purchase_box(section_data),
+            ],
+        )
 
         if page:
             page.update()
@@ -665,7 +680,7 @@ def erp_production_view():
     # ==============================
     return ft.Container(
         expand=True,
-        bgcolor=cm.PAGE_BG,
+        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 화면 배경 흰색 통일
         padding=20,
         content=ft.Column(
             spacing=20,
@@ -680,14 +695,8 @@ def erp_production_view():
                 month_navigation_holder,
                 status_box_holder,
                 chart_holder,
-                ft.Row(
-                    spacing=6,
-                    vertical_alignment=ft.CrossAxisAlignment.START,
-                    controls=[
-                        build_purchase_menu_box(),
-                        recent_purchase_holder,
-                    ],
-                ),
+                # 🔥 수정: stock_status_view.py처럼 holder 자체가 하단 상자 Row를 담당
+                recent_purchase_holder,
             ],
         ),
     )

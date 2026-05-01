@@ -20,7 +20,7 @@ from domain.views.stock.stock_product_detail_view import set_stock_product_detai
 # ==============================
 # ☑️ 공통 스타일
 # ==============================
-CARD_BG = "#F9FAFB"
+CARD_BG = "#FFFFFF"  # 🔥 수정: 화면 카드 배경 흰색 통일
 CARD_INNER_BG = "#FFFFFF"
 BORDER_COLOR = "#E5E7EB"
 
@@ -29,6 +29,9 @@ TEXT_SECONDARY = "#6B7280"
 TEXT_TERTIARY = "#9CA3AF"
 TEXT_ROW = "#374151"
 ACTION_BLUE = "#2563EB"
+# 🔥 추가: 최초 진입 기본 조회 월을 2026년 5월로 고정
+DEFAULT_DASHBOARD_YEAR = 2026
+DEFAULT_DASHBOARD_MONTH = 5
 
 
 # ==============================
@@ -64,7 +67,7 @@ def get_stock_dashboard_month_state():
 # 🔥 DB 오류/빈 데이터 fallback
 # - DB 연결 실패로 화면 자체가 죽는 것 방지
 # ==============================
-def _empty_dashboard_data(year=2026, month=4):
+def _empty_dashboard_data(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_MONTH):
     return {
         "current_year": year,
         "current_month": month,
@@ -119,17 +122,18 @@ def erp_stock_status_view():
                 month=saved_month,
             )
         else:
-            initial_data = fetch_stock_dashboard()
+            # 🔥 수정: 화면 최초 진입 시에는 데이터가 많은 2026년 5월을 기본 조회
+            initial_data = fetch_stock_dashboard(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_MONTH)
     except Exception as exc:
         print(f"재고 현황 대시보드 조회 실패: {exc}")
         initial_data = _empty_dashboard_data(
-            saved_year or 2026,
-            saved_month or 4,
+            saved_year or DEFAULT_DASHBOARD_YEAR,
+            saved_month or DEFAULT_DASHBOARD_MONTH,
         )
 
     state = {
-        "year": int(initial_data.get("current_year") or saved_year or 2026),
-        "month": int(initial_data.get("current_month") or saved_month or 4),
+        "year": int(initial_data.get("current_year") or saved_year or DEFAULT_DASHBOARD_YEAR),
+        "month": int(initial_data.get("current_month") or saved_month or DEFAULT_DASHBOARD_MONTH),
         "data": initial_data,
     }
 
@@ -679,7 +683,7 @@ def erp_stock_status_view():
     # ==============================
     return ft.Container(
         expand=True,
-        bgcolor=cm.PAGE_BG,
+        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 화면 배경 흰색 통일
         padding=20,
         content=ft.Column(
             spacing=20,

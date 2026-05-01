@@ -17,6 +17,7 @@ from app.pets.repository.petFoodDetail_repository import (
     get_current_pet_food_detail,
     get_pet_by_id,
 )
+from app.pets.service.petFood_service import read_recommended_foods
 
 router = APIRouter(prefix="/api/v1/pets", tags=["Pets"])
 
@@ -359,5 +360,61 @@ async def get_pet_info(
                 "success": False,
                 "error_code": "PET_INFO_READ_FAILED",
                 "message": "반려견 목록 조회에 실패했습니다.",
+            },
+        )
+    
+# 추천 사료 조회 --------------------------------------------------------------------------
+@router.get("/{pet_id}/recommended-foods")
+def get_recommended_pet_foods(
+    customer_id: int,
+    pet_id: int,
+    db: Session = Depends(get_db),
+    # customer_id: int = Depends(get_current_user),
+):
+    try:
+        result = read_recommended_foods(
+            db=db,
+            customer_id=customer_id,
+            pet_id=pet_id,
+        )
+
+        return {
+            "success": True,
+            "data": result,
+        }
+
+    except ValueError as e:
+        error_code = str(e)
+
+        error_map = {
+            "INVALID_PET_ID": (400, "유효하지 않은 반려견 ID입니다."),
+            "FORBIDDEN": (403, "해당 반려견에 대한 접근 권한이 없습니다."),
+            "PET_NOT_FOUND": (404, "반려견이 존재하지 않습니다."),
+            "CURRENT_FOOD_NOT_FOUND": (404, "현재 급여 중인 사료가 없습니다."),
+        }
+
+        status_code, message = error_map.get(
+            error_code,
+            (400, "잘못된 요청입니다."),
+        )
+
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "success": False,
+                "error_code": error_code,
+                "message": message,
+            },
+        )
+
+    except Exception as e:
+        print("추천사료 조회 실패:", e)
+
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error_code": "INTERNAL_ERROR",
+                "message": "서버 내부 오류가 발생했습니다.",
             },
         )

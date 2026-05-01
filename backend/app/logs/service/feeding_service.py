@@ -167,21 +167,19 @@ class FeedingService:
             "total_calories": total_calories,
         }
 
-    # 급여 기록 수정 및 잔여량 수정
     def update_feeding(
-        self, customer_id: int, pet_food_id: int, old_date, new_data: dict
+        self, customer_id: int, pet_food_id: int, new_data: dict
     ):
         """[수정] 특정 급여 기록을 수정하고 재고 및 파티션을 관리합니다.
-
-        날짜 기반 재고 보정 로직:
-        - feeding_date >= feeding_start → 현재 사료 기간이므로 재고 보정 수행
-        - feeding_date < feeding_start  → 과거 사료 기간이므로 로그만 수정
+        
+        더 이상 외부에서 old_date를 받지 않고 DB에서 조회한 원본 log의 날짜를 사용합니다.
         """
-        log = self.repo.get_log_by_id_and_date(pet_food_id, old_date)
+        log = self.repo.get_log_by_id(pet_food_id)
         if not log:
             raise ValueError("요청하신 급여 기록을 찾을 수 없습니다.")
 
         # 날짜 기반 재고 보정 여부 판단
+        old_date = log.feeding_date
         feeding_start = self.repo.get_feeding_start(log.pet_id)
         is_current_period = True
         if feeding_start:
@@ -260,7 +258,7 @@ class FeedingService:
 
     # 급여기록 삭제 및 소모 잔여량 복구
     def delete_feeding(
-        self, customer_id: int, pet_food_id: int, feeding_date
+        self, customer_id: int, pet_food_id: int
     ):
         """[삭제] 급여 기록을 삭제하고 소모된 재고를 복구합니다.
 
@@ -268,9 +266,11 @@ class FeedingService:
         - feeding_date >= feeding_start → 현재 사료 기간이므로 재고 복구 수행
         - feeding_date < feeding_start  → 과거 사료 기간이므로 로그만 삭제
         """
-        log = self.repo.get_log_by_id_and_date(pet_food_id, feeding_date)
+        log = self.repo.get_log_by_id(pet_food_id)
         if not log:
             raise ValueError("요청하신 급여 기록을 찾을 수 없습니다.")
+
+        feeding_date = log.feeding_date
 
         # 날짜 기반 재고 복구 여부 판단
         feeding_start = self.repo.get_feeding_start(log.pet_id)

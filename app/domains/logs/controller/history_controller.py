@@ -54,6 +54,20 @@ class HistoryController:
             else:
                 filtered_logs.append(log)
 
+        # [Step 2] 도메인 상관없는 완벽한 통합 정렬
+        def get_sort_datetime(log):
+            dt = log.get("log_date")
+            if dt:
+                return str(dt)
+
+            d = log.get("date") or log.get("feeding_date") or "1970-01-01"
+            t = log.get("time") or log.get("feeding_time") or "00:00:00"
+            # 시간 포맷 정제 (.000Z 제거 등)
+            t = str(t).split(".")[0].replace("Z", "") 
+            return f"{d}T{t}"
+
+        filtered_logs.sort(key=lambda x: (get_sort_datetime(x), x.get("id", 0)), reverse=True)
+
         return filtered_logs, date_str
 
     def select_log(self, log_data, container):
@@ -115,11 +129,14 @@ class HistoryController:
             return
 
         # 2. 기존 API 호출 및 삭제 로직 수행
-        # [문제 1 해결] log_id를 int로 형변환하여 422 에러 방지
         log_id = int(self.selected_log_data.get("id"))
         domain = self.selected_log_data.get("domain")
         
-        endpoint = f"/logs/feeding/{log_id}" if domain == "feeding" else f"/logs/numeric/{log_id}"
+        # [Step 1] 사료 삭제 API URL 간소화
+        if domain == "feeding":
+            endpoint = f"/logs/feeding/{log_id}"
+        else:
+            endpoint = f"/logs/numeric/{log_id}"
 
         try:
             res = await self.api_client.delete(endpoint)

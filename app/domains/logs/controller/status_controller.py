@@ -161,15 +161,24 @@ class StatusController:
                 return
             
             if self.edit_mode and self.log_data:
-                # [문제 2 해결] log_id를 int로 형변환하여 전송
+                # [Step 1] 사료 수정 API URL 간소화
                 log_id = int(self.log_data.get("id"))
+                
+                # [Step 3 해결] feeding_time 포맷 맞추기 (HH:MM:SS.000Z)
+                log_time_str = self.storage.get(f"{call}_time") or "00:00"
+                
+                # Payload 구성 (명세에 맞게 필드명 조정)
                 payload = {
-                    "pet_food_id": self.storage.get("customer_food_id"),
-                    "amount": self.storage.get(f"{call}_weight"),
-                    "log_date": full_log_date,
-                    "memo": self.storage.get(f"{call}_memo")
+                    "amount": int(self.storage.get(f"{call}_weight")),
+                    "memo": self.storage.get(f"{call}_memo"),
+                    "new_feeding_date": self.storage.get(f"{call}_date"), # 피커에서 선택된 날짜
+                    "feeding_time": f"{log_time_str}:00.000Z"            # 명세에 맞춘 시간 포맷
                 }
-                res = await self.api_client.put(f"/logs/feeding/{log_id}", data=payload)
+                
+                # 간소화된 URL로 PATCH 요청 전송
+                endpoint = f"/logs/feeding/{log_id}"
+                res = await self.api_client.patch(endpoint, data=payload)
+                
                 if res.status_code in [200, 201]:
                     await self._post_save_process()
                 return

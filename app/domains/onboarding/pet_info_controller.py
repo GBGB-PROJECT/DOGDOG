@@ -92,21 +92,30 @@ class PetInfoController:
     def change_birth_mode(self, e, birthday_picker_field, birthday_dropdown, year_dropdown, month_dropdown):
         birth_input_mode = e.control.value
         self.storage.set("birth_input_mode", birth_input_mode)
-        if birth_input_mode == "age":
-            birthday_dropdown.visible = True
-            birthday_picker_field.visible = False
-            birthday_picker_field.content.controls[0].value = "생년월일을 선택해주세요."
-            if self.storage.get("pet_birth_day"):
-                self.storage.remove("pet_birth_day")
-        else:
-            birthday_dropdown.visible = False
+
+        if birth_input_mode == "birthday":
+            # '생년월일을 알아요' 선택 시: 달력 창 보이게, 나이 드롭다운 숨김
             birthday_picker_field.visible = True
+            birthday_dropdown.visible = False
+            
+            # 기존 나이 데이터 초기화
             year_dropdown.value = "년 선택"
             month_dropdown.value = "개월 선택"
-            if self.storage.get("pet_age_year"):
-                self.storage.remove("pet_age_year")
-            if self.storage.get("pet_age_month"):
-                self.storage.remove("pet_age_month")
+            if self.storage.get("pet_age_year"): self.storage.remove("pet_age_year")
+            if self.storage.get("pet_age_month"): self.storage.remove("pet_age_month")
+            
+        elif birth_input_mode == "age":
+            # '대략적인 나이만 알고 있어요' 선택 시: 달력 창 숨김, 나이 드롭다운 보임
+            birthday_picker_field.visible = False
+            birthday_dropdown.visible = True
+            
+            # 기존 생년월일 데이터 초기화
+            birthday_picker_field.content.controls[0].value = "생년월일을 선택해주세요."
+            if self.storage.get("pet_birth_day"): self.storage.remove("pet_birth_day")
+        
+        # 컴포넌트 개별 업데이트 및 페이지 갱신
+        birthday_picker_field.update()
+        birthday_dropdown.update()
         self.page.update()
 
     def on_date_change(self, e, birthday_picker_field):

@@ -134,7 +134,9 @@ def pet_info_view(page: ft.Page, popup, controller):
         year_dropdown.value = storage.get("pet_age_year")
         month_dropdown.value = storage.get("pet_age_month")
     else:
-        birthday_picker_field.visible = False
+        # 초기값 보완: 기본 선택인 'birthday' 모드에 맞춰 달력 창을 보이게 설정
+        birth_input_mode.value = "birthday"
+        birthday_picker_field.visible = True
         birthday_dropdown.visible = False
 
     # --------------------------------------------------------------------------------------------------- 

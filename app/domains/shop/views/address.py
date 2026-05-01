@@ -61,9 +61,9 @@ def main(page: ft.Page, on_complete=None):
                 result_column.controls.append(ft.Text("검색 결과가 없습니다.", size=15, color="red"))
             else: 
                 for juso in page_juso:
-                    result1 = juso["zipNo"]
-                    result2 = juso["bdNm"] if juso["bdNm"] else f"{juso['roadAddr']}"
-                    result3 = f"지번 | {juso['jibunAddr']}" 
+                    result1 = juso.get('zipNo')
+                    result2 = juso.get('bdNm') if juso.get('bdNm') else f"{juso.get('roadAddr')}"
+                    result3 = f"지번 | {juso.get('jibunAddr')}" 
 
                     ### 들여쓰기 완벽 교정: for문 안쪽에 맞춰서 컨테이너 조립
                     result_column.controls.append(
@@ -72,9 +72,9 @@ def main(page: ft.Page, on_complete=None):
                             ink=True,
                             on_hover=True,
                             data={
-                                "zip": juso["zipNo"],
-                                "road": juso["roadAddr"],
-                                "jibun": juso["jibunAddr"],
+                                "zip": juso.get('zipNo'),
+                                "road": juso.get('roadAddr'),
+                                "jibun": juso.get('jibunAddr'),
                                 "result2_name":result2
                             },
                             on_click=on_address_select,
@@ -123,7 +123,7 @@ def main(page: ft.Page, on_complete=None):
             result_column.controls.clear()
             result_column.controls.append(ft.Text("상세 주소를 입력하시고 [확인] 혹은 Enter를 눌러주세요!"))
             search_input.error_text = "" # 선택 시점에 기존 에러내역을 지워줌
-            result_column.controls.append(ft.Text(f"선택하신 주소: \n{e.control.data['jibun']}", weight="bold", color="blue"))
+            result_column.controls.append(ft.Text(f"선택하신 주소: \n{e.control.data.get('jibun')}", weight="bold", color="blue"))
         
         ### 팝업창에서 No를 눌렀을 경우 
         async def cancel_popup(click_e):
@@ -134,7 +134,7 @@ def main(page: ft.Page, on_complete=None):
             tight=True,
             spacing=5,
             controls=[
-                ft.Text(f"{search_input.data['result2_name']}", weight='bold', size=16),
+                ft.Text(f"{search_input.data.get('result2_name')}", weight='bold', size=16),
                 ft.Text(f"이 주소가 확실한가요?", size=15)
             ]
         )
@@ -152,18 +152,18 @@ def main(page: ft.Page, on_complete=None):
         save_data = search_input.data
         # 사용자 입력한 상세 주소 분리해주기
         full_text = search_input.value
-        detail_addr = full_text.replace(save_data["road"],"").strip()
+        detail_addr = full_text.replace(save_data.get('road'),"").strip()
 
         result = {
-            "zip": save_data["zip"],
-            "road": save_data["road"],
-            "jibun": save_data["jibun"],
+            "zip": save_data.get('zip'),
+            "road": save_data.get('road'),
+            "jibun": save_data.get('jibun'),
             "detail": detail_addr,
-            "full_address": f'{save_data["road"]} {detail_addr}'.strip(),
+            "full_address": f'{save_data.get('road')} {detail_addr}'.strip(),
         }
 
-        print(f"우편번호: {save_data['zip']}")
-        print(f"지번주소: {save_data['jibun']}")
+        print(f"우편번호: {save_data.get('zip')}")
+        print(f"지번주소: {save_data.get('jibun')}")
         print(f"상세주소: {detail_addr}")
 
         if on_complete:

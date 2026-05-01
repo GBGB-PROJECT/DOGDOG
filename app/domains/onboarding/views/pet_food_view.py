@@ -41,7 +41,7 @@ def pet_food_view(page: ft.Page, popup, controller):
         food_bottom_sheet_contents.append(ft.Divider())
         food_bottom_sheet_contents.append(food_search_field)
         food_bottom_sheet_contents.append(food_list_column)
-        controller.open_food_bottom_sheet(e, food_search_field, food_list_column)
+        controller.open_food_bottom_sheet(e, food_search_field, food_list_column, select_food_wrapper)
 
     if storage.get("food_text"):
         food_picker_field.content.controls[0].value = storage.get("food_text") # type: ignore

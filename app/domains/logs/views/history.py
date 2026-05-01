@@ -4,31 +4,12 @@ import datetime
 import domains
 
 
-def history_view(page: ft.Page):
+def history_view(page: ft.Page, logs_data: list, view_date_str: str):
+    """
+    [View] History View
+    컨트롤러로부터 전달받은 logs_data와 view_date_str을 사용하여 타임라인 뷰를 렌더링합니다.
+    """
     popup = dogdog.Popup(page)
-    storage = page.session.store
-    now = datetime.datetime.now()
-    if storage.get("select_log_date"):
-        date = storage.get("select_log_date")
-        view_date = storage.get("select_log_date")
-        storage.remove("select_log_date")
-    elif storage.get("select_log_week"):
-        date = storage.get("select_log_week")
-        view_date = [
-            now.strftime("%Y.%m.%d"),
-            (now - datetime.timedelta(days=1)).strftime("%Y.%m.%d"),
-            (now - datetime.timedelta(days=2)).strftime("%Y.%m.%d"),
-            (now - datetime.timedelta(days=3)).strftime("%Y.%m.%d"),
-            (now - datetime.timedelta(days=4)).strftime("%Y.%m.%d"),
-            (now - datetime.timedelta(days=5)).strftime("%Y.%m.%d"),
-            (now - datetime.timedelta(days=6)).strftime("%Y.%m.%d"),
-        ]
-        storage.remove("select_log_week")
-    else:
-        date = now.strftime("%Y.%m.%d")
-        view_date = now.strftime("%Y.%m.%d")
-
-    user_logs = storage.get("history")
 
     def insert_event(e):
         insert_grid.visible = True if insert_grid.visible == False else False
@@ -45,7 +26,7 @@ def history_view(page: ft.Page):
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Icon(icon=ft.Icons.ADD, size=30),
-                dogdog.basic_text(value="기록추가", size=16, weight="bold"),
+                dogdog.basic_text(value="기록추가", size=13, weight="bold"),
             ],
         ),
     )
@@ -53,33 +34,42 @@ def history_view(page: ft.Page):
     insert_grid = domains.grid.status_update_menu(page=page, popup=popup)
     insert_grid.visible = False
     insert_grid.margin = ft.margin.only(bottom=10)
+    
     all_log = []
     feeding_log = []
     watering_log = []
     daily_work_log = []
-    for pet_log_numeric_id, details in user_logs.items():  # type: ignore
-        log_date = (details["log_date"].split()[0]).split("-")
-        view_log_date = f"{log_date[0]}.{log_date[1]}.{log_date[2]}"
-        if view_log_date in view_date:  # type: ignore
-            all_log.append(dogdog.log_container(page, pet_log_numeric_id, details))
-            if details["category"] == "급여량":
-                feeding_log.append(
-                    dogdog.log_container(page, pet_log_numeric_id, details)
-                )
-            if details["category"] == "음수량":
-                watering_log.append(
-                    dogdog.log_container(page, pet_log_numeric_id, details)
-                )
-            if details["category"] == "산책":
-                daily_work_log.append(
-                    dogdog.log_container(page, pet_log_numeric_id, details)
-                )
+    poop_log = []
+    health_log = []
+    
+    # 전달받은 logs_data를 domain 기준으로 필터링하여 컨테이너 생성
+    for log in logs_data:
+        log_id = log.get("id")
+        domain = log.get("domain", "")
+        
+        container = dogdog.log_container(page, log_id, details=log)
+        all_log.append(container)
+        
+        if domain == "feeding":
+            feeding_log.append(container)
+        elif domain == "numeric":
+            category = log.get("category", "")
+            if category == "water":
+                watering_log.append(container)
+            elif category == "walk":
+                daily_work_log.append(container)
+            elif category == "poop":
+                poop_log.append(container)
+            elif category in ["weight", "bcs"]:
+                health_log.append(container)
 
     logs_tab = [
         ft.Tab(label="전체"),
         ft.Tab(label="급여량"),
         ft.Tab(label="음수량"),
-        ft.Tab(label="활동량"),
+        ft.Tab(label="활동기록"),
+        ft.Tab(label="배변"),
+        ft.Tab(label="건강기록"),
     ]
 
     def content_column(content):
@@ -118,8 +108,8 @@ def history_view(page: ft.Page):
                 ),
                 dogdog.flat_button(
                     "수정", bgcolor="#FEF3B9", visible=visible, on_click=None
-                ),  # type: ignore
-            ],  # type: ignore
+                ),
+            ],
         )
 
     logs_content = [
@@ -127,6 +117,8 @@ def history_view(page: ft.Page):
         content_column(feeding_log),
         content_column(watering_log),
         content_column(daily_work_log),
+        content_column(poop_log),
+        content_column(health_log),
     ]
 
     logs_tabs = ft.Tabs(
@@ -142,7 +134,7 @@ def history_view(page: ft.Page):
                     margin=ft.margin.only(left=10, right=10, bottom=10),
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        dogdog.basic_text(date, weight="bold", size=18),  # type: ignore
+                        dogdog.basic_text(view_date_str, weight="bold", size=18),
                         insert_log,
                     ],
                 ),
@@ -152,13 +144,13 @@ def history_view(page: ft.Page):
                     divider_height=0,
                     tabs=logs_tab,
                     label_text_style=dogdog.TextStyle(size=14, height=-1),
-                ),  # type: ignore
+                ),
                 ft.Divider(height=1),
                 ft.TabBarView(
                     expand=True, margin=ft.margin.only(top=10), controls=logs_content
                 )
                 if len(all_log) > 0
-                else ft.Container(  # type: ignore
+                else ft.Container(
                     expand=True,
                     alignment=ft.Alignment.CENTER,
                     content=dogdog.basic_text(

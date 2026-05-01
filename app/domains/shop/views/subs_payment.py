@@ -104,15 +104,6 @@ def order_product_section():
                         ft.Text("가장 맛있는 사료, 30일", size=14),
                     ]
                 ),
-                # ft.Container(
-                #     alignment=ft.Alignment(0, 7),
-                #     content=ft.IconButton(
-                #         icon=ft.Icons.CANCEL,
-                #         icon_size=16,
-                #         icon_color=TEXT_GREY,
-                #         on_click=clear_text,
-                #     )
-                # )
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
@@ -132,20 +123,6 @@ def order_product_section():
             ]
         )
     )
-
-
-# -------------------------------------------------------------------------------------------------
-# 쿠폰 & 적립금
-# -------------------------------------------------------------------------------------------------
-# def coupon_point_section():
-#     return section_box(
-#         "쿠폰 & 적립금",
-#         ft.Column([
-#             dogdog.input_textfield(label="쿠폰 코드 입력"),
-#             dogdog.input_textfield(label="적립금 사용"),
-#         ])
-#     )
-
 
 # -------------------------------------------------------------------------------------------------
 # 결제 금액 요약
@@ -250,21 +227,18 @@ def price_row(label, value, bold=False, red=False):
     )
 
 # line input
-def line_input(label, value="", hint=None, password=False, keyboard_type=None):
-    text_field = ft.TextField(
-                    value=value,
-                    hint_text=hint,
-                    hint_style=ft.TextStyle(
-                        color=ft.Colors.GREY_500
-                    ),
-                    password=password,
-                    keyboard_type=keyboard_type,
-                    border=ft.InputBorder.NONE,
-                    # height=52,
-                    text_size=VALUE_TEXT_SIZE,
-                    content_padding=ft.padding.only(bottom=10),
-                    # text_vertical_align=ft.VerticalAlignment.CENTER,
-                )
+def line_input(label, value="", hint=None, password=False):
+    text_field=ft.TextField(
+        value=value,
+        hint_text=hint,
+        hint_style=ft.TextStyle(
+            color=ft.Colors.GREY_500
+        ),
+        password=password,
+        border=ft.InputBorder.NONE,
+        text_size=VALUE_TEXT_SIZE,
+        content_padding=ft.padding.only(bottom=10),
+    )
     
     def clear_text(e):
         text_field.value = ""
@@ -311,7 +285,6 @@ def line_address_input(page, label, address_value=""):
             color=ft.Colors.GREY_500
         ),
         border=ft.InputBorder.NONE,
-        # read_only=True,
         height=30,
         text_size=VALUE_TEXT_SIZE,
         content_padding=ft.padding.only(bottom=10),
@@ -321,8 +294,7 @@ def line_address_input(page, label, address_value=""):
         page.clean()
         def receive_address(data):
             page.clean()
-            # address_field.value = data["full_address"]
-            shop_page(page, address_value=data["full_address"])
+            shop_page(page, address_value=data.get('full_address'))
 
         address.main(page, on_complete=receive_address)
     
@@ -345,10 +317,8 @@ def line_address_input(page, label, address_value=""):
                 ),
                 ft.Container(
                     alignment=ft.Alignment(0, 0.8),
-                    content=method_button("주소검색", 
-                                          expand=False, 
-                                          width=70, 
-                                          on_click=open_address_page),
+                    content=method_button(
+                        "주소검색", expand=False, width=70, on_click=open_address_page),
                 ),
             ],
         ),
@@ -398,8 +368,6 @@ def dropdown_input(label, value=None, options=None):
                             content_padding=ft.padding.only(left=0, right=0),
                             trailing_icon=ft.Icons.KEYBOARD_ARROW_DOWN,
                             selected_trailing_icon=ft.Icons.KEYBOARD_ARROW_DOWN,
-                            # icon_enabled_color=TEXT_GREY,
-                            # icon_disabled_color=TEXT_GREY,
                         ),
                     ],
                 ),
@@ -416,48 +384,20 @@ def shop_payment_content(page, address_value=""):
             orderer_info_section(),
             delivery_info_section(page, address_value),
             order_product_section(),
-            # coupon_point_section(),
             payment_summary_section(),
             payment_method_section(),
             agreement_section(),
+            payment_button(),
         ]
     )
-
-# def shop_page(page: ft.Page):
-
-#     return ft.Column(
-#         controls=[
-#             # (다른 사람이 만들 부분)
-#             # dogdog.shop_top_bar()
-#             # dogdog.sub_top_bar()
-
-#             shop_payment_content(),
-
-#             # dogdog.bottom_nav()
-#         ]
-#     )
 
 def shop_page(page: ft.Page, address_value=""):
     page.bgcolor = ft.Colors.WHITE
     page.scroll = ft.ScrollMode.AUTO
-
-    home_background , top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
-
     page.add(
         ft.Container(
             padding=20,
-            content= ft.Column(
-                        controls=[
-                            # (다른 사람이 만들 부분)
-                            # dogdog.shop_top_bar()
-                            # dogdog.sub_top_bar()
-                            # top_banner,
-
-                            shop_payment_content(page, address_value),
-
-                            payment_button(),
-                        ]
-                    )
+            content=shop_payment_content(page, address_value),
         )
     )
 

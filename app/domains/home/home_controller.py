@@ -223,3 +223,20 @@ class HomeController:
             "product_name": product_name,
             "thumbnail": thumbnail
         }
+
+    async def get_today_timeline_logs(self, pet_id: int):
+        """
+        오늘의 기록 타임라인 팝업에 표시할 로그 데이터를 서버에서 가져옵니다.
+        API: GET /api/v1/logs/{pet_id}
+        """
+        try:
+            response = await self.api_client.get(f"/logs/{pet_id}")
+            if response.status_code == 200:
+                data = response.json().get("data", [])
+                return data
+            else:
+                print(f"[HomeController] 타임라인 API 호출 실패: {response.status_code}")
+                return []
+        except Exception as e:
+            print(f"[HomeController] get_today_timeline_logs 중 예외 발생: {e}")
+            return []

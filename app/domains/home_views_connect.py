@@ -46,12 +46,19 @@ def home_tile(
         main_container_content.append(top_banner)
         main_container_content.append(body_column)
         # -----------------------------------------------------------------------------------------------
+        async def on_timeline_click(e):
+            pet_id = page.session.store.get("current_pet_id")
+            if pet_id:
+                logs = await controller.get_today_timeline_logs(pet_id)
+                # 추출된 유틸리티 함수를 호출하여 팝업을 띄우고 데이터 주입
+                domains.home.open_now_history_popup(page, popup, logs)
         body_column.controls.append(
             domains.home.now_history(
                 page=page, 
                 popup=popup, 
                 stats_data=controller.get_today_record_stats(),
-                history_logs=controller.get_formatted_history(count=3)
+                history_logs=controller.get_formatted_history(count=3),
+                on_click=on_timeline_click
             )
         )
         body_column.expand = False
@@ -88,7 +95,8 @@ def home_tile(
                             page=page, 
                             popup=popup, 
                             stats_data=controller.get_today_record_stats(),
-                            history_logs=controller.get_formatted_history(count=3)
+                            history_logs=controller.get_formatted_history(count=3),
+                            on_click=on_timeline_click
                         )
                         body_column.update()
                         
@@ -145,7 +153,28 @@ def home_tile(
     elif content_page == "/history":
         home_background, top_banner = dogdog.home_layout(page=page, text="오늘의 기록")
         main_container_content.append(top_banner)
-        main_container_content.append(domains.history.history_view(page))
+        
+        history_container = ft.Column(expand=True, alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        history_container.controls.append(ft.ProgressRing(color=ft.Colors.YELLOW_600)) # 로딩 표시
+        main_container_content.append(history_container)
+        
+        async def load_history_data():
+            from domains.logs.controller.history_controller import HistoryController
+            history_ctrl = HistoryController(page)
+            pet_id = page.session.store.get("current_pet_id")
+            
+            if pet_id:
+                logs = await history_ctrl.get_timeline_logs(pet_id)
+            else:
+                logs = []
+                
+            filtered_logs, date_str = history_ctrl.get_filtered_logs_and_date_str(logs)
+            
+            history_ui = domains.history.history_view(page, filtered_logs, date_str)
+            history_container.controls = [history_ui]
+            history_container.update()
+            
+        page.run_task(load_history_data)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding":
         home_background, top_banner = dogdog.home_layout(

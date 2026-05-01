@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
 import components as dogdog
-import domains.onboarding.views.pet_food_view as pet_food_view
+from domains.onboarding.pet_food_controller import PetFoodController
 
 
 # -------------------------------------------------------------------------------------------------------
@@ -24,22 +24,32 @@ def feeding_add_edit(page: ft.Page, view):
     # ---------------------------------------------------------------------------------------------------
     # Test Dialog
     # ---------------------------------------------------------------------------------------------------
-    def show_error(text:str): page.show_dialog(
-        ft.SnackBar(content=ft.Text(value=text), open=True, behavior=ft.SnackBarBehavior.FLOATING))
+    def show_error(text: str):
+        page.show_dialog(
+            ft.SnackBar(
+                content=ft.Text(value=text),
+                open=True,
+                behavior=ft.SnackBarBehavior.FLOATING,
+            )
+        )
+
     # ---------------------------------------------------------------------------------------------------
     # Test Dialog
-    # ---------------------------------------------------------------------------------------------------        
+    # ---------------------------------------------------------------------------------------------------
     delete_popup = popup.event_popup
     delete_popup.title = dogdog.basic_text("제품 삭제")
     delete_popup.content = dogdog.basic_text("등록하신 제품을 삭제하시겠습니까?")
     delete_popup.actions = [
         ft.TextButton("네", on_click=lambda e: delete_popup_close(e, options=True)),
-        ft.TextButton("아니요", on_click=lambda e: delete_popup_close(e))
+        ft.TextButton("아니요", on_click=lambda e: delete_popup_close(e)),
     ]
+
     def delete_popup_close(e, options=None):
         delete_popup.open = False
-        if options: print(e)
+        if options:
+            print(e)
         page.update()
+
     # ---------------------------------------------------------------------------------------------------
     # Input Field Change Event
     # ---------------------------------------------------------------------------------------------------
@@ -132,8 +142,8 @@ def feeding_add_edit(page: ft.Page, view):
             ],
         )
     # ---------------------------------------------------------------------------------------------------
-    food_controller = pet_food_view.PetfoodController(page=page, popup=popup)
-    food_select_field = food_controller.food_picker_field.content.controls[0] # type: ignore
+    food_controller = PetFoodController(page=page, popup=popup)
+    food_select_field = food_controller.food_picker_field.content.controls[0]  # type: ignore
     product_weight_field = food_controller.product_weight_list
     # ---------------------------------------------------------------------------------------------------
     # View Page
@@ -143,22 +153,16 @@ def feeding_add_edit(page: ft.Page, view):
         feeding_setting_content = [
             dogdog.flat_button(
                 text="삭제",
-                scale=1,
-                disabled=False,
                 on_click=lambda e, content="delete": button_event(e, content),
             ),
             dogdog.flat_button(
                 bgcolor="#FEF3B9",  # type: ignore
                 text="수정",
-                scale=1,
-                disabled=False,
                 on_click=lambda e, content="edit": button_event(e, content),
             ),
             dogdog.flat_button(
                 bgcolor="#FEF3B9",  # type: ignore
                 text="저장",
-                scale=1,
-                disabled=False,
                 on_click=lambda e, content="save": button_event(e, content),
             ),
         ]
@@ -170,8 +174,6 @@ def feeding_add_edit(page: ft.Page, view):
             dogdog.flat_button(
                 bgcolor="#FEF3B9",  # type: ignore
                 text="저장",
-                scale=1,
-                disabled=False,
                 on_click=lambda e, content="add_save": button_event(e, content),
             )
         ]
@@ -201,6 +203,7 @@ def feeding_add_edit(page: ft.Page, view):
     ]
     if view == "edit":
         content_column.append(feeding_start_date)
+    content_column.append(ft.Divider(height=40, color=ft.Colors.TRANSPARENT))
     content_column.append(feeding_setting)
     return ft.Container(
         padding=ft.Padding.only(left=20, right=20, top=20),

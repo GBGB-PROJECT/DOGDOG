@@ -2,7 +2,7 @@ from .layout.top_layout import onboarding_top_bar
 from .layout.bottom_layout import continue_button , arrow_back , home_bottom_appbar
 
 from .layout.home_layout import home_layout
-from .layout.shop_layout import products
+from .layout.shop_layout import products , shop_top , order_row
 
 from .layout.popup import Popup
 

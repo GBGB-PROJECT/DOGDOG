@@ -140,13 +140,11 @@ def home_layout(page, view=None, text=None, pet_list=None, back_event=None):
                     storage.set("customer_pet_name", row.get("nickname"))
         
         left_header_image = dogdog.image_circle(src=first_pet_profile_image, event=None, size=80, shadow=False)
-        
         left_header = ft.Row(
             vertical_alignment=ft.CrossAxisAlignment.END,
             height=80, spacing=10, controls=[
                 left_header_image,
-                ft.Container(padding=0, width=120, height=70, content=pet_dropdown_list)]
-        )
+                ft.Container(padding=0, width=120, height=70, content=pet_dropdown_list)])
     # ---------------------------------------------------------------------------------------------------    
     else:
         header_container_padding = 50

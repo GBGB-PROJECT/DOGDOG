@@ -2,7 +2,6 @@ import flet as ft
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
 
-
 class Popup:
     def __init__(self, page: ft.Page):
         self.page = page
@@ -11,24 +10,22 @@ class Popup:
             modal=True,
             title=dogdog.basic_text(value="Quit"),
             content=dogdog.basic_text(value="Exit?"),
-            actions_alignment=ft.MainAxisAlignment.END,
+            bgcolor=ft.Colors.WHITE,
+            actions_alignment = ft.MainAxisAlignment.END,
             actions=[
                 ft.TextButton("OK"),
-                ft.TextButton("Cancel", on_click=self.show_popup_close),
-            ],
+                ft.TextButton("Cancel", on_click=self.show_popup_close)
+            ]
         )
-
+        
         self.loading_dialog = ft.AlertDialog(
             modal=True,
             open=False,
             bgcolor=ft.Colors.TRANSPARENT,
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                width=20,
-                controls=[ft.ProgressRing(color=ft.Colors.BLUE_400)],
-            ),
+            content=ft.Row(alignment=ft.MainAxisAlignment.CENTER,
+                width=20, controls=[ft.ProgressRing(color=ft.Colors.BLUE_400)])
         )
-
+        
         self.bottom_sheet_controls = []
         self.bottom_sheet_popup = ft.AlertDialog(
             alignment=ft.Alignment(0, 1),
@@ -50,9 +47,9 @@ class Popup:
                     tight=True,
                     expand=True,
                     spacing=10,
-                    controls=self.bottom_sheet_controls,
-                ),
-            ),
+                    controls=self.bottom_sheet_controls
+                )
+            )
         )
 
         # Bottom Sheet Setting (popup)

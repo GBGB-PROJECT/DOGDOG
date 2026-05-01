@@ -1,6 +1,7 @@
+# -------------------------------------------------------------------------------------------------------
 import flet as ft
 import components as dogdog
-import domains as domains
+import domains
 from .home.home_controller import HomeController
 from domains.logs.controller.log_controller import LogController
 
@@ -24,25 +25,17 @@ def home_tile(
     # ---------------------------------------------------------------------------------------------------
     main_container_content = []
     body_column = ft.Column(spacing=15, expand=True, margin=ft.margin.only(bottom=20))
-    body_scroll_column = ft.Column(
-        spacing=15,
-        expand=True,
-        scroll=ft.ScrollMode.HIDDEN,
-        margin=ft.margin.only(bottom=20),
-    )
-    home_background, top_banner = dogdog.home_layout(page=page, view="feeding")
-
+    body_scroll_column = ft.Column(spacing=15, expand=True, scroll=ft.ScrollMode.HIDDEN, margin=ft.margin.only(bottom=20))
+    home_background , top_banner = dogdog.home_layout(page=page, view="feeding")
     # ---------------------------------------------------------------------------------------------------
     # Routing Event
     # ---------------------------------------------------------------------------------------------------
-    def appbar_on_change(e, on_change_page):
-        change_page_callback(on_change_page)  # type: ignore
-
+    def appbar_on_change(e, on_change_page): change_page_callback(on_change_page) # type: ignore
     # ---------------------------------------------------------------------------------------------------
     # Home Tile Routeing
     # ---------------------------------------------------------------------------------------------------
     if content_page == "/home":
-        home_background, top_banner = dogdog.home_layout(page=page, view="home")
+        home_background , top_banner = dogdog.home_layout(page=page, view="home")
         main_container_content.append(top_banner)
         main_container_content.append(body_column)
         # -----------------------------------------------------------------------------------------------
@@ -117,7 +110,7 @@ def home_tile(
         page.pubsub.subscribe(lambda msg: page.run_task(refresh_dashboard_task, msg))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/log":
-        home_background, top_banner = dogdog.home_layout(page=page, text="Log")
+        home_background , top_banner = dogdog.home_layout(page=page, text="Log")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
         body_scroll_column.horizontal_alignment = ft.CrossAxisAlignment.CENTER
@@ -127,7 +120,7 @@ def home_tile(
         body_scroll_column.controls = domains.log.log_view(page, controller=log_ctrl)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/shop":
-        home_background, top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
+        home_background , top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
         body_scroll_column.controls.append(domains.shop.shop_feeding_guide(page=page))
@@ -144,17 +137,17 @@ def home_tile(
         body_scroll_column.controls.append(domains.shop.product_guide(page=page))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/contents":
-        home_background, top_banner = dogdog.home_layout(page=page, text="Content")
+        home_background , top_banner = dogdog.home_layout(page=page, text="Content")
         main_container_content.append(top_banner)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/mypage":
-        home_background, top_banner = dogdog.home_layout(page=page, text="마이페이지")
+        home_background , top_banner = dogdog.home_layout(page=page, text="마이페이지")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
         body_scroll_column.controls = domains.mypage_view.mypage_view(page)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/history":
-        home_background, top_banner = dogdog.home_layout(page=page, text="오늘의 기록")
+        home_background , top_banner = dogdog.home_layout(page=page, text="오늘의 기록")
         main_container_content.append(top_banner)
         
         history_container = ft.Column(expand=True, alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
@@ -193,9 +186,7 @@ def home_tile(
         page.run_task(load_history_data)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding":
-        home_background, top_banner = dogdog.home_layout(
-            page=page, text="급여 중인 제품"
-        )
+        home_background , top_banner = dogdog.home_layout(page=page, text="급여 중인 제품")
         main_container_content.append(top_banner)
         main_container_content.append(
             domains.feeding.feeding_tabs_view(
@@ -206,49 +197,54 @@ def home_tile(
         )
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding_edit":
-        home_background, top_banner = dogdog.home_layout(
-            page=page, text="제품 정보 변경"
-        )
+        home_background , top_banner = dogdog.home_layout(page=page, text="제품 정보 변경")
         main_container_content.append(top_banner)
-        main_container_content.append(
-            domains.feeding_add_edit.feeding_add_edit(page=page, view="edit")
-        )
+        main_container_content.append(domains.feeding_add_edit.feeding_add_edit(page=page, view="edit"))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding_add":
-        home_background, top_banner = dogdog.home_layout(page=page, text="제품 등록")
+        home_background , top_banner = dogdog.home_layout(page=page, text="제품 등록")
         main_container_content.append(top_banner)
-        main_container_content.append(
-            domains.feeding_add_edit.feeding_add_edit(page=page, view="add")
-        )
+        main_container_content.append(domains.feeding_add_edit.feeding_add_edit(page=page, view="add"))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/notification":
-        home_background, top_banner = dogdog.home_layout(page=page, text="알림")
+        home_background , top_banner = dogdog.home_layout(page=page, text="알림")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
-        body_scroll_column.controls.append(
-            domains.notification.notification_dummy(page)
-        )
+        body_scroll_column.controls.append(domains.notification.notification_dummy(page))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/notification_setting":
-        home_background, top_banner = dogdog.home_layout(page=page, text="알림 설정")
+        home_background , top_banner = dogdog.home_layout(page=page, text="알림 설정")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
-        body_scroll_column.controls.append(
-            domains.notification.notification_setting(page)
-        )
+        body_scroll_column.controls.append(domains.notification.notification_setting(page))
     # ---------------------------------------------------------------------------------------------------
     elif "/shop/" in content_page:
-        home_background, top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
+        home_background , top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
         main_container_content.append(top_banner)
+        # -----------------------------------------------------------------------------------------------
+        if "product/" in content_page:
+            main_container_content.append(dogdog.shop_top(page=page, content_page=content_page))
+            body_scroll_column.controls.append(domains.shop_product_detail.shop_product_detail(
+                page=page, popup=popup, content_page=content_page))
+        # -----------------------------------------------------------------------------------------------
+        elif "/cart" in content_page:
+            main_container_content.append(dogdog.shop_top(page=page, text="장바구니"))
+            body_scroll_column.controls.append(dogdog.basic_text("장바구니 페이지"))
+        # -----------------------------------------------------------------------------------------------
+        elif "/order" in content_page:
+            main_container_content.append(dogdog.shop_top(page=page, text="주문 / 결제"))
+            body_scroll_column.controls.append(domains.shop_orders.order_view(
+                page=page, popup=popup, page_name=content_page))
+        # -----------------------------------------------------------------------------------------------
+        elif "/subs_order" in content_page:
+            main_container_content.append(dogdog.shop_top(page=page, text="똑똑 배송 / 자동결제 등록"))
+            body_scroll_column.controls.append(domains.shop_orders.order_view(
+                page=page, popup=popup, page_name=content_page))
+        elif "/address" in content_page:
+            main_container_content.append(dogdog.shop_top(page=page, text="주소 검색"))
+            body_scroll_column.controls.append(domains.address_view(page=page))
+        main_container_content.append(ft.Divider(height=1))
         main_container_content.append(body_scroll_column)
         body_scroll_column.margin = None
-        if "product/" in content_page:
-            body_scroll_column.margin = None  #
-            body_scroll_column.scroll = ft.ScrollMode.AUTO  #
-            body_scroll_column.controls.append(
-                domains.shop_product_detail.shop_product_detail(
-                    page=page, popup=popup, content_page=content_page
-                )
-            )
     # ---------------------------------------------------------------------------------------------------
-    return home_background, main_container_content
+    return home_background , main_container_content

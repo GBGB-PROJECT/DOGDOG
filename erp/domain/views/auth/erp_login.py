@@ -3,7 +3,7 @@ import os
 import json
 import flet as ft
 from components import common as cm
-from domain.controller import auth
+from domain.controller.auth.erp_login_controller import AuthController
 
 # 1. ERP 로그인 페이지 클래스 생성
 """
@@ -41,7 +41,7 @@ class ErpLoginView(ft.Container):
       self.password_input.controls[1].error_text = None
 
       # 3. 유효성 검사 실행
-      is_valid, error_msg, error_type = auth.AuthController.validate_login(uid, u_email, u_pw)
+      is_valid, error_msg, error_type = AuthController.validate_login(uid, u_email, u_pw)
       if not is_valid:
         # 유효성 실패 시 스낵바 (공식 예시 적용)
         self.main_page.show_dialog(ft.SnackBar(ft.Text(error_msg)))
@@ -49,7 +49,7 @@ class ErpLoginView(ft.Container):
         return
       ## 4. 백엔드 서버 인증 시도 => 2단계로 open 해야함(현재 user_data 내에 데이터가 있음.)
       try:
-        response = auth.AuthController.login_user(uid, u_email, u_pw)
+        response = AuthController.login_user(uid, u_email, u_pw)
 
         actual_data = response.get("user_data", {})
 
@@ -61,7 +61,7 @@ class ErpLoginView(ft.Container):
         emp_id = actual_data.get("employee_id")
         emp_name = actual_data.get("username")
         emp_email = actual_data.get("email")
-        emp_pos = actual_data.get("position_name")   
+        emp_pos = actual_data.get("emp_position_id")   
 
         # 세션 저장하기(확인 완료)
         self.page.session.store.set("emp_id", emp_id)

@@ -44,8 +44,8 @@ def _build_topbar_popup_item(text: str, on_click_handler):
 # =========================================================
 def build_erp_topbar(page: ft.Page, on_top_menu_click=None):
     ## 세션 불러오기 erp_login에서 가져온 것(확인 완료)
-    client_name = page.session.store.get("emp_name") or "사용자1"
-    client_pos = page.session.store.get("emp_pos") or "사원"
+    client_name = page.session.store.get("emp_name") or "로그인 실패"
+    client_pos = page.session.store.get("emp_pos") or "직위 불러오기 오류"
     client_email = page.session.store.get("emp_email") or "email@example.com"
     
     # 🔥 드롭다운 메뉴 클릭 시 실행

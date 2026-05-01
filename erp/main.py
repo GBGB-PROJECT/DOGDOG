@@ -20,7 +20,7 @@ from domain.erp_homeframe import ErpFrame
 from domain.views.auth.erp_login import ErpLoginView
 # 라우터 인식을 위해서 content_move를 연결
 from components.common import content_move as cm
-from components.common.erp_busy_cursor import set_busy_cursor
+from components.common.erp_busy_cursor import go_with_busy_cursor, set_busy_cursor
 
 
 def main(page: ft.Page):
@@ -42,7 +42,7 @@ def main(page: ft.Page):
         - push_route()는 버전에 따라 on_route_change가 기대대로 돌지 않아
           로그인 성공 후 화면이 멈춘 것처럼 보일 수 있으므로 여기서는 page.go()를 유지한다.
         """
-        page.go(target_route)
+        go_with_busy_cursor(page, target_route)
 
     # router 기준의 단일 랜더 함수(router 변경 시 화면 조립)
     def render_route(route: str | None):
@@ -84,17 +84,16 @@ def main(page: ft.Page):
         # 렌더링 후 화면 업데이트
         page.update()
 
+        # 🔥 route 렌더링이 끝나면 화면 이동용 progress cursor 복구
+        set_busy_cursor(page, False)
+
     # 로그인 성공
     def on_login_success():
         move_route(cm.DEFAULT_AUTH_ROUTE)
 
     # route 변경 시 재렌더하기
     def handle_route_change(e: ft.RouteChangeEvent):
-        try:
-            render_route(e.route)
-        finally:
-            # 🔥 추가: 화면 이동 렌더링이 끝나면 커서를 원래대로 복구
-            set_busy_cursor(page, False)
+        render_route(e.route)
 
     page.on_route_change = handle_route_change
 

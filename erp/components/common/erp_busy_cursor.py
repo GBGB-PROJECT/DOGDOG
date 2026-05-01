@@ -1,98 +1,84 @@
-# erp/components/common/erp_busy_cursor.py
-
 import flet as ft
 
 
-# =========================================================
-# 🔥 ERP 공통 Busy Cursor 유틸
-# - Flet 0.81.0에서는 Container(mouse_cursor=...) 방식이 안전하지 않다.
-# - 실제 마우스 커서는 GestureDetector.mouse_cursor로 제어한다.
-# - 조회 / 화면 이동처럼 잠깐 멈추는 동작에서 공통으로 사용한다.
-# =========================================================
-
-_BUSY_CURSOR_ATTR = "_erp_busy_cursor_target"
-_BUSY_COUNT_ATTR = "_erp_busy_cursor_count"
+BUSY_CURSOR_HOST_ATTR = "_erp_busy_cursor_host"
+BUSY_CURSOR_STATE_ATTR = "_erp_is_busy_cursor"
 
 
-def _get_cursor(name: str, fallback=None):
+def _safe_update(control):
     try:
-        return getattr(ft.MouseCursor, name)
+        control.update()
     except Exception:
-        return fallback
+        pass
 
 
-NORMAL_CURSOR = _get_cursor("BASIC")
-BUSY_CURSOR = _get_cursor("PROGRESS", _get_cursor("WAIT"))
-CLICK_CURSOR = _get_cursor("CLICK", NORMAL_CURSOR)
-
-
-def install_busy_cursor(page: ft.Page, cursor_target):
+def register_busy_cursor_host(page: ft.Page, host):
     """
-    🔥 ErpFrame에서 전체 화면을 감싼 GestureDetector를 page에 등록한다.
-    - 각 조회 버튼은 이 등록된 target의 mouse_cursor만 바꾸면 된다.
-    """
-    if page is None or cursor_target is None:
-        return
-
-    setattr(page, _BUSY_CURSOR_ATTR, cursor_target)
-
-    if not hasattr(page, _BUSY_COUNT_ATTR):
-        setattr(page, _BUSY_COUNT_ATTR, 0)
-
-
-
-def set_busy_cursor(page: ft.Page, busy: bool, do_update: bool = True):
-    """
-    🔥 busy=True  → 커서를 PROGRESS 모양으로 변경
-    🔥 busy=False → 기존 BASIC 커서로 복구
-
-    여러 이벤트가 겹쳐도 먼저 끝난 이벤트가 커서를 섣불리 복구하지 않도록
-    간단한 count 방식으로 보호한다.
+    🔥 ERP 전체 화면의 마우스 커서를 바꿀 대상 GestureDetector를 page 객체에 저장한다.
+    - Flet 0.81.0 기준 Container(mouse_cursor=...)는 쓰지 않는다.
+    - GestureDetector(mouse_cursor=...) 방식만 사용한다.
+    - 이 프로젝트의 page.session은 page.session.store.set/get 구조라서
+      page.session.set/get을 쓰면 AttributeError가 난다.
+    - 컨트롤 객체는 세션 데이터가 아니라 런타임 참조이므로 page 속성에 저장한다.
     """
     if page is None:
         return
 
-    current_count = getattr(page, _BUSY_COUNT_ATTR, 0)
+    setattr(page, BUSY_CURSOR_HOST_ATTR, host)
 
-    if busy:
-        current_count += 1
-    else:
-        current_count = max(0, current_count - 1)
+    # 🔥 이미 busy 상태에서 화면이 새로 만들어진 경우 새 host에도 즉시 반영
+    busy = bool(getattr(page, BUSY_CURSOR_STATE_ATTR, False))
+    if host is not None:
+        host.mouse_cursor = ft.MouseCursor.PROGRESS if busy else ft.MouseCursor.BASIC
 
-    setattr(page, _BUSY_COUNT_ATTR, current_count)
 
-    cursor_target = getattr(page, _BUSY_CURSOR_ATTR, None)
-    if cursor_target is None:
+def set_busy_cursor(page: ft.Page | None, busy: bool):
+    """🔥 조회/API/화면 이동 중 ERP 전체 커서를 PROGRESS로 바꾼다."""
+    if page is None:
         return
 
-    cursor_target.mouse_cursor = BUSY_CURSOR if current_count > 0 else NORMAL_CURSOR
+    setattr(page, BUSY_CURSOR_STATE_ATTR, bool(busy))
+    host = getattr(page, BUSY_CURSOR_HOST_ATTR, None)
 
-    if do_update:
-        try:
-            cursor_target.update()
-        except Exception:
-            try:
-                page.update()
-            except Exception:
-                pass
+    if host is not None:
+        host.mouse_cursor = ft.MouseCursor.PROGRESS if busy else ft.MouseCursor.BASIC
+        _safe_update(host)
 
 
-
-def with_busy_cursor(handler):
-    """
-    🔥 on_click 핸들러 감싸기
-    - 조회 버튼을 누르는 즉시 커서를 PROGRESS로 바꾸고
-    - API 조회/테이블 갱신이 끝나면 다시 BASIC으로 돌린다.
-    """
-    if handler is None:
+def with_busy_cursor(on_click):
+    """🔥 버튼/카드 on_click 핸들러를 busy cursor 처리용으로 감싼다."""
+    if on_click is None:
         return None
 
     def _wrapped(e):
         page = getattr(e, "page", None)
         set_busy_cursor(page, True)
         try:
-            return handler(e)
+            return on_click(e)
         finally:
             set_busy_cursor(page, False)
 
     return _wrapped
+
+
+def go_with_busy_cursor(page: ft.Page | None, route: str):
+    """
+    🔥 page.go() 직전 커서를 PROGRESS로 바꾼다.
+    - 실제 복구는 main.py의 render_route() 마지막에서 처리한다.
+    """
+    if page is None:
+        return
+
+    set_busy_cursor(page, True)
+    page.go(route)
+
+
+def busy_cursor_control(control):
+    """
+    🔥 마우스를 올렸을 때 해당 컨트롤 위에서 PROGRESS 커서가 보이게 감싼다.
+    - Container가 아니라 GestureDetector를 사용한다.
+    """
+    return ft.GestureDetector(
+        mouse_cursor=ft.MouseCursor.PROGRESS,
+        content=control,
+    )

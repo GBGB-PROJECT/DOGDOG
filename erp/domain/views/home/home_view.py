@@ -51,6 +51,13 @@ def erp_home_view():
     
     prod_data = HomeViewMain.prduct_defect_chart()
 
+    ## invent data의 전년도 동월대비 증감 전처리
+    diff_value = inven_data.get('yoy_inventory_growth',0)
+    # 양수일 경우 +
+    sign = "+" if diff_value >= 0 else "-"
+    # 부호+콤파 포맷팅 + 개 조합하기
+    formatted_str = f"{sign}{diff_value:,}개"
+
     return ft.Container(
         expand=True,
         bgcolor=cm.PAGE_BG,
@@ -100,7 +107,7 @@ def erp_home_view():
                     controls=[
                         cm.erp_info_box("입고", f"{inven_data.get('monthly_production_qty',0):,}개",""),
                         cm.erp_info_box("입고 예정", f"{inven_data.get('expected_incoming_qty',0):,}개",""),
-                        cm.erp_info_box("전년대비 성장", f"{inven_data.get('current_total_inventory',0):,}개",""),
+                        cm.erp_info_box("전년 동월 대비 재고 증감", formatted_str,""),
                         cm.erp_info_box("총 판매량수", f"{inven_data.get('monthly_total_sales',0):,}개",""),
                     ],
                 ),

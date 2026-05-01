@@ -417,7 +417,7 @@ if test_page == "Browser":
             assets_dir="assets",
             view=ft.AppView.WEB_BROWSER,
             port=34636,
-            web_renderer=ft.WebRenderer.CANVAS_KIT,
+            # web_renderer=ft.WebRenderer.CANVAS_KIT,
         )
 else:
     if __name__ == "__main__":

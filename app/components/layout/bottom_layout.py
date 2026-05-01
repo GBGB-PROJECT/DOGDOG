@@ -47,13 +47,18 @@ def home_bottom_appbar(appbar_status, page_name):
             button_color = ft.Colors.BLACK
         else: button_color = ft.Colors.GREY_400
         if type(icon) == type("str"):
+            if icon == "skeleton.png":
+                bone_img = "shop.png" if page_name.startswith("/shop") else "skeleton.png"
+            else:
+                bone_img = icon
+        
             return ft.Container(
                 width=80,
                 height=80,
                 shape=ft.BoxShape.CIRCLE,
                 offset=ft.Offset(0, -0.3),
                 on_click=on_click,
-                image=ft.DecorationImage(src=icon, fit=ft.BoxFit.COVER),
+                image=ft.DecorationImage(src=bone_img, fit=ft.BoxFit.COVER),
             )
         return ft.Container(
             padding=0,

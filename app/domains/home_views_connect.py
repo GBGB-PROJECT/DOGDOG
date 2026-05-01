@@ -243,6 +243,8 @@ def home_tile(
         main_container_content.append(body_scroll_column)
         body_scroll_column.margin = None
         if "product/" in content_page:
+            body_scroll_column.margin = None  #
+            body_scroll_column.scroll = ft.ScrollMode.AUTO  #
             body_scroll_column.controls.append(
                 domains.shop_product_detail.shop_product_detail(
                     page=page, popup=popup, content_page=content_page

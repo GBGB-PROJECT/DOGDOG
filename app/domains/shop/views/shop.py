@@ -40,6 +40,7 @@ def shop_feeding_guide(page: ft.Page):
 def product_guide(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
     from api.product_guide import Product
+    from domains.shop.controller.shop_api import get_shop_product_list
     import asyncio
     # ---------------------------------------------------------------------------------------------------
     # Default Value
@@ -79,39 +80,64 @@ def product_guide(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
     # Product Filter Event
     # ---------------------------------------------------------------------------------------------------
-    default_view = dogdog.products(page, Product.guide_product_list_t, product_image_size)
-    def selected_filter(e):
-        # print(e.data)
-        if e.data == "all":
-            product_list.content.controls = default_view # type: ignore
-        elif e.data == "dry":
-            product_list.content.controls = dogdog.products( # type: ignore
-                page, Product.guide_product_list, product_image_size)
-        elif e.data == "semi-dry":
-            product_list.content.controls = dogdog.products( # type: ignore
-                page, Product.guide_product_list_t, product_image_size)
-        elif e.data == "wet":
-            product_list.content.controls = dogdog.products( # type: ignore
-                page, Product.guide_product_list, product_image_size)
-        elif e.data == "cooked":
-            product_list.content.controls = dogdog.products( # type: ignore
-                page, Product.guide_product_list_t, product_image_size)
+    #default_view = dogdog.products(page, Product.guide_product_list_t, product_image_size)
+    product_list = ft.Container(
+        padding=10,
+        content=ft.Column(
+            controls=[
+                ft.Container(
+                    alignment=ft.Alignment.CENTER,
+                    content=ft.ProgressRing()
+                )
+            ]
+        )
+    )
+
+
+    async def load_products(sort=None):
+        products = await get_shop_product_list(page, sort=sort)
+
+        if not products:
+            product_list.content = ft.Column(
+                controls=[
+                    dogdog.basic_text(
+                        "상품이 없습니다.",
+                        size=14,
+                        color=ft.Colors.GREY_500
+                    )
+                ]
+            )
+        else:
+            print("상품 리스트 출력")
+            product_list.content = ft.Column(
+                controls=dogdog.products(
+                    page,
+                    products,
+                    product_image_size
+                )
+            )
+
         product_list.update()
+
+
+    def selected_filter(e):
+        sort = None if e.data == "all" else e.data
+        page.run_task(load_products, sort)
     # ---------------------------------------------------------------------------------------------------
     # Product View
     # ---------------------------------------------------------------------------------------------------
     filter_list = [
         dogdog.dropdown_menu_option("전체", key="all"),
-        dogdog.dropdown_menu_option("건식", key="dry"),
-        dogdog.dropdown_menu_option("반건식", key="semi-dry"),
-        dogdog.dropdown_menu_option("습식", key="wet"),
-        dogdog.dropdown_menu_option("화식", key="cooked"),
+        dogdog.dropdown_menu_option("가격 높은순", key="price_desc"),
+        dogdog.dropdown_menu_option("가격 낮은순", key="price_asc"),
+        dogdog.dropdown_menu_option("무게 높은순", key="weight_desc"),
+        dogdog.dropdown_menu_option("무게 낮은순", key="weight_asc"),
     ]
     product_filter = dogdog.dropdown_menu(label=None, event=selected_filter, options=filter_list)
     product_filter.value = "all"
-    product_list = ft.Container(
-        padding=10,
-        content=ft.Column(default_view))
+    # product_list = ft.Container(
+    #     padding=10,
+    #     content=ft.Column(default_view))
     # ---------------------------------------------------------------------------------------------------
     # Shop Page Content
     # ---------------------------------------------------------------------------------------------------
@@ -135,6 +161,7 @@ def product_guide(page: ft.Page):
         except: pass
     page.run_task(timesleep)
     # ---------------------------------------------------------------------------------------------------
+    page.run_task(load_products)
     return ft.Container(
         padding=ft.Padding.only(left=10, right=10),
         bgcolor="#ffffff",

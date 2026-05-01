@@ -5,7 +5,6 @@ shop/
 │   ├── order_info_section.py  # 주문자 정보
 │   ├── delivery_info_section.py # 배송 정보
 │   ├── order_product_card.py  # 주문 상품
-│   ├── coupon_point_section.py # 쿠폰 & 적립금
 │   ├── payment_summary.py     # 결제 금액
 │   └── payment_method.py      # 자동 결제 등록
 '''
@@ -413,5 +412,5 @@ if __name__ == "__main__":
         shop_page,
         assets_dir="assets",
         view=ft.AppView.WEB_BROWSER,
-        port=346,
+        port=34636,
     )

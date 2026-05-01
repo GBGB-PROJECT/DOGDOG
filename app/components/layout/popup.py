@@ -87,3 +87,4 @@ class Popup:
         """API 통신 종료 시 로딩 창을 닫습니다."""
         self.loading_dialog.open = False
         self.page.update()
+

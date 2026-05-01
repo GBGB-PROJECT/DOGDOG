@@ -301,11 +301,27 @@ def shop_product_detail(page: ft.Page, popup, content_page):
         content_column.controls.append(page_header_subs_order)
         content_column.controls.append(ft.Divider())
 
+        # if dd.pdi:
+        #     content_column.controls.append(
+        #         ft.Image(
+        #             src=dd.pdi,
+        #             error_content=error_message(1)
+        #         )
+        #     )
+        
         if dd.pdi:
             content_column.controls.append(
-                ft.Image(
-                    src=dd.pdi,
-                    error_content=error_message(1)
+                ft.Container(
+                    width=page.width - 40,
+                    height=800,
+                    bgcolor=ft.Colors.GREY_100,
+                    content=ft.Image(
+                        src=str(dd.pdi).strip(),
+                        width=page.width - 40,
+                        height=800,
+                        fit=ft.BoxFit.CONTAIN,
+                        error_content=error_message(1),
+                    ),
                 )
             )
 

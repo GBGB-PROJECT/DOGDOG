@@ -17,4 +17,6 @@ from .logs.views import history , log , grid_view as grid
 
 from .mypage.views import mypage_view , notification
 
-from .shop.views import shop , shop_product_detail
+from .shop.views import shop, shop_orders , shop_product_detail
+
+from .address import AddressSearcher , address_view

@@ -39,12 +39,12 @@ def products(page, data_dict, image_size):
             row_controls.append(
                 product(page, 
                     p_id, 
-                    p_d["thumbnail"], 
+                    p_d.get("thumbnail"), 
                     image_size, 
                     # f"{p_d['brand']} {p_d['product_name']}", 
-                    p_d['brand'],
-                    p_d['product_name'], 
-                    f"{int(p_d['sales_price']):,}원"
+                    p_d.get('brand'),
+                    p_d.get('product_name'), 
+                    f"{int(p_d.get('sales_price')):,}원"
                 )
             )
         products.append(
@@ -53,5 +53,41 @@ def products(page, data_dict, image_size):
                 controls=row_controls
             )
         )
-
     return products
+
+def shop_top(page: ft.Page, text=None, content_page=None):
+    def handle_back(e=None):
+        if len(page.views) > 1:
+            page.views.pop()
+            page.go(page.views[-1].route)
+    # -----------------------------------------------------------------------------------------------
+    from api.product_guide import Product
+    if content_page:
+        if "product/" in content_page:
+            product_id = int(content_page.lstrip("/shop/product/"))
+            for p_id , p_d in Product.guide_product_list.items():
+                if p_id == product_id:
+                    content_text = str(p_d.get('brand'))
+                    break
+    elif text:
+        content_text = text
+    content = dogdog.basic_text(content_text, size=20, weight="bold", color=ft.Colors.GREY_900)
+    content.expand = True
+    content.text_align = ft.TextAlign.CENTER
+
+    return ft.Row(
+        alignment=ft.MainAxisAlignment.CENTER,
+        margin=ft.margin.only(bottom=-5),
+        height=50,
+        controls=[
+            ft.IconButton(
+                icon=ft.Icons.ARROW_BACK_IOS, icon_size=10, 
+                on_click=handle_back),
+            content,
+            ft.Container(width=24)
+    ])
+
+def order_row(content:list, spacing=10, visible:bool=True):
+    return ft.Row(
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        visible=visible, spacing=spacing, controls=content)

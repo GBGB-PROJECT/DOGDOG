@@ -10,6 +10,7 @@ ALLOWED_IMAGE_HOSTS = {
     "image.enuri.info",
     "photo3.enuri.info",
     "thumbnail.coupangcdn.com",
+    "llis-pipeline.lotteon.com",
 }
 
 

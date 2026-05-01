@@ -22,7 +22,7 @@ class Default_data:
         self.p_brand = ""
         self.p_name =""
         self.p_price = 0
-        self.pdi = None
+        self.pdi_images = []
 
         self.default_bottom_sheet = popup.bottom_sheet_popup
         self.default_bottom_sheet_content = popup.bottom_sheet_controls
@@ -46,7 +46,7 @@ class Default_data:
         self.p_brand = product.get("brand") or ""
         self.p_name = product.get("product_name") or ""
         self.p_price = int(product.get("retail_price") or 0)
-        self.pdi = product.get("pdi")
+        self.pdi_images = product.get("pdi_images") or []
 
         self.is_detail_page = True
         self.page.update()
@@ -309,21 +309,18 @@ def shop_product_detail(page: ft.Page, popup, content_page):
         #         )
         #     )
         
-        if dd.pdi:
-            content_column.controls.append(
-                ft.Container(
-                    width=page.width - 40,
-                    height=800,
-                    bgcolor=ft.Colors.GREY_100,
-                    content=ft.Image(
-                        src=str(dd.pdi).strip(),
-                        width=page.width - 40,
-                        height=800,
+        if dd.pdi_images:
+            image_width = (page.width or 390) - 40
+
+            for i, image_url in enumerate(dd.pdi_images, start=1):
+                content_column.controls.append(
+                    ft.Image(
+                        src=image_url,
+                        width=image_width,
                         fit=ft.BoxFit.CONTAIN,
-                        error_content=error_message(1),
-                    ),
+                        error_content=error_message(i),
+                    )
                 )
-            )
 
         page.update()
 

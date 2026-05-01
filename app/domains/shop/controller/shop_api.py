@@ -12,6 +12,27 @@ def proxy_image_url(url):
 
     return image_url
 
+def parse_pdi_urls(pdi):
+    if not pdi:
+        return []
+
+    if isinstance(pdi, list):
+        return [str(url).strip() for url in pdi if str(url).strip()]
+
+    text = str(pdi).strip()
+
+    if text.startswith("[") and text.endswith("]"):
+        text = text[1:-1]
+
+    urls = []
+    for item in text.split(","):
+        url = item.strip().strip("'").strip('"')
+        if url:
+            urls.append(url)
+
+    return urls
+
+
 '''
 상품 목록 조회 API
 - keyword: 상품명, 브랜드명, 기능, 타입, 단백질 관련 검색
@@ -126,8 +147,9 @@ async def get_shop_product_detail(page, product_id: int):
     
     if data:
         data["thumbnail"] =  proxy_image_url(data.get("thumbnail"))
-        data["pdi"] = proxy_image_url(data.get("pdi"))
+        pdi_urls = parse_pdi_urls(data.get("pdi"))
+        data["pdi_images"] = [proxy_image_url(url) for url in pdi_urls]
     
-    print(data["pdi"])
+    print(data["pdi_images"])
 
     return data

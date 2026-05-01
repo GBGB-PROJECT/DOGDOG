@@ -6,32 +6,21 @@
 # - DatePicker 기간 기준은 화면의 처리일자(event_date) 기준
 # =========================================================
 
-import math
 import datetime
 import flet as ft
 
 from api.erp_httpx_api import count_stock_inouts, fetch_stock_inouts
+from components.common.erp_view_widgets import build_text, date_value_box_hint as date_value_box, calendar_icon_box, build_expand_table_cell as build_table_cell
+from components.common.erp_view_style import *
+from components.common.erp_pagination import calc_total_pages
+from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 
 
-FIELD_BG = ft.Colors.WHITE
-FIELD_BORDER = "#D1D5DB"
-FIELD_TEXT = "#222222"
-HINT_TEXT = "#9CA3AF"
 
-BUTTON_BG = "#F3F4F6"
-BUTTON_TEXT = "#374151"
-BUTTON_BORDER = "#D1D5DB"
 
-CARD_BG = ft.Colors.WHITE
-TABLE_HEADER_BG = "#F9FAFB"
-TABLE_BORDER = "#E5E7EB"
 
-TEXT_PRIMARY = "#111827"
-TEXT_SECONDARY = "#6B7280"
-TEXT_ROW = "#374151"
 ACTION_BLUE = "#2563EB"
 
-PAGE_SIZE = 50
 
 
 # =========================================================
@@ -80,59 +69,6 @@ def _parse_prefilter_date(value):
             return datetime.datetime.strptime(clean.replace(".", "-"), "%Y-%m-%d")
         except ValueError:
             return None
-
-
-def build_text(
-    value,
-    size=12,
-    color=TEXT_PRIMARY,
-    weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.LEFT,
-    max_lines=1,
-):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        text_align=text_align,
-        max_lines=max_lines,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        ink=True if on_click else False,
-        on_click=on_click,
-        content=ft.Text(
-            value=text or "",
-            size=13,
-            color=FIELD_TEXT if text else HINT_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        ink=True if on_click else False,
-        on_click=on_click,
-        content=ft.Icon(ft.Icons.CALENDAR_MONTH, size=18, color="#4B5563"),
-    )
 
 
 def build_button(text, on_click=None, width=82):
@@ -271,7 +207,7 @@ def erp_stock_inout_view():
     # =========================================================
     def on_start_date_change(e):
         if e.control.value:
-            selected_start["value"] = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
+            selected_start["value"] = normalize_datepicker_value(e.control.value)
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -282,7 +218,7 @@ def erp_stock_inout_view():
 
     def on_end_date_change(e):
         if e.control.value:
-            picked_date = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
+            picked_date = normalize_datepicker_value(e.control.value)
 
             if selected_start["value"] and picked_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -435,21 +371,6 @@ def erp_stock_inout_view():
         content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
     )
 
-    def build_table_cell(text, expand, align=0, weight=ft.FontWeight.W_400, color=TEXT_ROW):
-        return ft.Container(
-            expand=expand,
-            alignment=ft.Alignment(align, 0),
-            content=ft.Text(
-                value=str(text if text is not None else ""),
-                size=12,
-                color=color,
-                weight=weight,
-                text_align=ft.TextAlign.CENTER if align == 0 else ft.TextAlign.LEFT,
-                max_lines=1,
-                overflow=ft.TextOverflow.ELLIPSIS,
-            ),
-        )
-
     def build_table_header():
         return ft.Container(
             bgcolor=TABLE_HEADER_BG,
@@ -542,7 +463,7 @@ def erp_stock_inout_view():
 
         pagination_state["current_page"] = page_no
         pagination_state["total_count"] = total_count
-        pagination_state["total_pages"] = max(math.ceil(total_count / PAGE_SIZE), 1)
+        pagination_state["total_pages"] = calc_total_pages(total_count, PAGE_SIZE)
         pagination_state["keyword"] = keyword
 
         return rows

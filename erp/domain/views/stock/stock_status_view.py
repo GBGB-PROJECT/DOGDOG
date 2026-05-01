@@ -15,6 +15,8 @@ from api.erp_httpx_api import fetch_stock_dashboard
 # 🔥 재고현황 → 입고/출고 관리 화면 월 필터 전달
 from domain.views.stock.stock_inout_view import set_stock_inout_prefilter
 from domain.views.stock.stock_product_detail_view import set_stock_product_detail_prefilter
+from components.common.erp_view_widgets import build_text
+from components.common.erp_dashboard_utils import move_month as _move_month
 
 
 # ==============================
@@ -103,13 +105,6 @@ def _empty_dashboard_data(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_M
 # ==============================
 # 🔥 월 이동 계산
 # ==============================
-def _move_month(year: int, month: int, diff: int):
-    month_index = (year * 12) + (month - 1) + diff
-    new_year = month_index // 12
-    new_month = (month_index % 12) + 1
-    return new_year, new_month
-
-
 def erp_stock_status_view():
     page_title = "상품 재고 관리 > 재고 현황"
 
@@ -255,24 +250,6 @@ def erp_stock_status_view():
     # ==============================
     # ☑️ 공통 함수
     # ==============================
-    def build_text(
-        value: str,
-        size: int = 13,
-        color: str = TEXT_PRIMARY,
-        weight=ft.FontWeight.W_400,
-        text_align: ft.TextAlign | None = None,
-        max_lines: int = 1,
-    ):
-        return ft.Text(
-            value=str(value or ""),
-            size=size,
-            color=color,
-            weight=weight,
-            text_align=text_align,
-            max_lines=max_lines,
-            overflow=ft.TextOverflow.ELLIPSIS,
-        )
-
     def build_base_box(
         content,
         expand=1,

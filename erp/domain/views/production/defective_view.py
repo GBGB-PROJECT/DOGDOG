@@ -7,33 +7,22 @@
 # - DatePicker 기간 검색 기준은 테이블에 보이는 입고완료일(inbound_complete)로 고정
 # =========================================================
 
-import math
 import datetime
 import flet as ft
 
 # 🔥 httpx 방식 API 호출
 from api.erp_httpx_api import count_defectives, fetch_defectives
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
+from components.common.erp_view_style import *
+from components.common.erp_pagination import calc_total_pages
+from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 
 
-FIELD_BG = ft.Colors.WHITE
-FIELD_BORDER = "#D1D5DB"
-FIELD_TEXT = "#222222"
-HINT_TEXT = "#9CA3AF"
 
-BUTTON_BG = "#F3F4F6"
-BUTTON_TEXT = "#374151"
-BUTTON_BORDER = "#D1D5DB"
 
-CARD_BG = ft.Colors.WHITE
-TABLE_HEADER_BG = "#F9FAFB"
-TABLE_BORDER = "#E5E7EB"
 
-TEXT_PRIMARY = "#111827"
-TEXT_SECONDARY = "#6B7280"
-TEXT_ROW = "#374151"
 ACTION_RED = "#DC2626"
 
-PAGE_SIZE = 50
 
 
 # =========================================================
@@ -81,74 +70,15 @@ def _parse_prefilter_date(value):
 # =========================================================
 # 🔥 공통 텍스트
 # =========================================================
-def build_text(value, size=12, color=TEXT_PRIMARY, weight=ft.FontWeight.W_400):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        max_lines=1,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
 # =========================================================
 # 🔥 날짜 박스
 # =========================================================
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        on_click=on_click,
-        content=ft.Text(text, size=13, color=FIELD_TEXT, weight=ft.FontWeight.W_500),
-    )
-
-
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Icon(ft.Icons.CALENDAR_MONTH_OUTLINED, size=18, color="#4B5563"),
-    )
-
-
 # =========================================================
 # 🔥 버튼
 # =========================================================
-def action_button(text, on_click=None, width=78):
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(text, size=13, color=BUTTON_TEXT, weight=ft.FontWeight.W_500),
-    )
-
-
 # =========================================================
 # 🔥 테이블 셀
 # =========================================================
-def build_table_cell(text, expand, align_x=0, weight=ft.FontWeight.W_400, color=TEXT_ROW):
-    return ft.Container(
-        expand=expand,
-        alignment=ft.Alignment(align_x, 0),
-        content=build_text(text, size=12, color=color, weight=weight),
-    )
-
-
 # =========================================================
 # 🔥 날짜/시간/숫자 포맷
 # =========================================================
@@ -320,7 +250,7 @@ def erp_defective_view():
     # =========================================================
     def on_start_date_change(e):
         if e.control.value:
-            selected_start["value"] = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
+            selected_start["value"] = normalize_datepicker_value(e.control.value)
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -331,7 +261,7 @@ def erp_defective_view():
 
     def on_end_date_change(e):
         if e.control.value:
-            picked_date = (e.control.value + datetime.timedelta(hours=9)).replace(tzinfo=None)
+            picked_date = normalize_datepicker_value(e.control.value)
 
             if selected_start["value"] and picked_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -655,7 +585,7 @@ def erp_defective_view():
         try:
             keyword = pagination_state.get("keyword", "")
             total_count = fetch_total_count(keyword)
-            total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
+            total_pages = calc_total_pages(total_count, PAGE_SIZE)
 
             if page_no > total_pages:
                 page_no = total_pages

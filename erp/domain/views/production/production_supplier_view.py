@@ -1,4 +1,3 @@
-import math
 import flet as ft
 import datetime
 
@@ -7,130 +6,20 @@ from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import SUPPLIER_FIELDS
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_suppliers, fetch_suppliers, create_supplier
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
+from components.common.erp_view_style import *
+from components.common.erp_pagination import calc_total_pages
+from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 
 
 # =========================================================
 # ☑️ customer_view 스타일 참고용 공통 색상
 # =========================================================
-FIELD_BG = ft.Colors.WHITE
-FIELD_BORDER = "#D1D5DB"
-FIELD_TEXT = "#222222"
-HINT_TEXT = "#9CA3AF"
 
-BUTTON_BG = "#F3F4F6"
-BUTTON_TEXT = "#374151"
-BUTTON_BORDER = "#D1D5DB"
 
-CARD_BG = ft.Colors.WHITE
-TABLE_HEADER_BG = "#F9FAFB"
-TABLE_BORDER = "#E5E7EB"
 
-TEXT_PRIMARY = "#111827"
-TEXT_SECONDARY = "#6B7280"
-TEXT_ROW = "#374151"
 
 SESSION_PREFIX = "supplier"
-PAGE_SIZE = 50
-
-
-def build_text(
-    value,
-    size=12,
-    color=TEXT_PRIMARY,
-    weight=ft.FontWeight.W_400,
-    text_align=ft.TextAlign.LEFT,
-):
-    return ft.Text(
-        value=str(value or ""),
-        size=size,
-        color=color,
-        weight=weight,
-        text_align=text_align,
-        max_lines=1,
-        overflow=ft.TextOverflow.ELLIPSIS,
-    )
-
-
-def date_value_box(text, on_click=None):
-    return ft.Container(
-        width=138,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        padding=ft.Padding.only(left=14, right=14),
-        alignment=ft.Alignment(-1, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=FIELD_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
-def calendar_icon_box(on_click=None):
-    return ft.Container(
-        width=38,
-        height=38,
-        bgcolor=FIELD_BG,
-        border=ft.Border.all(1, FIELD_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Icon(
-            ft.Icons.CALENDAR_MONTH_OUTLINED,
-            size=18,
-            color="#4B5563",
-        ),
-    )
-
-
-def action_button(text, on_click=None, width=78):
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=BUTTON_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
-    )
-
-
-def build_table_cell(
-    text,
-    expand,
-    align_x=-1,
-    weight=ft.FontWeight.W_400,
-    color=TEXT_ROW,
-    size=12,
-):
-    return ft.Container(
-        expand=expand,
-        alignment=ft.Alignment(align_x, 0),
-        content=build_text(
-            value=text,
-            size=size,
-            color=color,
-            weight=weight,
-            # 🔥 수정: align_x=0이면 텍스트도 중앙 정렬
-            text_align=(
-                ft.TextAlign.RIGHT
-                if align_x == 1
-                else ft.TextAlign.CENTER
-                if align_x == 0
-                else ft.TextAlign.LEFT
-            ),
-        ),
-    )
 
 
 def supplier_row_adapter(saved_data: dict, next_no: int):
@@ -273,7 +162,7 @@ def erp_production_supplier_view():
 
     def on_start_date_change(e):
         if e.control.value:
-            corrected_date = e.control.value + datetime.timedelta(hours=9)
+            corrected_date = normalize_datepicker_value(e.control.value)
             selected_start["value"] = corrected_date
 
             if selected_end["value"] and selected_end["value"] < selected_start["value"]:
@@ -285,7 +174,7 @@ def erp_production_supplier_view():
 
     def on_end_date_change(e):
         if e.control.value:
-            corrected_date = e.control.value + datetime.timedelta(hours=9)
+            corrected_date = normalize_datepicker_value(e.control.value)
 
             if selected_start["value"] and corrected_date < selected_start["value"]:
                 selected_end["value"] = selected_start["value"]
@@ -600,7 +489,7 @@ def erp_production_supplier_view():
         keyword = (search_field.value or "").strip()
 
         total_count = fetch_total_count(keyword)
-        total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
+        total_pages = calc_total_pages(total_count, PAGE_SIZE)
 
         # ☑️ 현재 페이지가 총 페이지보다 커지는 상황 방지
         if page_no > total_pages:

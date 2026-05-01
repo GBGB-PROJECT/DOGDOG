@@ -1,4 +1,6 @@
 import flet as ft
+
+from components.common.erp_busy_cursor import busy_cursor_control, with_busy_cursor
 import datetime
 
 # 👊 수정: 같은 common 패키지 아래 modals 폴더를 상대경로로 import
@@ -120,21 +122,25 @@ def calendar_icon_box(on_click=None):
 # =========================================================
 # ⭐ 조회 / 인쇄 / 다운로드 / 등록 버튼을 같은 스타일로 만들기 위한 함수
 def action_button(text, on_click=None, width=78):
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=BUTTON_TEXT,
-            weight=ft.FontWeight.W_500,
-        ),
+    # 🔥 상품 검색 공통 버튼에도 progress cursor 적용
+    return busy_cursor_control(
+        ft.Container(
+            width=width,
+            height=38,
+            bgcolor=BUTTON_BG,
+            border=ft.Border.all(1, BUTTON_BORDER),
+            border_radius=6,
+            alignment=ft.Alignment(0, 0),
+            on_click=with_busy_cursor(on_click),
+            content=ft.Text(
+                value=text,
+                size=13,
+                color=BUTTON_TEXT,
+                weight=ft.FontWeight.W_500,
+            ),
+        )
     )
+
 
 
 # =========================================================

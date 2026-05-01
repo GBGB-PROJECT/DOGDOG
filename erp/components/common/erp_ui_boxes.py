@@ -2,6 +2,8 @@ from ..common import color as c
 import re
 import flet as ft
 
+from components.common.erp_busy_cursor import busy_cursor_control, with_busy_cursor
+
 # ============================================================
 # ✅ ERP 3줄 정보 카드
 # - title (작은 설명)
@@ -91,11 +93,14 @@ def custom_textfield(label:str, hint:str, value: str="", is_password=False, on_s
 
 def primary_button(text: str, on_click):
     """브랜드 색상이 적용된 둥근 버튼"""
-    return ft.ElevatedButton(
-        content=ft.Text(text, size=16, weight="bold", color=ft.Colors.WHITE),
-        bgcolor=c.MAIN_COLOR,
-        height=50,
-        width=float("inf"), # 부모 너비에 맞춤
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=25)),
-        on_click=on_click
+    # 🔥 로그인 버튼도 실행 중 progress cursor 적용
+    return busy_cursor_control(
+        ft.ElevatedButton(
+            content=ft.Text(text, size=16, weight="bold", color=ft.Colors.WHITE),
+            bgcolor=c.MAIN_COLOR,
+            height=50,
+            width=float("inf"), # 부모 너비에 맞춤
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=25)),
+            on_click=with_busy_cursor(on_click)
+        )
     )

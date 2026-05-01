@@ -5,6 +5,13 @@ import httpx
 # 🔥 FastAPI 서버 주소
 BASE_URL = "http://127.0.0.1:8000"
 
+# 🔥 화면 전환 속도 개선
+# - 요청마다 새 연결을 만들지 않고 공통 httpx.Client를 재사용한다.
+_CLIENT = httpx.Client(
+    base_url=BASE_URL,
+    timeout=10.0,
+)
+
 
 def _get(path: str, params: dict | None = None):
     """
@@ -19,7 +26,7 @@ def _get(path: str, params: dict | None = None):
     url = f"{BASE_URL}{path}"
 
     try:
-        response = httpx.get(url, params=params, timeout=10.0)
+        response = _CLIENT.get(path, params=params)
         response.raise_for_status()
         result = response.json()
         return result.get("data", {})

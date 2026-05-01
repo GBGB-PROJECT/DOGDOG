@@ -1,35 +1,23 @@
 """frame과 연결되어 frame의 내용물을 채우는 파일"""
+from importlib import import_module
 import flet as ft
-from domain.views.home import home_view
-from domain.views.stock import stock_view
-from domain.views.sales import sales_view 
 
-from domain.views.stock import stock_status_view
-from domain.views.stock import stock_product_detail_view
-from domain.views.stock import stock_inout_view
 
-# 👊 추가: 상품관리 화면 연결
-from domain.views.merchandise import product_view
-from domain.views.merchandise import product_detail_view
+def _lazy_view(module_path: str, function_name: str):
+    """
+    🔥 화면 전환 속도 개선
+    - content_move.py가 import될 때 모든 view.py를 한꺼번에 import하지 않는다.
+    - 실제 route에 진입하는 순간 필요한 view.py만 import한다.
+    """
+    def _builder():
+        module = import_module(module_path)
+        return getattr(module, function_name)()
 
-# ☑️ 추가: 인사관리 화면 import
-from domain.views.hr import erp_employee_view
+    return _builder
 
-# ☑️ 추가: 고객관리 화면 import
-from domain.views.customer import (
-    erp_customer_view,
-    erp_customer_info_view,
-    erp_customer_order_view,  # 🔥 추가
-    erp_customer_subscription_view,  # 🔥 추가
-)
 
-from domain.views.production import production_view
-
-from domain.views.production import purchase_order_view
-
-from domain.views.production import production_supplier_view
-from domain.views.production import inbound_view  # 🔥 수정: 생산입고현황조회 화면
-from domain.views.production import defective_view  # 🔥 추가: 불량현황조회 화면
+def _ready_view(text: str):
+    return lambda: ft.Container(content=ft.Text(text))
 
 
 ## ============= 페이지 이동 (실질)
@@ -63,53 +51,53 @@ DISABLED_MAIN_MENU_ITEMS = [
     "시스템관리",
 ]
 
-# erp_homecontent.view,     
+# erp_homecontent.view,
 MENU_ITEMS = {
-    "홈": home_view.erp_home_view,
-    "매출관리": lambda: ft.Container(content=ft.Text("매출관리 준비 중")),
-    "원가관리": lambda: ft.Container(content=ft.Text("원가관리 준비 중")),
-    "구매관리": sales_view.erp_sales_view,
+    "홈": _lazy_view("domain.views.home.home_view", "erp_home_view"),
+    "매출관리": _ready_view("매출관리 준비 중"),
+    "원가관리": _ready_view("원가관리 준비 중"),
+    "구매관리": _lazy_view("domain.views.sales.sales_view", "erp_sales_view"),
 
     # 🔥 수정: 상품관리 대분류를 누르면 안내/텍스트 화면이 아니라 기본 화면(상품 상세 정보 관리)을 바로 표시
-    "상품관리": product_detail_view.erp_product_detail_view,
+    "상품관리": _lazy_view("domain.views.merchandise.product_detail_view", "erp_product_detail_view"),
 
     # 👊 추가: 상품관리 하위 메뉴 연결
     # "상품마스터정보관리": product_master_view.erp_product_master_view,
 
-    "상품 상세 정보 관리": product_detail_view.erp_product_detail_view,
+    "상품 상세 정보 관리": _lazy_view("domain.views.merchandise.product_detail_view", "erp_product_detail_view"),
 
     # 🔥 수정: 생산관리 대분류 화면을 생산현황 메뉴의 실제 화면으로 사용
-    "생산관리": production_view.erp_production_view,
+    "생산관리": _lazy_view("domain.views.production.production_view", "erp_production_view"),
 
     # 🔥 추가: 기존 생산관리 대시보드 화면을 생산현황 하위 메뉴로 이동
-    "생산현황": production_view.erp_production_view,
+    "생산현황": _lazy_view("domain.views.production.production_view", "erp_production_view"),
 
-    "생산입고": inbound_view.erp_inbound_view,  # 🔥 추가: 생산입고 실제 입고 현황 화면 연결
-    "불량 현황": defective_view.erp_defective_view,  # 🔥 추가: 불량현황조회 화면 연결
-    "발주 관리": purchase_order_view.erp_purchase_order_view,
-    "거래처 관리": production_supplier_view.erp_production_supplier_view,
+    "생산입고": _lazy_view("domain.views.production.inbound_view", "erp_inbound_view"),  # 🔥 추가: 생산입고 실제 입고 현황 화면 연결
+    "불량 현황": _lazy_view("domain.views.production.defective_view", "erp_defective_view"),  # 🔥 추가: 불량현황조회 화면 연결
+    "발주 관리": _lazy_view("domain.views.production.purchase_order_view", "erp_purchase_order_view"),
+    "거래처 관리": _lazy_view("domain.views.production.production_supplier_view", "erp_production_supplier_view"),
 
     # 🔥 수정: 재고관리 대분류를 누르면 안내 화면이 아니라 기본 화면(재고 현황)을 바로 표시
-    "재고관리": stock_status_view.erp_stock_status_view,
+    "재고관리": _lazy_view("domain.views.stock.stock_status_view", "erp_stock_status_view"),
 
     # ☑️ 추가: 재고관리 하위 메뉴 연결
-    "재고 현황": stock_status_view.erp_stock_status_view,
+    "재고 현황": _lazy_view("domain.views.stock.stock_status_view", "erp_stock_status_view"),
 
-    "상품별 재고 상세": stock_product_detail_view.erp_stock_product_detail_view,
+    "상품별 재고 상세": _lazy_view("domain.views.stock.stock_product_detail_view", "erp_stock_product_detail_view"),
 
-    "물류관리": lambda: ft.Container(content=ft.Text("물류관리 준비 중")),
+    "물류관리": _ready_view("물류관리 준비 중"),
 
-    "입고/출고 관리": stock_inout_view.erp_stock_inout_view,
+    "입고/출고 관리": _lazy_view("domain.views.stock.stock_inout_view", "erp_stock_inout_view"),
 
     # 🔥 수정: 고객관리 대분류를 누르면 안내/텍스트 화면이 아니라 기본 화면(고객 정보 관리)을 바로 표시
-    "고객관리": erp_customer_info_view,
+    "고객관리": _lazy_view("domain.views.customer.customer_info_view", "erp_customer_info_view"),
 
     # 🔥 추가: 고객관리 하위 메뉴 화면 연결
-    "고객 정보 관리": erp_customer_info_view,
+    "고객 정보 관리": _lazy_view("domain.views.customer.customer_info_view", "erp_customer_info_view"),
     # 🔥 수정: 고객 주문 관리 실제 화면 연결
-    "고객 주문 관리": erp_customer_order_view,
-    
-    "고객 구독 관리": erp_customer_subscription_view,  # 🔥 수정: 고객 구독 관리 실제 화면 연결
+    "고객 주문 관리": _lazy_view("domain.views.customer.customer_order_view", "erp_customer_order_view"),
+
+    "고객 구독 관리": _lazy_view("domain.views.customer.customer_subscription_view", "erp_customer_subscription_view"),  # 🔥 수정: 고객 구독 관리 실제 화면 연결
     # "고객 문의 관리": lambda: ft.Container(
     #     expand=True,
     #     alignment=ft.Alignment(0, 0),
@@ -121,18 +109,16 @@ MENU_ITEMS = {
     #     content=ft.Text("고객 센터 관리 준비 중"),
     # ),
 
-    "영업관리": lambda: ft.Container(content=ft.Text("영업관리 준비 중")),
-    "회계관리": lambda: ft.Container(content=ft.Text("회계관리 준비 중")),
+    "영업관리": _ready_view("영업관리 준비 중"),
+    "회계관리": _ready_view("회계관리 준비 중"),
 
     # 🔥 수정: 인사관리 대분류를 누르면 바로 실제 사원 관리 화면을 표시
-    "인사관리": erp_employee_view,
+    "인사관리": _lazy_view("domain.views.hr.employee_view", "erp_employee_view"),
 
     # 🔥 추가: 인사관리 하위 메뉴 - 사원 관리 실제 화면 연결
-    "사원 관리": erp_employee_view,
+    "사원 관리": _lazy_view("domain.views.hr.employee_view", "erp_employee_view"),
 
-    "시스템관리": lambda: ft.Container(content=ft.Text("시스템관리 준비 중")),
-
-    
+    "시스템관리": _ready_view("시스템관리 준비 중"),
 }
 
 """각 side바의 제목 탭을 의미함

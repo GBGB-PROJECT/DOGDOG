@@ -9,6 +9,8 @@
 import datetime
 import flet as ft
 
+from components.common.erp_busy_cursor import busy_cursor_control, with_busy_cursor
+
 from api.erp_httpx_api import count_stock_inouts, fetch_stock_inouts
 from components.common.erp_view_widgets import build_text, date_value_box_hint as date_value_box, calendar_icon_box, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
@@ -75,23 +77,26 @@ def build_button(text, on_click=None, width=82):
     # 🔥 수정: ElevatedButton은 내부 기본 padding 때문에 "초기화"가 세로로 줄바꿈되는 문제가 있음
     # - 다른 조회 화면 버튼들과 동일하게 Container + Text 방식으로 고정
     # - max_lines=1을 줘서 버튼 텍스트가 절대 두 줄로 내려가지 않게 처리
-    return ft.Container(
-        width=width,
-        height=38,
-        bgcolor=BUTTON_BG,
-        border=ft.Border.all(1, BUTTON_BORDER),
-        border_radius=6,
-        alignment=ft.Alignment(0, 0),
-        on_click=on_click,
-        content=ft.Text(
-            value=text,
-            size=13,
-            color=BUTTON_TEXT,
-            weight=ft.FontWeight.W_500,
-            text_align=ft.TextAlign.CENTER,
-            max_lines=1,
-            overflow=ft.TextOverflow.CLIP,
-        ),
+    # 🔥 추가: stock_inout_view는 공통 action_button을 안 쓰므로 여기에도 progress cursor 직접 적용
+    return busy_cursor_control(
+        ft.Container(
+            width=width,
+            height=38,
+            bgcolor=BUTTON_BG,
+            border=ft.Border.all(1, BUTTON_BORDER),
+            border_radius=6,
+            alignment=ft.Alignment(0, 0),
+            on_click=with_busy_cursor(on_click),
+            content=ft.Text(
+                value=text,
+                size=13,
+                color=BUTTON_TEXT,
+                weight=ft.FontWeight.W_500,
+                text_align=ft.TextAlign.CENTER,
+                max_lines=1,
+                overflow=ft.TextOverflow.CLIP,
+            ),
+        )
     )
 
 

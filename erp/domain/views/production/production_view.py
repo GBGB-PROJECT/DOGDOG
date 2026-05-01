@@ -1,4 +1,6 @@
 import flet as ft
+
+from components.common.erp_busy_cursor import go_with_busy_cursor, with_busy_cursor
 from components import common as cm
 from components.common.charts.twin_chart import build_production_twin_chart
 
@@ -163,7 +165,7 @@ def erp_production_view():
             date_type="contract_date",
         )
 
-        e.page.go("/production/order")
+        go_with_busy_cursor(e.page, "/production/order")
 
     def open_month_inbound_page(e):
         data = state["data"]
@@ -177,7 +179,7 @@ def erp_production_view():
             search_type="inbound_complete",
         )
 
-        e.page.go("/production/inbound")
+        go_with_busy_cursor(e.page, "/production/inbound")
 
     def open_month_defective_page(e):
         data = state["data"]
@@ -192,7 +194,7 @@ def erp_production_view():
             search_type="inbound_complete",
         )
 
-        e.page.go("/production/defective")
+        go_with_busy_cursor(e.page, "/production/defective")
 
     # 🔥 최근 발주 카드의 상세내역 클릭 시 바로 발주서 모달 열기
     def open_purchase_order_detail(e, purchase_order_id):
@@ -631,7 +633,7 @@ def erp_production_view():
                 ft.IconButton(
                     icon=ft.Icons.CHEVRON_LEFT,
                     icon_size=20,
-                    on_click=lambda e: move_dashboard_month(-1, e),
+                    on_click=with_busy_cursor(lambda e: move_dashboard_month(-1, e)),
                 ),
                 build_text(
                     state["data"].get(
@@ -645,7 +647,7 @@ def erp_production_view():
                 ft.IconButton(
                     icon=ft.Icons.CHEVRON_RIGHT,
                     icon_size=20,
-                    on_click=lambda e: move_dashboard_month(1, e),
+                    on_click=with_busy_cursor(lambda e: move_dashboard_month(1, e)),
                 ),
             ],
         )

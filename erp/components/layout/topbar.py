@@ -1,4 +1,6 @@
 import flet as ft
+
+from components.common.erp_busy_cursor import go_with_busy_cursor, with_busy_cursor
 from ..common import color as c
 
 
@@ -35,7 +37,7 @@ def _build_topbar_popup_item(text: str, on_click_handler):
             ),
         ),
         data=text,
-        on_click=on_click_handler,
+        on_click=with_busy_cursor(on_click_handler),
     )
 
 
@@ -56,7 +58,7 @@ def build_erp_topbar(page: ft.Page, on_top_menu_click=None):
                 print("✅ 로그아웃 클릭 이벤트 발생")  # 터미널에서 클릭 작동 여부 디버깅용
                 page.session.store.clear()        # 1. 세션 초기화
                 page.views.clear()            # 2. 현재 화면의 모든 위젯(ErpFrame 등) 강제 삭제
-                page.go("/login")                # 3. 로그인 라우트로 이동 (main.py의 라우팅 트리거)                   # 4. 화면 즉시 새로고침
+                go_with_busy_cursor(page, "/login")                # 3. 로그인 라우트로 이동 (main.py의 라우팅 트리거)                   # 4. 화면 즉시 새로고침
                 return
 
         if on_top_menu_click:

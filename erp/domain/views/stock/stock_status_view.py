@@ -1,6 +1,8 @@
 import re
 from datetime import datetime, timedelta
 import flet as ft
+
+from components.common.erp_busy_cursor import go_with_busy_cursor, with_busy_cursor
 from components import common as cm
 from components.common.charts.twin_chart import build_stock_twin_chart
 from components.common.modals.production_order import (
@@ -152,7 +154,7 @@ def erp_stock_status_view():
             keyword="",
         )
 
-        e.page.go("/stock/product/inout")
+        go_with_busy_cursor(e.page, "/stock/product/inout")
 
     def open_stock_product_detail_page(e):
         data = state["data"]
@@ -169,7 +171,7 @@ def erp_stock_status_view():
             keyword="",
         )
 
-        e.page.go("/stock/product/detail")
+        go_with_busy_cursor(e.page, "/stock/product/detail")
 
     def _extract_quantity_number(text):
         if text is None:
@@ -634,7 +636,7 @@ def erp_stock_status_view():
                 ft.IconButton(
                     icon=ft.Icons.CHEVRON_LEFT,
                     icon_size=20,
-                    on_click=lambda e: move_dashboard_month(-1, e),
+                    on_click=with_busy_cursor(lambda e: move_dashboard_month(-1, e)),
                 ),
                 build_text(
                     state["data"].get(
@@ -648,7 +650,7 @@ def erp_stock_status_view():
                 ft.IconButton(
                     icon=ft.Icons.CHEVRON_RIGHT,
                     icon_size=20,
-                    on_click=lambda e: move_dashboard_month(1, e),
+                    on_click=with_busy_cursor(lambda e: move_dashboard_month(1, e)),
                 ),
             ],
         )

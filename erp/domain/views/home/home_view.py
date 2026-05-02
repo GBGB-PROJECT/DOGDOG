@@ -3,6 +3,13 @@ from components import common as cm
 from erp.domain.controller.home.erp_home_controller import HomeViewMain
 
 
+# =========================================================
+# 🔥 홈 화면 전용 배경색
+# - ERP 조회 화면 공통 스타일(erp_view_style.py)이나 cm.PAGE_BG 영향을 받지 않도록
+#   홈 화면 안에서만 별도로 관리한다.
+# =========================================================
+HOME_PAGE_BG = "#F5F7FA"
+
 
 def erp_home_view():
     ## 컨트롤러에서 실제 데이터 가지고 오기
@@ -60,7 +67,7 @@ def erp_home_view():
 
     return ft.Container(
         expand=True,
-        bgcolor=cm.PAGE_BG,
+        bgcolor=HOME_PAGE_BG,  # 🔥 홈 화면 전용 배경색 사용
         padding=20,
         content=ft.Column(
             spacing=20,

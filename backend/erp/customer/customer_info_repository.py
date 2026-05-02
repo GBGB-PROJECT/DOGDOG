@@ -1,4 +1,4 @@
-from sqlalchemy import cast, false
+from sqlalchemy import cast, false, func
 from sqlalchemy.types import String
 
 from db.db import SessionLocal
@@ -45,6 +45,20 @@ def _active_subscription_exists_expr(db):
             OpdSubs.is_subs_status.is_(True),
         )
         .exists()
+    )
+
+
+def _subscription_count_expr(db):
+    # 🔥 추가: 구독횟수도 OPD.subs 기준으로 계산
+    # - 기존에는 구독여부는 OPD.subs 활성 구독 기준인데,
+    #   구독횟수는 Companion.customer.subs_count 저장값을 그대로 보여줘서
+    #   customer_id 1001처럼 Y / 0이 동시에 나오는 불일치가 발생했다.
+    # - 화면 표시 기준을 OPD.subs로 맞춰 구독여부와 구독횟수의 기준을 통일한다.
+    return (
+        db.query(func.count(OpdSubs.subs_id))
+        .filter(OpdSubs.customer_id == CompanionCustomer.customer_id)
+        .correlate(CompanionCustomer)
+        .scalar_subquery()
     )
 
 
@@ -106,6 +120,7 @@ def _row_to_dict(row):
 
 def _base_customer_query(db):
     active_subscription_exists = _active_subscription_exists_expr(db)
+    subscription_count = _subscription_count_expr(db)
 
     return (
         db.query(
@@ -118,7 +133,8 @@ def _base_customer_query(db):
             # 🔥 수정: 화면 구독여부는 OPD.subs의 활성 구독 존재 여부로 계산
             active_subscription_exists.label("is_subscribed"),
 
-            CompanionCustomer.subs_count.label("subs_count"),
+            # 🔥 수정: 구독횟수도 OPD.subs 기준으로 계산
+            subscription_count.label("subs_count"),
             CompanionCustomer.active.label("active"),
             CompanionCustomerDetail.create_date.label("create_date"),
         )
@@ -174,8 +190,10 @@ def _apply_customer_filter(db, query, search_type: str, keyword: str, start_date
                 query = query.filter(false())
 
         elif search_type == "subs_count":
+            # 🔥 수정: 표시값과 검색값 모두 OPD.subs 기준 구독횟수로 통일
+            subscription_count = _subscription_count_expr(db)
             query = query.filter(
-                cast(CompanionCustomer.subs_count, String).like(like_keyword(clean))
+                cast(subscription_count, String).like(like_keyword(clean))
             )
 
         elif search_type == "active":

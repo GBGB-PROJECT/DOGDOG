@@ -15,6 +15,7 @@ from components.common.erp_view_widgets import build_text, date_value_box, calen
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
 
@@ -873,31 +874,6 @@ def erp_purchase_order_view():
     reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
     update_reset_button_visibility()
 
-    filter_bar = ft.Container(
-        bgcolor=ft.Colors.WHITE,
-        padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
-        content=ft.Row(
-            wrap=True,
-            spacing=12,
-            run_spacing=12,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
-                start_field_holder,
-                start_icon_holder,
-                ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
-                end_field_holder,
-                end_icon_holder,
-                date_type,
-                search_type,
-                search_field,
-                action_button("조회", on_click=on_search_click),
-                reset_button_holder,
-                action_button("인쇄", on_click=on_print),
-                action_button("다운로드", on_click=on_download, width=92),
-            ],
-        ),
-    )
-
     table_content = ft.Column(
         expand=True,
         spacing=0,
@@ -930,45 +906,23 @@ def erp_purchase_order_view():
         ),
     )
 
-    main_content = ft.Container(
-        expand=True,
-        # 🔥 수정: 필터바만 흰색이고 본문은 회색으로 남는 문제 방지
-        bgcolor=ft.Colors.WHITE,
-        padding=0,
-        content=ft.Column(
-            expand=True,
-            spacing=0,
-            controls=[
-                filter_bar,
-                ft.Container(
-                    padding=20,
-                    expand=True,
-                    # 🔥 수정: 발주관리 본문 영역도 흰색으로 통일
-                    bgcolor=ft.Colors.WHITE,
-                    content=ft.Column(
-                        expand=True,
-                        spacing=14,
-                        controls=[
-                            ft.Text(
-                                value=page_title,
-                                size=20,
-                                color=TEXT_PRIMARY,
-                                weight=ft.FontWeight.W_700,
-                            ),
-                            result_text,
-                            table_area,
-                            # 🔥 수정: pagination_holder는 테이블 바깥에 두어 하단 고정처럼 보이게 함
-                            pagination_holder,
-                        ],
-                    ),
-                ),
-            ],
-        ),
-    )
-
-    return ft.Container(
-        expand=True,
-        # 🔥 수정: 최외곽 배경까지 흰색으로 고정
-        bgcolor=ft.Colors.WHITE,
-        content=main_content,
+    return build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_area,
+        pagination_holder=pagination_holder,
+        filter_controls=[
+            start_field_holder,
+            start_icon_holder,
+            ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+            end_field_holder,
+            end_icon_holder,
+            date_type,
+            search_type,
+            search_field,
+            action_button("조회", on_click=on_search_click),
+            reset_button_holder,
+            action_button("인쇄", on_click=on_print),
+            action_button("다운로드", on_click=on_download, width=92),
+        ],
     )

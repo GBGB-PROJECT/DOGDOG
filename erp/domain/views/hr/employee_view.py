@@ -10,6 +10,7 @@ from components.common.erp_view_widgets import build_text, date_value_box, calen
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
 # =========================================================
@@ -749,101 +750,26 @@ def erp_employee_view():
         action_button("등록", on_click=open_register_modal, width=78),
     ]
 
-    filter_bar = ft.Container(
-        bgcolor=ft.Colors.WHITE,
-        padding=ft.Padding.only(left=20, right=20, top=12, bottom=12),
-        content=ft.Row(
-            spacing=10,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
-                start_field_holder,
-                start_icon_holder,
-                ft.Text(
-                    value="~",
-                    size=16,
-                    color="#374151",
-                    weight=ft.FontWeight.W_500,
-                ),
-                end_field_holder,
-                end_icon_holder,
-                search_type,
-                search_field,
-                *action_controls,
-            ],
-        ),
-    )
-
-    table_area = ft.Container(
-        expand=True,
+    table_area = build_lookup_table_area(
+        build_table_header(),
+        table_rows_holder,
         border=ft.border.all(1, TABLE_BORDER),
-        border_radius=10,
-        bgcolor=CARD_BG,
-        clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        content=ft.Column(
-            expand=True,
-            spacing=0,
-            controls=[
-                build_table_header(),
-                # 🔥 수정: inbound_view.py처럼 데이터 행 영역만 세로 스크롤
-                ft.Container(
-                    expand=True,
-                    content=ft.Column(
-                        expand=True,
-                        spacing=0,
-                        scroll=ft.ScrollMode.AUTO,
-                        controls=[table_rows_holder],
-                    ),
-                ),
-            ],
-        ),
     )
 
-    main_content = ft.Container(
-        expand=True,
-        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 화면 배경 흰색 통일
-        padding=0,
-        content=ft.Column(
-            expand=True,
-            spacing=0,
-            controls=[
-                filter_bar,
-                ft.Container(
-                    padding=20,
-                    expand=True,
-                    bgcolor=ft.Colors.WHITE,  # 🔥 수정: 본문 안쪽 배경 흰색 통일
-                    content=ft.Column(
-                        expand=True,
-                        spacing=14,
-                        # 🔥 수정: 전체 본문 스크롤 제거
-                        # - 제목/결과텍스트/페이지네이션은 고정 영역에 두고
-                        # - 테이블 데이터 행만 table_area 안에서 스크롤되게 함
-                        controls=[
-                            ft.Text(
-                                value=page_title,
-                                size=20,
-                                color=TEXT_PRIMARY,
-                                weight=ft.FontWeight.W_700,
-                            ),
-                            result_text,
-                            table_area,
-                            # 🔥 수정: pagination_holder는 스크롤 영역 밖 하단 배치
-                            pagination_holder,
-                        ],
-                    ),
-                ),
-            ],
-        ),
-    )
-
-    return ft.Container(
-        expand=True,
-        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 최외곽 배경 흰색 통일
-        content=ft.Stack(
-            expand=True,
-            controls=[
-                main_content,
-                dim_bg,
-                popup_layer,
-            ],
-        ),
+    return build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_area,
+        pagination_holder=pagination_holder,
+        overlay_controls=[dim_bg, popup_layer],
+        filter_controls=[
+            start_field_holder,
+            start_icon_holder,
+            ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+            end_field_holder,
+            end_icon_holder,
+            search_type,
+            search_field,
+            *action_controls,
+        ],
     )

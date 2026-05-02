@@ -7,6 +7,7 @@ from components.common.erp_view_widgets import build_text, date_value_box, calen
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
 # =========================================================
@@ -529,72 +530,24 @@ def erp_customer_order_view():
     pagination_state["current_page"] = 1
     reload_current_page()
 
-    return ft.Container(
-        expand=True,
-        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 최외곽 배경을 흰색으로 고정해 우측 배경 얼룩 방지
-        content=ft.Column(
-        expand=True,
-        spacing=0,
-        controls=[
-            ft.Container(
-                bgcolor=ft.Colors.WHITE,
-                padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
-                content=ft.Row(
-                    wrap=True,
-                    spacing=12,
-                    run_spacing=12,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        start_field_holder,
-                        start_icon_holder,
-                        ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
-                        end_field_holder,
-                        end_icon_holder,
-                        search_type,
-                        search_field,
-                        action_button("조회", on_click=on_search_click),
-                        reset_button_holder,
-                        action_button("인쇄"),
-                        action_button("다운로드", width=92),
-                    ],
-                ),
-            ),
-            ft.Container(
-                expand=True,
-                bgcolor=ft.Colors.WHITE,
-                padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
-                content=ft.Column(
-                    expand=True,
-                    spacing=18,
-                    controls=[
-                        ft.Text(page_title, size=22, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
-                        result_text,
-                        ft.Container(
-                            expand=True,
-                            bgcolor=CARD_BG,
-                            border_radius=10,
-                            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                            content=ft.Column(
-                                expand=True,
-                                spacing=0,
-                                controls=[
-                                    build_table_header(),
-                                    ft.Container(
-                                        expand=True,
-                                        content=ft.Column(
-                                            expand=True,
-                                            spacing=0,
-                                            scroll=ft.ScrollMode.AUTO,
-                                            controls=[table_rows_holder],
-                                        ),
-                                    ),
-                                ],
-                            ),
-                        ),
-                        pagination_holder,
-                    ],
-                ),
-            ),
+    table_area = build_lookup_table_area(build_table_header(), table_rows_holder)
+
+    return build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_area,
+        pagination_holder=pagination_holder,
+        filter_controls=[
+            start_field_holder,
+            start_icon_holder,
+            ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+            end_field_holder,
+            end_icon_holder,
+            search_type,
+            search_field,
+            action_button("조회", on_click=on_search_click),
+            reset_button_holder,
+            action_button("인쇄"),
+            action_button("다운로드", width=92),
         ],
-    )
     )

@@ -11,6 +11,7 @@ from components.common.erp_view_widgets import build_text, date_value_box, calen
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
 # =========================================================
@@ -761,87 +762,26 @@ def erp_customer_info_view():
     pagination_state["current_page"] = 1
     reload_current_page()
 
-    page_content = ft.Column(
-        expand=True,
-        spacing=0,
-        # 🔥 추가: 화면 배경이 컨텐츠 폭에서 끊겨 우측에 네모 얼룩이 생기는 현상 방지
-        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-        controls=[
-            ft.Container(
-                bgcolor=ft.Colors.WHITE,
-                padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
-                content=ft.Row(
-                    wrap=True,
-                    spacing=12,
-                    run_spacing=12,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        start_field_holder,
-                        start_icon_holder,
-                        ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
-                        end_field_holder,
-                        end_icon_holder,
-                        search_type,
-                        search_field,
-                        action_button("조회", on_click=on_search_click),
-                        reset_button_holder,
-                        action_button("인쇄"),
-                        action_button("다운로드", width=92),
-                        action_button("등록", on_click=open_register_modal),
-                    ],
-                ),
-            ),
-            ft.Container(
-                expand=True,
-                bgcolor=ft.Colors.WHITE,
-                padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
-                content=ft.Column(
-                    expand=True,
-                    spacing=18,
-                    controls=[
-                        ft.Text(
-                            value=page_title,
-                            size=22,
-                            weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
-                        ),
-                        result_text,
-                        ft.Container(
-                            expand=True,
-                            bgcolor=CARD_BG,
-                            border_radius=10,
-                            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                            content=ft.Column(
-                                expand=True,
-                                spacing=0,
-                                controls=[
-                                    build_table_header(),
-                                    ft.Container(
-                                        expand=True,
-                                        content=ft.Column(
-                                            expand=True,
-                                            spacing=0,
-                                            scroll=ft.ScrollMode.AUTO,
-                                            controls=[table_rows_holder],
-                                        ),
-                                    ),
-                                ],
-                            ),
-                        ),
-                        pagination_holder,
-                    ],
-                ),
-            ),
+    table_area = build_lookup_table_area(build_table_header(), table_rows_holder)
+
+    return build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_area,
+        pagination_holder=pagination_holder,
+        overlay_controls=[dim_bg, popup_layer],
+        filter_controls=[
+            start_field_holder,
+            start_icon_holder,
+            ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+            end_field_holder,
+            end_icon_holder,
+            search_type,
+            search_field,
+            action_button("조회", on_click=on_search_click),
+            reset_button_holder,
+            action_button("인쇄"),
+            action_button("다운로드", width=92),
+            action_button("등록", on_click=open_register_modal),
         ],
     )
-
-    root = ft.Stack(
-        expand=True,
-        controls=[
-            page_content,
-            dim_bg,
-            popup_layer,
-        ],
-    )
-
-    return root

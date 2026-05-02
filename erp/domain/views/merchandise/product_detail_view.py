@@ -7,6 +7,7 @@ from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
 
@@ -591,37 +592,10 @@ def erp_product_detail_view():
     except Exception as exc:
         result_text.value = f"DB 조회 실패: {exc}"
 
-    filter_bar = ft.Container(
-        bgcolor=ft.Colors.WHITE,
-        padding=ft.Padding.only(left=20, right=20, top=12, bottom=12),
-        content=ft.Row(
-            spacing=10,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
-                search_type,
-                search_field,
-                action_button(
-                    "조회",
-                    on_click=lambda e: (
-                        load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
-                        update_reset_button_visibility(),
-                        e.page.update(),
-                    ),
-                    width=78,
-                ),
-                reset_button_holder,
-                action_button("인쇄", on_click=on_print, width=78),
-                action_button("다운로드", on_click=on_download, width=104),
-                action_button("등록", on_click=open_register_modal, width=78),
-            ],
-        ),
-    )
-
     # =========================================================
-    # 🔥 inbound_view.py 방식으로 스크롤 구조 통일
-    # - 화면 전체가 아니라 테이블 데이터 행 영역만 세로 스크롤
-    # - pagination_holder는 테이블 스크롤 영역 밖에 두어 하단 고정처럼 유지
-    # - 상품 상세 테이블은 컬럼이 많으므로 가로 스크롤은 유지
+    # 🔥 조회 화면 공통 레이아웃 적용
+    # - 필터바 위치/본문 여백/제목 크기를 다른 조회 화면과 통일
+    # - 상품 상세 테이블은 컬럼이 많으므로 가로 스크롤 구조는 유지
     # =========================================================
     total_table_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1))
 
@@ -657,48 +631,27 @@ def erp_product_detail_view():
         ),
     )
 
-    main_content = ft.Container(
-        expand=True,
-        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 화면 배경 흰색 통일
-        padding=0,
-        content=ft.Column(
-            expand=True,
-            spacing=0,
-            controls=[
-                filter_bar,
-                ft.Container(
-                    padding=20,
-                    expand=True,
-                    bgcolor=ft.Colors.WHITE,  # 🔥 수정: 본문 안쪽 배경 흰색 통일
-                    content=ft.Column(
-                        expand=True,
-                        spacing=14,
-                        controls=[
-                            ft.Text(
-                                value=page_title,
-                                size=20,
-                                color=TEXT_PRIMARY,
-                                weight=ft.FontWeight.W_700,
-                            ),
-                            result_text,
-                            table_area,
-                            pagination_holder,
-                        ],
-                    ),
+    return build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_area,
+        pagination_holder=pagination_holder,
+        overlay_controls=[dim_bg, popup_layer],
+        filter_controls=[
+            search_type,
+            search_field,
+            action_button(
+                "조회",
+                on_click=lambda e: (
+                    load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
+                    update_reset_button_visibility(),
+                    e.page.update(),
                 ),
-            ],
-        ),
-    )
-
-    return ft.Container(
-        expand=True,
-        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 최외곽 배경 흰색 통일
-        content=ft.Stack(
-            expand=True,
-            controls=[
-                main_content,
-                dim_bg,
-                popup_layer,
-            ],
-        ),
+                width=78,
+            ),
+            reset_button_holder,
+            action_button("인쇄", on_click=on_print, width=78),
+            action_button("다운로드", on_click=on_download, width=104),
+            action_button("등록", on_click=open_register_modal, width=78),
+        ],
     )

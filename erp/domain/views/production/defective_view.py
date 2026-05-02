@@ -16,6 +16,7 @@ from components.common.erp_view_widgets import build_text, date_value_box, calen
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
 
@@ -652,72 +653,22 @@ def erp_defective_view():
 
     load_page(1)
 
-    return ft.Container(
-        expand=True,
-        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 최외곽 배경을 흰색으로 고정해 우측 배경 얼룩 방지
-        content=ft.Column(
-        expand=True,
-        spacing=0,
-        controls=[
-            ft.Container(
-                bgcolor=ft.Colors.WHITE,
-                padding=ft.Padding.only(left=24, right=24, top=18, bottom=14),
-                content=ft.Row(
-                    wrap=True,
-                    spacing=12,
-                    run_spacing=12,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        start_field_holder,
-                        start_icon_holder,
-                        ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
-                        end_field_holder,
-                        end_icon_holder,
-                        search_type,
-                        search_field,
-                        action_button("조회", on_click=on_search),
-                        reset_button_holder,
-                    ],
-                ),
-            ),
-            ft.Container(
-                expand=True,
-                bgcolor=ft.Colors.WHITE,
-                padding=ft.Padding.only(left=24, right=24, top=26, bottom=18),
-                content=ft.Column(
-                    expand=True,
-                    spacing=18,
-                    controls=[
-                        ft.Text(page_title, size=22, weight=ft.FontWeight.W_700, color=TEXT_PRIMARY),
-                        result_text,
-                        ft.Container(
-                            expand=True,
-                            bgcolor=CARD_BG,
-                            border_radius=10,
-                            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                            content=ft.Column(
-                                expand=True,
-                                spacing=0,
-                                controls=[
-                                    build_table_header(),
-                                    # 🔥 수정: 전체 화면 스크롤이 아니라 데이터 행 영역만 스크롤
-                                    ft.Container(
-                                        expand=True,
-                                        content=ft.Column(
-                                            expand=True,
-                                            spacing=0,
-                                            scroll=ft.ScrollMode.AUTO,
-                                            controls=[table_rows_holder],
-                                        ),
-                                    ),
-                                ],
-                            ),
-                        ),
-                        # 🔥 수정: pagination_holder는 테이블 바깥에 두어 하단 고정처럼 보이게 함
-                        pagination_holder,
-                    ],
-                ),
-            ),
+    table_area = build_lookup_table_area(build_table_header(), table_rows_holder)
+
+    return build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_area,
+        pagination_holder=pagination_holder,
+        filter_controls=[
+            start_field_holder,
+            start_icon_holder,
+            ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+            end_field_holder,
+            end_icon_holder,
+            search_type,
+            search_field,
+            action_button("조회", on_click=on_search),
+            reset_button_holder,
         ],
-    )
     )

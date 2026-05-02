@@ -8,6 +8,7 @@ from components.common.erp_view_widgets import build_text, date_value_box_center
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
 
@@ -878,38 +879,6 @@ def erp_stock_product_detail_view():
     except Exception as exc:
         result_text.value = f"DB 조회 실패: {exc}"
 
-    filter_bar = ft.Container(
-        bgcolor=ft.Colors.WHITE,
-        padding=ft.Padding.only(left=20, right=20, top=12, bottom=12),
-        content=ft.Row(
-            spacing=10,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
-                start_field_holder,
-                start_icon_holder,
-                end_field_holder,
-                end_icon_holder,
-                date_filter_type,
-                search_type,
-                search_field,
-                action_button(
-                    "조회",
-                    on_click=lambda e: (
-                        load_rows(e.page)
-                        if not (search_field.value or "").strip()
-                        else run_search(e.page),
-                        update_reset_button_visibility(),
-                        e.page.update(),
-                    ),
-                    width=78,
-                ),
-                reset_button_holder,
-                action_button("인쇄", on_click=on_print, width=78),
-                action_button("다운로드", on_click=on_download, width=104),
-            ],
-        ),
-    )
-
     table_total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1))
 
     table_area = ft.Container(
@@ -928,8 +897,6 @@ def erp_stock_product_detail_view():
                         spacing=0,
                         controls=[
                             build_table_header(),
-                            # 🔥 수정: inbound_view.py처럼 데이터 행 영역만 세로 스크롤
-                            # - 페이지네이션은 이 스크롤 영역 밖에 있어서 하단에 고정됨
                             ft.Container(
                                 expand=True,
                                 content=ft.Column(
@@ -946,43 +913,33 @@ def erp_stock_product_detail_view():
         ),
     )
 
-    main_content = ft.Container(
-        expand=True,
-        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 화면 배경 흰색 통일
-        padding=0,
-        content=ft.Column(
-            expand=True,
-            spacing=0,
-            controls=[
-                filter_bar,
-                ft.Container(
-                    padding=20,
-                    expand=True,
-                    bgcolor=ft.Colors.WHITE,  # 🔥 수정: 본문 안쪽 배경 흰색 통일
-                    content=ft.Column(
-                        expand=True,
-                        spacing=14,
-                        # 🔥 수정: 전체 본문 스크롤 제거
-                        # - 제목/결과텍스트/페이지네이션은 고정되고 테이블 데이터만 스크롤됨
-                        controls=[
-                            ft.Text(
-                                value=page_title,
-                                size=20,
-                                color=TEXT_PRIMARY,
-                                weight=ft.FontWeight.W_700,
-                            ),
-                            result_text,
-                            table_area,
-                            pagination_holder,
-                        ],
-                    ),
+    return build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_area,
+        pagination_holder=pagination_holder,
+        filter_controls=[
+            start_field_holder,
+            start_icon_holder,
+            ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+            end_field_holder,
+            end_icon_holder,
+            date_filter_type,
+            search_type,
+            search_field,
+            action_button(
+                "조회",
+                on_click=lambda e: (
+                    load_rows(e.page)
+                    if not (search_field.value or "").strip()
+                    else run_search(e.page),
+                    update_reset_button_visibility(),
+                    e.page.update(),
                 ),
-            ],
-        ),
-    )
-
-    return ft.Container(
-        expand=True,
-        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 최외곽 배경 흰색 통일
-        content=main_content,
+                width=78,
+            ),
+            reset_button_holder,
+            action_button("인쇄", on_click=on_print, width=78),
+            action_button("다운로드", on_click=on_download, width=104),
+        ],
     )

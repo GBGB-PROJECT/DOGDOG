@@ -10,6 +10,7 @@ from components.common.erp_view_widgets import build_text, date_value_box, calen
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
 # =========================================================
@@ -628,49 +629,20 @@ def erp_production_supplier_view():
         ),
     )
 
-    return ft.Container(
-        expand=True,
-        # 🔥 수정: 화면 우측에 회색/흰색 배경이 섞여 보이지 않도록 본문 배경을 흰색으로 통일
-        bgcolor=ft.Colors.WHITE,
-        padding=20,
-        content=ft.Stack(
-            expand=True,
-            controls=[
-                ft.Column(
-                    expand=True,
-                    spacing=16,
-                    controls=[
-                        ft.Text(
-                            value=page_title,
-                            size=24,
-                            weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
-                        ),
-                        ft.Row(
-                            wrap=True,
-                            spacing=8,
-                            run_spacing=8,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            controls=[
-                                start_field_holder,
-                                start_icon_holder,
-                                ft.Text("~", size=14, color=TEXT_SECONDARY),
-                                end_field_holder,
-                                end_icon_holder,
-                                ft.Container(width=12),
-                                search_type,
-                                search_field,
-                                *action_controls,
-                            ],
-                        ),
-                        result_text,
-                        table_section,
-                        # 🔥 수정: pagination_holder는 스크롤 영역 밖에 배치
-                        pagination_holder,
-                    ],
-                ),
-                dim_bg,
-                popup_layer,
-            ],
-        ),
+    return build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_section,
+        pagination_holder=pagination_holder,
+        overlay_controls=[dim_bg, popup_layer],
+        filter_controls=[
+            start_field_holder,
+            start_icon_holder,
+            ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+            end_field_holder,
+            end_icon_holder,
+            search_type,
+            search_field,
+            *action_controls,
+        ],
     )

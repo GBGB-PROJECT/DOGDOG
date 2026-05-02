@@ -1,24 +1,22 @@
 import flet as ft
 from api_client import ApiClient
 import datetime
-import re
 
 class HistoryController:
     """
     [Controller] HistoryController
     역할: 히스토리(/history) 화면의 비즈니스 로직과 API 데이터 조회를 담당합니다.
-    - View에서 분리되어 데이터만 제공하며, 날짜 필터링 로직을 수행합니다.
     """
     def __init__(self, page):
         self.page = page
         self.api_client = ApiClient(page)
-        self.selected_log_data = None      # [수정] 현재 선택된 로그 데이터
-        self.selected_ui_container = None  # [추가] 현재 선택된 로그 UI 컨테이너
-        self.log_containers = []      # 화면에 그려진 로그 컨테이너 참조 리스트
-        self.on_refresh_callback = None # 뷰 새로고침 콜백
+        self.selected_log_data = None
+        self.selected_ui_container = None
+        self.log_containers = {}
+        self.on_refresh_callback = None
+        self.saved_tab_index = 0
 
     async def get_timeline_logs(self, pet_id: int):
-        # ... (기존 코드 유지)
         try:
             response = await self.api_client.get(f"/logs/{pet_id}")
             if response.status_code == 200:
@@ -30,11 +28,12 @@ class HistoryController:
 
     def get_filtered_logs_and_date_str(self, logs: list):
         """
-        세션 스토리지의 선택된 날짜를 확인하여 필터링된 로그 배열을 반환합니다.
+        [완벽 정렬 로직] datetime 객체로 변환하여 timestamp(숫자) 기반으로 절대 꼬이지 않게 정렬
         """
         storage = self.page.session.store
         now = datetime.datetime.now()
-        
+        today_str = now.strftime("%Y.%m.%d")
+
         if storage.get("select_log_date"):
             date_str = storage.get("select_log_date")
             valid_dates = [date_str]
@@ -42,80 +41,121 @@ class HistoryController:
             date_str = storage.get("select_log_week")
             valid_dates = [(now - datetime.timedelta(days=i)).strftime("%Y.%m.%d") for i in range(7)]
         else:
-            date_str = now.strftime("%Y.%m.%d")
+            date_str = today_str
             valid_dates = [date_str]
 
         filtered_logs = []
         for log in logs:
-            raw_date = log.get("log_date") or log.get("date")
-            if raw_date:
-                date_part = raw_date.split(" ")[0].replace("-", ".")
-                if date_part in valid_dates:
-                    filtered_logs.append(log)
-            else:
+            try:
+                domain = log.get("domain", "")
+                pet_food = log.get("pet_food") or {}
+                
+                # 1. 날짜 추출 (안전하게)
+                raw_date = (
+                    log.get("log_date")
+                    or log.get("feeding_date")
+                    or log.get("date")
+                    or pet_food.get("feeding_date")
+                    or pet_food.get("date")
+                    or today_str.replace(".", "-")
+                )
+
+                d_str = str(raw_date).split("T")[0].split(" ")[0].strip()
+                date_part = d_str.replace("-", ".")
+
+                if date_part not in valid_dates:
+                    continue
+
+                # [수술 1] 무조건 HH:MM:SS 포맷으로 강제 정규화
+                if domain == "feeding":
+                    t_raw = (
+                        log.get("feeding_time")
+                        or log.get("time")
+                        or pet_food.get("feeding_time")
+                        or pet_food.get("time")
+                        or "00:00:00"
+                    )
+                    t_val = str(t_raw).split(".")[0].replace("Z", "").strip().split(" ")[-1]
+                else:
+                    raw_log_date = str(log.get("log_date", f"{d_str}T00:00:00"))
+                    if "T" in raw_log_date:
+                        t_val = raw_log_date.split("T")[-1].split(".")[0].replace("Z", "")
+                    elif " " in raw_log_date:
+                        t_val = raw_log_date.split(" ")[-1].split(".")[0].replace("Z", "")
+                    else:
+                        t_val = str(log.get("time") or log.get("log_time") or "00:00:00").split(".")[0]
+
+                # HH:MM:SS 3파트로 반드시 맞춤 (에러 방지)
+                t_parts = t_val.split(":")
+                if len(t_parts) == 1:
+                    t_val = f"{t_parts[0]:0>2}:00:00"
+                elif len(t_parts) == 2:
+                    t_val = f"{t_parts[0]:0>2}:{t_parts[1]:0>2}:00"
+                else:
+                    t_val = f"{t_parts[0]:0>2}:{t_parts[1]:0>2}:{t_parts[2][:2]:0>2}"
+
+                sort_iso = f"{d_str}T{t_val}"
+                log["sort_time"] = sort_iso
+
+                # 프론트가 엉뚱한 업데이트 시간 대신 진짜 시간을 표시하도록 강제 주입
+                if domain == "feeding":
+                    log["last_update"] = sort_iso
+                    log["log_date"]    = sort_iso
+                    log["time"]        = t_val
+
                 filtered_logs.append(log)
 
-        def get_unified_datetime(log):
-            # 1. 최우선: 명시적인 키값이 있는지 먼저 확인 (사료 및 수치형 필드 가로채기 방지)
-            d = log.get("feeding_date") or log.get("date") or log.get("log_date")
-            t = log.get("feeding_time") or log.get("time") or log.get("log_time")
-            
-            if d and t:
-                d_str = str(d).split("T")[0].split(" ")[0]
-                t_str = str(t).split(".")[0].replace("Z", "")
-                if len(t_str.split(":")) == 2: t_str += ":00"
-                if len(t_str.split(":")[0]) == 1: t_str = "0" + t_str
-                return f"{d_str}T{t_str}"
+            except Exception as e:
+                print(f"[WARN] Log parsing error: {e}")
+                log["sort_time"] = f"{today_str.replace('.', '-')}T00:00:00"
+                filtered_logs.append(log)
 
-            # 2. 명시적인 값이 없을 때만 기존 정규식(Regex)으로 폴백 스캔
-            log_str = str(log)
-            d = "1970-01-01"
-            t = "00:00:00"
-            
-            # 1. 정규식으로 YYYY-MM-DD 또는 YYYY.MM.DD 형태 추출
-            date_match = re.search(r"(\d{4}[-.]\d{2}[-.]\d{2})", log_str)
-            if date_match:
-                d = date_match.group(1).replace(".", "-")
-                
-            # 2. 정규식으로 HH:MM:SS 또는 HH:MM 형태 추출 (콜론 기준)
-            time_matches = re.findall(r"([0-2]\d:[0-5]\d(?::[0-5]\d)?)", log_str)
-            if time_matches:
-                t = time_matches[0]
-                if len(t.split(":")) == 2:
-                    t += ":00" # 초가 없으면 패딩
-            
-            return f"{d}T{t}"
-
-        # 최신 시간(내림차순)으로 1차 정렬, 시간이 완벽히 같으면 id(최신순)로 2차 정렬
-        filtered_logs.sort(key=lambda x: (get_unified_datetime(x), x.get("id", 0)), reverse=True)
-        
-        # [임시 디버그] 정렬 확인용 출력
-        for log in filtered_logs:
-            print(f"정렬 확인: {get_unified_datetime(log)} - {log.get('domain')}")
-
+        # [수술 1] id 기준 완전 제거 → sort_time 단일 기준 내림차순 정렬
+        filtered_logs.sort(key=lambda x: x.get("sort_time", ""), reverse=True)
         return filtered_logs, date_str
 
+    def register_container(self, log_key: str, container):
+        if log_key not in self.log_containers:
+            self.log_containers[log_key] = []
+        self.log_containers[log_key].append(container)
+
     def select_log(self, log_data, container):
-        """기록 컨테이너 클릭 시 단일 선택 로직"""
-        # 기존 선택 해제
-        for c in self.log_containers:
-            c.bgcolor = None
-            
-        # 새로운 선택 (토글링 지원 - ID와 Domain을 동시에 체크하여 충돌 방지)
-        if (self.selected_log_data and 
-            self.selected_log_data.get("id") == log_data.get("id") and 
-            self.selected_log_data.get("domain") == log_data.get("domain")):
+        domain_str = log_data.get("domain", "unknown")
+        log_id = log_data.get("id")
+        current_log_key = f"{domain_str}_{log_id}"
+
+        # 기존 선택 해제 (잔상 방지를 위해 투명색 부여)
+        if self.selected_log_data:
+            prev_domain = self.selected_log_data.get("domain", "unknown")
+            prev_id = self.selected_log_data.get("id")
+            prev_key = f"{prev_domain}_{prev_id}"
+            if prev_key in self.log_containers:
+                for c in self.log_containers[prev_key]:
+                    c.bgcolor = ft.Colors.TRANSPARENT
+                    c.ink = False  # [수술 2] update() 시 잉크 부활 방지
+                    c.update()
+
+        # 다시 누르면 선택 해제 토글
+        is_same_log = (
+            self.selected_log_data is not None
+            and str(self.selected_log_data.get("id")) == str(log_id)
+            and self.selected_log_data.get("domain", "unknown") == domain_str
+        )
+
+        if is_same_log:
             self.selected_log_data = None
             self.selected_ui_container = None
         else:
+            # 새 항목 선택 시 회색칠
             self.selected_log_data = log_data
             self.selected_ui_container = container
-            container.bgcolor = ft.Colors.GREY_200
-        
-        self.page.update()
+            if current_log_key in self.log_containers:
+                for c in self.log_containers[current_log_key]:
+                    c.bgcolor = ft.Colors.GREY_200
+                    c.ink = False  # [수술 2] update() 시 잉크 부활 방지
+                    c.update()
 
     def history_delete(self, e):
-        """삭제 버튼 클릭 시"""
         if not self.selected_log_data:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("삭제할 기록을 선택해주세요."))
             self.page.snack_bar.open = True
@@ -127,7 +167,6 @@ class HistoryController:
         delete_popup.title = dogdog.basic_text("기록 삭제", size=16, weight="bold")
         delete_popup.content = dogdog.basic_text("선택하신 기록을 삭제하시겠습니까?")
         
-        # [수정 사항] 버튼 리스트를 명시적으로 덮어씌워 확실하게 이벤트 연결
         delete_popup.actions = [
             ft.TextButton("Cancel", on_click=self.close_delete_popup),
             ft.TextButton("OK", on_click=lambda e: self.page.run_task(self.confirm_delete, e))
@@ -140,26 +179,19 @@ class HistoryController:
         self.page.update()
 
     def close_delete_popup(self, e):
-        """[추가] 삭제 확인 팝업 닫기"""
         self.popup.event_popup.open = False
         self.page.update()
 
     async def confirm_delete(self, e):
-        """[수정] OK 버튼 클릭 시 실행되는 비동기 삭제 함수"""
-        # 1. 팝업부터 즉시 닫기
         self.popup.event_popup.open = False
         self.page.update()
 
-        # [방어 코드 추가] 선택된 로그 데이터가 없으면 중단
         if not self.selected_log_data or not self.selected_log_data.get("id"):
-            print("Confirm Delete Error: No log selected.")
             return
 
-        # 2. 기존 API 호출 및 삭제 로직 수행
         log_id = int(self.selected_log_data.get("id"))
         domain = self.selected_log_data.get("domain")
         
-        # [Step 1] 사료 삭제 API URL 간소화
         if domain == "feeding":
             endpoint = f"/logs/feeding/{log_id}"
         else:
@@ -169,12 +201,8 @@ class HistoryController:
             res = await self.api_client.delete(endpoint)
             if res.status_code in [200, 204]:
                 self.page.snack_bar = ft.SnackBar(content=ft.Text("기록이 삭제되었습니다."))
-                
-                # [Step 1] 선택 상태 초기화
                 self.selected_log_data = None
                 self.selected_ui_container = None
-                
-                # [Step 1] refresh 콜백을 await로 호출하여 UI 동기화 보장
                 if self.on_refresh_callback:
                     await self.on_refresh_callback()
             else:
@@ -187,18 +215,15 @@ class HistoryController:
         self.page.update()
 
     def history_edit(self, e):
-        """수정 버튼 클릭 시"""
         if not self.selected_log_data:
             self.page.snack_bar = ft.SnackBar(content=ft.Text("수정할 기록을 선택해주세요."))
             self.page.snack_bar.open = True
             self.page.update()
             return
 
-        # 수정 팝업 호출 (grid_view.bottom_sheet 연동)
         from domains.logs.views import grid_view
         domain = self.selected_log_data.get("domain")
         
-        # numeric의 경우 category에 따라 call 값 매칭
         call_map = {
             "water": "watering",
             "walk": "daily_walks",

@@ -44,37 +44,41 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str, controller)
     poop_log = []
     health_log = []
     
-    # 컨트롤러 컨테이너 리스트 초기화
-    controller.log_containers = []
-    
-    # [정렬 100% 준수] 단일 루프 내에서 순서대로 UI 생성 및 배치
+    # [버그 3 수정] 화면 갱신 시 기존 컨테이너 dict 초기화
+    controller.log_containers.clear()
+
     for log in logs_data:
         log_id = log.get("id")
         domain = log.get("domain", "")
         category = log.get("category", "")
-        
-        # 1. 공통 로그 컨테이너 생성 (이 시점의 순서가 전체 탭의 순서가 됨)
-        container = dogdog.log_container(page, log_id, details=log)
-        
-        # 2. 클릭 이벤트 바인딩
-        container.on_click = lambda e, l=log, c=container: controller.select_log(l, c)
-        
-        # 3. '전체' 탭 및 컨트롤러 관리 리스트에 즉시 추가 (중요: 여기서 append 순서가 곧 화면 순서)
-        controller.log_containers.append(container)
-        all_log.append(container)
-        
-        # 4. 나머지 카테고리별 탭용 리스트에 분배 (순서는 그대로 유지됨)
+        # feeding ID 1 과 numeric ID 1 충돌 방지: domain+id 복합 고유 키
+        log_key = f"{domain}_{log_id}"
+
+        # 1. 전체 탭용 독립 컨테이너 생성 (ink=False: 파란 잉크 번짐 제거)
+        container_all = dogdog.log_container(page, log_id, details=log)
+        container_all.on_click = lambda e, l=log, c=container_all: controller.select_log(l, c)
+        container_all.ink = False
+        controller.register_container(log_key, container_all)
+        all_log.append(container_all)
+
+        # 2. 개별 필터 탭용 독립 컨테이너 생성 (전체 탭과 공유하지 않음, ink=False)
+        container_filter = dogdog.log_container(page, log_id, details=log)
+        container_filter.on_click = lambda e, l=log, c=container_filter: controller.select_log(l, c)
+        container_filter.ink = False
+        controller.register_container(log_key, container_filter)
+
+        # 3. 카테고리별 필터 탭 리스트에 분배
         if domain == "feeding":
-            feeding_log.append(container)
+            feeding_log.append(container_filter)
         elif domain == "numeric":
             if category == "water":
-                watering_log.append(container)
+                watering_log.append(container_filter)
             elif category == "walk":
-                daily_work_log.append(container)
+                daily_work_log.append(container_filter)
             elif category == "poop":
-                poop_log.append(container)
+                poop_log.append(container_filter)
             elif category in ["weight", "bcs"]:
-                health_log.append(container)
+                health_log.append(container_filter)
 
     logs_tab = [
         ft.Tab(label="전체"),

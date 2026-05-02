@@ -5,7 +5,7 @@ import time
 import asyncio
 import components as dogdog
 
-# 테스트 아이디(test7)로 테스트 설정
+# 테스트 아이디로 테스트 설정
 IS_TEST_MODE = True
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
@@ -13,7 +13,7 @@ test_page = ""
 # flet build apk --verbose --compile-app --compile-packages --arch arm64-v8a
 # flet build apk --verbose --compile-app --compile-packages #맥용
 # -------------------------------------------------------------------------------------------------------
-test_page = "Browser" # APP Build Test 시 주석 처리
+#test_page = "Browser" # APP Build Test 시 주석 처리
 # -------------------------------------------------------------------------------------------------------
 class Front_dogdog:
     def __init__(self, page: ft.Page):

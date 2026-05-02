@@ -377,6 +377,13 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
         )
         health_bcs_dropdown.value = initial_bcs
         
+        # [해결] 수정 모드 시 분리된 필드들의 초기값을 Storage에 즉시 강제 세팅 (데이터 단절 복구)
+        if edit_mode and log_data:
+            if category == "weight":
+                s_control.change_weight(call, initial_weight, is_float=True)
+            elif category == "bcs":
+                s_control.change_weight(call, initial_bcs, is_bcs=True)
+
         # [핵심] edit_mode일 때 카테고리에 따라 UI 분리
         if edit_mode and category == "weight":
             add_title("건강기록 (체중)")

@@ -263,8 +263,12 @@ class StatusController:
             payload["log_status"] = self.storage.get(f"{call}_weight")
         elif call == "health_log":
             category = "weight_bcs"
-            payload["weight"] = self.storage.get(f"{call}_float_weight")
-            payload["bcs"] = self.storage.get(f"{call}_bcs_weight")
+            # [해결] Storage에서 값을 가져올 때 형변환 및 None 방어 로직 강화
+            weight_val = self.storage.get(f"{call}_float_weight")
+            bcs_val = self.storage.get(f"{call}_bcs_weight")
+            
+            payload["weight"] = float(weight_val) if weight_val is not None and str(weight_val).strip() != "" else None
+            payload["bcs"] = int(bcs_val) if bcs_val is not None and str(bcs_val).strip() != "" else None
         elif call == "status_log":
             category = "status"
 

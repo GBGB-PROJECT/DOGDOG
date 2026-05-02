@@ -99,7 +99,7 @@ def mypage_view(page: ft.Page, controller=None):
         await asyncio.sleep(0.3)
         # [수정] 컨트롤러가 있으면 컨트롤러의 메서드 호출, 없으면 직접 이동
         if controller:
-            controller.go_to_feeding_info()
+            controller.go_to_feeding()
         else:
             page.go("/feeding")
 

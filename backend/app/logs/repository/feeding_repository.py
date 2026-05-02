@@ -171,7 +171,7 @@ class FeedingRepository:
         return (
             query.order_by(
                 CompanionPetFood.feeding_date.desc(),
-                CompanionPetFood.last_update.desc(),
+                CompanionPetFood.feeding_time.desc(),
             )
             .offset(offset)
             .limit(limit)

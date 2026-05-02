@@ -13,11 +13,11 @@ from components.common.erp_view_layout import build_lookup_page_layout, build_lo
 
 # =========================================================
 # 🔥 고객 구독 관리 화면
-# - 컬럼 순서 재배치
-# - 이름 / 구독ID / 고객ID / 플랜ID 같은 고객 관련 정보는 좌측
-# - 구독상태는 가장 우측
-# - 나머지 순서:
-#   신청요일 / 자동배송 / 배송주기 / 할인율 / 배송지 / 전화번호 / 구독시작일
+# - 구독 1건 = 화면 1줄 유지
+# - 고객ID와 구독자명을 한 칸으로 묶어 ID 노출을 줄임
+# - 구독플랜ID는 테이블에서 제거
+# - 구독시작일은 날짜만 표시
+# - 검색조건은 실무에서 쓰기 좋은 항목만 유지
 # =========================================================
 
 
@@ -29,7 +29,21 @@ from components.common.erp_view_layout import build_lookup_page_layout, build_lo
 def format_datetime_text(value):
     if not value:
         return ""
-    return str(value)[:19]
+    # 🔥 구독 관리 목록에서는 초 단위 시각보다 날짜가 중요하므로 날짜만 표시
+    return str(value)[:10]
+
+
+def format_customer_subscriber(customer_id, subscriber_name):
+    customer_id_text = str(customer_id or "").strip()
+    subscriber_text = str(subscriber_name or "").strip()
+
+    if customer_id_text and subscriber_text:
+        return f"#{customer_id_text} / {subscriber_text}"
+
+    if customer_id_text:
+        return f"#{customer_id_text}"
+
+    return subscriber_text
 
 
 def customer_subscription_db_row_adapter(db_rows: list, page_no: int):
@@ -40,10 +54,14 @@ def customer_subscription_db_row_adapter(db_rows: list, page_no: int):
         rows.append(
             {
                 "no": str(index),
-                "name": row.get("name", ""),                    # 🔥 좌측 배치
                 "subs_id": row.get("subs_id", ""),
                 "customer_id": row.get("customer_id", ""),
-                "subs_plan_id": row.get("subs_plan_id", ""),
+                "subscriber_name": row.get("name", ""),
+                "customer_subscriber": format_customer_subscriber(
+                    row.get("customer_id", ""),
+                    row.get("name", ""),
+                ),
+                "subs_plan_id": row.get("subs_plan_id", ""),  # 🔥 테이블에는 숨기고 데이터만 유지
                 "subs_day": row.get("subs_day", ""),
                 "is_auto_delivery": row.get("is_auto_delivery", ""),
                 "delivery_cycle": row.get("delivery_cycle", ""),
@@ -96,32 +114,28 @@ def erp_customer_subscription_view():
     # =========================================================
     col_expand = {
         "no": 3,
-        "name": 6,
         "subs_id": 4,
-        "customer_id": 4,
-        "subs_plan_id": 4,
-        "subs_day": 5,
+        "customer_subscriber": 8,
+        "is_subs_status": 5,
         "is_auto_delivery": 4,
         "delivery_cycle": 4,
+        "subs_day": 5,
         "subs_sale": 4,
         "address": 10,
         "phone": 7,
-        "subs_date": 8,
-        "is_subs_status": 5,
+        "subs_date": 7,
     }
 
     search_type_labels = {
         "subs_id": "구독ID",
         "customer_id": "고객ID",
-        "subs_plan_id": "구독플랜",
-        "is_auto_delivery": "자동배송",
-        "is_subs_status": "구독상태",
-        "subs_day": "신청요일",
-        "delivery_cycle": "배송주기",
-        "subs_sale": "할인율",
-        "address": "배송지",
-        "name": "이름",
+        "name": "구독자명",
         "phone": "전화번호",
+        "address": "배송지",
+        "is_subs_status": "구독상태",
+        "is_auto_delivery": "자동배송",
+        "delivery_cycle": "배송주기",
+        "subs_day": "신청요일",
     }
 
     def format_date_text(value):
@@ -316,18 +330,16 @@ def erp_customer_subscription_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("이름", col_expand["name"], 0, ft.FontWeight.W_700),
                     build_table_cell("구독ID", col_expand["subs_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독플랜", col_expand["subs_plan_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("신청요일", col_expand["subs_day"], 0, ft.FontWeight.W_700),
+                    build_table_cell("고객ID / 구독자명", col_expand["customer_subscriber"], 0, ft.FontWeight.W_700),
+                    build_table_cell("구독상태", col_expand["is_subs_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("자동배송", col_expand["is_auto_delivery"], 0, ft.FontWeight.W_700),
                     build_table_cell("배송주기", col_expand["delivery_cycle"], 0, ft.FontWeight.W_700),
+                    build_table_cell("신청요일", col_expand["subs_day"], 0, ft.FontWeight.W_700),
                     build_table_cell("할인율", col_expand["subs_sale"], 0, ft.FontWeight.W_700),
                     build_table_cell("배송지", col_expand["address"], 0, ft.FontWeight.W_700),
                     build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
                     build_table_cell("구독시작일", col_expand["subs_date"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독상태", col_expand["is_subs_status"], 0, ft.FontWeight.W_700),
                 ],
             ),
         )
@@ -345,17 +357,8 @@ def erp_customer_subscription_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("name", ""), col_expand["name"], 0),
                     build_table_cell(row.get("subs_id", ""), col_expand["subs_id"], 0),
-                    build_table_cell(row.get("customer_id", ""), col_expand["customer_id"], 0),
-                    build_table_cell(row.get("subs_plan_id", ""), col_expand["subs_plan_id"], 0),
-                    build_table_cell(row.get("subs_day", ""), col_expand["subs_day"], 0),
-                    build_table_cell(row.get("is_auto_delivery", ""), col_expand["is_auto_delivery"], 0),
-                    build_table_cell(row.get("delivery_cycle", ""), col_expand["delivery_cycle"], 0),
-                    build_table_cell(row.get("subs_sale", ""), col_expand["subs_sale"], 0),
-                    build_table_cell(row.get("address", ""), col_expand["address"], 0),
-                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
-                    build_table_cell(row.get("subs_date", ""), col_expand["subs_date"], 0),
+                    build_table_cell(row.get("customer_subscriber", ""), col_expand["customer_subscriber"], 0),
                     build_table_cell(
                         row.get("is_subs_status", ""),
                         col_expand["is_subs_status"],
@@ -363,6 +366,13 @@ def erp_customer_subscription_view():
                         ft.FontWeight.W_700,
                         status_color,
                     ),
+                    build_table_cell(row.get("is_auto_delivery", ""), col_expand["is_auto_delivery"], 0),
+                    build_table_cell(row.get("delivery_cycle", ""), col_expand["delivery_cycle"], 0),
+                    build_table_cell(row.get("subs_day", ""), col_expand["subs_day"], 0),
+                    build_table_cell(row.get("subs_sale", ""), col_expand["subs_sale"], 0),
+                    build_table_cell(row.get("address", ""), col_expand["address"], 0),
+                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
+                    build_table_cell(row.get("subs_date", ""), col_expand["subs_date"], 0),
                 ],
             ),
         )
@@ -488,8 +498,8 @@ def erp_customer_subscription_view():
             f"기간: {start_text} ~ {end_text} / "
             f"검색조건: {search_label} / "
             f"검색어: {keyword_text} / "
-            f"전체 {pagination_state['total_count']}건 / "
-            f"현재 페이지 {len(rows_state)}건 / "
+            f"전체 구독 {pagination_state['total_count']}건 / "
+            f"현재 페이지 구독 {len(rows_state)}건 / "
             f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
         )
 

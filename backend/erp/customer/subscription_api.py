@@ -24,15 +24,13 @@ router = APIRouter(
 SEARCH_TYPE_LABELS = {
     "subs_id": "구독ID",
     "customer_id": "고객ID",
-    "subs_plan_id": "구독플랜ID",
-    "is_auto_delivery": "자동배송여부",
-    "is_subs_status": "구독상태",
-    "subs_day": "배송신청요일",
-    "delivery_cycle": "배송주기",
-    "subs_sale": "구독 회원 할인율",
-    "address": "배송지",
-    "name": "이름",
+    "name": "구독자명",
     "phone": "전화번호",
+    "address": "배송지",
+    "is_subs_status": "구독상태",
+    "is_auto_delivery": "자동배송",
+    "delivery_cycle": "배송주기",
+    "subs_day": "신청요일",
 }
 
 
@@ -75,15 +73,13 @@ def get_customer_subscription_list(
     search_type: Literal[
         "subs_id",
         "customer_id",
-        "subs_plan_id",
-        "is_auto_delivery",
-        "is_subs_status",
-        "subs_day",
-        "delivery_cycle",
-        "subs_sale",
-        "address",
         "name",
         "phone",
+        "address",
+        "is_subs_status",
+        "is_auto_delivery",
+        "delivery_cycle",
+        "subs_day",
     ] = Query(
         default="subs_id",
         description="검색 조건",

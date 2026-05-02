@@ -20,6 +20,11 @@ def subs_options(page: ft.Page, popup):
     def subs_options_check(e):
         page.go("/shop/subs_product_order")
     # ---------------------------------------------------------------------------------------------------
+    def delivery_option_change(e, container):
+        # print(e.data)
+        container_option = container.content.controls[2].content
+        container_option.controls = ai_delivery_option if 'yes' == e.data else not_ai_delivery_option
+        container.update()
     # ---------------------------------------------------------------------------------------------------
     def options_check(e, container):
         container.bgcolor = "#FBDD30"
@@ -50,6 +55,55 @@ def subs_options(page: ft.Page, popup):
             new_subs_container_text.color = ft.Colors.GREY_600
         next_page.visible = True
     # ---------------------------------------------------------------------------------------------------
+    ai_delivery_option = [
+        dogdog.basic_text(spans=[
+            ft.TextSpan("똑똑 배송으로 주문하신 제품의 "),
+            ft.TextSpan("급여 시작일 등록시 똑똑 AI가 급여량과 잔여량을 계산하여 " \
+                "실제 사료 소진일에 맞춰 똑똑 배송 설정한 제품을 자동 결제 및 배송"
+                , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
+            ft.TextSpan("합니다.")
+        ], color=ft.Colors.GREY_600),
+        dogdog.basic_text(spans=[
+            ft.TextSpan("구독 중인 똑똑 배송 제품은 자동 결제, 배송되기 "),
+            ft.TextSpan("7,3일 전"
+                , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
+            ft.TextSpan(" 알려드립니다.")
+        ], color=ft.Colors.GREY_600),
+        dogdog.basic_text(spans=[
+            ft.TextSpan("🚨 마이페이지 내 "),
+            ft.TextSpan("똑똑 배송 미루기 와 똑똑 배송 일정 당기기"
+                , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
+            ft.TextSpan("를 할 수 있습니다.")
+        ], color=ft.Colors.GREY_600),
+    ]
+    not_ai_delivery_option = [
+        dogdog.basic_text("구매 배송주기 선택", weight="bold", color=ft.Colors.GREY_800),
+        ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
+            dogdog.radio_group(
+                value="2", on_change=None, contents=[
+                    ft.Radio(value="2", label="2주", fill_color=ft.Colors.GREY_800, 
+                        label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
+                    ft.Radio(value="4", label="4주", fill_color=ft.Colors.GREY_800, 
+                        label_style=dogdog.TextStyle(color=ft.Colors.GREY_800))
+        ])]),
+        dogdog.basic_text(spans=[
+            ft.TextSpan("선택하신 첫구매 배송주기에 맞춰 자동 결제 및 배송"
+                , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
+            ft.TextSpan("됩니다.")
+        ], color=ft.Colors.GREY_600),
+        dogdog.basic_text(spans=[
+            ft.TextSpan("구독 중인 똑똑 배송 제품은 자동 결제, 배송되기 "),
+            ft.TextSpan("7,3일 전"
+                , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
+            ft.TextSpan(" 알려드립니다.")
+        ], color=ft.Colors.GREY_600),
+        dogdog.basic_text(spans=[
+            ft.TextSpan("🚨 마이페이지 내 "),
+            ft.TextSpan("똑똑 배송 미루기 와 똑똑 배송 일정 당기기"
+                , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
+            ft.TextSpan("를 할 수 있습니다.")
+        ], color=ft.Colors.GREY_600),
+    ]
     # ---------------------------------------------------------------------------------------------------
     new_subs = dogdog.content_container(
         on_click=lambda e:options_check(e, new_subs),
@@ -59,36 +113,22 @@ def subs_options(page: ft.Page, popup):
                 dogdog.basic_text(
                     "새로운 똑똑 배송 시작하기", weight="bold", color=ft.Colors.GREY_600, size=16)
     ])])
-    new_subs_option = dogdog.content_container(
-        content_list=[
-            dogdog.basic_text("AI 자동배송 선택", weight="bold", color=ft.Colors.GREY_800),
-            ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                dogdog.radio_group(
-                    value="yes", on_change=None, contents=[
-                        ft.Radio(value="yes", label="예", fill_color=ft.Colors.GREY_800, 
-                            label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
-                        ft.Radio(value="no", label="아니오", fill_color=ft.Colors.GREY_800, 
-                            label_style=dogdog.TextStyle(color=ft.Colors.GREY_800))
-            ])]),
-            dogdog.basic_text(spans=[
-                ft.TextSpan("똑똑 배송으로 주문하신 제품의 "),
-                ft.TextSpan("급여 시작일 등록시 똑똑 AI가 급여량과 잔여량을 계산하여 " \
-                    "실제 사료 소진일에 맞춰 똑똑 배송 설정한 제품을 자동 결제 및 배송"
-                    , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
-                ft.TextSpan("합니다.")
-            ], color=ft.Colors.GREY_600),
-            dogdog.basic_text(spans=[
-                ft.TextSpan("구독 중인 똑똑 배송 제품은 자동 결제, 배송되기 "),
-                ft.TextSpan("7,3일 전"
-                    , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
-                ft.TextSpan(" 알려드립니다.")
-            ], color=ft.Colors.GREY_600),
-            dogdog.basic_text(spans=[
-                ft.TextSpan("🚨 마이페이지 내 "),
-                ft.TextSpan("똑똑 배송 미루기 와 똑똑 배송 일정 당기기"
-                    , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
-                ft.TextSpan("를 할 수 있습니다.")
-            ], color=ft.Colors.GREY_600),
+    new_subs_option = dogdog.content_container(content_list=[
+        dogdog.basic_text("AI 자동배송 선택", weight="bold", color=ft.Colors.GREY_800),
+        ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
+            dogdog.radio_group(
+                value="yes", on_change=lambda e:delivery_option_change(e, new_subs_option), contents=[
+                    ft.Radio(value="yes", label="예", fill_color=ft.Colors.GREY_800, 
+                        label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
+                    ft.Radio(value="no", label="아니오", fill_color=ft.Colors.GREY_800, 
+                        label_style=dogdog.TextStyle(color=ft.Colors.GREY_800))
+        ])]),
+        ft.Container(
+            padding=0,
+            margin=0,
+            expand=True,
+            content=ft.Column(controls=ai_delivery_option) # type: ignore
+        )
     ])
     new_subs_option.visible = False
     add_subs = dogdog.content_container(
@@ -98,43 +138,22 @@ def subs_options(page: ft.Page, popup):
                 ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
                 dogdog.basic_text("나의 똑똑 배송에 추가하기", weight="bold", color=ft.Colors.GREY_600, size=16)
     ])])
-    add_subs_option = dogdog.content_container(
-        content_list=[
-            dogdog.basic_text("AI 자동배송 선택", weight="bold", color=ft.Colors.GREY_800),
-            ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                dogdog.radio_group(
-                    value="yes", on_change=None, contents=[
-                        ft.Radio(value="yes", label="예", fill_color=ft.Colors.GREY_800, 
-                            label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
-                        ft.Radio(value="no", label="아니오", fill_color=ft.Colors.GREY_800, 
-                            label_style=dogdog.TextStyle(color=ft.Colors.GREY_800))
-            ])]),
-            dogdog.basic_text("구매 배송주기 선택", weight="bold", color=ft.Colors.GREY_800),
-            ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                dogdog.radio_group(
-                    value="2", on_change=None, contents=[
-                        ft.Radio(value="2", label="2주", fill_color=ft.Colors.GREY_800, 
-                            label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
-                        ft.Radio(value="4", label="4주", fill_color=ft.Colors.GREY_800, 
-                            label_style=dogdog.TextStyle(color=ft.Colors.GREY_800))
-            ])]),
-            dogdog.basic_text(spans=[
-                ft.TextSpan("선택하신 첫구매 배송주기에 맞춰 자동 결제 및 배송"
-                    , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
-                ft.TextSpan("됩니다.")
-            ], color=ft.Colors.GREY_600),
-            dogdog.basic_text(spans=[
-                ft.TextSpan("구독 중인 똑똑 배송 제품은 자동 결제, 배송되기 "),
-                ft.TextSpan("7,3일 전"
-                    , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
-                ft.TextSpan(" 알려드립니다.")
-            ], color=ft.Colors.GREY_600),
-            dogdog.basic_text(spans=[
-                ft.TextSpan("🚨 마이페이지 내 "),
-                ft.TextSpan("똑똑 배송 미루기 와 똑똑 배송 일정 당기기"
-                    , style=dogdog.TextStyle(weight="bold", color=ft.Colors.GREY_600)),
-                ft.TextSpan("를 할 수 있습니다.")
-            ], color=ft.Colors.GREY_600),
+    add_subs_option = dogdog.content_container(content_list=[
+        dogdog.basic_text("AI 자동배송 선택", weight="bold", color=ft.Colors.GREY_800),
+        ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
+            dogdog.radio_group(
+                value="yes", on_change=lambda e:delivery_option_change(e, add_subs_option), contents=[
+                    ft.Radio(value="yes", label="예", fill_color=ft.Colors.GREY_800, 
+                        label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
+                    ft.Radio(value="no", label="아니오", fill_color=ft.Colors.GREY_800, 
+                        label_style=dogdog.TextStyle(color=ft.Colors.GREY_800))
+        ])]),
+        ft.Container(
+            padding=0,
+            margin=0,
+            expand=True,
+            content=ft.Column(controls=ai_delivery_option) # type: ignore
+        )
     ])
     add_subs_option.visible = False
     dummy_container = ft.Container(expand=True)

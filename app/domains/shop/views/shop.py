@@ -42,6 +42,12 @@ def product_guide(page: ft.Page):
     # from api.product_guide import Product
     from domains.shop.controller.shop_api import get_shop_product_list, get_recommended_foods
     import asyncio
+    for task in asyncio.all_tasks():
+        if "shop_timesleep" in str(task.get_coro()): 
+            print(f'{"\n"*10}{"===="*30}\n 🪄 Cancel Task Controls\n{"===="*30}')
+            print(' ✅ domains.shop.views.shop.shop_timesleep()')
+            task.cancel()
+    dogdog.task_controls()
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
@@ -231,15 +237,16 @@ def product_guide(page: ft.Page):
         product_list
     ]
     # ---------------------------------------------------------------------------------------------------
-    # Background Guide Page Event
+    # Background Guide Product Task
     # ---------------------------------------------------------------------------------------------------
-    async def timesleep():
+    async def shop_timesleep():
         try:
             for i in range(999):
+                # print('shop task call')
                 await asyncio.sleep(5)
                 product_guide_page("forward")
         except: pass
-    page.run_task(timesleep)
+    asyncio.create_task(shop_timesleep())
     # ---------------------------------------------------------------------------------------------------
     page.run_task(load_products)
     page.run_task(load_recommended_foods)

@@ -3,15 +3,11 @@ import re
 import flet as ft
 import domains
 import components as dogdog
-
-
 # -------------------------------------------------------------------------------------------------------
 class Api_push_Data:
     data = {}
-
-
 # -------------------------------------------------------------------------------------------------------
-def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callback):
+def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callback):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
@@ -58,7 +54,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
     pet_food_controller = PetFoodController(page=page, popup=popup)
 
     # ---------------------------------------------------------------------------------------------------
-    # On Boarding Tile Routeing (View)
+    # On Boarding Tile Routeing
     # ---------------------------------------------------------------------------------------------------
     if content_page == "/sign_up":
         top = ft.Row(controls=[dogdog.onboarding_top_bar(case=1)])
@@ -158,10 +154,10 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
                 scroll=ft.ScrollMode.HIDDEN,
                 expand=True,
                 spacing=10,
-                controls=content if isinstance(content, list) else [content],  # type: ignore
-            ),
+                controls=content if isinstance(content, list) else [content] # type: ignore
+            )
         ),
         focus_field,
-        bottom,
+        bottom
     ]
     return basic_content, focus_field

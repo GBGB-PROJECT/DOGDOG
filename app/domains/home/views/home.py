@@ -31,7 +31,7 @@ def now_history(page: ft.Page, popup):
         now_log_bottom_sheet_contents.append(history_title)
         now_log_bottom_sheet_contents.append(ft.Divider())
         for pet_log_numeric_id , details in list(storage.get("history").items()): # type: ignore
-            if details["log_date"].split()[0] == now:
+            if details.get('log_date').split()[0] == now:
                 now_log_bottom_sheet_contents.append(
                     dogdog.log_container(page, pet_log_numeric_id, details=details))
         if len(now_log_bottom_sheet_contents) - 2 <= 0:

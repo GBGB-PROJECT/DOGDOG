@@ -11,12 +11,12 @@ from .onboarding.views.pet_health_view import pet_health_view
 from .onboarding.views.pet_food_view import pet_food_view
 
 from .home_views_connect import home_tile
-from .home.views import feeding_add_edit , home_view as home , feeding_view as feeding , guide
+from .home.views import feeding_add_edit , home_view , feeding_view , guide
 
-from .logs.views import history , log , grid_view as grid
+from .logs.views import history , log , grid_view
 
 from .mypage.views import mypage_view , notification
 
-from .shop.views import shop, shop_orders , shop_product_detail
+from .shop.views import shop, shop_orders , shop_product_detail , subs_start , success_layout
 
 from .address import AddressSearcher , address_view

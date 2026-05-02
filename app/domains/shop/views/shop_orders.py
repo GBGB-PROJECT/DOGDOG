@@ -6,12 +6,15 @@ import asyncio
 def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
     from api.product_guide import Product
-    from domains.shop.controller.shop_api import get_shop_product_detail
+    def payment_check(e):
+        page.go("/shop/subs_order_success") if "/subs_product_order" in page_name else page.go("/shop/order_success") 
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
-    if not storage.get("select_product_id") and not storage.get("select_product_quantity"):
+    if (not storage.get("select_product_id") and 
+        not storage.get("select_product_quantity") and
+        not ("/subs_order" in page_name and storage.get("select_subs"))):
         return ft.Container(
             padding=ft.padding.only(left=10, right=10, top=10, bottom=20),
             bgcolor="#ffffff",
@@ -64,10 +67,10 @@ def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
     # Delivery Address Select Run Task (Limit: 1 Hour)
     # ---------------------------------------------------------------------------------------------------
-    async def timesleep():
+    async def order_timesleep():
         try:
             for i in range(3600):
-                # print('call')
+                # print('order task call')
                 await asyncio.sleep(1)
                 if storage.get('order_address'):
                     delivery_picker.content.controls[0].value = storage.get('order_address') # type: ignore
@@ -80,7 +83,13 @@ def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
     def delivery_picker_route(e):
         if storage.get('order_address'): storage.remove('order_address')
-        page.run_task(timesleep)
+        for task in asyncio.all_tasks():
+            if "order_timesleep" in str(task.get_coro()):
+                print(f'{"\n"*10}{"===="*30}\n 🪄 Cancel Task Controls\n{"===="*30}')
+                print(' ✅ domains.shop.views.shop_orders.order_timesleep()')
+                task.cancel()
+        dogdog.task_controls()
+        asyncio.create_task(order_timesleep()) # type: ignore
         page.go("/shop/address")
     # ---------------------------------------------------------------------------------------------------
     delivery_customer_name = dogdog.input_textfield(
@@ -140,7 +149,7 @@ def order_view(page: ft.Page, popup, page_name):
             visible=True if "/subs_order" in page_name else False,
             content=[
                 dogdog.basic_text("똑똑 배송 할인", weight="bold", color="#E6001A"), # type: ignore
-                subs_sale_price_text, # type: ignore
+                subs_sale_price_text,
         ]),
         dogdog.order_row(content=[
             dogdog.basic_text("배송비"),
@@ -174,16 +183,10 @@ def order_view(page: ft.Page, popup, page_name):
                     size=12, color=ft.Colors.GREY_600, max_lines=3,
                     font_family="Pretendard", expand=True, overflow=ft.TextOverflow.ELLIPSIS),
         ]),
-        ft.Container(
-            expand=True,
-            height=50,
-            ink=True,
-            on_click=lambda _: print("결제 요청"),
-            bgcolor="#E6001A",
-            border_radius=10,
-            alignment=ft.Alignment.CENTER,
-            content=dogdog.basic_text("결제하기", weight="bold", color=ft.Colors.WHITE)
-    )]
+        dogdog.continue_button(
+            value="결제하기", bgcolor="#E6001A", text_color=ft.Colors.WHITE, 
+            on_click=lambda e: payment_check(e))
+    ]
     async def load_order_product():
         product = await get_shop_product_detail(page, product_id)
 

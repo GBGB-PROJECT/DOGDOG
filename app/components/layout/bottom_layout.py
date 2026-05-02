@@ -1,20 +1,19 @@
 import flet as ft
 import components as dogdog
 
-def continue_button(on_click=None):
+def continue_button(value="Continue", bgcolor="#FEF3B9", text_color=ft.Colors.BLACK, on_click=None):
     return ft.Container(
         expand=9,
         height=50,
         ink=True,
         on_click=on_click,
-        bgcolor="#FEF3B9",
+        bgcolor=bgcolor,
         border_radius=10,
         alignment=ft.Alignment.CENTER,
-        content=ft.Text(
-            value="Continue",
-            size=14,
-            weight=ft.FontWeight.W_500,
-            color=ft.Colors.BLACK,
+        content=dogdog.basic_text(
+            value=value,
+            weight="bold",
+            color=text_color
         )
     )
 

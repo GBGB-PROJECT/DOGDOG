@@ -92,9 +92,19 @@ def shop_top(page: ft.Page, text=None, content_page=None):
     content.expand = True
     content.text_align = ft.TextAlign.CENTER
 
+    row_content = []
+    row_content.append(
+        ft.Container(expand=1, alignment=ft.Alignment.CENTER_LEFT, 
+            content=ft.IconButton(icon=ft.Icons.ARROW_BACK_IOS, icon_size=20, on_click=handle_back)) 
+        if content_page and not "success" in content_page else ft.Container(expand=1))
+    row_content.append(content)
+    row_content.append(
+        ft.Container(expand=1) if content_page and not "success" in content_page else 
+        ft.Container(expand=1, alignment=ft.Alignment.CENTER_RIGHT, 
+            content=ft.IconButton(icon=ft.Icons.CLOSE, icon_size=30, on_click=lambda _:page.go("/shop"))))
     return ft.Row(
         alignment=ft.MainAxisAlignment.CENTER,
-        margin=ft.margin.only(bottom=-5),
+        margin=ft.margin.only(left=10, right=10, bottom=-5),
         height=50,
         controls=[
             ft.IconButton(

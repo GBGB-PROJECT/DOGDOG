@@ -1,8 +1,8 @@
-from sqlalchemy import cast, false, func
+from sqlalchemy import cast, false
 from sqlalchemy.types import String
 
 from db.db import SessionLocal
-from db.models import CompanionCustomer, CompanionCustomerDetail, OpdSubs
+from db.models import CompanionCustomer, CompanionCustomerDetail
 from ..common.query_utils import (
     like_keyword,
     normalize_bool_keyword,
@@ -34,32 +34,13 @@ CUSTOMER_COLUMNS = [
 ]
 
 
-def _active_subscription_exists_expr(db):
-    # 🔥 수정: 구독여부 판단 기준
-    # - subs_plan_id 유무로 걸러내지 않는다.
-    # - Swagger UI에서 만든 구독 데이터도 is_subs_status=True면 구독중으로 인정한다.
-    return (
-        db.query(OpdSubs.subs_id)
-        .filter(
-            OpdSubs.customer_id == CompanionCustomer.customer_id,
-            OpdSubs.is_subs_status.is_(True),
-        )
-        .exists()
-    )
-
-
-def _subscription_count_expr(db):
-    # 🔥 추가: 구독횟수도 OPD.subs 기준으로 계산
-    # - 기존에는 구독여부는 OPD.subs 활성 구독 기준인데,
-    #   구독횟수는 Companion.customer.subs_count 저장값을 그대로 보여줘서
-    #   customer_id 1001처럼 Y / 0이 동시에 나오는 불일치가 발생했다.
-    # - 화면 표시 기준을 OPD.subs로 맞춰 구독여부와 구독횟수의 기준을 통일한다.
-    return (
-        db.query(func.count(OpdSubs.subs_id))
-        .filter(OpdSubs.customer_id == CompanionCustomer.customer_id)
-        .correlate(CompanionCustomer)
-        .scalar_subquery()
-    )
+def _is_subscribed_expr():
+    # 🔥 재수정: 고객 정보 관리 화면의 구독 기준은 Companion.customer.subs_count로 통일
+    # - customer(2).html 기준으로 Companion.customer 안에 subs_count가 이미 존재한다.
+    # - 기존 OPD.subs COUNT 기준은 고객 정보 관리의 Companion.customer.subs_count와 달라서
+    #   subs_count가 2회 이상인 고객이 화면에서 0/N처럼 보일 수 있었다.
+    # - 따라서 고객 정보 관리에서는 "구독횟수 1회 이상 = Y" 규칙을 그대로 적용한다.
+    return CompanionCustomer.subs_count > 0
 
 
 def _normalize_subscription_keyword(value):
@@ -119,8 +100,7 @@ def _row_to_dict(row):
 
 
 def _base_customer_query(db):
-    active_subscription_exists = _active_subscription_exists_expr(db)
-    subscription_count = _subscription_count_expr(db)
+    is_subscribed = _is_subscribed_expr()
 
     return (
         db.query(
@@ -130,11 +110,12 @@ def _base_customer_query(db):
             CompanionCustomerDetail.nickname.label("nickname"),
             CompanionCustomerDetail.phone.label("phone"),
 
-            # 🔥 수정: 화면 구독여부는 OPD.subs의 활성 구독 존재 여부로 계산
-            active_subscription_exists.label("is_subscribed"),
+            # 🔥 재수정: 구독여부는 구독횟수 기준으로 계산
+            # - 구독횟수 1회 이상이면 Y, 0회이면 N
+            is_subscribed.label("is_subscribed"),
 
-            # 🔥 수정: 구독횟수도 OPD.subs 기준으로 계산
-            subscription_count.label("subs_count"),
+            # 🔥 재수정: 구독횟수는 고객 정보 관리의 원본 테이블 값 사용
+            CompanionCustomer.subs_count.label("subs_count"),
             CompanionCustomer.active.label("active"),
             CompanionCustomerDetail.create_date.label("create_date"),
         )
@@ -178,22 +159,21 @@ def _apply_customer_filter(db, query, search_type: str, keyword: str, start_date
             bool_value = _normalize_subscription_keyword(clean)
 
             if bool_value is not None:
-                active_subscription_exists = _active_subscription_exists_expr(db)
+                is_subscribed = _is_subscribed_expr()
 
                 if bool_value is True:
-                    query = query.filter(active_subscription_exists)
+                    query = query.filter(is_subscribed)
                 else:
-                    query = query.filter(~active_subscription_exists)
+                    query = query.filter(~is_subscribed)
             else:
                 # 🔥 수정: 애매한 검색어는 원본 customer.is_subscribed로 fallback하지 않는다.
                 # - 화면 표시 기준과 검색 기준이 갈라지는 문제 방지
                 query = query.filter(false())
 
         elif search_type == "subs_count":
-            # 🔥 수정: 표시값과 검색값 모두 OPD.subs 기준 구독횟수로 통일
-            subscription_count = _subscription_count_expr(db)
+            # 🔥 재수정: 표시값과 검색값 모두 Companion.customer.subs_count 기준으로 통일
             query = query.filter(
-                cast(subscription_count, String).like(like_keyword(clean))
+                cast(CompanionCustomer.subs_count, String).like(like_keyword(clean))
             )
 
         elif search_type == "active":

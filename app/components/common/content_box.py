@@ -70,7 +70,7 @@ def log_container(page: ft.Page, pet_log_numeric_id, details):
     content = ft.Container(
         padding=ft.Padding.only(right=10, left=10),
         width=3000,
-        ink=True,
+        ink=False,
         on_click=click_test,
         bgcolor=bgcolor,
         height=50,

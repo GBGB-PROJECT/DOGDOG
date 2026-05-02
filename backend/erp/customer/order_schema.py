@@ -14,7 +14,13 @@ class ErpCustomerOrderItem(BaseModel):
     phone: Any = None
     address: Any = None
     product_id: Any = None
+    product_detail_id: Any = None
+    product_brand: Any = None
+    product_name: Any = None
+    product_weight: Any = None
+    product_unit_quantity: Any = None
     quantity: Any = None
+    retail_price: Any = None
     total_amount: Any = None
     payment_billing_id: Any = None
 

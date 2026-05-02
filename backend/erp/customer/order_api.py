@@ -18,13 +18,10 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "order_number": "주문번호",
-    "sales_order_id": "주문ID",
     "customer_id": "고객ID",
-    "recipient": "수령인",
     "phone": "전화번호",
-    "address": "배송지",  # 🔥 추가: repository/view와 검색조건 맞춤
-    "product_id": "상품ID",
-    "payment_billing_id": "결제ID",
+    "address": "배송지",
+    "product": "상품",  # 🔥 상품ID/브랜드/상품명 통합 검색
 }
 
 
@@ -44,7 +41,13 @@ def build_response_rows(items: list, page: int, size: int):
                 "phone": row.get("phone", ""),
                 "address": row.get("address", ""),  # 🔥 추가: 배송지 응답 포함
                 "product_id": row.get("product_id", ""),
+                "product_detail_id": row.get("product_detail_id", ""),
+                "product_brand": row.get("product_brand", ""),
+                "product_name": row.get("product_name", ""),
+                "product_weight": row.get("product_weight", ""),
+                "product_unit_quantity": row.get("product_unit_quantity", ""),
                 "quantity": row.get("quantity", ""),
+                "retail_price": row.get("retail_price", ""),
                 "total_amount": row.get("total_amount", ""),
                 "payment_billing_id": row.get("payment_billing_id", ""),
             }
@@ -65,13 +68,10 @@ def build_response_rows(items: list, page: int, size: int):
 def get_customer_orders(
     search_type: Literal[
         "order_number",
-        "sales_order_id",
         "customer_id",
-        "recipient",
         "phone",
-        "address",  # 🔥 추가: 배송지 검색조건
-        "product_id",
-        "payment_billing_id",
+        "address",
+        "product",  # 🔥 상품ID/브랜드/상품명 통합 검색
     ] = Query(
         default="order_number",
         description="검색 조건",

@@ -845,14 +845,6 @@ def erp_stock_product_detail_view():
 
         reload_current_page()
 
-    def on_download(e):
-        result_text.value = "다운로드 기능은 아직 연결 전입니다."
-        e.page.update()
-
-    def on_print(e):
-        result_text.value = "인쇄 기능은 아직 연결 전입니다."
-        e.page.update()
-
     def on_reset_click(e):
         # 🔥 추가: 다른 조회 화면과 동일하게 모든 조건을 기본값으로 복구
         selected_start["value"] = None

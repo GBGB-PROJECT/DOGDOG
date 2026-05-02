@@ -540,14 +540,6 @@ def erp_product_detail_view():
         update_reset_button_visibility()
         e.page.update()
 
-    def on_download(e):
-        result_text.value = "다운로드 기능은 아직 연결 전입니다."
-        e.page.update()
-
-    def on_print(e):
-        result_text.value = "인쇄 기능은 아직 연결 전입니다."
-        e.page.update()
-
     def close_register_modal(e):
         dim_bg.visible = False
         popup_layer.visible = False

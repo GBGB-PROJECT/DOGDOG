@@ -615,15 +615,6 @@ def build_product_search_table_page(
     # ⭐ 검색창에서 엔터를 쳐도 조회되도록 연결
     search_field.on_submit = lambda e: run_search()
 
-    # ⭐ 아직 미구현인 인쇄 기능용 안내 문구
-    def on_print(e):
-        result_text.value = "인쇄 기능은 아직 연결 전입니다."
-        e.page.update()
-
-    # ⭐ 아직 미구현인 다운로드 기능용 안내 문구
-    def on_download(e):
-        result_text.value = "다운로드 기능은 아직 연결 전입니다."
-        e.page.update()
 
     # =========================================================
     # 👊 추가: 등록 모달 닫기

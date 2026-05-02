@@ -853,14 +853,6 @@ def erp_purchase_order_view():
         update_reset_button_visibility()
         e.page.update()
 
-    def on_download(e):
-        result_text.value = "다운로드 기능은 아직 연결 전입니다. 발주서 모달에서 엑셀 내보내기를 사용할 수 있습니다."
-        e.page.update()
-
-    def on_print(e):
-        result_text.value = "인쇄 기능은 아직 연결 전입니다."
-        e.page.update()
-
     search_field.on_submit = lambda e: on_search_click(e)
 
     refresh_picker_fields()

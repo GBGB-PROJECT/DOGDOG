@@ -2,7 +2,7 @@ import flet as ft
 import components as dogdog
 
 def product(page, p_id, image_src, image_size, brand, title, price):
-    print("이미지 URL:", image_src)
+    # print("이미지 URL:", image_src)
     image = ft.Container(
         width=image_size,
         height=image_size,
@@ -26,7 +26,7 @@ def product(page, p_id, image_src, image_size, brand, title, price):
         on_click=lambda _:page.go(f"/shop/product/{p_id}"),
         ink=True,
         content=ft.Column(spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
-            controls=[image, product_brand, product_name, product_price]
+                        controls=[image, product_brand, product_name, product_price]
     ))
 
 def products(page, data_dict, image_size):
@@ -37,6 +37,7 @@ def products(page, data_dict, image_size):
         row_controls = []
         for p_id, p_d in chunk:
             row_controls.append(
+                # product(page, p_id, image_src, image_size, brand, title, price)
                 product(page, 
                     p_id, 
                     p_d.get("thumbnail"), 
@@ -65,7 +66,7 @@ def shop_top(page: ft.Page, text=None, content_page=None):
 
     content = dogdog.basic_text(
         content_text,
-        size=20,
+        size=17,
         weight="bold",
         color=ft.Colors.GREY_900,
     )
@@ -97,7 +98,7 @@ def shop_top(page: ft.Page, text=None, content_page=None):
         height=50,
         controls=[
             ft.IconButton(
-                icon=ft.Icons.ARROW_BACK_IOS, icon_size=20, 
+                icon=ft.Icons.ARROW_BACK_IOS, icon_size=17, 
                 on_click=handle_back),
             content,
             ft.Container(width=24)

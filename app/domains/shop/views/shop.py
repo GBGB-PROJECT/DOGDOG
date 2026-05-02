@@ -45,7 +45,7 @@ def product_guide(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
-    guide_image_size = page.width / 5 # type: ignore
+    guide_image_size = page.width / 3.8 # type: ignore
     product_image_size = page.width / 3.8 # type: ignore
     # ---------------------------------------------------------------------------------------------------
     # Guide Page Arrow Event
@@ -68,9 +68,18 @@ def product_guide(page: ft.Page):
     product_guide = ft.Tabs(
         length=4,
         content=ft.Row(height=guide_image_size*1.5, margin=ft.margin.only(top=5), spacing=0, controls=[
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK_IOS, icon_size=10, 
-                on_click=lambda e:product_guide_page(e=e, key="back")),
+            ft.Container(
+                width=25,
+                alignment=ft.Alignment.CENTER,
+                content=ft.IconButton(
+                    icon=ft.Icons.ARROW_BACK_IOS,
+                    icon_size=10,
+                    style=ft.ButtonStyle(
+                        padding=0,
+                    ),
+                    on_click=lambda e: product_guide_page(e=e, key="back"),
+                ),
+            ),
             #
             ft.TabBarView(
                 expand=True,
@@ -81,9 +90,18 @@ def product_guide(page: ft.Page):
                     )
                 ]
             ),
-            ft.IconButton( 
-                icon=ft.Icons.ARROW_FORWARD_IOS, icon_size=10, 
-                on_click=lambda e:product_guide_page(e=e, key="forward")),
+            ft.Container(
+                width=25,
+                alignment=ft.Alignment.CENTER,
+                content=ft.IconButton(
+                    icon=ft.Icons.ARROW_FORWARD_IOS,
+                    icon_size=10,
+                    style=ft.ButtonStyle(
+                        padding=0,
+                    ),
+                    on_click=lambda e: product_guide_page(e=e, key="forward"),
+                ),
+            ),
     ]))
     async def load_recommended_foods():
         storage = page.session.store

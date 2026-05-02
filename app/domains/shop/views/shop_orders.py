@@ -85,7 +85,7 @@ def order_view(page: ft.Page, popup, page_name):
         if storage.get('order_address'): storage.remove('order_address')
         for task in asyncio.all_tasks():
             if "order_timesleep" in str(task.get_coro()):
-                print(f'{"\n"*10}{"===="*30}\n 🪄 Cancel Task Controls\n{"===="*30}')
+                print("\n" * 10 + f"{'===='*30}\n 🪄 Cancel Task Controls\n{'===='*30}")
                 print(' ✅ domains.shop.views.shop_orders.order_timesleep()')
                 task.cancel()
         dogdog.task_controls()

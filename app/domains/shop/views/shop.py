@@ -44,7 +44,7 @@ def product_guide(page: ft.Page):
     import asyncio
     for task in asyncio.all_tasks():
         if "shop_timesleep" in str(task.get_coro()): 
-            print(f'{"\n"*10}{"===="*30}\n 🪄 Cancel Task Controls\n{"===="*30}')
+            print("\n" * 10 + f"{'===='*30}\n 🪄 Cancel Task Controls\n{'===='*30}")
             print(' ✅ domains.shop.views.shop.shop_timesleep()')
             task.cancel()
     dogdog.task_controls()

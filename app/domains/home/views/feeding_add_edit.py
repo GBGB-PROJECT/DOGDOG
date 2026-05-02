@@ -55,7 +55,7 @@ def feeding_add_edit(page: ft.Page, view):
             page.go("/feeding")
             popup.show_popup_close(e)
             storage.set(f"customer_feeding_{call}_data", data)
-            show_error(f"customer_feeding_{call}_data: {storage.get(f"customer_feeding_{call}_data")}")
+            show_error(f"customer_feeding_{call}_data: {storage.get(f'customer_feeding_{call}_data')}")
         # -----------------------------------------------------------------------------------------------
         if call == "delete":
             if delete_popup not in page.overlay:
@@ -76,7 +76,7 @@ def feeding_add_edit(page: ft.Page, view):
             if not call == "add_save":
                 data.update({"customer_feeding_food_id": storage.get("select_customer_food_id")})
             storage.set(f"customer_feeding_{call}_data", data)
-            show_error(f"customer_feeding_{call}_data: {storage.get(f"customer_feeding_{call}_data")}")
+            show_error(f"customer_feeding_{call}_data: {storage.get(f'customer_feeding_{call}_data')}")
             page.go("/feeding")
         page.update()
     # ---------------------------------------------------------------------------------------------------

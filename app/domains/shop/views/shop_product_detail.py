@@ -60,7 +60,7 @@ class Default_data:
         self.final_price = (self.p_price - self.sale_order_price) if key == "subs_order" else self.p_price
         bt_product_price = dogdog.basic_text(spans=[
             ft.TextSpan(f"{self.p_price:,}원\n"),
-            ft.TextSpan(f"똑똑 배송 적용가: {int(self.sale_order_price):,}원",
+            ft.TextSpan(f"똑똑 배송 적용가: {int(self.p_price*0.9):,}원",
                 style=dogdog.TextStyle(size=12, color="#E6001A")) # type: ignore
             ], weight="bold", color=ft.Colors.GREY_700)
         self.default_bottom_sheet_content.clear()

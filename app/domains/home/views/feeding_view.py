@@ -29,7 +29,8 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
         storage.set("select_feeding_data", feeding_data.get("raw_data") if feeding_data else {})
         page.go("/feeding_edit")
 
-    if not feeding_data:
+    # [해결] 데이터가 비어있거나 필수 정보(상품명)가 없는 경우 Fallback UI 출력
+    if not feeding_data or not feeding_data.get("product_name"):
         # 데이터가 없을 때의 UI
         product_detail = ft.Row(
             height=100,

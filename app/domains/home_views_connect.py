@@ -8,7 +8,7 @@ from domains.logs.controller.log_controller import LogController
 
 
 # -------------------------------------------------------------------------------------------------------
-def home_tile(
+async def home_tile(
     page: ft.Page,
     popup,
     content_page: str,
@@ -193,7 +193,7 @@ def home_tile(
             domains.feeding_view.feeding_tabs_view(
                 page=page,
                 on_refresh_callback=on_refresh_callback,
-                feeding_detail_data=controller.get_feeding_detail_data()
+                feeding_detail_data=await controller.get_feeding_detail_data()
             )
         )
     # ---------------------------------------------------------------------------------------------------

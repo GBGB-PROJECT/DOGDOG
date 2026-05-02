@@ -51,25 +51,31 @@ class HomeController:
 
     async def fetch_dashboard_data(self, pet_id: int):
         """
-        특정 반려동물의 대시보드 요약 데이터를 가져와 세션에 업데이트합니다.
-        (급여량, 음수량, 산책량, 사료 잔여량 등)
+        특정 반려동물의 대시보드 요약 데이터 및 사료 상세 정보를 가져와 세션에 업데이트합니다.
         """
         try:
-            # 1. API 호출 (GET /api/v1/home/dashboard/{pet_id})
+            # 1. 대시보드 통계 API 호출 (잔여량, 활동량 등)
             response = await self.api_client.get(f"/home/dashboard/{pet_id}")
             
             if response.status_code == 200:
-                # 2. 데이터 추출
                 dash_data = response.json().get("data", {})
-                
-                # 3. 기존 세션의 customer_detail을 가져와서 dashboard_sync 부분만 업데이트
                 storage = self.page.session.store
+                
+                # 2. 사료 상세 정보 API 호출 (제품명, 브랜드, 썸네일 등)
+                # [해결] 신규 유저의 제품 정보 누락 방지를 위해 상세 정보를 함께 동기화합니다.
+                try:
+                    res_food = await self.api_client.get(f"/pets/{pet_id}/pet_food")
+                    pet_food_data = res_food.json().get("data") if res_food.status_code == 200 else {}
+                    storage.set("pet_food_detail", pet_food_data)
+                except Exception as fe:
+                    print(f"[HomeController] 사료 상세 정보 동기화 중 에러: {fe}")
+
+                # 3. 기존 세션 업데이트
                 customer_detail = storage.get("customer_detail") or {}
                 customer_detail["dashboard_sync"] = dash_data
-                
-                # 4. 세션 덮어쓰기
                 storage.set("customer_detail", customer_detail)
-                print(f"[HomeController] 대시보드 데이터 세션 업데이트 완료: {pet_id}")
+                
+                print(f"[HomeController] 대시보드 및 제품 정보 동기화 완료: {pet_id}")
                 return dash_data
             else:
                 print(f"[HomeController] 대시보드 API 호출 실패: {response.status_code}")
@@ -178,51 +184,116 @@ class HomeController:
             "expected_exdate_formatted": expected_exdate_formatted
         }
 
-    def get_feeding_detail_data(self):
+    async def get_feeding_detail_data(self):
         """
-        급여 상세 페이지(feeding.py)를 위한 사료 잔여량 및 상세 스펙 병합 데이터를 제공합니다.
+        [리팩터링] 급여 상세 페이지를 위한 데이터 Fetch 로직
+        - 세션에서 pet_id를 안전하게 추출
+        - 데이터 부재 시 서버 API 재호출 시도
+        - 유연한 키 매핑으로 파싱 실패 방지
         """
         storage = self.page.session.store
+        
+        # [해결 1] pet_id 세션 추출 로직 강화
+        pet_id = (
+            storage.get("pet_id") 
+            or storage.get("customer_pet_id") 
+            or storage.get("current_pet_id")
+        )
+        
+        # [해결 2] 데이터가 세션에 없으면 API 재호출 (대시보드 동기화 활용)
         customer_detail = storage.get("customer_detail") or {}
         dash_data = customer_detail.get("dashboard_sync") or {}
         inventory = dash_data.get("food_inventory") or {}
         pet_food_detail = storage.get("pet_food_detail") or {}
 
-        # 데이터 병합
-        feeding_data = {**inventory, **pet_food_detail}
+        if (not inventory or not pet_food_detail) and pet_id:
+            print(f"[DEBUG] 상세 페이지 데이터 부족으로 API 재호출 시도 (pet_id: {pet_id})")
+            await self.fetch_dashboard_data(pet_id)
+            # 재조회 후 다시 가져오기
+            customer_detail = storage.get("customer_detail") or {}
+            dash_data = customer_detail.get("dashboard_sync") or {}
+            inventory = dash_data.get("food_inventory") or {}
+            pet_food_detail = storage.get("pet_food_detail") or {}
+
+        # 데이터 병합 (우선순위: inventory > pet_food_detail)
+        feeding_data = {**pet_food_detail, **inventory}
+        print(f"[DEBUG] 상세 페이지 API 응답 데이터: {feeding_data}")
 
         if not feeding_data:
+            print("[DEBUG] 상세 페이지 결과: None (병합된 데이터가 없음)")
             return None
 
-        # 가공
-        left_intake = feeding_data.get("left_intake") or feeding_data.get("left_weight", 0)
-        total_weight_g = feeding_data.get("total_weight", 0)
-        total_weight_kg = round(float(total_weight_g) / 1000, 1) if total_weight_g else 0.0
+        # [해결 3] 유연한 키 매핑 및 방어 코드 (Key Variant 대응)
+        try:
+            # 1. 사료 양 관련 (left_intake, left_weight, weight 등)
+            left_intake = (
+                feeding_data.get("left_intake") 
+                or feeding_data.get("left_weight") 
+                or feeding_data.get("amount") 
+                or 0
+            )
+            total_weight_g = feeding_data.get("total_weight") or feeding_data.get("product_weight") or 0
+            total_weight_kg = round(float(total_weight_g) / 1000, 1) if total_weight_g else 0.0
 
-        left_percent = feeding_data.get("left_percent", 0)
-        progress_value = (
-            float(left_percent) / 100 if float(left_percent) > 1 else float(left_percent)
-        )
+            # 2. 진행률 관련
+            left_percent = feeding_data.get("left_percent") or feeding_data.get("percent") or 0
+            progress_value = (
+                float(left_percent) / 100 if float(left_percent) > 1 else float(left_percent)
+            )
 
-        left_days = feeding_data.get("left_food_count") or feeding_data.get("expected_left_days", 0)
-        expected_exdate = feeding_data.get("expected_exdate") or feeding_data.get("expected_last_day", "????-??-??")
-        expected_exdate_formatted = str(expected_exdate).replace("-", ".")
+            # 3. 날짜 및 잔여일
+            left_days = (
+                feeding_data.get("left_food_count") 
+                or feeding_data.get("expected_left_days") 
+                or feeding_data.get("left_days") 
+                or 0
+            )
+            expected_exdate = (
+                feeding_data.get("expected_exdate") 
+                or feeding_data.get("expected_last_day") 
+                or feeding_data.get("last_date") 
+                or "????-??-??"
+            )
+            expected_exdate_formatted = str(expected_exdate).replace("-", ".")
 
-        brand = feeding_data.get("product_brand") or feeding_data.get("brand") or ""
-        product_name = feeding_data.get("product_name") or feeding_data.get("name") or ""
-        thumbnail = feeding_data.get("product_thumbnail") or feeding_data.get("thumbnail") or "dogbowl.png"
+            # 4. 제품 정보 (Brand, Name, Thumbnail)
+            brand = (
+                feeding_data.get("product_brand") 
+                or feeding_data.get("brand_name") 
+                or feeding_data.get("brand") 
+                or "정보 없음"
+            )
+            product_name = (
+                feeding_data.get("product_name") 
+                or feeding_data.get("name") 
+                or feeding_data.get("product") 
+                or "알 수 없는 제품"
+            )
+            thumbnail = (
+                feeding_data.get("product_thumbnail") 
+                or feeding_data.get("thumbnail") 
+                or feeding_data.get("image_url") 
+                or "dogbowl.png"
+            )
 
-        return {
-            "raw_data": feeding_data,
-            "left_intake": left_intake,
-            "total_weight_kg": total_weight_kg,
-            "left_days": round(float(left_days), 1) if left_days else "?",
-            "progress_value": progress_value,
-            "expected_exdate_formatted": expected_exdate_formatted,
-            "brand": brand,
-            "product_name": product_name,
-            "thumbnail": thumbnail
-        }
+            result_data = {
+                "raw_data": feeding_data,
+                "left_intake": left_intake,
+                "total_weight_kg": total_weight_kg,
+                "left_days": round(float(left_days), 1) if left_days else "?",
+                "progress_value": progress_value,
+                "expected_exdate_formatted": expected_exdate_formatted,
+                "brand": brand,
+                "product_name": product_name,
+                "thumbnail": thumbnail
+            }
+            
+            print(f"[DEBUG] 상세 페이지 가공 완료 데이터: {result_data}")
+            return result_data
+
+        except Exception as e:
+            print(f"[HomeController] get_feeding_detail_data 파싱 에러: {e}")
+            return None
 
     async def get_today_timeline_logs(self, pet_id: int):
         """

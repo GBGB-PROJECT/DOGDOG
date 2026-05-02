@@ -6,7 +6,7 @@ import asyncio
 import components as dogdog
 
 # 테스트 아이디로 테스트 설정
-IS_TEST_MODE = True
+IS_TEST_MODE = False
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
@@ -357,7 +357,8 @@ class Front_dogdog:
                 self.page.views.clear()
                 self.page.update()  # 뷰를 비운 직후 즉시 갱신하여 로딩 화면처럼 보이게 함
 
-            home_background, main_container_content = domains.home_tile(
+            # [해결] home_tile이 비동기 함수가 되었으므로 await를 추가하여 언패킹 에러를 방지합니다.
+            home_background, main_container_content = await domains.home_tile(
                 page=self.page,
                 popup=self.popup,
                 content_page=page_name,

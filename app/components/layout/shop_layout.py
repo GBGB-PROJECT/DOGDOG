@@ -61,17 +61,33 @@ def shop_top(page: ft.Page, text=None, content_page=None):
             page.views.pop()
             page.go(page.views[-1].route)
     # -----------------------------------------------------------------------------------------------
-    from api.product_guide import Product
-    if content_page:
-        if "product/" in content_page:
-            product_id = int(content_page.lstrip("/shop/product/"))
-            for p_id , p_d in Product.guide_product_list.items():
-                if p_id == product_id:
-                    content_text = str(p_d.get('brand'))
-                    break
+    content_text = text or ""
+
+    content = dogdog.basic_text(
+        content_text,
+        size=20,
+        weight="bold",
+        color=ft.Colors.GREY_900,
+    )
+
+    if content_page and "product/" in content_page:
+        async def load_product_title():
+            try:
+                from domains.shop.controller.shop_api import get_shop_product_detail
+
+                product_id = int(content_page.split("/shop/product/")[-1])
+                product = await get_shop_product_detail(page, product_id)
+
+                if product:
+                    content.value = product.get("brand") or product.get("product_name") or content_text
+                    content.update()
+            except Exception as e:
+                print("shop_top product title load failed:", e)
+
+        page.run_task(load_product_title)
     elif text:
-        content_text = text
-    content = dogdog.basic_text(content_text, size=20, weight="bold", color=ft.Colors.GREY_900)
+        content.value = text
+
     content.expand = True
     content.text_align = ft.TextAlign.CENTER
 
@@ -81,7 +97,7 @@ def shop_top(page: ft.Page, text=None, content_page=None):
         height=50,
         controls=[
             ft.IconButton(
-                icon=ft.Icons.ARROW_BACK_IOS, icon_size=10, 
+                icon=ft.Icons.ARROW_BACK_IOS, icon_size=20, 
                 on_click=handle_back),
             content,
             ft.Container(width=24)

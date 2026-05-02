@@ -56,7 +56,7 @@ def order_view(page: ft.Page, popup, page_name):
 
     # ---------------------------------------------------------------------------------------------------
     order_price = p_price * product_quantity
-    sale_order_price = order_price/10 if "/subs_order" in page_name else 0
+    sale_order_price = order_price*0.1 if "/subs_order" in page_name else 0
     final_price = order_price - sale_order_price
     view_sale_order_price = int(final_price) - int(order_price)
     # ---------------------------------------------------------------------------------------------------

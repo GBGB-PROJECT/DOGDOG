@@ -697,8 +697,7 @@ def build_product_search_table_page(
     # ⭐ 조회 바 오른쪽 버튼들 묶음
     action_controls = [
         action_button("조회", on_click=lambda e: run_search(), width=78),
-        action_button("인쇄", on_click=on_print, width=78),
-        action_button("다운로드", on_click=on_download, width=104),
+        # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
     ]
 
     # ⭐ 등록 관련 설정값이 들어온 경우에만 등록 버튼 표시

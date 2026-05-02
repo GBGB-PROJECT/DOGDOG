@@ -745,8 +745,7 @@ def erp_employee_view():
     action_controls = [
         action_button("조회", on_click=on_search, width=78),
         reset_button_holder,
-        action_button("인쇄", on_click=on_print, width=78),
-        action_button("다운로드", on_click=on_download, width=104),
+        # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
         action_button("등록", on_click=open_register_modal, width=78),
     ]
 

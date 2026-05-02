@@ -75,10 +75,11 @@ def go_with_busy_cursor(page: ft.Page | None, route: str):
 
 def busy_cursor_control(control):
     """
-    🔥 마우스를 올렸을 때 해당 컨트롤 위에서 PROGRESS 커서가 보이게 감싼다.
-    - Container가 아니라 GestureDetector를 사용한다.
+    🔥 hover만으로 PROGRESS 커서가 뜨지 않게 기본 커서로 감싼다.
+    - 실제 PROGRESS 커서는 with_busy_cursor()/go_with_busy_cursor() 실행 중에만 page host에 적용한다.
+    - 조회/초기화 버튼 위에 마우스만 올려도 로딩처럼 보이던 문제를 막는다.
     """
     return ft.GestureDetector(
-        mouse_cursor=ft.MouseCursor.PROGRESS,
+        mouse_cursor=ft.MouseCursor.BASIC,
         content=control,
     )

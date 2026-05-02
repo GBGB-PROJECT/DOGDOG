@@ -297,7 +297,52 @@ def _parse_sort_date(value):
 
 # =========================================================
 # 🔥 입고/출고 통합 조회
+# - 기존 방식은 입고/출고 전체를 Python으로 모두 가져온 뒤 정렬/페이지를 잘랐다.
+# - 아래 방식은 DB에서 UNION ALL + ORDER BY + LIMIT/OFFSET을 처리해서 화면 전환/조회 속도를 안정화한다.
 # =========================================================
+def _build_stock_inout_query(db, search_type="all", keyword="", inout_type="all", start_date=None, end_date=None):
+    inout_type = inout_type or "all"
+    queries = []
+
+    if inout_type in ("all", "inbound", "입고"):
+        inbound_query = _base_inbound_query(db)
+        inbound_query = _apply_date_filter(
+            inbound_query,
+            _inbound_date_expr(),
+            start_date,
+            end_date,
+        )
+        inbound_query = _apply_inbound_search_filter(
+            inbound_query,
+            search_type=search_type,
+            keyword=keyword,
+        )
+        queries.append(inbound_query)
+
+    if inout_type in ("all", "outbound", "출고"):
+        outbound_query = _base_outbound_query(db)
+        outbound_query = _apply_date_filter(
+            outbound_query,
+            OpdSalesOrder.order_date,
+            start_date,
+            end_date,
+        )
+        outbound_query = _apply_outbound_search_filter(
+            outbound_query,
+            search_type=search_type,
+            keyword=keyword,
+        )
+        queries.append(outbound_query)
+
+    if not queries:
+        return None
+
+    if len(queries) == 1:
+        return queries[0]
+
+    return queries[0].union_all(*queries[1:])
+
+
 def fetch_stock_inout_rows(
     search_type="all",
     keyword="",
@@ -310,49 +355,33 @@ def fetch_stock_inout_rows(
     db = SessionLocal()
 
     try:
-        inout_type = inout_type or "all"
-        rows = []
-
-        if inout_type in ("all", "inbound", "입고"):
-            inbound_query = _base_inbound_query(db)
-            inbound_query = _apply_date_filter(
-                inbound_query,
-                _inbound_date_expr(),
-                start_date,
-                end_date,
-            )
-            inbound_query = _apply_inbound_search_filter(
-                inbound_query,
-                search_type=search_type,
-                keyword=keyword,
-            )
-            rows.extend([_row_to_dict(row) for row in inbound_query.all()])
-
-        if inout_type in ("all", "outbound", "출고"):
-            outbound_query = _base_outbound_query(db)
-            outbound_query = _apply_date_filter(
-                outbound_query,
-                OpdSalesOrder.order_date,
-                start_date,
-                end_date,
-            )
-            outbound_query = _apply_outbound_search_filter(
-                outbound_query,
-                search_type=search_type,
-                keyword=keyword,
-            )
-            rows.extend([_row_to_dict(row) for row in outbound_query.all()])
-
-        rows.sort(
-            key=lambda row: (
-                _parse_sort_date(row.get("event_date")),
-                str(row.get("inbound_id") or ""),
-                str(row.get("sales_order_id") or ""),
-            ),
-            reverse=True,
+        query = _build_stock_inout_query(
+            db,
+            search_type=search_type,
+            keyword=keyword,
+            inout_type=inout_type,
+            start_date=start_date,
+            end_date=end_date,
         )
 
-        return rows[offset: offset + limit]
+        if query is None:
+            return []
+
+        combined = query.subquery()
+        rows = (
+            db.query(combined)
+            .order_by(
+                combined.c.event_date.desc(),
+                combined.c.inbound_id.desc().nullslast(),
+                combined.c.sales_order_id.desc().nullslast(),
+                combined.c.product_id.asc().nullslast(),
+            )
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+
+        return [_row_to_dict(row) for row in rows]
 
     finally:
         db.close()
@@ -368,40 +397,20 @@ def count_stock_inout_rows(
     db = SessionLocal()
 
     try:
-        inout_type = inout_type or "all"
-        total_count = 0
+        query = _build_stock_inout_query(
+            db,
+            search_type=search_type,
+            keyword=keyword,
+            inout_type=inout_type,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
-        if inout_type in ("all", "inbound", "입고"):
-            inbound_query = _base_inbound_query(db)
-            inbound_query = _apply_date_filter(
-                inbound_query,
-                _inbound_date_expr(),
-                start_date,
-                end_date,
-            )
-            inbound_query = _apply_inbound_search_filter(
-                inbound_query,
-                search_type=search_type,
-                keyword=keyword,
-            )
-            total_count += inbound_query.count()
+        if query is None:
+            return 0
 
-        if inout_type in ("all", "outbound", "출고"):
-            outbound_query = _base_outbound_query(db)
-            outbound_query = _apply_date_filter(
-                outbound_query,
-                OpdSalesOrder.order_date,
-                start_date,
-                end_date,
-            )
-            outbound_query = _apply_outbound_search_filter(
-                outbound_query,
-                search_type=search_type,
-                keyword=keyword,
-            )
-            total_count += outbound_query.count()
-
-        return total_count
+        combined = query.subquery()
+        return db.query(func.count()).select_from(combined).scalar() or 0
 
     finally:
         db.close()

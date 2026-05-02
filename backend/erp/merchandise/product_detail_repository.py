@@ -79,6 +79,12 @@ def _apply_product_detail_filter(query, search_type: str, keyword: str):
     if search_type == "product_name":
         return query.filter(OpdProductDetail.product_name.ilike(like_keyword(clean)))
 
+    if search_type == "product_detail_id":
+        numeric = _normalize_numeric_keyword(clean)
+        if numeric.isdigit():
+            return query.filter(OpdProductDetail.product_detail_id == int(numeric))
+        return query.filter(OpdProductDetail.product_detail_id.cast(String).ilike(like_keyword(numeric)))
+
     if search_type == "type":
         return query.filter(OpdProductDetail.type.ilike(like_keyword(clean)))
 
@@ -145,6 +151,18 @@ def _apply_product_join_filter(query, search_type: str, keyword: str):
 
     if search_type == "product_name":
         return query.filter(OpdProductDetail.product_name.ilike(like_keyword(clean)))
+
+    if search_type == "product_id":
+        numeric = _normalize_numeric_keyword(clean)
+        if numeric.isdigit():
+            return query.filter(OpdProduct.product_id == int(numeric))
+        return query.filter(OpdProduct.product_id.cast(String).ilike(like_keyword(numeric)))
+
+    if search_type == "product_detail_id":
+        numeric = _normalize_numeric_keyword(clean)
+        if numeric.isdigit():
+            return query.filter(OpdProductDetail.product_detail_id == int(numeric))
+        return query.filter(OpdProductDetail.product_detail_id.cast(String).ilike(like_keyword(numeric)))
 
     if search_type == "type":
         return query.filter(OpdProductDetail.type.ilike(like_keyword(clean)))

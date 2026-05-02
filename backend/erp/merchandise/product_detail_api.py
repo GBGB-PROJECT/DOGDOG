@@ -13,6 +13,8 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "product_name": "상품명",
+    "product_id": "상품ID",  # 🔥 추가: 화면 컬럼과 검색조건 일치
+    "product_detail_id": "상품상세ID",  # 🔥 추가: 화면 컬럼과 검색조건 일치
     "type": "타입",
     "brand": "브랜드",
     "function": "기능",
@@ -87,6 +89,8 @@ def build_response_rows(items: list, page: int, size: int):
 def get_product_detail_list(
     search_type: Literal[
         "product_name",
+        "product_id",
+        "product_detail_id",
         "type",
         "brand",
         "function",

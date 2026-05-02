@@ -780,8 +780,7 @@ def erp_customer_info_view():
             search_field,
             action_button("조회", on_click=on_search_click),
             reset_button_holder,
-            action_button("인쇄"),
-            action_button("다운로드", width=92),
+            # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
             action_button("등록", on_click=open_register_modal),
         ],
     )

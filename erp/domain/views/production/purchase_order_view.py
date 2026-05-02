@@ -922,7 +922,6 @@ def erp_purchase_order_view():
             search_field,
             action_button("조회", on_click=on_search_click),
             reset_button_holder,
-            action_button("인쇄", on_click=on_print),
-            action_button("다운로드", on_click=on_download, width=92),
+            # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
         ],
     )

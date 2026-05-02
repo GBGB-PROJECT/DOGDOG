@@ -1,5 +1,6 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
+import domains as domains
 import components as dogdog
 import domains
 from .home.home_controller import HomeController
@@ -44,9 +45,9 @@ def home_tile(
             if pet_id:
                 logs = await controller.get_today_timeline_logs(pet_id)
                 # 추출된 유틸리티 함수를 호출하여 팝업을 띄우고 데이터 주입
-                domains.home.open_now_history_popup(page, popup, logs)
+                domains.home_view.open_now_history_popup(page, popup, logs)
         body_column.controls.append(
-            domains.home.now_history(
+            domains.home_view.now_history(
                 page=page, 
                 popup=popup, 
                 stats_data=controller.get_today_record_stats(),
@@ -60,7 +61,7 @@ def home_tile(
         main_container_content.append(body_scroll_column)
         body_scroll_column.controls.append(
             dogdog.content_container(
-                content_list=domains.home.feeding_food_count(
+                content_list=domains.home_view.feeding_food_count(
                     page=page, 
                     content_page=content_page,
                     inventory_stats=controller.get_food_inventory_stats()
@@ -69,7 +70,7 @@ def home_tile(
             )
         )
         body_scroll_column.controls.append(
-            domains.grid.status_update_menu(page=page, popup=popup)
+            domains.grid_view.status_update_menu(page=page, popup=popup)
         )
 
         # -----------------------------------------------------------------------------------------------
@@ -84,7 +85,7 @@ def home_tile(
                     
                     # 1. 상단 '오늘의 기록' 컴포넌트 교체
                     if len(body_column.controls) > 0:
-                        body_column.controls[0] = domains.home.now_history(
+                        body_column.controls[0] = domains.home_view.now_history(
                             page=page, 
                             popup=popup, 
                             stats_data=controller.get_today_record_stats(),
@@ -96,7 +97,7 @@ def home_tile(
                     # 2. 하단 '사료 잔여량' 컴포넌트 교체 (index 0)
                     if len(body_scroll_column.controls) > 0:
                         body_scroll_column.controls[0] = dogdog.content_container(
-                            content_list=domains.home.feeding_food_count(
+                            content_list=domains.home_view.feeding_food_count(
                                 page=page, 
                                 content_page=content_page,
                                 inventory_stats=controller.get_food_inventory_stats()
@@ -126,7 +127,7 @@ def home_tile(
         body_scroll_column.controls.append(domains.shop.shop_feeding_guide(page=page))
         body_scroll_column.controls.append(
             dogdog.content_container(
-                content_list=domains.home.feeding_food_count(
+                content_list=domains.home_view.feeding_food_count(
                     page=page, 
                     content_page=content_page,
                     inventory_stats=controller.get_food_inventory_stats()
@@ -189,7 +190,7 @@ def home_tile(
         home_background , top_banner = dogdog.home_layout(page=page, text="급여 중인 제품")
         main_container_content.append(top_banner)
         main_container_content.append(
-            domains.feeding.feeding_tabs_view(
+            domains.feeding_view.feeding_tabs_view(
                 page=page,
                 on_refresh_callback=on_refresh_callback,
                 feeding_detail_data=controller.get_feeding_detail_data()
@@ -219,32 +220,95 @@ def home_tile(
         body_scroll_column.controls.append(domains.notification.notification_setting(page))
     # ---------------------------------------------------------------------------------------------------
     elif "/shop/" in content_page:
+        shop_content_page = content_page.replace("/shop","")
+        # print(shop_content_page)
         home_background , top_banner = dogdog.home_layout(page=page, text="개밥개밥푸드")
         main_container_content.append(top_banner)
         # -----------------------------------------------------------------------------------------------
-        if "product/" in content_page:
+        if "product/" in shop_content_page:
             main_container_content.append(dogdog.shop_top(page=page, content_page=content_page))
             body_scroll_column.controls.append(domains.shop_product_detail.shop_product_detail(
                 page=page, popup=popup, content_page=content_page))
         # -----------------------------------------------------------------------------------------------
-        elif "/cart" in content_page:
-            main_container_content.append(dogdog.shop_top(page=page, text="장바구니"))
-            body_scroll_column.controls.append(dogdog.basic_text("장바구니 페이지"))
+        elif shop_content_page == "/search":
+            body_scroll_column.controls.append(ft.Container(
+                padding=ft.Padding.only(left=20, right=20, top=20),
+                bgcolor="#ffffff",
+                content=ft.Column(
+                    controls=[dogdog.basic_text("상품 검색 더미 페이지")]
+                )
+            ))
         # -----------------------------------------------------------------------------------------------
-        elif "/order" in content_page:
-            main_container_content.append(dogdog.shop_top(page=page, text="주문 / 결제"))
-            body_scroll_column.controls.append(domains.shop_orders.order_view(
-                page=page, popup=popup, page_name=content_page))
+        elif shop_content_page == "/cart":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="장바구니", content_page=content_page))
+            body_scroll_column.controls.append(ft.Container(
+                padding=ft.Padding.only(left=20, right=20, top=20),
+                bgcolor="#ffffff",
+                content=ft.Column(
+                    controls=[dogdog.basic_text("장바구니 더미 페이지")]
+                )
+            ))
         # -----------------------------------------------------------------------------------------------
-        elif "/subs_order" in content_page:
-            main_container_content.append(dogdog.shop_top(page=page, text="똑똑 배송 / 자동결제 등록"))
-            body_scroll_column.controls.append(domains.shop_orders.order_view(
-                page=page, popup=popup, page_name=content_page))
-        elif "/address" in content_page:
-            main_container_content.append(dogdog.shop_top(page=page, text="주소 검색"))
+        elif shop_content_page == "/wishlist":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="위시리스트", content_page=content_page))
+            body_scroll_column.controls.append(ft.Container(
+                padding=ft.Padding.only(left=20, right=20, top=20),
+                bgcolor="#ffffff",
+                content=ft.Column(
+                    controls=[dogdog.basic_text("위시리스트 더미 페이지")]
+                )
+            ))
+        # -----------------------------------------------------------------------------------------------
+        elif shop_content_page == "/product_order":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="주문 / 결제", content_page=content_page))
+            body_scroll_column.controls.append(
+                domains.shop_orders.order_view(page=page, popup=popup, page_name=content_page))
+        # -----------------------------------------------------------------------------------------------
+        elif shop_content_page == "/order_success":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="주문 / 결제", content_page=content_page))
+            body_column.controls.append(
+                domains.success_layout.order_success(page=page, page_name=content_page))
+        # -----------------------------------------------------------------------------------------------
+        elif shop_content_page == "/subs_start":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="똑똑 배송 시작하기", content_page=content_page))
+            body_scroll_column.controls.append(domains.subs_start.subs_options(page=page, popup=popup))
+        # -----------------------------------------------------------------------------------------------
+        elif shop_content_page == "/subs_product_order":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="똑똑 배송 / 자동결제 등록", content_page=content_page))
+            body_scroll_column.controls.append(
+                domains.shop_orders.order_view(page=page, popup=popup, page_name=content_page))
+        # -----------------------------------------------------------------------------------------------
+        elif shop_content_page == "/subs_order_success":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="똑똑 배송 / 자동결제 등록", content_page=content_page))
+            body_column.controls.append(
+                domains.success_layout.order_success(page=page, page_name=content_page))
+        # -----------------------------------------------------------------------------------------------
+        elif shop_content_page == "/address":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="주소 검색", content_page=content_page))
             body_scroll_column.controls.append(domains.address_view(page=page))
+        # -----------------------------------------------------------------------------------------------
+        elif shop_content_page == "/order_list":
+            main_container_content.append(
+                dogdog.shop_top(page=page, text="주문 내역", content_page=content_page))
+            body_scroll_column.controls.append(ft.Container(
+                padding=ft.Padding.only(left=20, right=20, top=20),
+                bgcolor="#ffffff",
+                content=ft.Column(
+                    controls=[dogdog.basic_text("주문 내역 더미 페이지")]
+                )
+            ))
+        # -----------------------------------------------------------------------------------------------
         main_container_content.append(ft.Divider(height=1))
-        main_container_content.append(body_scroll_column)
+        main_container_content.append(
+            body_scroll_column if not "success" in shop_content_page else body_column)
         body_scroll_column.margin = None
     # ---------------------------------------------------------------------------------------------------
     return home_background , main_container_content

@@ -6,11 +6,15 @@ import asyncio
 def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
     from api.product_guide import Product
+    def payment_check(e):
+        page.go("/shop/subs_order_success") if "/subs_product_order" in page_name else page.go("/shop/order_success") 
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
-    if not storage.get("select_product_id") and not storage.get("select_product_quantity"):
+    if (not storage.get("select_product_id") and 
+        not storage.get("select_product_quantity") and
+        not ("/subs_order" in page_name and storage.get("select_subs"))):
         return ft.Container(
             padding=ft.padding.only(left=10, right=10, top=10, bottom=20),
             bgcolor="#ffffff",
@@ -21,12 +25,35 @@ def order_view(page: ft.Page, popup, page_name):
         ]))
     product_id = int(storage.get("select_product_id")) # type: ignore
     product_quantity = int(storage.get("select_product_quantity")) # type: ignore
-    for p_id , p_d in Product.guide_product_list.items():
-        if p_id == product_id:
-            p_brand = str(p_d.get('brand'))
-            p_name = str(p_d.get('product_name'))
-            p_price = int(p_d.get('sales_price')) # type: ignore
-            break
+    # for p_id , p_d in Product.guide_product_list.items():
+    #     if p_id == product_id:
+    #         p_brand = str(p_d.get('brand'))
+    #         p_name = str(p_d.get('product_name'))
+    #         p_price = int(p_d.get('sales_price')) # type: ignore
+    #         break
+    from domains.shop.controller.shop_api import get_shop_product_detail
+
+    # product = get_shop_product_detail(page, product_id)
+
+    # p_brand = product.get("brand") or ""
+    # p_name = product.get("product_name") or ""
+    # p_price = int(product.get("retail_price") or 0)
+    p_brand = ""
+    p_name = ""
+    p_price = 0
+
+    product_name_text = ft.Text(
+        "상품 정보를 불러오는 중...",
+        font_family="Pretendard",
+        expand=4,
+        overflow=ft.TextOverflow.ELLIPSIS,
+        text_align=ft.TextAlign.RIGHT
+    )
+
+    product_price_text = dogdog.basic_text("0원")
+    subs_sale_price_text = dogdog.basic_text("0원", color="#E6001A")
+    total_price_text = dogdog.basic_text("0원")
+
     # ---------------------------------------------------------------------------------------------------
     order_price = p_price * product_quantity
     sale_order_price = order_price/10 if "/subs_order" in page_name else 0
@@ -40,10 +67,10 @@ def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
     # Delivery Address Select Run Task (Limit: 1 Hour)
     # ---------------------------------------------------------------------------------------------------
-    async def timesleep():
+    async def order_timesleep():
         try:
             for i in range(3600):
-                # print('call')
+                # print('order task call')
                 await asyncio.sleep(1)
                 if storage.get('order_address'):
                     delivery_picker.content.controls[0].value = storage.get('order_address') # type: ignore
@@ -56,7 +83,13 @@ def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
     def delivery_picker_route(e):
         if storage.get('order_address'): storage.remove('order_address')
-        page.run_task(timesleep)
+        for task in asyncio.all_tasks():
+            if "order_timesleep" in str(task.get_coro()):
+                print(f'{"\n"*10}{"===="*30}\n 🪄 Cancel Task Controls\n{"===="*30}')
+                print(' ✅ domains.shop.views.shop_orders.order_timesleep()')
+                task.cancel()
+        dogdog.task_controls()
+        asyncio.create_task(order_timesleep()) # type: ignore
         page.go("/shop/address")
     # ---------------------------------------------------------------------------------------------------
     delivery_customer_name = dogdog.input_textfield(
@@ -100,10 +133,7 @@ def order_view(page: ft.Page, popup, page_name):
         dogdog.basic_text("주문 상품", size=16, weight="bold"),
         dogdog.order_row(content=[
             ft.Text("상품명", font_family="Pretendard", expand=1),
-            ft.Text(
-                f"[{p_brand}] {p_name}", font_family="Pretendard", 
-                expand=4, overflow=ft.TextOverflow.ELLIPSIS,
-                text_align=ft.TextAlign.RIGHT),
+            product_name_text,
         ]),
         dogdog.order_row(content=[
             dogdog.basic_text("상품 수량"),
@@ -113,14 +143,13 @@ def order_view(page: ft.Page, popup, page_name):
         dogdog.basic_text("최종 결제 금액", size=16, weight="bold"),
         dogdog.order_row(content=[
             dogdog.basic_text("상품 가격"),
-            dogdog.basic_text(f"{order_price:,}원"),
+            product_price_text,
         ]),
         dogdog.order_row(
             visible=True if "/subs_order" in page_name else False,
             content=[
                 dogdog.basic_text("똑똑 배송 할인", weight="bold", color="#E6001A"), # type: ignore
-                dogdog.basic_text(
-                    f"{view_sale_order_price:,}원", weight="bold", color="#E6001A"), # type: ignore
+                subs_sale_price_text,
         ]),
         dogdog.order_row(content=[
             dogdog.basic_text("배송비"),
@@ -128,7 +157,7 @@ def order_view(page: ft.Page, popup, page_name):
         ]),
         dogdog.order_row(content=[
             dogdog.basic_text("총 결제 금액", weight="bold"),
-            dogdog.basic_text(f"{int(final_price):,}원", weight="bold"),
+            total_price_text,
         ]),
         ft.Divider(),
         dogdog.basic_text(
@@ -154,16 +183,35 @@ def order_view(page: ft.Page, popup, page_name):
                     size=12, color=ft.Colors.GREY_600, max_lines=3,
                     font_family="Pretendard", expand=True, overflow=ft.TextOverflow.ELLIPSIS),
         ]),
-        ft.Container(
-            expand=True,
-            height=50,
-            ink=True,
-            on_click=lambda _: print("결제 요청"),
-            bgcolor="#E6001A",
-            border_radius=10,
-            alignment=ft.Alignment.CENTER,
-            content=dogdog.basic_text("결제하기", weight="bold", color=ft.Colors.WHITE)
-    )]
+        dogdog.continue_button(
+            value="결제하기", bgcolor="#E6001A", text_color=ft.Colors.WHITE, 
+            on_click=lambda e: payment_check(e))
+    ]
+    async def load_order_product():
+        product = await get_shop_product_detail(page, product_id)
+
+        if not product:
+            product_name_text.value = "상품 정보를 불러올 수 없습니다."
+            page.update()
+            return
+
+        p_brand = product.get("brand") or ""
+        p_name = product.get("product_name") or ""
+        p_price = int(product.get("retail_price") or 0)
+
+        order_price = p_price * product_quantity
+        sale_order_price = int(order_price*0.1) if "/subs_order" in page_name else 0
+        final_price = order_price - sale_order_price
+        view_sale_order_price = int(final_price) - int(order_price)
+
+        product_name_text.value = f"[{p_brand}] {p_name}"
+        product_price_text.value = f"{order_price:,}원"  # 상품 가격
+        subs_sale_price_text.value = f"{sale_order_price:,}원"
+        total_price_text.value = f"{int(final_price):,}원"  # 총 결제 금액
+
+        page.update()
+
+    page.run_task(load_order_product)
     # ---------------------------------------------------------------------------------------------------
     return ft.Container(
         padding=ft.padding.only(left=10, right=10, top=10, bottom=20),

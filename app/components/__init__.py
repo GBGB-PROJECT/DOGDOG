@@ -18,6 +18,8 @@ from .common.content_box import content_container , log_container
 from .common.style import Style, TextStyle
 from .common.button import flat_button , icon_flat_button , flat_icon_text_button , flat_over_button
 
+from .common.task_controls import task_controls , views_controls
+
 from .common.jun_banner import banner
 from .common.jun_log_tabs import build_log_top_tabs, build_selectable_log_box
 from .common.jun_menu_box import menu_box

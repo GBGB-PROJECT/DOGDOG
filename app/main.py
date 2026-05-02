@@ -13,9 +13,7 @@ test_page = ""
 # flet build apk --verbose --compile-app --compile-packages --arch arm64-v8a
 # flet build apk --verbose --compile-app --compile-packages #맥용
 # -------------------------------------------------------------------------------------------------------
-test_page = "Browser"  # APP Build Test 시 주석 처리
-
-
+test_page = "Browser" # APP Build Test 시 주석 처리
 # -------------------------------------------------------------------------------------------------------
 class Front_dogdog:
     def __init__(self, page: ft.Page):
@@ -36,14 +34,13 @@ class Front_dogdog:
                 surface=ft.Colors.WHITE,
                 on_surface=ft.Colors.BLACK,
                 on_surface_variant=ft.Colors.BLACK,
-            ),
-            page_transitions=ft.PageTransitionsTheme(
-                android="None",  # type: ignore
-                ios="None",  # type: ignore
-                macos="None",  # type: ignore
-                linux="None",  # type: ignore
-                windows="None",  # type: ignore
-            ),
+            ),page_transitions=ft.PageTransitionsTheme(
+                android="None", # type: ignore
+                ios="None", # type: ignore
+                macos="None", # type: ignore
+                linux="None", # type: ignore
+                windows="None", # type: ignore
+            )
         )
         page.on_route_change = self.on_route_change
         page.on_view_pop = self.handle_back
@@ -291,11 +288,12 @@ class Front_dogdog:
         if len(self.page.views) > 1:
             self.page.views.pop()
             self.page.go(self.page.views[-1].route)
-
     # ---------------------------------------------------------------------------------------------------
     # View Routing Event
     # ---------------------------------------------------------------------------------------------------
     async def routing_view(self, page_name):
+        if not "address" in page_name:
+            dogdog.task_controls(30)
         # 1. 하단 앱바 설정
         appbar_status = [
             # Icon , Text , On_click
@@ -339,19 +337,12 @@ class Front_dogdog:
                     self.page.update()
 
             main_column = ft.Column(
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                expand=True,
-                controls=basic_content,  # type: ignore
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+                expand=True, controls=basic_content # type: ignore
             )
-            layout = ft.Container(
-                expand=True, padding=20, on_click=view_click, content=main_column
-            )
+            layout = ft.Container(expand=True, padding=20, on_click=view_click, content=main_column)
             new_view = ft.View(
-                route=page_name,
-                padding=0,
-                spacing=0,
-                bgcolor="#FFFFFF",
-                controls=[layout],
+                route=page_name, padding=0, spacing=0, bgcolor="#FFFFFF", controls=[layout]
             )
             # 온보딩 완료 시점 처리
             if page_name == "/sign_up_success":
@@ -387,38 +378,34 @@ class Front_dogdog:
                 bgcolor="#FFFFFF",
                 controls=[layout],
             )
-            if not "/shop/" in page_name:
+            not_bottom_appbar = [
+                # page_name
+                "/shop/product",
+                "/shop/order",
+                "/shop/subs_start",
+                "/shop/subs_order",
+                "/shop/address"
+            ]
+            if not any(page in page_name for page in not_bottom_appbar):
                 new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
         self.page.views.append(new_view)
+        dogdog.views_controls(self.page)
         self.page.update()  # 최종 뷰 추가 후 갱신
-
-
 # -------------------------------------------------------------------------------------------------------
-async def main(page: ft.Page):
+async def main(page: ft.Page): 
     front_end = Front_dogdog(page=page)
     if page.platform == ft.PagePlatform.ANDROID:
         await page.set_allowed_device_orientations([ft.DeviceOrientation.PORTRAIT_UP])
-
-
 # -------------------------------------------------------------------------------------------------------
 if test_page == "Browser":
     import logging, warnings
-
-    level = logging.INFO
+    level=logging.INFO
     logging.basicConfig(level=level)
     warnings.filterwarnings(action="ignore")
     if __name__ == "__main__":
         import webbrowser, os
-
         if os.getenv(key="FLET_NO_BROWSER"):
             webbrowser.open = lambda *args: None
-        ft.run(
-            main=main,
-            assets_dir="assets",
-            view=ft.AppView.WEB_BROWSER,
-            port=34636,
-            # web_renderer=ft.WebRenderer.CANVAS_KIT,
-        )
+        ft.run(main=main, assets_dir="assets", view=ft.AppView.WEB_BROWSER, port=34636, web_renderer=ft.WebRenderer.CANVAS_KIT)
 else:
-    if __name__ == "__main__":
-        ft.run(main=main, assets_dir="assets", web_renderer=ft.WebRenderer.CANVAS_KIT)
+    if __name__ == "__main__": ft.run(main=main, assets_dir="assets", web_renderer=ft.WebRenderer.CANVAS_KIT)

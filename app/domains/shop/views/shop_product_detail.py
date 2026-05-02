@@ -1,15 +1,16 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
 import components as dogdog
+import asyncio
 # -------------------------------------------------------------------------------------------------------
 class Default_data:
     def __init__(self, page: ft.Page, popup, content_page):
         # -----------------------------------------------------------------------------------------------
-        # from api.product_guide import Product
+        from api.product_guide import Product
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
-        # self.Product = Product
+        self.Product = Product
         self.popup = popup
         self.page = page
         self.storage = page.session.store
@@ -29,8 +30,8 @@ class Default_data:
         self.default_bottom_sheet_content = popup.bottom_sheet_controls
         self.message = {
             "cart":"원 장바구니 담기",
-            "order":"원 바로 구매",
-            "subs_order":"원 똑똑 배송으로 주문하기 🔔"
+            "product_order":"원 바로 구매",
+            "subs_product_order":"원 똑똑 배송으로 주문하기 🔔"
         }
 
     async def load_product_detail(self):
@@ -60,7 +61,7 @@ class Default_data:
         self.final_price = (self.p_price - self.sale_order_price) if key == "subs_order" else self.p_price
         bt_product_price = dogdog.basic_text(spans=[
             ft.TextSpan(f"{self.p_price:,}원\n"),
-            ft.TextSpan(f"똑똑 배송 적용가: {int(self.sale_order_price):,}원",
+            ft.TextSpan(f"똑똑 배송 적용가: {int(self.p_price*0.9):,}원",
                 style=dogdog.TextStyle(size=12, color="#E6001A")) # type: ignore
             ], weight="bold", color=ft.Colors.GREY_700)
         self.default_bottom_sheet_content.clear()
@@ -100,7 +101,7 @@ class Default_data:
         # -----------------------------------------------------------------------------------------------
         self.bt_button = self.bt_product_bottom.content
         self.bt_button.value = f"{self.final_price:,}{self.message.get(key)}" # type: ignore
-        if key == "subs_order": # page.go("/shop/order/subs")
+        if key == "subs_product_order":
             self.bt_product_bottom.bgcolor = "#E6001A" # type: ignore
             self.bt_button.color = ft.Colors.WHITE # type: ignore
             self.bt_button.value = f"🔔 {int(self.final_price):,}{self.message.get(key)}" # type: ignore
@@ -128,7 +129,7 @@ class Default_data:
             if count < 99: self.bt_order_count_value = count + 1
         self.bt_button.value = ( # type: ignore
             f"{int(self.final_price * self.bt_order_count_value):,}{self.message.get(key)}")
-        if key == "subs_order": # page.go("/shop/order/subs")
+        if key == "subs_product_order":
             self.bt_button.value = "🔔 " + self.bt_button.value # type: ignore
         self.bt_order_count_input.value = str(self.bt_order_count_value)
         self.bt_order_count.update()
@@ -163,7 +164,7 @@ class Default_data:
             # print(self.product_id, self.bt_order_count_value)
             self.storage.set("select_product_id",self.product_id)
             self.storage.set("select_product_quantity", self.bt_order_count_value)
-            self.page.go(f"/shop/{key}")
+            self.page.go(f"/shop/{key}") if key != "subs_product_order" else self.page.go("/shop/subs_start")
     def show_event(self, text:str):
         self.page.show_dialog(
             ft.SnackBar(content=ft.Text(value=text), open=True, behavior=ft.SnackBarBehavior.FLOATING))
@@ -260,71 +261,31 @@ def shop_product_detail(page: ft.Page, popup, content_page):
                     controls=[
                         product_name,
                         product_price
-                    ]
-                )
-            ]
-        )
-
-        wish_list = dogdog.flat_over_button(
-            bgcolor="#FBDD30", # type: ignore
-            text="♥",
-            size=30,
-            text_color=ft.Colors.WHITE,
-            on_click=lambda e:dd.routing_page_event(e, "wishlist")
-        )
-        wish_list.padding = ft.padding.only(left=10, right=10)
-
-        page_header_order = ft.Row(
-            alignment=ft.MainAxisAlignment.CENTER,
-            controls=[
-                dogdog.flat_over_button(
-                    bgcolor="#FBDD30", # type: ignore
-                    text="장바구니",
-                    size=16,
-                    text_color=ft.Colors.WHITE,
-                    expand=True,
-                    on_click=lambda e: dd.bottom_sheet_open(e=e, key="cart")
-                ),
-                dogdog.flat_over_button(
-                    bgcolor="#FBDD30", # type: ignore
-                    text="바로구매",
-                    size=16,
-                    text_color=ft.Colors.WHITE,
-                    expand=True,
-                    on_click=lambda e: dd.bottom_sheet_open(e=e, key="order")
-                ),
-                wish_list
-            ]
-        )
-
-        subs_order = dogdog.flat_over_button(
-            bgcolor="#E6001A", # type: ignore
-            text="🔔 똑똑 배송으로 주문하기 🔔",
-            expand=True,
-            size=16,
-            text_color=ft.Colors.WHITE,
-            on_click=lambda e: dd.bottom_sheet_open(e=e, key="subs_order")
-        )
-        subs_order.ink_color = "#80000F"
-
-        page_header_subs_order = ft.Row(
-            margin=ft.margin.only(top=5, bottom=5),
-            controls=[subs_order]
-        )
-
+        ])])
+        wishlist = dogdog.flat_over_button(bgcolor="#FBDD30", # type: ignore
+            text="♥", size=30, text_color=ft.Colors.WHITE,
+            on_click=lambda e:dd.routing_page_event(e, "wishlist"))
+        wishlist.padding = ft.padding.only(left=10, right=10)
+        page_header_order = ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
+            dogdog.flat_over_button(bgcolor="#FBDD30", # type: ignore
+                text="장바구니", size=16, text_color=ft.Colors.WHITE, expand=True,
+                on_click=lambda e:dd.bottom_sheet_open(e=e, key="cart")),
+            dogdog.flat_over_button(bgcolor="#FBDD30", # type: ignore
+                text="바로구매", size=16, text_color=ft.Colors.WHITE, expand=True,
+                on_click=lambda e:dd.bottom_sheet_open(e=e, key="product_order")),
+            wishlist
+        ])
+        subs_order = dogdog.flat_over_button(bgcolor="#E6001A", # type: ignore
+            text="🔔 똑똑 배송으로 주문하기 🔔", expand=True, size=16, text_color=ft.Colors.WHITE,
+            on_click=lambda e:dd.bottom_sheet_open(e=e, key="subs_product_order"))
+        subs_order.ink_color = "#80000F" # type: ignore
+        page_header_subs_order = ft.Row(margin=ft.margin.only(top=5, bottom=5), controls=[subs_order])
+        # -----------------------------------------------------------------------------------------------
         content_column.controls.append(page_header)
         content_column.controls.append(page_header_order)
         content_column.controls.append(page_header_subs_order)
         content_column.controls.append(ft.Divider())
-
-        # if dd.pdi:
-        #     content_column.controls.append(
-        #         ft.Image(
-        #             src=dd.pdi,
-        #             error_content=error_message(1)
-        #         )
-        #     )
-        
+        # -----------------------------------------------------------------------------------------------
         if dd.pdi_images:
             image_width = (page.width or 390) - 40
 
@@ -345,9 +306,11 @@ def shop_product_detail(page: ft.Page, popup, content_page):
         render_detail()
 
     page.run_task(load_and_render)
-
+    # ---------------------------------------------------------------------------------------------------
     return ft.Container(
-        padding=ft.Padding.only(left=20, right=20, top=20),
+        padding=20,
         bgcolor="#ffffff",
-        content=content_column
+        content=ft.Column(
+            controls=content_column # type: ignore
+        )
     )

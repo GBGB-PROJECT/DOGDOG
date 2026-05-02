@@ -713,7 +713,10 @@ def erp_inbound_view():
     pagination_state["current_page"] = 1
     reload_current_page()
 
-    return ft.Column(
+    return ft.Container(
+        expand=True,
+        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 최외곽 배경을 흰색으로 고정해 우측 배경 얼룩 방지
+        content=ft.Column(
         expand=True,
         spacing=0,
         controls=[
@@ -778,4 +781,5 @@ def erp_inbound_view():
                 ),
             ),
         ],
+    )
     )

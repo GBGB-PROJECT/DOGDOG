@@ -592,7 +592,10 @@ def erp_stock_inout_view():
 
     reload_current_page(1)
 
-    return ft.Column(
+    return ft.Container(
+        expand=True,
+        bgcolor=ft.Colors.WHITE,  # 🔥 수정: 최외곽 배경을 흰색으로 고정해 우측 배경 얼룩 방지
+        content=ft.Column(
         expand=True,
         spacing=0,
         controls=[
@@ -662,4 +665,5 @@ def erp_stock_inout_view():
                 ),
             ),
         ],
+    )
     )

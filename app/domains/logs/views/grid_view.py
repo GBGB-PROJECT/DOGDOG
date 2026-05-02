@@ -23,19 +23,49 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
     bottom_sheet_contents = popup.bottom_sheet_controls
     bottom_sheet_contents.clear()
     
-    # 날짜/시간 초기화 로직 (수정 모드 대응)
-    initial_date = datetime.datetime.now()
-    initial_time = datetime.datetime.now()
-    
+    # [버그 1 수정] 정규식(Regex) 기반 절대 에러 안 나는 파서 + Storage 동기화
+    # 핵심 원인:
+    #   1. fromisoformat이 "2026-05-02 11:08:00.000000" 같은 포맷 수신 시 에러 투스
+    #   2. 파싱 성공해도 Storage에 동기화되지 않아 저장 시 시간이 날아건
+    # 해결: re 모듈로 날짜/시간을 각각 독립적으로 추출 → 파싱 후 Storage에 즉시 반영
+    import re
+    initial_date, initial_time = datetime.datetime.now(), datetime.datetime.now()
+
     if edit_mode and log_data:
-        raw_date = log_data.get("log_date") or log_data.get("date")
-        if raw_date:
+        log_str = str(log_data)
+
+        # 1. 날짜 추출 (YYYY-MM-DD 또는 YYYY.MM.DD 패턴 중 첫 번째)
+        date_match = re.search(r"(\d{4}[-.\s]\d{2}[-.\s]\d{2})", log_str)
+        if date_match:
             try:
-                # "2024-05-12 13:23" 또는 ISO 형식 지원
-                initial_dt = datetime.datetime.fromisoformat(raw_date.replace(" ", "T"))
-                initial_date = initial_dt
-                initial_time = initial_dt
-            except: pass
+                d_str = date_match.group(1).replace(".", "-").replace(" ", "-")
+                initial_date = datetime.datetime.strptime(d_str, "%Y-%m-%d")
+                # initial_time의 날짜도 일치시켜 주기 (나중에 시간만 replace하면 사용)
+                initial_time = initial_time.replace(
+                    year=initial_date.year,
+                    month=initial_date.month,
+                    day=initial_date.day,
+                )
+            except Exception:
+                pass
+
+        # 2. 시간 추출 (HH:MM:SS 또는 HH:MM 패턴 중 첫 번째)
+        time_matches = re.findall(r"([0-2]\d:[0-5]\d(?::[0-5]\d)?)", log_str)
+        if time_matches:
+            try:
+                t_parts = time_matches[0].split(":")
+                h = int(t_parts[0])
+                m = int(t_parts[1])
+                s = int(t_parts[2]) if len(t_parts) > 2 else 0
+                initial_time = initial_time.replace(hour=h, minute=m, second=s, microsecond=0)
+            except Exception:
+                pass
+
+    # [핵심] 파싱된 날짜/시간을 Storage에 강제 동기화
+    # 유저가 피커를 건드리지 않아도 저장 시 올바른 시간이 전달됨
+    s_control.storage.set(f"{call}_date", initial_date.strftime("%Y-%m-%d"))
+    s_control.storage.set(f"{call}_time", initial_time.strftime("%H:%M"))
+
 
     # 안전한 피커 생성
     date_picker = ft.DatePicker(
@@ -166,9 +196,14 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
 
     is_customer_detail = True
 
-    # ---------------------------------------------------------------------------------------------------
-    # 상태별 화면 구성 (분기)
-    # ---------------------------------------------------------------------------------------------------
+    def get_real_val(*keys):
+        if not edit_mode or not log_data: return ""
+        for k in keys + ("amount", "log_status", "weight", "bcs", "score", "value"):
+            v = log_data.get(k)
+            if v is not None and str(v).strip() not in ["", "0", "0.0", "None"]:
+                return v
+        return ""
+    
     if call == "feeding":
         add_title("밥주기")
         data = await s_control.fetch_feeding_init_data()
@@ -226,6 +261,12 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
             )
             feeding_memo.value = initial_memo
             
+            # [버그 2 해결] 초기값을 Storage에 강제 세팅
+            # on_change가 발생하지 않아도 저장 시 올바른 값이 전달되도록 보장
+            s_control.change_customer_food_id(food_dropdown.value)
+            s_control.change_weight(call, initial_weight if initial_weight else "0")
+            s_control.change_memo(call, initial_memo)
+
             # 모든 컴포넌트가 정의된 후 if 블록 안에서 extend 실행 (가이드 UI가 맨 앞에 오도록 배치)
             bottom_sheet_contents.extend([feeding_guide, ft.Row(controls=[food_dropdown]), feeding_weight, feeding_memo])
         else:
@@ -255,21 +296,15 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
 
     elif call == "watering":
         add_title("물주기")
-        # [Step 1 해결] edit_mode와 log_data가 있을 때만 값 추출
-        if edit_mode and log_data:
-            status_val = log_data.get("log_status")
-            initial_val = str(int(status_val)) if status_val is not None else ""
-            initial_memo = log_data.get("memo", "")
-        else:
-            initial_val = ""
-            initial_memo = ""
+        val_raw = get_real_val("amount", "log_status")
+        initial_val = str(int(float(val_raw))) if val_raw else ""
+        initial_memo = log_data.get("memo", "") if edit_mode and log_data else ""
         
         watering = dogdog.input_textfield(
             hint_text="물 섭취량을 적어주세요.", input_type="int", suffix="ml",
             on_change=lambda e: s_control.change_weight(call, e.control.value),
         )
         watering.value = initial_val
-
         watering_memo = dogdog.input_textfield(
             hint_text="메모 (선택)", text_filter=None, max_length=None,
             on_change=lambda e: s_control.change_memo(call, e.control.value),
@@ -279,21 +314,15 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
 
     elif call == "daily_walks":
         add_title("활동기록")
-        # [Step 1 해결] edit_mode와 log_data가 있을 때만 값 추출
-        if edit_mode and log_data:
-            status_val = log_data.get("log_status")
-            initial_val = str(int(status_val)) if status_val is not None else ""
-            initial_memo = log_data.get("memo", "")
-        else:
-            initial_val = ""
-            initial_memo = ""
+        val_raw = get_real_val("amount", "log_status")
+        initial_val = str(int(float(val_raw))) if val_raw else ""
+        initial_memo = log_data.get("memo", "") if edit_mode and log_data else ""
 
         daily_walks = dogdog.input_textfield(
             hint_text="산책시간을 적어주세요.", input_type="int", suffix="분",
             on_change=lambda e: s_control.change_weight(call, e.control.value),
         )
         daily_walks.value = initial_val
-
         daily_walks_memo = dogdog.input_textfield(
             hint_text="메모 (선택)", text_filter=None, max_length=None,
             on_change=lambda e: s_control.change_memo(call, e.control.value),
@@ -303,14 +332,9 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
 
     elif call == "hygiene_bowel":
         add_title("배변", "bowel")
-        # [Step 1 해결] edit_mode와 log_data가 있을 때만 값 추출
-        if edit_mode and log_data:
-            status_val = log_data.get("log_status")
-            initial_val = str(int(status_val)) if status_val is not None else None
-            initial_memo = log_data.get("memo", "")
-        else:
-            initial_val = None
-            initial_memo = ""
+        val_raw = get_real_val("log_status", "score")
+        initial_val = str(int(float(val_raw))) if val_raw else None
+        initial_memo = log_data.get("memo", "") if edit_mode and log_data else ""
 
         hygiene_bowel_score = dogdog.dropdown_menu(
             label="배변 스코어를 선택해주세요.",
@@ -327,27 +351,42 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
         bottom_sheet_contents.extend([hygiene_bowel_score, hygiene_bowel_memo])
 
     elif call == "health_log":
-        add_title("건강기록", "bcs")
-        # [Step 1 해결] edit_mode와 log_data가 있을 때만 값 추출
+        initial_weight = ""
+        initial_bcs = None
+        category = ""
+        
         if edit_mode and log_data:
-            initial_weight = str(log_data.get("weight", ""))
-            initial_bcs = str(log_data.get("bcs", ""))
-        else:
-            initial_weight = ""
-            initial_bcs = None
+            category = log_data.get("category", "")
+            status_val = log_data.get("log_status")
+            
+            if category == "weight" and status_val is not None:
+                initial_weight = str(status_val)
+            elif category == "bcs" and status_val is not None:
+                initial_bcs = str(int(float(status_val)))
 
         health_weight_field = dogdog.input_textfield(
             hint_text="몸무게를 적어주세요.", input_type="float", suffix="Kg",
             on_change=lambda e: s_control.change_weight(call, e.control.value, is_float=True),
         )
         health_weight_field.value = initial_weight
+        
         health_bcs_dropdown = dogdog.dropdown_menu(
             label="BCS를 선택해주세요.",
             options=[dogdog.dropdown_menu_option(text=f"{row}") for row in range(9, 0, -1)],
             event=lambda e: s_control.change_weight(call, e.control.value, is_bcs=True),
         )
         health_bcs_dropdown.value = initial_bcs
-        bottom_sheet_contents.extend([health_weight_field, health_bcs_dropdown])
+        
+        # [핵심] edit_mode일 때 카테고리에 따라 UI 분리
+        if edit_mode and category == "weight":
+            add_title("건강기록 (체중)")
+            bottom_sheet_contents.extend([health_weight_field])
+        elif edit_mode and category == "bcs":
+            add_title("건강기록 (BCS)", "bcs")
+            bottom_sheet_contents.extend([health_bcs_dropdown])
+        else:
+            add_title("건강기록", "bcs")
+            bottom_sheet_contents.extend([health_weight_field, health_bcs_dropdown])
 
     elif call == "status_log":
         add_title("상태기록")

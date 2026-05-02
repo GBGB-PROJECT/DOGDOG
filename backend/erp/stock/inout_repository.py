@@ -7,7 +7,7 @@
 
 from datetime import date, datetime, time
 
-from sqlalchemy import String, cast, func, literal, or_
+from sqlalchemy import String, cast, func, literal, or_, union_all, select, desc
 
 from db.db import SessionLocal
 from db.models import (
@@ -301,6 +301,47 @@ def _parse_sort_date(value):
     return datetime.min
 
 
+
+def _ordered_limited_rows(db, query, limit=50, offset=0):
+    rows = (
+        query.order_by(
+            desc("event_date"),
+            desc("inbound_id"),
+            desc("sales_order_id"),
+        )
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+
+    return [_row_to_dict(row) for row in rows]
+
+
+def _fetch_union_rows(db, inbound_query, outbound_query, limit=50, offset=0):
+    # 🔥 수정: 입고/출고 전체 조회 시 Python에서 전체 rows를 all()로 가져와 정렬하지 않는다.
+    # - 기존 방식은 전체 2만 건 이상을 모두 가져온 뒤 Python sort + slicing을 해서 timeout 발생
+    # - UNION ALL + ORDER BY + LIMIT/OFFSET을 DB에서 처리하도록 변경
+    union_subq = union_all(
+        inbound_query.statement,
+        outbound_query.statement,
+    ).subquery("stock_inout_union")
+
+    stmt = (
+        select(union_subq)
+        .order_by(
+            union_subq.c.event_date.desc(),
+            union_subq.c.inbound_id.desc(),
+            union_subq.c.sales_order_id.desc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+
+    result = db.execute(stmt).mappings().all()
+    return [{key: to_plain_value(value) for key, value in row.items()} for row in result]
+
+
+
 # =========================================================
 # 🔥 입고/출고 통합 조회
 # =========================================================
@@ -317,7 +358,9 @@ def fetch_stock_inout_rows(
 
     try:
         inout_type = inout_type or "all"
-        rows = []
+
+        inbound_query = None
+        outbound_query = None
 
         if inout_type in ("all", "inbound", "입고"):
             inbound_query = _base_inbound_query(db)
@@ -332,7 +375,6 @@ def fetch_stock_inout_rows(
                 search_type=search_type,
                 keyword=keyword,
             )
-            rows.extend([_row_to_dict(row) for row in inbound_query.all()])
 
         if inout_type in ("all", "outbound", "출고"):
             outbound_query = _base_outbound_query(db)
@@ -347,18 +389,33 @@ def fetch_stock_inout_rows(
                 search_type=search_type,
                 keyword=keyword,
             )
-            rows.extend([_row_to_dict(row) for row in outbound_query.all()])
 
-        rows.sort(
-            key=lambda row: (
-                _parse_sort_date(row.get("event_date")),
-                str(row.get("inbound_id") or ""),
-                str(row.get("sales_order_id") or ""),
-            ),
-            reverse=True,
-        )
+        if inbound_query is not None and outbound_query is not None:
+            return _fetch_union_rows(
+                db,
+                inbound_query,
+                outbound_query,
+                limit=limit,
+                offset=offset,
+            )
 
-        return rows[offset: offset + limit]
+        if inbound_query is not None:
+            return _ordered_limited_rows(
+                db,
+                inbound_query,
+                limit=limit,
+                offset=offset,
+            )
+
+        if outbound_query is not None:
+            return _ordered_limited_rows(
+                db,
+                outbound_query,
+                limit=limit,
+                offset=offset,
+            )
+
+        return []
 
     finally:
         db.close()

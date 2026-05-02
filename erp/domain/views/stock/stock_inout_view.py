@@ -112,9 +112,7 @@ def erp_stock_inout_view():
         "inout_type",
         "inbound_id",
         "sales_order_id",
-        "product_id",
-        "brand",
-        "product_name",
+        "product",
         "status",
     }:
         initial_search_type = "all"
@@ -151,9 +149,7 @@ def erp_stock_inout_view():
         "no": 3,
         "inout_type": 4,
         "base_id": 5,
-        "product_id": 5,
-        "brand": 6,
-        "product_name": 12,
+        "product": 18,
         "quantity": 5,
         "unit_price": 6,
         "amount": 7,
@@ -171,9 +167,7 @@ def erp_stock_inout_view():
         "inout_type": "구분",
         "inbound_id": "입고ID",
         "sales_order_id": "주문ID",
-        "product_id": "상품ID",
-        "brand": "브랜드",
-        "product_name": "상품명",
+        "product": "상품",
         "status": "상태",
     }
 
@@ -395,10 +389,7 @@ def erp_stock_inout_view():
                     # - 출고 행: sales_order_id
                     # =========================================================
                     build_table_cell("입고ID/주문ID", col_expand["base_id"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
-
-                    build_table_cell("상품ID", col_expand["product_id"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
-                    build_table_cell("브랜드", col_expand["brand"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
-                    build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
+                    build_table_cell("상품", col_expand["product"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("수량", col_expand["quantity"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("단가", col_expand["unit_price"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("금액", col_expand["amount"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
@@ -410,6 +401,23 @@ def erp_stock_inout_view():
 
     def build_table_row(row, index):
         status_color = ACTION_BLUE if row.get("inout_type") == "입고" else "#16A34A"
+
+        brand = (row.get("brand") or "").strip()
+        product_name = (row.get("product_name") or "").strip()
+        weight_text = (row.get("weight_text") or "").strip()
+        product_id = row.get("product_id")
+
+        product_main = f"{brand} {product_name}".strip() or "-"
+        product_meta = []
+        if weight_text:
+            product_meta.append(weight_text)
+        if product_id not in (None, ""):
+            product_meta.append(f"#{product_id}")
+
+        if product_meta:
+            product_display = f"{product_main} ({' / '.join(product_meta)})"
+        else:
+            product_display = product_main
 
         return ft.Container(
             height=54,
@@ -424,9 +432,7 @@ def erp_stock_inout_view():
                     build_table_cell(index, col_expand["no"]),
                     build_table_cell(row.get("inout_type"), col_expand["inout_type"], 0, ft.FontWeight.W_700, status_color),
                     build_table_cell(row.get("base_id"), col_expand["base_id"]),
-                    build_table_cell(row.get("product_id"), col_expand["product_id"]),
-                    build_table_cell(row.get("brand"), col_expand["brand"]),
-                    build_table_cell(row.get("product_name"), col_expand["product_name"]),
+                    build_table_cell(product_display, col_expand["product"]),
                     build_table_cell(row.get("quantity_text"), col_expand["quantity"]),
                     build_table_cell(row.get("unit_price_text"), col_expand["unit_price"]),
                     build_table_cell(row.get("amount_text"), col_expand["amount"]),

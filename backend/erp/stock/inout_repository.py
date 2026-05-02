@@ -129,6 +129,7 @@ def _base_inbound_query(db):
             ErpStock.product_id.label("product_id"),
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
+            OpdProduct.weight.label("weight"),
             ErpStock.save_stock.label("quantity"),
             ErpPurchaseOrderItem.purchase_price.label("unit_price"),
             amount_expr.label("amount"),
@@ -178,6 +179,7 @@ def _base_outbound_query(db):
             OpdSalesOrderItem.product_id.label("product_id"),
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
+            OpdProduct.weight.label("weight"),
             OpdSalesOrderItem.quantity.label("quantity"),
             OpdSalesOrderItem.retail_price.label("unit_price"),
             OpdSalesOrderItem.total_amount.label("amount"),
@@ -210,14 +212,15 @@ def _apply_inbound_search_filter(query, search_type="", keyword=""):
     if search_type == "inbound_id":
         return query.filter(cast(ErpInbound.inbound_id, String).ilike(pattern))
 
-    if search_type == "product_id":
-        return query.filter(cast(ErpStock.product_id, String).ilike(pattern))
-
-    if search_type == "brand":
-        return query.filter(func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern))
-
-    if search_type == "product_name":
-        return query.filter(func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern))
+    if search_type in ("product", "product_id", "brand", "product_name"):
+        return query.filter(
+            or_(
+                cast(ErpStock.product_id, String).ilike(pattern),
+                func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern),
+                func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern),
+                cast(OpdProduct.weight, String).ilike(pattern),
+            )
+        )
 
     if search_type == "status":
         return query.filter(func.lower(func.coalesce(ErpInboundStatus.status, "")).like(pattern))
@@ -231,6 +234,7 @@ def _apply_inbound_search_filter(query, search_type="", keyword=""):
             cast(ErpStock.product_id, String).ilike(pattern),
             func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern),
             func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern),
+            cast(OpdProduct.weight, String).ilike(pattern),
             func.lower(func.coalesce(ErpInboundStatus.status, "")).like(pattern),
         )
     )
@@ -249,14 +253,15 @@ def _apply_outbound_search_filter(query, search_type="", keyword=""):
     if search_type == "inbound_id":
         return query.filter(cast(OpdSalesOrderItem.inbound_id, String).ilike(pattern))
 
-    if search_type == "product_id":
-        return query.filter(cast(OpdSalesOrderItem.product_id, String).ilike(pattern))
-
-    if search_type == "brand":
-        return query.filter(func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern))
-
-    if search_type == "product_name":
-        return query.filter(func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern))
+    if search_type in ("product", "product_id", "brand", "product_name"):
+        return query.filter(
+            or_(
+                cast(OpdSalesOrderItem.product_id, String).ilike(pattern),
+                func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern),
+                func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern),
+                cast(OpdProduct.weight, String).ilike(pattern),
+            )
+        )
 
     if search_type == "status":
         return query.filter(literal("출고 완료").ilike(pattern))
@@ -271,6 +276,7 @@ def _apply_outbound_search_filter(query, search_type="", keyword=""):
             cast(OpdSalesOrderItem.product_id, String).ilike(pattern),
             func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern),
             func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern),
+            cast(OpdProduct.weight, String).ilike(pattern),
         )
     )
 
@@ -297,52 +303,7 @@ def _parse_sort_date(value):
 
 # =========================================================
 # 🔥 입고/출고 통합 조회
-# - 기존 방식은 입고/출고 전체를 Python으로 모두 가져온 뒤 정렬/페이지를 잘랐다.
-# - 아래 방식은 DB에서 UNION ALL + ORDER BY + LIMIT/OFFSET을 처리해서 화면 전환/조회 속도를 안정화한다.
 # =========================================================
-def _build_stock_inout_query(db, search_type="all", keyword="", inout_type="all", start_date=None, end_date=None):
-    inout_type = inout_type or "all"
-    queries = []
-
-    if inout_type in ("all", "inbound", "입고"):
-        inbound_query = _base_inbound_query(db)
-        inbound_query = _apply_date_filter(
-            inbound_query,
-            _inbound_date_expr(),
-            start_date,
-            end_date,
-        )
-        inbound_query = _apply_inbound_search_filter(
-            inbound_query,
-            search_type=search_type,
-            keyword=keyword,
-        )
-        queries.append(inbound_query)
-
-    if inout_type in ("all", "outbound", "출고"):
-        outbound_query = _base_outbound_query(db)
-        outbound_query = _apply_date_filter(
-            outbound_query,
-            OpdSalesOrder.order_date,
-            start_date,
-            end_date,
-        )
-        outbound_query = _apply_outbound_search_filter(
-            outbound_query,
-            search_type=search_type,
-            keyword=keyword,
-        )
-        queries.append(outbound_query)
-
-    if not queries:
-        return None
-
-    if len(queries) == 1:
-        return queries[0]
-
-    return queries[0].union_all(*queries[1:])
-
-
 def fetch_stock_inout_rows(
     search_type="all",
     keyword="",
@@ -355,33 +316,49 @@ def fetch_stock_inout_rows(
     db = SessionLocal()
 
     try:
-        query = _build_stock_inout_query(
-            db,
-            search_type=search_type,
-            keyword=keyword,
-            inout_type=inout_type,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        inout_type = inout_type or "all"
+        rows = []
 
-        if query is None:
-            return []
-
-        combined = query.subquery()
-        rows = (
-            db.query(combined)
-            .order_by(
-                combined.c.event_date.desc(),
-                combined.c.inbound_id.desc().nullslast(),
-                combined.c.sales_order_id.desc().nullslast(),
-                combined.c.product_id.asc().nullslast(),
+        if inout_type in ("all", "inbound", "입고"):
+            inbound_query = _base_inbound_query(db)
+            inbound_query = _apply_date_filter(
+                inbound_query,
+                _inbound_date_expr(),
+                start_date,
+                end_date,
             )
-            .limit(limit)
-            .offset(offset)
-            .all()
+            inbound_query = _apply_inbound_search_filter(
+                inbound_query,
+                search_type=search_type,
+                keyword=keyword,
+            )
+            rows.extend([_row_to_dict(row) for row in inbound_query.all()])
+
+        if inout_type in ("all", "outbound", "출고"):
+            outbound_query = _base_outbound_query(db)
+            outbound_query = _apply_date_filter(
+                outbound_query,
+                OpdSalesOrder.order_date,
+                start_date,
+                end_date,
+            )
+            outbound_query = _apply_outbound_search_filter(
+                outbound_query,
+                search_type=search_type,
+                keyword=keyword,
+            )
+            rows.extend([_row_to_dict(row) for row in outbound_query.all()])
+
+        rows.sort(
+            key=lambda row: (
+                _parse_sort_date(row.get("event_date")),
+                str(row.get("inbound_id") or ""),
+                str(row.get("sales_order_id") or ""),
+            ),
+            reverse=True,
         )
 
-        return [_row_to_dict(row) for row in rows]
+        return rows[offset: offset + limit]
 
     finally:
         db.close()
@@ -397,20 +374,40 @@ def count_stock_inout_rows(
     db = SessionLocal()
 
     try:
-        query = _build_stock_inout_query(
-            db,
-            search_type=search_type,
-            keyword=keyword,
-            inout_type=inout_type,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        inout_type = inout_type or "all"
+        total_count = 0
 
-        if query is None:
-            return 0
+        if inout_type in ("all", "inbound", "입고"):
+            inbound_query = _base_inbound_query(db)
+            inbound_query = _apply_date_filter(
+                inbound_query,
+                _inbound_date_expr(),
+                start_date,
+                end_date,
+            )
+            inbound_query = _apply_inbound_search_filter(
+                inbound_query,
+                search_type=search_type,
+                keyword=keyword,
+            )
+            total_count += inbound_query.count()
 
-        combined = query.subquery()
-        return db.query(func.count()).select_from(combined).scalar() or 0
+        if inout_type in ("all", "outbound", "출고"):
+            outbound_query = _base_outbound_query(db)
+            outbound_query = _apply_date_filter(
+                outbound_query,
+                OpdSalesOrder.order_date,
+                start_date,
+                end_date,
+            )
+            outbound_query = _apply_outbound_search_filter(
+                outbound_query,
+                search_type=search_type,
+                keyword=keyword,
+            )
+            total_count += outbound_query.count()
+
+        return total_count
 
     finally:
         db.close()

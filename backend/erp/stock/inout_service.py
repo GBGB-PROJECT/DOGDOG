@@ -45,6 +45,17 @@ def _format_money(value):
     return f"{_to_int(value):,}"
 
 
+def _format_weight(value):
+    if value is None or value == "":
+        return ""
+
+    weight = _to_int(value)
+    if weight <= 0:
+        return ""
+
+    return f"{weight:,}g"
+
+
 def _format_item(row):
     inout_type = row.get("inout_type") or "-"
     inbound_id = row.get("inbound_id")
@@ -63,6 +74,8 @@ def _format_item(row):
         "product_id": row.get("product_id"),
         "brand": row.get("brand") or "-",
         "product_name": row.get("product_name") or "-",
+        "weight": _to_int(row.get("weight")),
+        "weight_text": _format_weight(row.get("weight")),
         "quantity": _to_int(row.get("quantity")),
         "quantity_text": _format_quantity(row.get("quantity")),
         "unit_price": _to_int(row.get("unit_price")),

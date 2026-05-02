@@ -12,6 +12,8 @@ class ErpStockInoutItem(BaseModel):
     product_id: Any = None
     brand: Any = None
     product_name: Any = None
+    weight: Any = None
+    weight_text: Any = None
     quantity: Any = None
     quantity_text: Any = None
     unit_price: Any = None

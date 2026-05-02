@@ -33,6 +33,7 @@ def get_stock_inout(
         "inout_type",
         "inbound_id",
         "sales_order_id",
+        "product",
         "product_id",
         "brand",
         "product_name",

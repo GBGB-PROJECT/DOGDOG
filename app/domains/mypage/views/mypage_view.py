@@ -76,7 +76,7 @@ def white_long_box(
     )
 
 
-def mypage_view(page: ft.Page):
+def mypage_view(page: ft.Page, controller=None):
     selected_banner = {"index": None}
     banner_area = ft.Column(
         margin=ft.margin.only(top=10),
@@ -97,7 +97,11 @@ def mypage_view(page: ft.Page):
     async def select_and_open_food_remain(e):
         change_selected_banner(1)
         await asyncio.sleep(0.3)
-        # page.open_food_remain()
+        # [수정] 컨트롤러가 있으면 컨트롤러의 메서드 호출, 없으면 직접 이동
+        if controller:
+            controller.go_to_feeding_info()
+        else:
+            page.go("/feeding")
 
     def build_banners():
         return [

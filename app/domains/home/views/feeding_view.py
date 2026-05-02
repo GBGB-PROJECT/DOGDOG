@@ -1,5 +1,17 @@
 import flet as ft
 import components as dogdog
+from urllib.parse import quote
+
+BASE_URL = "http://localhost:8000/api/v1" # 필요시 실제 API 주소로 변경
+
+def proxy_image_url(url):
+    if not url:
+        return "test_product_4.jpg"
+
+    image_url = str(url).strip()
+    if image_url.startswith("http://") or image_url.startswith("https://"):
+        return f"{BASE_URL}/images/proxy?url={quote(image_url, safe='')}"
+    return image_url
 
 def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data: dict = None):
     """
@@ -41,7 +53,7 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
         height=100,
         expand=True,
         controls=[
-            ft.Image(src=feeding_data.get("thumbnail"), fit=ft.BoxFit.CONTAIN, expand=2),
+            ft.Image(src=proxy_image_url(feeding_data.get("thumbnail")), fit=ft.BoxFit.CONTAIN, expand=2),
             ft.Column(
                 expand=3,
                 spacing=0,
@@ -71,7 +83,7 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                         dogdog.basic_text(
                             spans=[
                                 ft.TextSpan(
-                                    text=f"{int(feeding_data.get('left_intake', '???'))}g",
+                                    text=f"{feeding_data.get('left_intake', '???')}g",
                                     style=dogdog.TextStyle(size=16, height=-1),
                                 ),
                                 ft.TextSpan(text=f" / {feeding_data.get('total_weight_kg', 0.0)}Kg"),
@@ -81,7 +93,7 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                             size=16,
                         ),
                         dogdog.flat_button(
-                            text=f"{int(feeding_data.get('left_days', '?'))} 일치 남음",
+                            text=f"{feeding_data.get('left_days', '?')} 일치 남음",
                             scale=0.7,
                             disabled=True,
                         ),

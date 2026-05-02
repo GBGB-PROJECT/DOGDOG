@@ -44,27 +44,49 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str, controller)
     poop_log = []
     health_log = []
     
-    # [버그 3 수정] 화면 갱신 시 기존 컨테이너 dict 초기화
     controller.log_containers.clear()
 
     for log in logs_data:
-        log_id = log.get("id")
-        domain = log.get("domain", "")
+        # [수정 2] PK 다중 탐색 및 유니크 키 생성
+        log_id = (
+            log.get("id")
+            or log.get("pet_food_id")
+            or log.get("pet_log_numeric_id")
+            or str(log.get("sort_timestamp", 0))
+        )
+        domain = log.get("domain", "unknown")
         category = log.get("category", "")
-        # feeding ID 1 과 numeric ID 1 충돌 방지: domain+id 복합 고유 키
         log_key = f"{domain}_{log_id}"
 
-        # 1. 전체 탭용 독립 컨테이너 생성 (ink=False: 파란 잉크 번짐 제거)
-        container_all = dogdog.log_container(page, log_id, details=log)
-        container_all.on_click = lambda e, l=log, c=container_all: controller.select_log(l, c)
-        container_all.ink = False
+        # 1. 잉크 방어용 래퍼 컨테이너 생성 (전체 탭)
+        inner_all = dogdog.log_container(page, log_id, details=log)
+        if hasattr(inner_all, "on_click"):
+            inner_all.on_click = None  # 내부 컴포넌트 클릭 기능 제거
+
+        container_all = ft.Container(
+            content=inner_all,
+            on_click=lambda e, l=log: controller.select_log(l, e.control),
+            on_long_press=lambda e: None,  # 꾹 누르기 이벤트 강제 흡수 (잉크 방지)
+            ink=False,  # 잉크 속성 끄기
+            bgcolor=ft.Colors.TRANSPARENT,
+            border_radius=10,
+        )
         controller.register_container(log_key, container_all)
         all_log.append(container_all)
 
-        # 2. 개별 필터 탭용 독립 컨테이너 생성 (전체 탭과 공유하지 않음, ink=False)
-        container_filter = dogdog.log_container(page, log_id, details=log)
-        container_filter.on_click = lambda e, l=log, c=container_filter: controller.select_log(l, c)
-        container_filter.ink = False
+        # 2. 잉크 방어용 래퍼 컨테이너 생성 (필터 탭)
+        inner_filter = dogdog.log_container(page, log_id, details=log)
+        if hasattr(inner_filter, "on_click"):
+            inner_filter.on_click = None
+
+        container_filter = ft.Container(
+            content=inner_filter,
+            on_click=lambda e, l=log: controller.select_log(l, e.control),
+            on_long_press=lambda e: None,
+            ink=False,
+            bgcolor=ft.Colors.TRANSPARENT,
+            border_radius=10,
+        )
         controller.register_container(log_key, container_filter)
 
         # 3. 카테고리별 필터 탭 리스트에 분배

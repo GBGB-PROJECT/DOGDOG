@@ -49,69 +49,68 @@ class HistoryController:
             try:
                 domain = log.get("domain", "")
                 pet_food = log.get("pet_food") or {}
-                
-                # 1. 날짜 추출 (안전하게)
+
+                # 1. 날짜 추출
                 raw_date = (
                     log.get("log_date")
                     or log.get("feeding_date")
                     or log.get("date")
                     or pet_food.get("feeding_date")
-                    or pet_food.get("date")
                     or today_str.replace(".", "-")
                 )
-
                 d_str = str(raw_date).split("T")[0].split(" ")[0].strip()
-                date_part = d_str.replace("-", ".")
-
-                if date_part not in valid_dates:
+                if d_str.replace("-", ".") not in valid_dates:
                     continue
 
-                # [수술 1] 무조건 HH:MM:SS 포맷으로 강제 정규화
+                # 2. 시간 추출 및 UI 데이터 강제 덮어쓰기 (Data Masking)
                 if domain == "feeding":
                     t_raw = (
                         log.get("feeding_time")
                         or log.get("time")
                         or pet_food.get("feeding_time")
-                        or pet_food.get("time")
                         or "00:00:00"
                     )
                     t_val = str(t_raw).split(".")[0].replace("Z", "").strip().split(" ")[-1]
+                    if len(t_val.split(":")) == 2:
+                        t_val += ":00"
+
+                    sort_iso = f"{d_str}T{t_val}"
+
+                    # [Deep Masking] 1차: 최상위 log 객체 조작
+                    log["last_update"]  = sort_iso
+                    log["log_date"]     = sort_iso
+                    log["date"]         = sort_iso
+                    log["time"]         = t_val
+                    log["feeding_time"] = t_val
+
+                    # [Deep Masking] 2차: 중첩된 pet_food 객체 내부까지 원천 봉쇄
+                    if "pet_food" in log and isinstance(log["pet_food"], dict):
+                        log["pet_food"]["last_update"]   = sort_iso
+                        log["pet_food"]["log_date"]      = sort_iso
+                        log["pet_food"]["feeding_date"]  = d_str
+                        log["pet_food"]["feeding_time"]  = t_val
+                        log["pet_food"]["time"]          = t_val
                 else:
                     raw_log_date = str(log.get("log_date", f"{d_str}T00:00:00"))
-                    if "T" in raw_log_date:
-                        t_val = raw_log_date.split("T")[-1].split(".")[0].replace("Z", "")
-                    elif " " in raw_log_date:
-                        t_val = raw_log_date.split(" ")[-1].split(".")[0].replace("Z", "")
-                    else:
-                        t_val = str(log.get("time") or log.get("log_time") or "00:00:00").split(".")[0]
+                    t_val = raw_log_date.replace(" ", "T").replace("Z", "").split(".")[0].split("T")[-1]
+                    if len(t_val.split(":")) == 2:
+                        t_val += ":00"
 
-                # HH:MM:SS 3파트로 반드시 맞춤 (에러 방지)
-                t_parts = t_val.split(":")
-                if len(t_parts) == 1:
-                    t_val = f"{t_parts[0]:0>2}:00:00"
-                elif len(t_parts) == 2:
-                    t_val = f"{t_parts[0]:0>2}:{t_parts[1]:0>2}:00"
-                else:
-                    t_val = f"{t_parts[0]:0>2}:{t_parts[1]:0>2}:{t_parts[2][:2]:0>2}"
+                # 3. 완벽한 정렬을 위한 Timestamp 숫자 생성
+                try:
+                    dt_obj = datetime.datetime.strptime(f"{d_str}T{t_val}", "%Y-%m-%dT%H:%M:%S")
+                    sort_ts = dt_obj.timestamp()
+                except:
+                    sort_ts = 0.0
 
-                sort_iso = f"{d_str}T{t_val}"
-                log["sort_time"] = sort_iso
-
-                # 프론트가 엉뚱한 업데이트 시간 대신 진짜 시간을 표시하도록 강제 주입
-                if domain == "feeding":
-                    log["last_update"] = sort_iso
-                    log["log_date"]    = sort_iso
-                    log["time"]        = t_val
-
+                log["sort_timestamp"] = sort_ts
                 filtered_logs.append(log)
 
             except Exception as e:
                 print(f"[WARN] Log parsing error: {e}")
-                log["sort_time"] = f"{today_str.replace('.', '-')}T00:00:00"
-                filtered_logs.append(log)
 
-        # [수술 1] id 기준 완전 제거 → sort_time 단일 기준 내림차순 정렬
-        filtered_logs.sort(key=lambda x: x.get("sort_time", ""), reverse=True)
+        # 오직 숫자(Timestamp) 기준으로만 내림차순 정렬 (도메인 구끄림 방지)
+        filtered_logs.sort(key=lambda x: x.get("sort_timestamp", 0.0), reverse=True)
         return filtered_logs, date_str
 
     def register_container(self, log_key: str, container):
@@ -120,39 +119,46 @@ class HistoryController:
         self.log_containers[log_key].append(container)
 
     def select_log(self, log_data, container):
+        """[수정 2] PK 다중 탐색 + 전체 초기화 후 대상만 선택"""
         domain_str = log_data.get("domain", "unknown")
-        log_id = log_data.get("id")
+        # ★ PK가 다를 경우를 대비한 다중 탐색
+        log_id = (
+            log_data.get("id")
+            or log_data.get("pet_food_id")
+            or log_data.get("pet_log_numeric_id")
+        )
         current_log_key = f"{domain_str}_{log_id}"
 
-        # 기존 선택 해제 (잔상 방지를 위해 투명색 부여)
-        if self.selected_log_data:
-            prev_domain = self.selected_log_data.get("domain", "unknown")
-            prev_id = self.selected_log_data.get("id")
-            prev_key = f"{prev_domain}_{prev_id}"
-            if prev_key in self.log_containers:
-                for c in self.log_containers[prev_key]:
-                    c.bgcolor = ft.Colors.TRANSPARENT
-                    c.ink = False  # [수술 2] update() 시 잉크 부활 방지
-                    c.update()
+        # 1. 무조건 화면의 모든 컨테이너를 투명하게 초기화 (다중 선택 원천 차단)
+        for key, containers in self.log_containers.items():
+            for c in containers:
+                c.bgcolor = ft.Colors.TRANSPARENT
+                c.ink = False
+                c.update()
 
-        # 다시 누르면 선택 해제 토글
+        # 이전에 선택했던 것과 동일한 항목을 다시 누르면 선택 해제 (토글)
+        prev_id = (
+            self.selected_log_data.get("id")
+            or self.selected_log_data.get("pet_food_id")
+            or self.selected_log_data.get("pet_log_numeric_id")
+        ) if self.selected_log_data else None
+
         is_same_log = (
             self.selected_log_data is not None
-            and str(self.selected_log_data.get("id")) == str(log_id)
-            and self.selected_log_data.get("domain", "unknown") == domain_str
+            and str(prev_id) == str(log_id)
+            and self.selected_log_data.get("domain") == domain_str
         )
 
         if is_same_log:
             self.selected_log_data = None
             self.selected_ui_container = None
         else:
-            # 새 항목 선택 시 회색칠
             self.selected_log_data = log_data
             self.selected_ui_container = container
             if current_log_key in self.log_containers:
                 for c in self.log_containers[current_log_key]:
                     c.bgcolor = ft.Colors.GREY_200
-                    c.ink = False  # [수술 2] update() 시 잉크 부활 방지
+                    c.ink = False
                     c.update()
 
     def history_delete(self, e):

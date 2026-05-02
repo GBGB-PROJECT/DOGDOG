@@ -58,7 +58,7 @@ class Default_data:
     def bottom_sheet_open(self, e, key):
         self.bt_order_count_value = 1
         self.sale_order_price = self.p_price / 10
-        self.final_price = (self.p_price - self.sale_order_price) if key == "subs_order" else self.p_price
+        self.final_price = (self.p_price - self.sale_order_price) if key == "/subs_product_order" else self.p_price
         bt_product_price = dogdog.basic_text(spans=[
             ft.TextSpan(f"{self.p_price:,}원\n"),
             ft.TextSpan(f"똑똑 배송 적용가: {int(self.p_price*0.9):,}원",
@@ -104,7 +104,7 @@ class Default_data:
         if key == "subs_product_order":
             self.bt_product_bottom.bgcolor = "#E6001A" # type: ignore
             self.bt_button.color = ft.Colors.WHITE # type: ignore
-            self.bt_button.value = f"🔔 {int(self.final_price):,}{self.message.get(key)}" # type: ignore
+            self.bt_button.value = f"🔔 {int(self.p_price*0.9):,}{self.message.get(key)}" # type: ignore
         # -----------------------------------------------------------------------------------------------
         self.default_bottom_sheet_content.append(bt_product_header)
         self.default_bottom_sheet_content.append(ft.Divider())

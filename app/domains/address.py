@@ -1,6 +1,6 @@
 import flet as ft
 import components as dogdog
-import requests
+import httpx
 
 class AddressSearcher:
     def __init__(self, page: ft.Page, on_complete=None):
@@ -56,7 +56,7 @@ class AddressSearcher:
     # =======================================
     # 4단계) 이벤트 메서드
     # =======================================
-    def click_event(self, e):
+    async def click_event(self, e):
         click_keyword = self.search_input.value.strip()
         self.result_column.controls.clear()
         self.result_column.controls.append(ft.ProgressRing())
@@ -70,8 +70,9 @@ class AddressSearcher:
                 "keyword": click_keyword,
                 "resultType": "json"
             }
-            response = requests.get(self.api_url, params=params)
-            data = response.json()
+            async with httpx.AsyncClient() as client:
+                response = await client.get(self.api_url, params=params)
+                data = response.json()
             common = data.get("results", {}).get("common", {}) 
 
             if common.get("errorCode") != "0":

@@ -14,7 +14,7 @@ def order_view(page: ft.Page, popup, page_name):
     storage = page.session.store
     if (not storage.get("select_product_id") and 
         not storage.get("select_product_quantity") and
-        not ("/subs_order" in page_name and storage.get("select_subs"))):
+        not ("/subs_product_order" in page_name and storage.get("select_subs"))):
         return ft.Container(
             padding=ft.padding.only(left=10, right=10, top=10, bottom=20),
             bgcolor="#ffffff",
@@ -56,7 +56,7 @@ def order_view(page: ft.Page, popup, page_name):
 
     # ---------------------------------------------------------------------------------------------------
     order_price = p_price * product_quantity
-    sale_order_price = order_price*0.1 if "/subs_order" in page_name else 0
+    sale_order_price = order_price*0.1 if "/subs_product_order" in page_name else 0
     final_price = order_price - sale_order_price
     view_sale_order_price = int(final_price) - int(order_price)
     # ---------------------------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ def order_view(page: ft.Page, popup, page_name):
             product_price_text,
         ]),
         dogdog.order_row(
-            visible=True if "/subs_order" in page_name else False,
+            visible=True if "/subs_product_order" in page_name else False,
             content=[
                 dogdog.basic_text("똑똑 배송 할인", weight="bold", color="#E6001A"), # type: ignore
                 subs_sale_price_text,
@@ -161,14 +161,14 @@ def order_view(page: ft.Page, popup, page_name):
         ]),
         ft.Divider(),
         dogdog.basic_text(
-            "자동 결제 등록" if "/subs_order" in page_name else "결제 방법", size=16, weight="bold"),
+            "자동 결제 등록" if "/subs_product_order" in page_name else "결제 방법", size=16, weight="bold"),
         dogdog.order_row(spacing=8, content=[
             dogdog.flat_button("카드", expand=True),
             dogdog.flat_button("간편결제", expand=True),
         ]),
         dogdog.order_row(
             spacing=8,
-            visible=False if "/subs_order" in page_name else True,
+            visible=False if "/subs_product_order" in page_name else True,
             content=[
                 dogdog.flat_button("가상계좌", expand=True),
                 dogdog.flat_button("무통장입금", expand=True),
@@ -200,7 +200,7 @@ def order_view(page: ft.Page, popup, page_name):
         p_price = int(product.get("retail_price") or 0)
 
         order_price = p_price * product_quantity
-        sale_order_price = int(order_price*0.1) if "/subs_order" in page_name else 0
+        sale_order_price = int(order_price*0.1) if "/subs_product_order" in page_name else 0
         final_price = order_price - sale_order_price
         view_sale_order_price = int(final_price) - int(order_price)
 

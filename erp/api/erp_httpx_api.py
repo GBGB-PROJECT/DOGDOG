@@ -343,7 +343,7 @@ def count_suppliers(search_type="supplier_id", keyword="", start_date=None, end_
 # =========================================================
 
 def fetch_stocks(
-    search_type="product_id",
+    search_type="product",
     keyword="",
     limit=50,
     offset=0,
@@ -368,7 +368,7 @@ def fetch_stocks(
 
 
 def count_stocks(
-    search_type="product_id",
+    search_type="product",
     keyword="",
     start_date=None,
     end_date=None,

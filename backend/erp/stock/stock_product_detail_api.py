@@ -19,16 +19,9 @@ router = APIRouter(
 )
 
 SEARCH_TYPE_LABELS = {
-    "product_id": "상품ID",
-    "brand": "브랜드",
-    "product_name": "상품명",
+    "product": "상품",
     "inbound_id": "입고ID",
     "inbound_status": "입고상태",
-    "save_stock": "보관재고",
-    "sale_stock": "판매재고",
-    "scrap_stock": "폐기재고",
-    "stock_available": "가용재고",
-    "expiration_date": "유통기한",
 }
 
 
@@ -42,6 +35,21 @@ def _format_number(value):
         return f"{int(value):,}"
     except Exception:
         return str(value)
+
+
+def _format_weight(value):
+    if value in [None, ""]:
+        return ""
+
+    try:
+        weight = int(float(value))
+    except Exception:
+        return str(value)
+
+    if weight <= 0:
+        return ""
+
+    return f"{weight:,}g"
 
 
 def _format_date_only(value):
@@ -77,6 +85,8 @@ def build_response_rows(items: list, page: int, size: int):
                 "product_id": row.get("product_id", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
+                "weight": row.get("weight", ""),
+                "weight_text": _format_weight(row.get("weight", "")),
                 "expiration_date": _format_date_only(row.get("expiration_date", "")),
                 "inbound_id": row.get("inbound_id", ""),
                 "inbound_date": _format_date_only(row.get("inbound_date", "")),
@@ -104,20 +114,16 @@ def build_response_rows(items: list, page: int, size: int):
 )
 def get_stock_product_detail_list(
     search_type: Literal[
+        "product",
         "product_id",
         "brand",
         "product_name",
         "inbound_id",
         "inbound_status",
-        "save_stock",
-        "sale_stock",
-        "scrap_stock",
-        "stock_available",
-        "expiration_date",
     ] = Query(
-        default="product_id",
+        default="product",
         description="검색 조건",
-        examples=["product_id"],
+        examples=["product"],
     ),
     keyword: str = Query(
         default="",

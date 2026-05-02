@@ -22,7 +22,7 @@ from db.models import (
 from ..common.query_utils import like_keyword, to_plain_value
 
 
-SEARCH_TYPE_DEFAULT = "product_id"
+SEARCH_TYPE_DEFAULT = "product"
 
 
 def _base_query(db):
@@ -49,6 +49,7 @@ def _base_query(db):
             # 🔥 상품 식별용 보조 컬럼
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
+            OpdProduct.weight.label("weight"),
 
             # 🔥 입고 상태는 숫자 대신 글자(status)로 반환
             ErpInboundStatus.status.label("inbound_status"),
@@ -115,41 +116,22 @@ def _apply_filter(query, search_type: str, keyword: str):
     if not clean:
         return query
 
-    # 🔥 수정: 검색 기능은 전부 부분검색으로 통일
-    # - 예: 입고ID에 9 입력 시 9, 119, 290, 298처럼 9가 포함된 값 조회
-    # - 상품ID/재고수량도 다른 화면 검색처럼 포함 검색으로 처리
-    if search_type == "product_id":
-        return query.filter(cast(ErpStock.product_id, String).like(like_keyword(clean)))
+    # 🔥 수정: 상품 컬럼 통합에 맞춰 상품 검색도 통합
+    # - 상품ID / 브랜드 / 상품명 / 중량을 한 번에 검색
+    if search_type in {"product", "product_id", "brand", "product_name"}:
+        return query.filter(
+            cast(ErpStock.product_id, String).like(like_keyword(clean))
+            | cast(OpdProductDetail.brand, String).ilike(like_keyword(clean))
+            | cast(OpdProductDetail.product_name, String).ilike(like_keyword(clean))
+            | cast(OpdProduct.weight, String).like(like_keyword(clean))
+        )
 
     if search_type == "inbound_id":
         return query.filter(cast(ErpStock.inbound_id, String).like(like_keyword(clean)))
 
-    # 🔥 상품 보조 검색
-    if search_type == "brand":
-        return query.filter(cast(OpdProductDetail.brand, String).ilike(like_keyword(clean)))
-
-    if search_type == "product_name":
-        return query.filter(cast(OpdProductDetail.product_name, String).ilike(like_keyword(clean)))
-
     # 🔥 입고 상태 검색
     if search_type == "inbound_status":
         return query.filter(cast(ErpInboundStatus.status, String).ilike(like_keyword(clean)))
-
-    # 🔥 수정: stock 수량 검색도 부분검색으로 통일
-    if search_type == "save_stock":
-        return query.filter(cast(ErpStock.save_stock, String).like(like_keyword(clean)))
-
-    if search_type == "sale_stock":
-        return query.filter(cast(ErpStock.sale_stock, String).like(like_keyword(clean)))
-
-    if search_type == "scrap_stock":
-        return query.filter(cast(ErpStock.scrap_stock, String).like(like_keyword(clean)))
-
-    if search_type == "stock_available":
-        return query.filter(cast(ErpStock.stock_available, String).like(like_keyword(clean)))
-
-    if search_type == "expiration_date":
-        return query.filter(cast(ErpStock.expiration_date, String).like(like_keyword(clean)))
 
     return query
 
@@ -195,6 +177,7 @@ def _row_to_dict(row):
         "expiration_date": to_plain_value(row.expiration_date),
         "inbound_date": to_plain_value(row.inbound_date),
         "product_name": to_plain_value(row.product_name),
+        "weight": to_plain_value(row.weight),
         "last_update": to_plain_value(row.last_update),
     }
 

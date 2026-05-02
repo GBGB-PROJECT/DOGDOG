@@ -108,6 +108,27 @@ def _format_date_only(value):
     return text
 
 
+
+def _format_product_display(row):
+    brand = str(row.get("brand") or "").strip()
+    product_name = str(row.get("product_name") or "").strip()
+    weight_text = str(row.get("weight_text") or "").strip()
+    product_id = row.get("product_id", "")
+
+    product_main = f"{brand} {product_name}".strip() or "-"
+
+    product_meta = []
+    if weight_text:
+        product_meta.append(weight_text)
+    if product_id not in [None, ""]:
+        product_meta.append(f"#{product_id}")
+
+    if product_meta:
+        return f"{product_main} ({' / '.join(product_meta)})"
+
+    return product_main
+
+
 def stock_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
@@ -119,6 +140,8 @@ def stock_db_row_adapter(db_rows: list, page_no: int):
                 "product_id": row.get("product_id", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
+                "weight_text": row.get("weight_text", ""),
+                "product": _format_product_display(row),
                 "expiration_date": _format_date_only(row.get("expiration_date", "")),
                 "inbound_id": row.get("inbound_id", ""),
                 "inbound_date": _format_date_only(row.get("inbound_date", "")),
@@ -157,25 +180,19 @@ def erp_stock_product_detail_view():
     # 🔥 수정: 검색조건과 DatePicker 날짜기준을 분리
     # - 입력 검색조건: 텍스트/숫자로 검색할 컬럼
     # - 날짜기준: DatePicker가 조회할 날짜 컬럼(유통기한/입고일자)
-    initial_search_type = initial_prefilter.get("search_type") or "product_id"
+    initial_search_type = initial_prefilter.get("search_type") or "product"
     initial_date_filter_type = initial_prefilter.get("date_filter_type") or "expiration_date"
 
     if initial_search_type in {"expiration_date", "inbound_date"}:
         initial_date_filter_type = initial_search_type
-        initial_search_type = "product_id"
+        initial_search_type = "product"
 
     if initial_search_type not in {
-        "product_id",
-        "brand",
-        "product_name",
+        "product",
         "inbound_id",
         "inbound_status",
-        "save_stock",
-        "sale_stock",
-        "scrap_stock",
-        "stock_available",
     }:
-        initial_search_type = "product_id"
+        initial_search_type = "product"
 
     if initial_date_filter_type not in {"expiration_date", "inbound_date"}:
         initial_date_filter_type = "expiration_date"
@@ -186,15 +203,9 @@ def erp_stock_product_detail_view():
     date_filter_type_value = {"value": initial_date_filter_type}
 
     search_type_labels = {
-        "product_id": "상품ID",
-        "brand": "브랜드",
-        "product_name": "상품명",
+        "product": "상품",
         "inbound_id": "입고ID",
         "inbound_status": "입고상태",
-        "save_stock": "보관재고",
-        "sale_stock": "판매재고",
-        "scrap_stock": "폐기재고",
-        "stock_available": "가용재고",
     }
 
     # 🔥 추가: DatePicker 전용 날짜 기준
@@ -211,9 +222,7 @@ def erp_stock_product_detail_view():
     # =========================================================
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product_id", "label": "상품ID", "width": 90, "align_x": 0},
-        {"key": "brand", "label": "브랜드", "width": 130, "align_x": 0},
-        {"key": "product_name", "label": "상품명", "width": 260, "align_x": 0},
+        {"key": "product", "label": "상품", "width": 480, "align_x": 0},
         {"key": "expiration_date", "label": "유통기한", "width": 120, "align_x": 0},
         # 🔥 총 재고량 카드 월 필터 근거 컬럼
         # - 이 날짜가 2026-06-01 ~ 2026-06-30 안에 들어가야 6월 입고 재고임을 화면에서 확인 가능

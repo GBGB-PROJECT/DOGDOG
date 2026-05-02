@@ -1,8 +1,7 @@
 import flet as ft
 import components as dogdog
 from urllib.parse import quote
-
-BASE_URL = "http://localhost:8000/api/v1" # 필요시 실제 API 주소로 변경
+from api_client import BASE_URL
 
 def proxy_image_url(url):
     if not url:

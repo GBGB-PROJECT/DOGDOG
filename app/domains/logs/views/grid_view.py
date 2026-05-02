@@ -357,12 +357,16 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
         
         if edit_mode and log_data:
             category = log_data.get("category", "")
-            status_val = log_data.get("log_status")
+            # [해결 1] get_real_val을 사용하여 안전하게 추출 및 예외 처리 (크래시 방지)
+            status_val = get_real_val("log_status", "weight", "bcs", "value")
             
-            if category == "weight" and status_val is not None:
-                initial_weight = str(status_val)
-            elif category == "bcs" and status_val is not None:
-                initial_bcs = str(int(float(status_val)))
+            try:
+                if category == "weight" and status_val:
+                    initial_weight = str(float(status_val))
+                elif category == "bcs" and status_val:
+                    initial_bcs = str(int(float(status_val)))
+            except (ValueError, TypeError):
+                pass
 
         health_weight_field = dogdog.input_textfield(
             hint_text="몸무게를 적어주세요.", input_type="float", suffix="Kg",

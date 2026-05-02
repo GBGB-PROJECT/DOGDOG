@@ -3,9 +3,9 @@ import flet as ft
 from typing import Dict, Any, Optional
 
 # 브라우저 테스트
-#BASE_URL = "http://localhost:8000/api/v1"
-# 빌드용(맥 주소-310호)
-BASE_URL = "http://192.168.0.31:8000/api/v1"
+BASE_URL = "http://localhost:8000/api/v1"
+# 빌드용(맥 주소/빌드전 확인 후 수정하기)
+#BASE_URL = "http://192.168.0.31:8000/api/v1" #에이바우트2
 
 
 class ApiClient:

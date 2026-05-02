@@ -146,7 +146,7 @@ def order_view(page: ft.Page, popup, page_name):
             product_price_text,
         ]),
         dogdog.order_row(
-            visible=True if "/subs_order" in page_name else False,
+            visible=True if "/subs_product_order" in page_name else False,
             content=[
                 dogdog.basic_text("똑똑 배송 할인", weight="bold", color="#E6001A"), # type: ignore
                 subs_sale_price_text,
@@ -168,7 +168,7 @@ def order_view(page: ft.Page, popup, page_name):
         ]),
         dogdog.order_row(
             spacing=8,
-            visible=False if "/subs_order" in page_name else True,
+            visible=False if "/subs_product_order" in page_name else True,
             content=[
                 dogdog.flat_button("가상계좌", expand=True),
                 dogdog.flat_button("무통장입금", expand=True),

@@ -188,7 +188,6 @@ def erp_purchase_order_view():
         "pay_status": "결제상태",
         "is_purchase_order_cancel": "발주상태",  # 🔥 수정: 취소여부 → 발주상태
         "employee_id": "담당자ID",
-        "product_id": "상품ID",
     }
 
     date_type_labels = {

@@ -36,7 +36,6 @@ SEARCH_TYPE_LABELS = {
     "pay_status": "결제상태",
     "is_purchase_order_cancel": "발주상태",
     "employee_id": "담당자ID",
-    "product_id": "상품ID",
 }
 
 DATE_TYPE_LABELS = {
@@ -147,7 +146,6 @@ def get_purchase_orders(
         "pay_status",
         "is_purchase_order_cancel",
         "employee_id",
-        "product_id",
     ] = Query(default="purchase_order_id", description="검색 조건", examples=["purchase_order_id"]),
     keyword: str = Query(default="", description="검색어", examples=["368"]),
     page: int = Query(default=1, ge=1, description="페이지 번호", examples=[1]),

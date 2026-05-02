@@ -15,6 +15,8 @@ class ErpProductionInboundItem(BaseModel):
     product_id: Any = None
     brand: Any = None
     product_name: Any = None
+    weight: Any = None
+    weight_text: Any = None
     save_stock: Any = None
     purchase_price: Any = None
     inbound_amount: Any = None

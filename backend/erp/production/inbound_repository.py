@@ -111,6 +111,7 @@ def _base_query(db):
             ErpStock.product_id.label("product_id"),
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
+            OpdProduct.weight.label("weight"),
             ErpStock.save_stock.label("save_stock"),
             ErpPurchaseOrderItem.purchase_price.label("purchase_price"),
             inbound_amount_expr.label("inbound_amount"),
@@ -187,16 +188,15 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
     if search_type == "inbound_status":
         return query.filter(ErpInboundStatus.status.ilike(like_keyword(clean)))
 
-    if search_type == "product_id":
-        if _is_int_text(clean):
-            return query.filter(ErpStock.product_id == int(clean))
-        return query.filter(cast(ErpStock.product_id, String).like(like_keyword(clean)))
-
-    if search_type == "brand":
-        return query.filter(OpdProductDetail.brand.ilike(like_keyword(clean)))
-
-    if search_type == "product_name":
-        return query.filter(OpdProductDetail.product_name.ilike(like_keyword(clean)))
+    if search_type in {"product", "product_id", "brand", "product_name"}:
+        return query.filter(
+            or_(
+                cast(ErpStock.product_id, String).like(like_keyword(clean)),
+                OpdProductDetail.brand.ilike(like_keyword(clean)),
+                OpdProductDetail.product_name.ilike(like_keyword(clean)),
+                cast(OpdProduct.weight, String).like(like_keyword(clean)),
+            )
+        )
 
     if search_type == "employee_id":
         if _is_int_text(clean):
@@ -224,6 +224,7 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
             cast(ErpStock.product_id, String).like(like_keyword(clean)),
             OpdProductDetail.brand.ilike(like_keyword(clean)),
             OpdProductDetail.product_name.ilike(like_keyword(clean)),
+            cast(OpdProduct.weight, String).like(like_keyword(clean)),
         )
     )
 

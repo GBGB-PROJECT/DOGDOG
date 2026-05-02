@@ -23,6 +23,18 @@ from components.common.erp_view_layout import build_lookup_page_layout, build_lo
 SESSION_PREFIX = "supplier"
 
 
+
+def _format_employee_manager(employee_id, manager_name):
+    employee_id = str(employee_id or "").strip()
+    manager_name = str(manager_name or "").strip()
+
+    if employee_id and manager_name:
+        return f"#{employee_id} / {manager_name}"
+    if employee_id:
+        return f"#{employee_id}"
+    return manager_name
+
+
 def supplier_row_adapter(saved_data: dict, next_no: int):
     contact_raw = (saved_data.get("is_contact_status", "") or "").strip().lower()
 
@@ -37,6 +49,10 @@ def supplier_row_adapter(saved_data: dict, next_no: int):
         "designated_payment_date": saved_data.get("designated_payment_date", ""),
         "scheduled_payment_date": saved_data.get("scheduled_payment_date", ""),
         "employee_id": saved_data.get("employee_id", ""),
+        "employee_manager": _format_employee_manager(
+            saved_data.get("employee_id", ""),
+            saved_data.get("sup_manager", ""),
+        ),
         "memo": saved_data.get("memo", ""),
         "sup_manager": saved_data.get("sup_manager", ""),
         "phone": saved_data.get("phone", ""),
@@ -59,6 +75,10 @@ def supplier_db_row_adapter(db_rows: list, page_no: int):
                 "designated_payment_date": row.get("designated_payment_date", ""),
                 "scheduled_payment_date": row.get("scheduled_payment_date", ""),
                 "employee_id": row.get("employee_id", ""),
+                "employee_manager": _format_employee_manager(
+                    row.get("employee_id", ""),
+                    row.get("sup_manager", ""),
+                ),
                 "memo": row.get("memo", ""),
                 "sup_manager": row.get("sup_manager", ""),
                 "phone": row.get("phone", ""),
@@ -123,8 +143,7 @@ def erp_production_supplier_view():
         "is_contact_status": 8,
         "designated_payment_date": 8,
         "scheduled_payment_date": 10,
-        "employee_id": 6,
-        "sup_manager": 8,
+        "employee_manager": 12,
         "phone": 10,
         "last_update": 12,
     }
@@ -338,8 +357,7 @@ def erp_production_supplier_view():
                     build_table_cell("연락상태", col_expand["is_contact_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("지정결제일", col_expand["designated_payment_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("예정결제일", col_expand["scheduled_payment_date"], 0, ft.FontWeight.W_700),
-                    build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("담당자명", col_expand["sup_manager"], 0, ft.FontWeight.W_700),
+                    build_table_cell("담당자ID / 담당자명", col_expand["employee_manager"], 0, ft.FontWeight.W_700),
                     build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
                     build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),
                 ],
@@ -376,8 +394,7 @@ def erp_production_supplier_view():
                     ),
                     build_table_cell(row.get("designated_payment_date", ""), col_expand["designated_payment_date"], 0),
                     build_table_cell(row.get("scheduled_payment_date", ""), col_expand["scheduled_payment_date"], 0),
-                    build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
-                    build_table_cell(row.get("sup_manager", ""), col_expand["sup_manager"], 0),
+                    build_table_cell(row.get("employee_manager", ""), col_expand["employee_manager"], 0),
                     build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
                     build_table_cell(row.get("last_update", ""), col_expand["last_update"], 0),
                 ],

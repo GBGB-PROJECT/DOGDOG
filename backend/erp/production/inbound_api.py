@@ -27,9 +27,7 @@ SEARCH_TYPE_LABELS = {
     "supplier_id": "거래처ID",
     "supplier_name": "거래처명",
     "inbound_status": "입고상태",
-    "product_id": "상품ID",
-    "brand": "브랜드",
-    "product_name": "상품명",
+    "product": "상품",
     "employee_id": "담당자ID",
     "expiration_date": "유통기한",
     "inbound_scheduled_date": "입고예정일",
@@ -58,6 +56,21 @@ def _format_date(value):
     return str(value)[:10]
 
 
+def _format_weight(value):
+    if value in [None, ""]:
+        return ""
+
+    try:
+        weight = int(float(value))
+    except Exception:
+        return str(value)
+
+    if weight <= 0:
+        return ""
+
+    return f"{weight:,}g"
+
+
 def build_response_rows(items: list, page: int, size: int):
     start_no = ((page - 1) * size) + 1
     rows = []
@@ -73,6 +86,8 @@ def build_response_rows(items: list, page: int, size: int):
                 "product_id": row.get("product_id", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
+                "weight": row.get("weight", ""),
+                "weight_text": _format_weight(row.get("weight", "")),
                 "save_stock": row.get("save_stock", ""),
                 "purchase_price": row.get("purchase_price", ""),
                 "inbound_amount": row.get("inbound_amount", ""),
@@ -105,6 +120,7 @@ def get_inbound_list(
         "supplier_id",
         "supplier_name",
         "inbound_status",
+        "product",
         "product_id",
         "brand",
         "product_name",

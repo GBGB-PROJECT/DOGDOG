@@ -141,6 +141,27 @@ def defective_db_row_adapter(db_rows: list, page_no: int):
 # =========================================================
 # 🔥 불량현황조회 화면 본체
 # =========================================================
+
+def _format_product_display(row):
+    brand = str(row.get("brand") or "").strip()
+    product_name = str(row.get("product_name") or "").strip()
+    weight_text = str(row.get("weight_text") or "").strip()
+    product_id = row.get("product_id", "")
+
+    product_main = f"{brand} {product_name}".strip() or "-"
+
+    product_meta = []
+    if weight_text:
+        product_meta.append(weight_text)
+    if product_id not in [None, ""]:
+        product_meta.append(f"#{product_id}")
+
+    if product_meta:
+        return f"{product_main} ({' / '.join(product_meta)})"
+
+    return product_main
+
+
 def erp_defective_view():
     page_title = "생산관리 > 불량현황조회"
 
@@ -149,13 +170,10 @@ def erp_defective_view():
     initial_search_type = initial_prefilter.get("search_type") or "inbound_id"
     if initial_search_type not in {
         "inbound_id",
-        "purchase_order_id",
         "supplier_id",
         "supplier_name",
         "inbound_status",
-        "product_id",
-        "brand",
-        "product_name",
+        "product",
         "employee_id",
     }:
         initial_search_type = "inbound_id"
@@ -194,14 +212,11 @@ def erp_defective_view():
     # =========================================================
     col_expand = {
         "no": 3,
-        "product_id": 5,
+        # 🔥 수정: 상품ID/브랜드/상품명을 상품 컬럼 하나로 통합
+        "product": 18,
         "inbound_id": 5,
-        # 🔥 수정: 화면에서 발주ID 컬럼 제거
-        # - 발주ID는 검색조건/API 응답에는 남겨두고, 테이블 노출만 제외
         "supplier_name": 8,
         "inbound_status": 6,
-        "brand": 7,
-        "product_name": 10,
         "defective": 5,
         "purchase_price": 6,
         "defective_amount": 7,
@@ -212,13 +227,10 @@ def erp_defective_view():
 
     search_type_labels = {
         "inbound_id": "입고ID",
-        "purchase_order_id": "발주ID",
         "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
         "inbound_status": "입고상태",
-        "product_id": "상품ID",
-        "brand": "브랜드",
-        "product_name": "상품명",
+        "product": "상품",
         "employee_id": "담당자ID",
     }
 
@@ -398,13 +410,11 @@ def erp_defective_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상품ID", col_expand["product_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("상품", col_expand["product"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고ID", col_expand["inbound_id"], 0, ft.FontWeight.W_700),
                     # 🔥 수정: 발주ID 컬럼 제거
                     build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
-                    build_table_cell("브랜드", col_expand["brand"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("불량수량", col_expand["defective"], 0, ft.FontWeight.W_700),
                     build_table_cell("구매단가", col_expand["purchase_price"], 0, ft.FontWeight.W_700),
                     build_table_cell("불량손실액", col_expand["defective_amount"], 0, ft.FontWeight.W_700),
@@ -416,6 +426,8 @@ def erp_defective_view():
         )
 
     def build_table_row(row):
+        product_display = _format_product_display(row)
+
         return ft.Container(
             padding=ft.Padding.only(left=14, right=14, top=14, bottom=14),
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
@@ -426,13 +438,11 @@ def erp_defective_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("product_id", ""), col_expand["product_id"], 0),
+                    build_table_cell(product_display, col_expand["product"], 0),
                     build_table_cell(row.get("inbound_id", ""), col_expand["inbound_id"], 0),
                     # 🔥 수정: 발주ID 컬럼 제거
                     build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),
                     build_table_cell(row.get("inbound_status", ""), col_expand["inbound_status"], 0),
-                    build_table_cell(row.get("brand", ""), col_expand["brand"], 0),
-                    build_table_cell(row.get("product_name", ""), col_expand["product_name"], 0),
                     build_table_cell(
                         row.get("defective", ""),
                         col_expand["defective"],

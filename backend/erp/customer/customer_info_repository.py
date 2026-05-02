@@ -1,4 +1,4 @@
-from sqlalchemy import cast, false
+from sqlalchemy import cast
 from sqlalchemy.types import String
 
 from db.db import SessionLocal
@@ -15,10 +15,10 @@ from ..common.mutation_utils import (
 # =========================================================
 # ☑️ 고객관리 Repository
 # - Companion.customer + Companion.customer_detail JOIN 기반 조회
-# - 구독여부는 Companion.customer.is_subscribed 원본값만 믿지 않고
-#   OPD.subs에 활성 구독(is_subs_status=True)이 있는지 기준으로 계산
-# - Swagger UI에서 생성한 구독은 subs_plan_id가 비어 있어도
-#   is_subs_status=True면 실제 구독중으로 인정한다.
+# - 구독여부/구독횟수는 DB 원본값에 충실하게 표시한다.
+# - 구독여부: Companion.customer.is_subscribed
+# - 구독횟수: Companion.customer.subs_count
+# - 화면에서 임의로 subs_count > 0 계산을 하거나 OPD.subs와 섞지 않는다.
 # =========================================================
 
 CUSTOMER_COLUMNS = [
@@ -35,12 +35,11 @@ CUSTOMER_COLUMNS = [
 
 
 def _is_subscribed_expr():
-    # 🔥 재수정: 고객 정보 관리 화면의 구독 기준은 Companion.customer.subs_count로 통일
-    # - customer(2).html 기준으로 Companion.customer 안에 subs_count가 이미 존재한다.
-    # - 기존 OPD.subs COUNT 기준은 고객 정보 관리의 Companion.customer.subs_count와 달라서
-    #   subs_count가 2회 이상인 고객이 화면에서 0/N처럼 보일 수 있었다.
-    # - 따라서 고객 정보 관리에서는 "구독횟수 1회 이상 = Y" 규칙을 그대로 적용한다.
-    return CompanionCustomer.subs_count > 0
+    # 🔥 재수정: DB 원본값에 충실하게 Companion.customer.is_subscribed를 그대로 사용
+    # - subs_count > 0 이면 Y로 강제 계산하지 않는다.
+    # - OPD.subs 기준으로 재계산하지 않는다.
+    # - customer 테이블에 저장된 is_subscribed 값이 곧 고객정보관리 화면의 구독여부다.
+    return CompanionCustomer.is_subscribed
 
 
 def _normalize_subscription_keyword(value):
@@ -110,11 +109,10 @@ def _base_customer_query(db):
             CompanionCustomerDetail.nickname.label("nickname"),
             CompanionCustomerDetail.phone.label("phone"),
 
-            # 🔥 재수정: 구독여부는 구독횟수 기준으로 계산
-            # - 구독횟수 1회 이상이면 Y, 0회이면 N
+            # 🔥 재수정: 구독여부는 DB 원본 is_subscribed 그대로 사용
             is_subscribed.label("is_subscribed"),
 
-            # 🔥 재수정: 구독횟수는 고객 정보 관리의 원본 테이블 값 사용
+            # 🔥 재수정: 구독횟수도 DB 원본 subs_count 그대로 사용
             CompanionCustomer.subs_count.label("subs_count"),
             CompanionCustomer.active.label("active"),
             CompanionCustomerDetail.create_date.label("create_date"),
@@ -162,16 +160,17 @@ def _apply_customer_filter(db, query, search_type: str, keyword: str, start_date
                 is_subscribed = _is_subscribed_expr()
 
                 if bool_value is True:
-                    query = query.filter(is_subscribed)
+                    query = query.filter(CompanionCustomer.is_subscribed.is_(True))
                 else:
-                    query = query.filter(~is_subscribed)
+                    query = query.filter(CompanionCustomer.is_subscribed.is_(False))
             else:
-                # 🔥 수정: 애매한 검색어는 원본 customer.is_subscribed로 fallback하지 않는다.
-                # - 화면 표시 기준과 검색 기준이 갈라지는 문제 방지
-                query = query.filter(false())
+                # 🔥 수정: 애매한 검색어는 DB 원본 boolean 문자열에 대한 부분검색으로만 처리
+                query = query.filter(
+                    cast(CompanionCustomer.is_subscribed, String).ilike(like_keyword(clean))
+                )
 
         elif search_type == "subs_count":
-            # 🔥 재수정: 표시값과 검색값 모두 Companion.customer.subs_count 기준으로 통일
+            # 🔥 재수정: 구독횟수 검색도 DB 원본 Companion.customer.subs_count 기준
             query = query.filter(
                 cast(CompanionCustomer.subs_count, String).like(like_keyword(clean))
             )

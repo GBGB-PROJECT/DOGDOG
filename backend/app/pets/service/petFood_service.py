@@ -357,7 +357,7 @@ def read_recommended_foods(
     return [
         {
             "product_id": row.product_id,
-            "product_name": row.product_name,
+            "product_name": f"{row.product_name} {row.weight}g X{row.quantity}",
             "brand": row.brand,
             "main_protein": row.main_protein,
             "life_stage": row.life,

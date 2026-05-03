@@ -97,6 +97,9 @@ def _empty_dashboard_data(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_M
         "chart_data": [(f"{month_no}월", 0, 0) for month_no in range(1, 13)],
         "total_stock_quantity": 0,
         "total_stock_quantity_text": "0 ea",
+        "expiring_stock_count": 0,
+        "expiring_stock_count_text": "0건",
+        "expiring_stock_days": 30,
         "top_stock_section_data": {
             "title": "매출 TOP 3 재고",
             "items": [],
@@ -161,13 +164,17 @@ def erp_stock_status_view():
 
         set_stock_dashboard_month_state(state["year"], state["month"])
 
-        # 🔥 총 재고량 카드 클릭 시 상품별 재고 상세도 선택 월로 자동 필터링
-        # - 대시보드 총 재고량 기준과 맞추기 위해 유통기한이 아니라 입고 기준일로 전달
+        # 🔥 수정: 왼쪽 카드는 유통기한 임박 재고 확인용 이동 카드로 사용
+        # - 상품별 재고 상세의 기존 DatePicker 필터를 재사용한다.
+        today = datetime.now().date()
+        expiring_days = int(data.get("expiring_stock_days") or 30)
+        end_date = today + timedelta(days=expiring_days)
+
         set_stock_product_detail_prefilter(
-            start_date=data.get("month_start"),
-            end_date=data.get("month_end"),
-            date_filter_type="inbound_date",
-            search_type="product_id",
+            start_date=today.isoformat(),
+            end_date=end_date.isoformat(),
+            date_filter_type="expiration_date",
+            search_type="product",
             keyword="",
         )
 
@@ -519,7 +526,8 @@ def erp_stock_status_view():
             "current_month_text",
             f"{state['year']}년 {state['month']}월",
         )
-        total_stock_text = state["data"].get("total_stock_quantity_text") or "0 ea"
+        expiring_stock_text = state["data"].get("expiring_stock_count_text") or "0건"
+        expiring_days = int(state["data"].get("expiring_stock_days") or 30)
 
         return ft.Container(
             width=180,
@@ -540,7 +548,7 @@ def erp_stock_status_view():
                             vertical_alignment=ft.CrossAxisAlignment.START,
                             controls=[
                                 ft.Text(
-                                    "총 재고량",
+                                    "유통기한 임박",
                                     size=16,
                                     weight=ft.FontWeight.W_700,
                                     color=TEXT_PRIMARY,
@@ -557,7 +565,7 @@ def erp_stock_status_view():
                         expand=True,
                         alignment=ft.Alignment(1, 0.42),
                         content=ft.Text(
-                            total_stock_text,
+                            expiring_stock_text,
                             size=22,
                             weight=ft.FontWeight.W_700,
                             color=TEXT_PRIMARY,
@@ -568,7 +576,7 @@ def erp_stock_status_view():
                         expand=True,
                         alignment=ft.Alignment(1, 1),
                         content=ft.Text(
-                            month_text,
+                            f"{expiring_days}일 이내 만료 예정",
                             size=16,
                             weight=ft.FontWeight.W_700,
                             color=TEXT_PRIMARY,

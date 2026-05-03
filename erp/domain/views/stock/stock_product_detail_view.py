@@ -28,14 +28,14 @@ def set_stock_product_detail_prefilter(
     start_date=None,
     end_date=None,
     date_filter_type="inbound_date",
-    search_type="product_id",
+    search_type="product",
     keyword="",
 ):
     _STOCK_PRODUCT_DETAIL_PREFILTER["value"] = {
         "start_date": start_date,
         "end_date": end_date,
         "date_filter_type": date_filter_type or "inbound_date",
-        "search_type": search_type or "product_id",
+        "search_type": search_type or "product",
         "keyword": keyword or "",
     }
 

@@ -827,7 +827,7 @@ class OpdSubs(Base):
         Integer, ForeignKey("OPD.customer.customer_id"), nullable=False, index=True
     )
     subs_plan_id = Column(
-        Integer, ForeignKey("OPD.subs_plan.subs_plan_id"), nullable=False, index=True
+        Integer, ForeignKey("OPD.subs_plan.subs_plan_id"), index=True
     )
     subs_date = Column(
         DateTime, primary_key=True, nullable=False, server_default=text("now()")

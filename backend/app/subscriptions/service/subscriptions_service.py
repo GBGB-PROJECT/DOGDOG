@@ -97,7 +97,7 @@ def create_subscription_service(
             )
 
         # 4. 배송주기 검증
-        if body.delivery_cycle:
+        if body.is_auto_delivery is False:
             if body.delivery_cycle not in [2, 4]:
                 return JSONResponse(
                     status_code=400,
@@ -108,28 +108,20 @@ def create_subscription_service(
                     },
                 )
 
-        # 5. 결제수단 ID 유효성 검증
-        # if body.payment_billing_id <= 0:
-        #     return JSONResponse(
-        #         status_code=400,
-        #         content={
-        #             "success": False,
-        #             "error_code": "INVALID_PAYMENT_BILLING_ID",
-        #             "message": "유효하지 않은 결제수단 ID입니다.",
-        #         },
-        #     )
+        # 5. 임시: 결제수단 더미 등록
+        billing = create_payment_billing(db, customer_id, body.payment_option)
 
         # 6. 결제수단 확인
-        billing = get_payment_billing(db, customer_id)
-        if not billing:
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "success": False,
-                    "error_code": "PAYMENT_BILLING_NOT_FOUND",
-                    "message": "결제수단이 존재하지 않거나 사용할 권한이 없습니다.",
-                },
-            )
+        # billing = get_payment_billing(db, customer_id)
+        # if not billing:
+        #     return JSONResponse(
+        #         status_code=404,
+        #         content={
+        #             "success": False,
+        #             "error_code": "PAYMENT_BILLING_NOT_FOUND",
+        #             "message": "결제수단이 존재하지 않거나 사용할 권한이 없습니다.",
+        #         },
+        #     )
 
         # 8. 포인트 검증
         used_point = body.used_point or 0

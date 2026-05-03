@@ -52,7 +52,7 @@ def check_active_subscription(db: Session, customer_id: int):
 def get_active_subscription_by_customer_id(db: Session, customer_id: int):
     query = (
         select(OpdSubs, OpdSubsPlan, OpdSubsDetail, OpdSubsItem)
-        .join(
+        .outerjoin(
             OpdSubsPlan,
             OpdSubs.subs_plan_id == OpdSubsPlan.subs_plan_id
         )
@@ -74,8 +74,21 @@ def get_active_subscription_by_customer_id(db: Session, customer_id: int):
     return result.first()
 
 
-
 # 등록 ----------------------------------------------------------------------------------------------------------
+import numpy as np
+card_options = [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112]
+pay_options = [201, 202, 203, 204, 205, 206]
+def create_payment_billing(db: Session, customer_id: int, option:str):
+    payment = OpdPaymentBilling(
+        customer_id=customer_id,
+        financial_company_id=np.random.choice(card_options) if option=="card" else np.random.choice(pay_options),
+        billing_key="0000 0000 0000 0000",
+    )
+    db.add(payment)
+    db.flush()
+    return payment
+    
+
 def create_subs(db: Session, customer_id: int, subs_plan_id: int, is_auto_delivery: bool):
     subs = OpdSubs(
         customer_id=customer_id,

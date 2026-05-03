@@ -7,6 +7,7 @@ class SubscriptionCreateRequest(BaseModel):
     quantity: int
     delivery_cycle: int = None
     is_auto_delivery: bool
+    payment_option: str
 
     recipient_name: str
     recipient_phone: str

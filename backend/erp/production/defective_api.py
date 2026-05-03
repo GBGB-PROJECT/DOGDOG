@@ -28,6 +28,10 @@ SEARCH_TYPE_LABELS = {
     "inbound_status": "입고상태",
     "product": "상품",
     "employee_id": "담당자ID",
+}
+
+
+DATE_FILTER_TYPE_LABELS = {
     "inbound_scheduled_date": "입고예정일",
     "inbound_start": "입고시작일",
     "inbound_complete": "입고완료일",
@@ -110,17 +114,11 @@ def get_defective_list(
         "supplier_name",
         "inbound_status",
         "product",
-        "product_id",
-        "brand",
-        "product_name",
         "employee_id",
-        "inbound_scheduled_date",
-        "inbound_start",
-        "inbound_complete",
     ] = Query(
         default="inbound_id",
-        description="검색 조건",
-        examples=["product_name"],
+        description="검색 조건. product=상품ID/브랜드/상품명/중량 통합 검색",
+        examples=["product"],
     ),
     date_filter_type: Literal[
         "inbound_scheduled_date",
@@ -204,7 +202,7 @@ def get_defective_list(
                         "search_type": clean_search_type,
                         "search_type_label": SEARCH_TYPE_LABELS.get(clean_search_type, clean_search_type),
                         "date_filter_type": clean_date_filter_type,
-                        "date_filter_type_label": SEARCH_TYPE_LABELS.get(clean_date_filter_type, clean_date_filter_type),
+                        "date_filter_type_label": DATE_FILTER_TYPE_LABELS.get(clean_date_filter_type, clean_date_filter_type),
                         "keyword": clean_keyword,
                         "start_date": start_date,
                         "end_date": end_date,

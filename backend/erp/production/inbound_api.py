@@ -29,18 +29,12 @@ SEARCH_TYPE_LABELS = {
     "inbound_status": "입고상태",
     "product": "상품",
     "employee_id": "담당자ID",
-    "expiration_date": "유통기한",
-    "inbound_scheduled_date": "입고예정일",
-    "inbound_start": "입고시작일",
-    "inbound_complete": "입고완료일",
 }
 
 
 DATE_FILTER_TYPE_LABELS = {
-    "expiration_date": "유통기한",
-    "inbound_scheduled_date": "입고예정일",
-    "inbound_start": "입고시작일",
     "inbound_complete": "입고완료일",
+    "expiration_date": "유통기한",
 }
 
 
@@ -121,17 +115,10 @@ def get_inbound_list(
         "supplier_name",
         "inbound_status",
         "product",
-        "product_id",
-        "brand",
-        "product_name",
         "employee_id",
-        "expiration_date",
-        "inbound_scheduled_date",
-        "inbound_start",
-        "inbound_complete",
     ] = Query(
         default="inbound_id",
-        description="검색 조건",
+        description="검색 조건. product=상품ID/브랜드/상품명/중량 통합 검색",
         examples=["product_name"],
     ),
     keyword: str = Query(
@@ -163,13 +150,11 @@ def get_inbound_list(
         examples=["2026-04-30"],
     ),
     date_filter_type: Literal[
-        "expiration_date",
-        "inbound_scheduled_date",
-        "inbound_start",
         "inbound_complete",
+        "expiration_date",
     ] = Query(
-        default="inbound_start",
-        description="날짜 범위를 적용할 기준 컬럼. 생산관리 카드에서 진입하면 입고완료일 기준으로 전달됩니다.",
+        default="inbound_complete",
+        description="날짜 범위를 적용할 기준 컬럼. 화면 DatePicker 기준: inbound_complete=입고완료일, expiration_date=유통기한.",
         examples=["inbound_complete"],
     ),
 ):

@@ -3,7 +3,46 @@ from sqlalchemy.orm import Session
 
 from app.subscriptions.repository.subscriptions_repository import *
 
+# 구독 내역 조회 ------------------------------------------------------------------
+def read_subscription_service(db: Session, customer_id: int):
+    subscription_row = get_active_subscription_by_customer_id(
+        db=db,
+        customer_id=customer_id,
+    )
 
+    if subscription_row is None:
+        return {
+            "is_subscribed": False,
+            "subscription": None,
+        }
+
+    subs, subs_plan, subs_detail, subs_item = subscription_row
+
+    recipient = None
+
+    if subs_detail is not None:
+        recipient = {
+            "name": subs_detail.name,
+            "phone": subs_detail.phone,
+            "address": subs_detail.address,
+            "detail_address": subs_detail.detail_address,
+            "postal_code": subs_detail.postal_code,
+        }
+
+    return {
+        "is_subscribed": True,
+        "subscription": {
+            "subs_id": subs.subs_id,
+            "is_auto_delivery": subs.is_auto_delivery,
+            "is_subs_status": subs.is_subs_status,
+            "delivery_cycle": subs_plan.delivery_cycle,
+            "subs_day": subs.subs_day,
+            "subs_item": subs_item.product_id,
+            "recipient": recipient,
+        },
+    }
+
+# 구독 생성 ---------------------------------------------------------------------
 def create_subscription_service(
         db: Session,
         customer_id: int,

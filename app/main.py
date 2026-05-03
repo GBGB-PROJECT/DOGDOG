@@ -13,7 +13,7 @@ test_page = ""
 # flet build apk --verbose --compile-app --compile-packages --arch arm64-v8a
 # flet build apk --verbose --compile-app --compile-packages #맥용
 # -------------------------------------------------------------------------------------------------------
-#test_page = "Browser" # APP Build Test 시 주석 처리
+test_page = "Browser" # APP Build Test 시 주석 처리
 # -------------------------------------------------------------------------------------------------------
 class Front_dogdog:
     def __init__(self, page: ft.Page):
@@ -23,6 +23,7 @@ class Front_dogdog:
         self.page = page
         self.popup = dogdog.Popup(page)
         self.storage = page.session.store
+        self.home_feeding_guide_popup = True
         page.title = "Dog Dog"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.fonts = {"Pretendard": "fonts/Pretendard-Regular.otf"}
@@ -357,7 +358,8 @@ class Front_dogdog:
                 self.page.views.clear()
                 self.page.update()  # 뷰를 비운 직후 즉시 갱신하여 로딩 화면처럼 보이게 함
 
-            home_background, main_container_content = domains.home_tile(
+            # [해결] home_tile이 비동기 함수가 되었으므로 await를 추가하여 언패킹 에러를 방지합니다.
+            home_background, main_container_content = await domains.home_tile(
                 page=self.page,
                 popup=self.popup,
                 content_page=page_name,
@@ -389,6 +391,10 @@ class Front_dogdog:
             if not any(page in page_name for page in not_bottom_appbar):
                 new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
         self.page.views.append(new_view)
+        if page_name == "/home" and self.home_feeding_guide_popup:
+            self.popup.show_feeding_guide_open("[멍뭉이]")
+            self.popup.feeding_guide.open = True
+            self.home_feeding_guide_popup = False
         dogdog.views_controls(self.page)
         self.page.update()  # 최종 뷰 추가 후 갱신
 # -------------------------------------------------------------------------------------------------------

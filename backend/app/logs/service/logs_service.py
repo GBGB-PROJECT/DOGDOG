@@ -8,19 +8,32 @@ class LogsService:
     def __init__(self, repository: LogsRepository):
         self.repo = repository
 
-    def get_unified_logs(self, pet_id: int, target_date: date, category: Optional[str] = None):
-        """특정 날짜의 통합 로그 목록을 조회하고 시간 역순으로 정렬합니다."""
+    def get_unified_logs(
+        self, 
+        pet_id: int, 
+        target_date: Optional[date] = None, 
+        category: Optional[str] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ):
+        """[리팩터링] 특정 날짜 또는 기간의 통합 로그를 조회하고 최신순으로 정렬합니다."""
         
         merged_logs = []
 
-        # 1. 급여 기록 추가 (category 필터링: None, 'all', 또는 'feeding')
-        if not category or category == "all" or category == "feeding":
-            feeding_logs = self.repo.get_feeding_logs_by_date(pet_id, target_date)
+        # 1. 급여 기록 추가
+        if not category or category in ["all", "feeding"]:
+            feeding_logs = self.repo.get_feeding_logs(pet_id, target_date, start_date, end_date)
             for log in feeding_logs:
-                # pet_food는 feeding_date만 기록되므로, 
-                # 시간 정보가 없으면 last_update 기반이거나 임의로 00:00으로 셋팅
-                # 여기서는 UI 시간 표시용으로 datetime을 만듭니다.
-                record_time = log.last_update if log.last_update else datetime.combine(target_date, datetime.min.time())
+                # [해결 1] 시스템 시간이 아닌 유저가 지정한 feeding_date + feeding_time 조합
+                if log.feeding_date and log.feeding_time:
+                    try:
+                        f_time = log.feeding_time if not isinstance(log.feeding_time, str) else datetime.strptime(log.feeding_time, "%H:%M:%S").time()
+                        record_time = datetime.combine(log.feeding_date, f_time)
+                    except Exception:
+                        record_time = log.last_update
+                else:
+                    record_time = log.last_update
+
                 merged_logs.append({
                     "id": log.pet_food_id,
                     "domain": "feeding",
@@ -29,21 +42,19 @@ class LogsService:
                     "unit": "g",
                     "calories": log.calories,
                     "memo": log.memo,
-                    "timestamp": record_time,  # 정렬을 위한 datetime 객체
-                    "display_time": record_time.strftime("%H:%M"),
+                    "timestamp": record_time,
+                    "display_time": record_time.strftime("%H:%M") if record_time else "00:00",
                 })
 
-        # 2. 기타 로깅 추가 (category: None, 'all', 또는 기타 카테고리)
-        fetch_numeric = not category or category == "all" or category != "feeding"
-        if fetch_numeric:
-            numeric_logs = self.repo.get_numeric_logs_by_date(pet_id, target_date)
+        # 2. 기타 로깅 추가 (Numeric)
+        if not category or category != "feeding":
+            numeric_logs = self.repo.get_numeric_logs(pet_id, target_date, start_date, end_date)
             for log in numeric_logs:
                 if category and category != "all" and log.category != category:
-                    continue  # 카테고리가 지정되었지만 일치하지 않으면 건너뜀
+                    continue
                 
                 record_time = log.log_date if log.log_date else log.last_update
                 
-                # 단위 및 값을 UI 친화적으로 변환
                 unit = ""
                 value = float(log.log_status) if log.log_status else 0
                 if log.category == "poop":
@@ -57,16 +68,16 @@ class LogsService:
                     "category": log.category,
                     "amount": value,
                     "unit": unit,
-                    "calories": 0, # 급여가 아니므로 0
+                    "calories": 0,
                     "memo": log.memo,
-                    "timestamp": record_time,  # 정렬용
-                    "display_time": record_time.strftime("%H:%M") if record_time else "",
+                    "timestamp": record_time,
+                    "display_time": record_time.strftime("%H:%M") if record_time else "00:00",
                 })
 
-        # 3. 시간 역순으로 병합 정렬
-        merged_logs.sort(key=lambda x: x["timestamp"], reverse=True)
+        # 3. 논리적 발생 시간 기준으로 정렬
+        merged_logs.sort(key=lambda x: x["timestamp"] if x["timestamp"] else datetime.min, reverse=True)
 
-        # 4. JSON 응답 포맷에 맞게 datetime 직렬화 처리
+        # 4. JSON 직렬화
         for log in merged_logs:
             if isinstance(log["timestamp"], datetime):
                 log["timestamp"] = log["timestamp"].isoformat()

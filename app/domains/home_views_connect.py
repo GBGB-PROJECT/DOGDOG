@@ -8,7 +8,7 @@ from domains.logs.controller.log_controller import LogController
 
 
 # -------------------------------------------------------------------------------------------------------
-def home_tile(
+async def home_tile(
     page: ft.Page,
     popup,
     content_page: str,
@@ -41,6 +41,11 @@ def home_tile(
         main_container_content.append(body_column)
         # -----------------------------------------------------------------------------------------------
         async def on_timeline_click(e):
+            # [해결 1] 상세 페이지 이동 전 세션 청소 및 초기화
+            import datetime
+            page.session.store.set("select_log_week", None)# 주간 뷰 잔상 제거
+            page.session.store.set("select_log_date", datetime.datetime.now().strftime("%Y.%m.%d")) # 오늘 날짜 강제
+            
             pet_id = page.session.store.get("current_pet_id")
             if pet_id:
                 logs = await controller.get_today_timeline_logs(pet_id)
@@ -148,7 +153,16 @@ def home_tile(
         body_scroll_column.controls = domains.mypage_view.mypage_view(page)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/history":
-        home_background , top_banner = dogdog.home_layout(page=page, text="오늘의 기록")
+        # [해결] 3단 동적 헤더 타이틀 설정
+        storage = page.session.store
+        if storage.get("select_log_week"):
+            header_title = "일주일 상세 기록"
+        elif storage.get("select_log_date"):
+            header_title = "일일 기록"
+        else:
+            header_title = "오늘의 기록"
+        
+        home_background , top_banner = dogdog.home_layout(page=page, text=header_title)
         main_container_content.append(top_banner)
         
         history_container = ft.Column(expand=True, alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
@@ -193,7 +207,7 @@ def home_tile(
             domains.feeding_view.feeding_tabs_view(
                 page=page,
                 on_refresh_callback=on_refresh_callback,
-                feeding_detail_data=controller.get_feeding_detail_data()
+                feeding_detail_data=await controller.get_feeding_detail_data()
             )
         )
     # ---------------------------------------------------------------------------------------------------

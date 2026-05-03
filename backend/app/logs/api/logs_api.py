@@ -16,12 +16,14 @@ router = APIRouter(prefix="/api/v1/logs", tags=["Logs"])
 @router.get("/{pet_id}")
 def get_unified_timeline_logs(
     pet_id: int,
-    query_date: Optional[date] = Query(None, alias="date", description="조회할 날짜 (기본값: 오늘)"),
+    query_date: Optional[date] = Query(None, alias="date", description="조회할 날짜 (단일)"),
+    start_date: Optional[date] = Query(None, description="조회 시작 날짜"),
+    end_date: Optional[date] = Query(None, description="조회 종료 날짜"),
     category: Optional[str] = Query(None, description="분류별 조회용 ('all', 'feeding', 'poop', 'water' 등)"),
     customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """[조회] 타임라인 방식의 상세 기록 리스트(급여, 배변, 음수 등)를 통합하여 시간 역순으로 제공합니다."""
+    """[조회] 타임라인 방식의 상세 기록 리스트를 통합하여 제공합니다. (단일 날짜 또는 기간 조회 가능)"""
     repo = LogsRepository(db)
 
     # 1. 소유권 검증
@@ -30,14 +32,17 @@ def get_unified_timeline_logs(
             status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다."
         )
 
-    if not query_date:
-        query_date = date.today()
-
     service = LogsService(repo)
 
     try:
-        # 데이터 조립 및 병합
-        result = service.get_unified_logs(pet_id, query_date, category)
+        # [해결] 기간 정보가 있으면 기간 검색, 없으면 단일 날짜(기본값: 오늘) 검색
+        if start_date and end_date:
+            result = service.get_unified_logs(pet_id, category=category, start_date=start_date, end_date=end_date)
+        else:
+            if not query_date:
+                query_date = date.today()
+            result = service.get_unified_logs(pet_id, target_date=query_date, category=category)
+            
         return {"status": "success", "data": result}
     except Exception as e:
         logger.error(f"통합 로그 타임라인 조회 중 서버 오류 발생: {str(e)}", exc_info=True)

@@ -58,11 +58,22 @@ class LogController:
             self.detail_banner_area.content = self.banner_builder()
 
     def open_weekly_banner(self, e):
-        """배너 클릭 시 히스토리 화면으로 이동"""
-        print("[LogController] 일주일 배너 클릭")
+        """
+        [해결] 주간 배너 클릭 시 기존 일일 기록 세션을 제거하고 주간 뷰로 안전하게 라우팅합니다.
+        """
+        print("[LogController] 일주일 배너 클릭 - 세션 초기화 및 이동")
+        
+        # 1. [핵심 해결] 기존 일일 기록 조회 세션(select_log_date) 잔상 제거
+        self.page.session.store.set("select_log_date", None)
+        
+        # 2. 주간 기록 범위 설정 (최근 7일)
         now = datetime.datetime.now()
         date_range_str = f"{(now - datetime.timedelta(days=6)).strftime('%Y-%m-%d')} ~ {now.strftime('%Y-%m-%d')}"
+        
+        # 3. 주간 뷰 전용 세션 저장
         self.page.session.store.set("select_log_week", date_range_str)
+        
+        # 4. 히스토리 페이지로 이동
         self.page.go("/history")
 
     def refresh_calendar(self):
@@ -127,9 +138,16 @@ class LogController:
         self.page.update()
 
     def handle_day_click(self, day):
+        """[해결] 날짜 클릭 시 주간 세션을 초기화하고 일일 기록 세션을 설정합니다."""
         tapped_date = datetime.date(self.current_year, self.current_month, day)
         self.selected_date = tapped_date
+        
+        # 1. 주간 세션 잔상 제거
+        self.page.session.store.set("select_log_week", None)
+        
+        # 2. 선택된 날짜 세션 저장
         self.page.session.store.set("select_log_date", tapped_date.strftime("%Y.%m.%d"))
+        
         self.refresh_calendar()
         self.page.go("/history")
 

@@ -93,12 +93,17 @@ class StatusController:
                 self.storage.set(f"{call}_weight", log_status)
 
             if call == "health_log":
-                if self.log_data.get("weight") is not None:
-                    self.storage.set(
-                        f"{call}_float_weight", self.log_data.get("weight")
-                    )
-                if self.log_data.get("bcs") is not None:
-                    self.storage.set(f"{call}_bcs_weight", self.log_data.get("bcs"))
+                # [해결 2] category와 log_status를 기반으로 데이터 추출 및 매핑 (저장 단절 방지)
+                category = self.log_data.get("category")
+                log_status = self.log_data.get("log_status")
+                
+                try:
+                    if category == "weight" and log_status is not None:
+                        self.storage.set(f"{call}_float_weight", float(log_status))
+                    elif category == "bcs" and log_status is not None:
+                        self.storage.set(f"{call}_bcs_weight", int(float(log_status)))
+                except (ValueError, TypeError):
+                    pass
 
             if call == "feeding":
                 amount = self.log_data.get("amount")
@@ -263,12 +268,24 @@ class StatusController:
             payload["log_status"] = self.storage.get(f"{call}_weight")
         elif call == "health_log":
             category = "weight_bcs"
-            # [해결] Storage에서 값을 가져올 때 형변환 및 None 방어 로직 강화
-            weight_val = self.storage.get(f"{call}_float_weight")
-            bcs_val = self.storage.get(f"{call}_bcs_weight")
-            
-            payload["weight"] = float(weight_val) if weight_val is not None and str(weight_val).strip() != "" else None
-            payload["bcs"] = int(bcs_val) if bcs_val is not None and str(bcs_val).strip() != "" else None
+            if self.edit_mode and self.log_data:
+                # [해결 3] 수정 모드 시 통합 API 명세에 맞춰 log_status 단일 필드 전송
+                log_category = self.log_data.get("category")
+                try:
+                    if log_category == "weight":
+                        val = self.storage.get(f"{call}_float_weight")
+                        payload["log_status"] = float(val) if val is not None and str(val).strip() != "" else None
+                    elif log_category == "bcs":
+                        val = self.storage.get(f"{call}_bcs_weight")
+                        payload["log_status"] = int(float(val)) if val is not None and str(val).strip() != "" else None
+                except (ValueError, TypeError):
+                    payload["log_status"] = None
+            else:
+                # [신규 등록] 기존처럼 weight와 bcs 두 개를 모두 전송
+                w_val = self.storage.get(f"{call}_float_weight")
+                b_val = self.storage.get(f"{call}_bcs_weight")
+                payload["weight"] = float(w_val) if w_val is not None and str(w_val).strip() != "" else None
+                payload["bcs"] = int(float(b_val)) if b_val is not None and str(b_val).strip() != "" else None
         elif call == "status_log":
             category = "status"
 

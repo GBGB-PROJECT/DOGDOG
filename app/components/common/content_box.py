@@ -23,8 +23,11 @@ def log_container(page: ft.Page, pet_log_numeric_id, details):
         content.bgcolor = ft.Colors.GREY_300 if content.bgcolor == None else None
         content.update() # 클릭 시 색상 변경을 위해 꼭 필요합니다!
 
-    # 1. 시간 변환 로직 (API의 display_time "13:23" 활용)
+    # 1. 시간 및 날짜 변환 로직
+    is_weekly = page.session.store.get("select_log_week") is not None
     display_time = details.get("display_time", "00:00")
+    timestamp_raw = details.get("timestamp", "") # ISO Format (예: 2026-05-01T11:53:00)
+
     try:
         time_parts = display_time.split(":")
         hour = int(time_parts[0])
@@ -36,7 +39,19 @@ def log_container(page: ft.Page, pet_log_numeric_id, details):
     ampm = "오전" if hour < 12 else "오후"
     display_hour = hour if hour <= 12 else hour - 12
     if display_hour == 0: display_hour = 12
+    
+    # [해결] 시간 텍스트 생성
     log_time = f"{ampm} {display_hour}:{minute}"
+
+    # [해결] 주간 모드일 경우 날짜(MM.DD) 추가
+    if is_weekly and timestamp_raw:
+        try:
+            # ISO timestamp에서 월/일 추출 (예: 2026-05-01 -> 05.01)
+            dt_part = timestamp_raw.split("T")[0]
+            month_day = ".".join(dt_part.split("-")[1:3])
+            log_time = f"{month_day} {log_time}"
+        except:
+            pass
 
     # 2. 메시지 변환 로직 (Domain 및 Category 분기 처리)
     domain = details.get("domain", "")

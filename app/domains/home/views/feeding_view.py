@@ -82,18 +82,18 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                     controls=[
                         dogdog.basic_text(
                             spans=[
-                                ft.TextSpan(
-                                    text=f"{feeding_data.get('left_intake', '???')}g",
-                                    style=dogdog.TextStyle(size=16, height=-1),
-                                ),
-                                ft.TextSpan(text=f" / {feeding_data.get('total_weight_kg', 0.0)}Kg"),
+                                 ft.TextSpan(
+                                     text=f"{int(float(feeding_data.get('left_intake', 0))):,}g",
+                                     style=dogdog.TextStyle(size=16, height=-1),
+                                 ),
+                                 ft.TextSpan(text=f" / {feeding_data.get('total_weight_kg', 0.0)}Kg"),
                             ],
                             color=ft.Colors.GREY_400,
                             weight="bold",
                             size=16,
                         ),
                         dogdog.flat_button(
-                            text=f"{feeding_data.get('left_days', '?')} 일치 남음",
+                            text=f"{int(float(feeding_data.get('left_days', 0))):,} 일치 남음",
                             scale=0.7,
                             disabled=True,
                         ),

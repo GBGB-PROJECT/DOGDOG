@@ -14,6 +14,7 @@ class DashboardRepo:
     def get_chart_data(self, period: str) -> list[dict]:
         today = date.today()
         end_date = today  # 미래 데이터 차단 원칙 유지
+        merged_data = defaultdict(lambda: {"revenue": 0, "volume": 0})
 
         # 1. 기간 설정 및 그룹화 기준
         if period == "1주일":
@@ -26,6 +27,8 @@ class DashboardRepo:
             group_sales = extract('month', OpdSalesOrderItem.last_update)
         elif period == "1년":
             start_date = date(today.year - 4, 1, 1)
+            for y in range(today.year - 4, today.year + 1):
+                merged_data[f"{y}년"] = {"revenue": 0, "volume": 0}
             group_subs = extract('year', OpdSubsItem.last_update)
             group_sales = extract('year', OpdSalesOrderItem.last_update)
         else:

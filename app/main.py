@@ -6,14 +6,16 @@ import asyncio
 import components as dogdog
 
 # 테스트 아이디로 테스트 설정
-IS_TEST_MODE = True
+IS_TEST_MODE = False
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
 # flet build apk --verbose --compile-app --compile-packages --arch arm64-v8a
 # flet build apk --verbose --compile-app --compile-packages #맥용
 # -------------------------------------------------------------------------------------------------------
-test_page = "Browser" # APP Build Test 시 주석 처리
+test_page = "Browser"  # APP Build Test 시 주석 처리
+
+
 # -------------------------------------------------------------------------------------------------------
 class Front_dogdog:
     def __init__(self, page: ft.Page):
@@ -35,13 +37,14 @@ class Front_dogdog:
                 surface=ft.Colors.WHITE,
                 on_surface=ft.Colors.BLACK,
                 on_surface_variant=ft.Colors.BLACK,
-            ),page_transitions=ft.PageTransitionsTheme(
-                android="None", # type: ignore
-                ios="None", # type: ignore
-                macos="None", # type: ignore
-                linux="None", # type: ignore
-                windows="None", # type: ignore
-            )
+            ),
+            page_transitions=ft.PageTransitionsTheme(
+                android="None",  # type: ignore
+                ios="None",  # type: ignore
+                macos="None",  # type: ignore
+                linux="None",  # type: ignore
+                windows="None",  # type: ignore
+            ),
         )
         page.on_route_change = self.on_route_change
         page.on_view_pop = self.handle_back
@@ -63,7 +66,7 @@ class Front_dogdog:
                 bgcolor="#FFFFFF",
                 controls=[
                     ft.Column(
-                        width=float('inf'),
+                        width=float("inf"),
                         expand=True,
                         alignment=ft.MainAxisAlignment.CENTER,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -289,6 +292,7 @@ class Front_dogdog:
         if len(self.page.views) > 1:
             self.page.views.pop()
             self.page.go(self.page.views[-1].route)
+
     # ---------------------------------------------------------------------------------------------------
     # View Routing Event
     # ---------------------------------------------------------------------------------------------------
@@ -298,11 +302,19 @@ class Front_dogdog:
         # 1. 하단 앱바 설정
         appbar_status = [
             # Icon , Text , On_click
-            (ft.Icons.HOME, "Home", lambda _:self.page.go("/home")),
-            (ft.Icons.CALENDAR_MONTH, "Log", lambda _:self.page.go("/log")),
-            ("skeleton.png" if not "/shop" in page_name else "shop.png", None, lambda _:self.page.go("/shop")),
-            (ft.Icons.MESSENGER_OUTLINE_ROUNDED, "Contents", lambda _:self.page.go("/contents")),
-            (ft.Icons.PERSON_OUTLINE, "MyPage", lambda _:self.page.go("/mypage")),
+            (ft.Icons.HOME, "Home", lambda _: self.page.go("/home")),
+            (ft.Icons.CALENDAR_MONTH, "Log", lambda _: self.page.go("/log")),
+            (
+                "skeleton.png" if not "/shop" in page_name else "shop.png",
+                None,
+                lambda _: self.page.go("/shop"),
+            ),
+            (
+                ft.Icons.MESSENGER_OUTLINE_ROUNDED,
+                "Contents",
+                lambda _: self.page.go("/contents"),
+            ),
+            (ft.Icons.PERSON_OUTLINE, "MyPage", lambda _: self.page.go("/mypage")),
         ]
 
         # 2. 라우트 성격 분류
@@ -338,12 +350,19 @@ class Front_dogdog:
                     self.page.update()
 
             main_column = ft.Column(
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
-                expand=True, controls=basic_content # type: ignore
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                expand=True,
+                controls=basic_content,  # type: ignore
             )
-            layout = ft.Container(expand=True, padding=20, on_click=view_click, content=main_column)
+            layout = ft.Container(
+                expand=True, padding=20, on_click=view_click, content=main_column
+            )
             new_view = ft.View(
-                route=page_name, padding=0, spacing=0, bgcolor="#FFFFFF", controls=[layout]
+                route=page_name,
+                padding=0,
+                spacing=0,
+                bgcolor="#FFFFFF",
+                controls=[layout],
             )
             # 온보딩 완료 시점 처리
             if page_name == "/sign_up_success":
@@ -386,32 +405,82 @@ class Front_dogdog:
                 "/shop/order",
                 "/shop/subs_start",
                 "/shop/subs_order",
-                "/shop/address"
+                "/shop/address",
             ]
             if not any(page in page_name for page in not_bottom_appbar):
-                new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
+                new_view.bottom_appbar = dogdog.home_bottom_appbar(
+                    appbar_status, page_name
+                )
         self.page.views.append(new_view)
+        # [해결] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (TypeError 해결 및 API 연동)
         if page_name == "/home" and self.home_feeding_guide_popup:
-            self.popup.show_feeding_guide_open("[멍뭉이]")
-            self.popup.feeding_guide.open = True
-            self.home_feeding_guide_popup = False
+            try:
+                from api_client import ApiClient
+
+                api_client = ApiClient(self.page)
+
+                # 1. 세션에서 정보 획득
+                pet_id = self.storage.get("current_pet_id")
+                pet_list = self.storage.get("pet_list") or {}
+                pet_info = pet_list.get(pet_id) or pet_list.get(str(pet_id)) or {}
+                pet_name = pet_info.get("nickname", "반려견")
+
+                # 2. 권장 급여량 API 호출 및 안전한 파싱
+                guide_intake = 0
+                try:
+                    res_guide = await api_client.get(f"/calc_feeding/{pet_id}/guide")
+                    if res_guide.status_code == 200:
+                        # [DEBUG] 원본 데이터 확인용 로그 추가
+                        raw_data = res_guide.json()
+                        print(f"[DEBUG] Guide API 응답: {raw_data}")
+
+                        # 백엔드 실제 Key(adjusted_daily_food_g)를 사용하여 데이터 추출
+                        resp_data = raw_data.get("data", {})
+                        val = resp_data.get("adjusted_daily_food_g", 0)
+
+                        # 소수점 대비 정수 변환 (예: 168.0 -> 168)
+                        guide_intake = int(float(val))
+                except Exception as api_err:
+                    print(f"[DEBUG] 권장량 API 파싱 에러 (기본값 0 사용): {api_err}")
+
+                # 3. 팝업 호출 (문자열로 변환하여 전달)
+                self.popup.show_feeding_guide_open(pet_name, str(guide_intake))
+
+            except Exception as e:
+                print(f"[ERROR] 팝업 연동 중 치명적 오류: {e}")
+            finally:
+                # 4. 재노출 방지 (세션 유지 동안 1회)
+                self.home_feeding_guide_popup = False
         dogdog.views_controls(self.page)
         self.page.update()  # 최종 뷰 추가 후 갱신
+
+
 # -------------------------------------------------------------------------------------------------------
-async def main(page: ft.Page): 
+async def main(page: ft.Page):
     front_end = Front_dogdog(page=page)
     if page.platform == ft.PagePlatform.ANDROID:
         await page.set_allowed_device_orientations([ft.DeviceOrientation.PORTRAIT_UP])
+
+
 # -------------------------------------------------------------------------------------------------------
 if test_page == "Browser":
     import logging, warnings
-    level=logging.INFO
+
+    level = logging.INFO
     logging.basicConfig(level=level)
     warnings.filterwarnings(action="ignore")
     if __name__ == "__main__":
         import webbrowser, os
+
         if os.getenv(key="FLET_NO_BROWSER"):
             webbrowser.open = lambda *args: None
-        ft.run(main=main, assets_dir="assets", view=ft.AppView.WEB_BROWSER, port=34636, web_renderer=ft.WebRenderer.CANVAS_KIT)
+        ft.run(
+            main=main,
+            assets_dir="assets",
+            view=ft.AppView.WEB_BROWSER,
+            port=34636,
+            web_renderer=ft.WebRenderer.CANVAS_KIT,
+        )
 else:
-    if __name__ == "__main__": ft.run(main=main, assets_dir="assets", web_renderer=ft.WebRenderer.CANVAS_KIT)
+    if __name__ == "__main__":
+        ft.run(main=main, assets_dir="assets", web_renderer=ft.WebRenderer.CANVAS_KIT)

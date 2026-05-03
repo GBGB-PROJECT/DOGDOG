@@ -2,6 +2,7 @@ import flet as ft
 import components as dogdog
 # -------------------------------------------------------------------------------------------------------
 
+
 class Popup:
     def __init__(self, page: ft.Page):
         self.page = page
@@ -11,21 +12,24 @@ class Popup:
             title=dogdog.basic_text(value="Quit"),
             content=dogdog.basic_text(value="Exit?"),
             bgcolor=ft.Colors.WHITE,
-            actions_alignment = ft.MainAxisAlignment.END,
+            actions_alignment=ft.MainAxisAlignment.END,
             actions=[
                 ft.TextButton("OK"),
-                ft.TextButton("Cancel", on_click=self.show_popup_close)
-            ]
+                ft.TextButton("Cancel", on_click=self.show_popup_close),
+            ],
         )
-        
+
         self.loading_dialog = ft.AlertDialog(
             modal=True,
             open=False,
             bgcolor=ft.Colors.TRANSPARENT,
-            content=ft.Row(alignment=ft.MainAxisAlignment.CENTER,
-                width=20, controls=[ft.ProgressRing(color=ft.Colors.BLUE_400)])
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                width=20,
+                controls=[ft.ProgressRing(color=ft.Colors.BLUE_400)],
+            ),
         )
-        
+
         self.bottom_sheet_controls = []
         self.bottom_sheet_popup = ft.AlertDialog(
             alignment=ft.Alignment(0, 1),
@@ -47,9 +51,9 @@ class Popup:
                     tight=True,
                     expand=True,
                     spacing=10,
-                    controls=self.bottom_sheet_controls
-                )
-            )
+                    controls=self.bottom_sheet_controls,
+                ),
+            ),
         )
 
         self.feeding_guide_controls = []
@@ -70,11 +74,11 @@ class Popup:
                     expand=True,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=5,
-                    controls=self.feeding_guide_controls
-                )
-            )
+                    controls=self.feeding_guide_controls,
+                ),
+            ),
         )
-        
+
         # Bottom Sheet Setting (popup)
         # self.your_bottom_sheet = self.popup.bottom_sheet_popup
         # self.your_bottom_sheet_contents = self.popup.bottom_sheet_controls
@@ -108,39 +112,63 @@ class Popup:
         self.loading_dialog.open = False
         self.page.update()
 
-    def show_feeding_guide_open(self, pet_name):
+    def show_feeding_guide_open(self, pet_name, guide_intake):
+        """AI 급여 권장량 팝업을 열고 데이터를 주입합니다."""
         if self.feeding_guide not in self.page.overlay:
             self.page.overlay.append(self.feeding_guide)
         else:
             self.page.overlay.clear()
             self.page.overlay.append(self.feeding_guide)
+
         self.feeding_guide_controls.clear()
 
-        guide_message = dogdog.basic_text(spans=[
-            ft.TextSpan("똑똑 AI가 계산한", style=dogdog.TextStyle(size=12)),
-            ft.TextSpan(f"\n{pet_name}에게 딱 맞춘 하루 권장량", style=dogdog.TextStyle(size=18))
-        ], weight="bold")
+        # 1. 메시지 구성
+        guide_message = dogdog.basic_text(
+            spans=[
+                ft.TextSpan("똑똑 AI가 계산한\n", style=dogdog.TextStyle(size=12)),
+                ft.TextSpan(f"{pet_name}에게\n", style=dogdog.TextStyle(size=18)),
+                ft.TextSpan("딱 맞춘 하루 권장량", style=dogdog.TextStyle(size=18)),
+            ],
+            weight="bold",
+        )
         guide_message.text_align = ft.TextAlign.CENTER
+
+        # 2. 권장량 수치 주입 (동적 바인딩)
         feeding_guide = ft.Column(
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=0,
             controls=[
-                ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                    ft.Image(src="speech_bubble.png", height=100, color=ft.Colors.WHITE),
-                    dogdog.basic_text("40g", weight="bold", size=40),
-                ], spacing=-90),
-                ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20))
-        ])
-        home_view_feeding_guide_cancel = ft.IconButton(
-            icon=ft.Icons.CANCEL_ROUNDED, icon_color="#E6001A", icon_size=30,
-            on_click=lambda e:self.show_feeding_guide_close(e, self.feeding_guide)
+                ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Image(
+                            src="speech_bubble.png", height=100, color=ft.Colors.WHITE
+                        ),
+                        dogdog.basic_text(f"{guide_intake}g", weight="bold", size=40),
+                    ],
+                    spacing=-90,
+                ),
+                ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20)),
+            ],
         )
 
+        # 3. 닫기 버튼
+        home_view_feeding_guide_cancel = ft.IconButton(
+            icon=ft.Icons.CANCEL_ROUNDED,
+            icon_color="#E6001A",
+            icon_size=30,
+            on_click=lambda e: self.show_feeding_guide_close(e, self.feeding_guide),
+        )
+
+        # 4. 컨트롤 주입 및 팝업 활성화
         self.feeding_guide_controls.append(guide_message)
         self.feeding_guide_controls.append(feeding_guide)
         self.feeding_guide_controls.append(home_view_feeding_guide_cancel)
-    
+
+        self.feeding_guide.open = True
+        self.page.update()
+
     def show_feeding_guide_close(self, e, feeding_guide_popup):
         feeding_guide_popup.open = False
         self.page.update()

@@ -576,7 +576,7 @@ def erp_stock_status_view():
                         expand=True,
                         alignment=ft.Alignment(1, 1),
                         content=ft.Text(
-                            f"{expiring_days}일 이내 만료 예정",
+                            f"오늘 기준 {expiring_days}일 이내",
                             size=16,
                             weight=ft.FontWeight.W_700,
                             color=TEXT_PRIMARY,

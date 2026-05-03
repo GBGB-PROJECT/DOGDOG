@@ -27,7 +27,7 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str, controller)
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Icon(icon=ft.Icons.ADD, size=30),
-                dogdog.basic_text(value="기록추가", size=13, weight="bold"),
+                dogdog.basic_text(value="기록 추가", size=10, weight="bold"),
             ],
         ),
     )
@@ -180,7 +180,7 @@ def history_view(page: ft.Page, logs_data: list, view_date_str: str, controller)
                     expand=True,
                     alignment=ft.Alignment.CENTER,
                     content=dogdog.basic_text(
-                        "작성된 기록이 없습니다", size=20, weight="bold"
+                        "작성된 기록이 없습니다", size=16
                     ),
                 ),
                 setting_content(len(all_log) > 0),

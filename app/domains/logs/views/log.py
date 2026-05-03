@@ -192,8 +192,20 @@ def log_view(page: ft.Page, controller):
                 ),
             )
 
+        # 1. 동적 max_y 계산 (Overflow 방지)
+        raw_values = [v for _, v in chart_data]
+        real_max = max(raw_values) if raw_values else 0
+        
+        # [핵심] 최대값의 120% 설정, 데이터가 0이면 10으로 고정
+        dynamic_max_y = real_max * 1.2 if real_max > 0 else 10
+        print(f"[DEBUG] 📊 차트 스케일링: {controller.selected_metric} (Max: {real_max} -> Limit: {dynamic_max_y})")
+
+        # 2. 포인트 및 라벨 생성 (X축 순서 0~6 보장)
+        unit_map = {"급여량": "g", "음수량": "ml", "산책": "분"}
+        unit = unit_map.get(controller.selected_metric, "")
+
         normal_points = [
-            fch.LineChartDataPoint(i, v) for i, (_, v) in enumerate(chart_data)
+            fch.LineChartDataPoint(i, v, tooltip=f"{int(v)} {unit}") for i, (_, v) in enumerate(chart_data)
         ]
         bottom_labels = [
             fch.ChartAxisLabel(
@@ -206,11 +218,10 @@ def log_view(page: ft.Page, controller):
         ]
 
         # 최대값 강조 (Highlight)
-        max_val = max([v for _, v in chart_data]) if chart_data else 0
         highlight_points = [
-            fch.LineChartDataPoint(i, v)
+            fch.LineChartDataPoint(i, v, tooltip=f"{int(v)} {unit}")
             for i, (_, v) in enumerate(chart_data)
-            if v == max_val
+            if v == real_max and v > 0
         ]
 
         return fch.LineChart(
@@ -228,15 +239,29 @@ def log_view(page: ft.Page, controller):
                     color=TOP_VANILLA,
                 ),
             ],
+            # [방어 로직] Y축 범위 강제 지정
             min_y=0,
-            max_y=CHART_MAX_Y,
+            max_y=dynamic_max_y,
+            
             height=CHART_HEIGHT,
             interactive=True,
+            
+            # [방어 로직] 좌측 축 범위 명시 (안정성 확보)
+            left_axis=fch.ChartAxis(
+                labels=[
+                    fch.ChartAxisLabel(value=0, label=dogdog.Txt("0", size=10, color="transparent")),
+                    fch.ChartAxisLabel(value=dynamic_max_y, label=dogdog.Txt(str(int(dynamic_max_y)), size=10, color="transparent")),
+                ],
+                show_labels=False,
+            ),
+            
             bottom_axis=fch.ChartAxis(
                 labels=bottom_labels, label_spacing=1, label_size=36
             ),
             horizontal_grid_lines=fch.ChartGridLines(
-                interval=1.5, color=CHART_GRID_COLOR, width=1
+                interval=dynamic_max_y / 4, # 4칸 그리드로 유동적 조절
+                color=CHART_GRID_COLOR, 
+                width=1
             ),
         )
 
@@ -344,8 +369,9 @@ def log_view(page: ft.Page, controller):
         ),
         controller.detail_banner_area,
         dog_stat_card_section(),
-        ft.Row(
-            alignment=ft.MainAxisAlignment.CENTER,
-            controls=[micro_box(controller.summary_text)],
-        ),
+        # ft.Row(
+        #     alignment=ft.MainAxisAlignment.CENTER,
+        #     controls=[micro_box(controller.summary_text)],
+        # ),
     ]
+#미사용으로 주석처리

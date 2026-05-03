@@ -106,3 +106,39 @@ class ShopController:
                 await asyncio.sleep(5)
                 ShopController.product_guide_page(product_guide, "forward")
         except: pass
+
+    @staticmethod
+    async def get_feeding_data(page, pet_id):
+        from domains.shop.controller.shop_api import get_feeding_guide
+        data = await get_feeding_guide(page, int(pet_id))
+        if not data:
+            return None
+        
+        feeding_count = data.get("feeding_count", 0)
+        per_meal = data.get("adjusted_per_meal_g", "0")
+        
+        # 배차 정보 생성
+        if feeding_count == 1:
+            schedule = f"일 1회 {per_meal}g"
+        elif feeding_count == 2:
+            schedule = f"아침 {per_meal}g, 저녁 {per_meal}g"
+        elif feeding_count == 3:
+            schedule = f"아침 {per_meal}g, 점심 {per_meal}g, 저녁 {per_meal}g"
+        else:
+            schedule = f"일 {feeding_count}회 분할 급여 (회당 {per_meal}g)"
+
+        # 천 단위 콤마 적용 및 딕셔너리 반환
+        g_val = float(data.get('adjusted_daily_food_g', 0))
+        daily_food_g = f"{int(g_val):,}" if g_val == int(g_val) else f"{g_val:,.1f}"
+        
+        k_val = float(data.get('daily_total_kcal', 0))
+        total_kcal = f"{k_val:,.1f}"  # 소수점 첫째 자리까지 표시
+
+        res = {
+            "daily_food_g": daily_food_g,
+            "schedule": schedule,
+            "total_kcal": total_kcal,
+            "kcal_per_kg": f"{int(data.get('kcal_per_kg', 0)):,}", # 수치만 반환 (UI에서 kcal/kg 붙임)
+            "pet_name": page.session.store.get("customer_pet_name") or "반려견"
+        }
+        return res

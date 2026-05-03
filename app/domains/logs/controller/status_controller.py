@@ -189,6 +189,21 @@ class StatusController:
         else:
             full_log_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
+        # [해결] 미래 시간 입력 방어 로직 추가
+        try:
+            target_dt = datetime.datetime.fromisoformat(full_log_date)
+            now_dt = datetime.datetime.now()
+            if target_dt > now_dt:
+                self.page.snack_bar = ft.SnackBar(
+                    content=dogdog.basic_text("미래의 시간은 기록할 수 없습니다.", color=ft.Colors.WHITE),
+                    bgcolor=ft.Colors.RED_400,
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+                return
+        except Exception as e:
+            print(f"[DEBUG] 시간 비교 중 오류 발생 (무시): {e}")
+
         if call == "feeding":
             try:
                 # 세션에서 사료 ID 및 급여량 추출

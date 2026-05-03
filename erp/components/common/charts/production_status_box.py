@@ -123,6 +123,7 @@ def build_production_status_box(data: dict):
                             icon=ft.Icons.ADD,
                             icon_size=26,
                             icon_color=cm.TEXT_PRIMARY,
+                            on_click=lambda e: e.page.go("/production/status")
                         ),
                     ],
                 ),

@@ -87,6 +87,7 @@ def build_stock_pie_chart_box(feed_data: dict):
                             icon=ft.Icons.ADD,
                             icon_size=24,  # ☑️ 수정: 기존 22 -> 24
                             icon_color=cm.TEXT_PRIMARY,
+                            on_click=lambda e: e.page.go("/stock/product/status")
                         ),
                     ],
                 ),

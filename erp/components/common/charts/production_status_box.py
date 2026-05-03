@@ -104,7 +104,7 @@ def build_production_status_box(data: dict):
         expand=True,
         bgcolor=cm.CARD_BG,
         border_radius=16,
-        border=ft.border.all(1, "#EFF0F1"), # 새깔이 이곳?
+        border=ft.border.all(1, "#E0E1E2"), 
         padding=20,
         content=ft.Column(
             spacing=20,

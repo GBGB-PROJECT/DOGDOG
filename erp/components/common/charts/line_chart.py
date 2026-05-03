@@ -91,7 +91,7 @@ def build_sales_linechart():
             x_value = i * x_step  # ☑️ 추가: X축 좌표 계산
 
             if line_value > 0:
-                tooltip_str = f"[{label_text}]\n매출: {int(line_value):,} 원\n판매량: {int(bar_value):,} 개"
+                tooltip_str = f"[{label_text}]\n매출: {int(line_value) // 1000:,}천 원\n판매량: {int(bar_value):,} 개"
                 line_points.append(
                     fch.LineChartDataPoint(
                         x=x_value, 
@@ -178,14 +178,11 @@ def build_sales_linechart():
             bottom_axis=fch.ChartAxis(labels=bottom_labels, label_size=36),
             horizontal_grid_lines=fch.ChartGridLines(interval=top_y_rev/4, color=cm.CHART_GRID_COLOR, width=1),
             vertical_grid_lines=fch.ChartGridLines(interval=x_step, color=ft.Colors.TRANSPARENT, width=0),
-
             data_series=[
                 fch.LineChartData(
                     points=line_points,
                     stroke_width=3,
-                    color=cm.CHART_LINE_COLOR,
-                    curved=False,
-                    rounded_stroke_cap=True,
+                    color=cm.CHART_LINE_AND_TEXT_COLOR,
                     point=True,
                 ),
             ],

@@ -52,6 +52,29 @@ class Popup:
             )
         )
 
+        self.feeding_guide_controls = []
+        self.feeding_guide = ft.AlertDialog(
+            modal=True,
+            expand=True,
+            inset_padding=0,
+            content_padding=0,
+            action_button_padding=0,
+            actions_padding=0,
+            scrollable=True,
+            content=ft.Container(
+                width=300,
+                padding=20,
+                bgcolor="#FEF3B9",
+                border_radius=20,
+                content=ft.Column(
+                    expand=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=5,
+                    controls=self.feeding_guide_controls
+                )
+            )
+        )
+        
         # Bottom Sheet Setting (popup)
         # self.your_bottom_sheet = self.popup.bottom_sheet_popup
         # self.your_bottom_sheet_contents = self.popup.bottom_sheet_controls
@@ -85,3 +108,39 @@ class Popup:
         self.loading_dialog.open = False
         self.page.update()
 
+    def show_feeding_guide_open(self, pet_name):
+        if self.feeding_guide not in self.page.overlay:
+            self.page.overlay.append(self.feeding_guide)
+        else:
+            self.page.overlay.clear()
+            self.page.overlay.append(self.feeding_guide)
+        self.feeding_guide_controls.clear()
+
+        guide_message = dogdog.basic_text(spans=[
+            ft.TextSpan("똑똑 AI가 계산한", style=dogdog.TextStyle(size=12)),
+            ft.TextSpan(f"\n{pet_name}에게 딱 맞춘 하루 권장량", style=dogdog.TextStyle(size=18))
+        ], weight="bold")
+        guide_message.text_align = ft.TextAlign.CENTER
+        feeding_guide = ft.Column(
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=0,
+            controls=[
+                ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, controls=[
+                    ft.Image(src="speech_bubble.png", height=100, color=ft.Colors.WHITE),
+                    dogdog.basic_text("40g", weight="bold", size=40),
+                ], spacing=-90),
+                ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20))
+        ])
+        home_view_feeding_guide_cancel = ft.IconButton(
+            icon=ft.Icons.CANCEL_ROUNDED, icon_color="#E6001A", icon_size=30,
+            on_click=lambda e:self.show_feeding_guide_close(e, self.feeding_guide)
+        )
+
+        self.feeding_guide_controls.append(guide_message)
+        self.feeding_guide_controls.append(feeding_guide)
+        self.feeding_guide_controls.append(home_view_feeding_guide_cancel)
+    
+    def show_feeding_guide_close(self, e, feeding_guide_popup):
+        feeding_guide_popup.open = False
+        self.page.update()

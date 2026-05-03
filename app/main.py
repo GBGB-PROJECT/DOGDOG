@@ -23,6 +23,7 @@ class Front_dogdog:
         self.page = page
         self.popup = dogdog.Popup(page)
         self.storage = page.session.store
+        self.home_feeding_guide_popup = True
         page.title = "Dog Dog"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.fonts = {"Pretendard": "fonts/Pretendard-Regular.otf"}
@@ -390,6 +391,10 @@ class Front_dogdog:
             if not any(page in page_name for page in not_bottom_appbar):
                 new_view.bottom_appbar = dogdog.home_bottom_appbar(appbar_status, page_name)
         self.page.views.append(new_view)
+        if page_name == "/home" and self.home_feeding_guide_popup:
+            self.popup.show_feeding_guide_open("[멍뭉이]")
+            self.popup.feeding_guide.open = True
+            self.home_feeding_guide_popup = False
         dogdog.views_controls(self.page)
         self.page.update()  # 최종 뷰 추가 후 갱신
 # -------------------------------------------------------------------------------------------------------

@@ -1,14 +1,13 @@
 import math
 import flet as ft
 import flet.canvas as cv
+from components import common as cm
 
-
-CARD_BG = "#FFFFFF"
-TRACK_COLOR = "#D9DDE3"
-VALUE_COLOR = "#0B4F8A"
-TEXT_PRIMARY = "#2B2F36"
-TEXT_SECONDARY = "#6B7280"
-
+CARD_BG = cm.CARD_BG
+TRACK_COLOR = cm.TRACK_COLOR
+VALUE_COLOR = cm.VALUE_COLOR
+TEXT_PRIMARY = cm.TEXT_PRIMARY
+TEXT_SECONDARY = cm.TEXT_SECONDARY
 
 def gauge_chart(percent=40, label="목표 달성률", width=260, height=180):  # 🟥 수정: 카드 높이를 늘려 게이지와 텍스트 배치 여유 확보
     stroke_w = 18  # 🟥 수정: 게이지 선 두께를 조금 더 두껍게 조정
@@ -99,7 +98,7 @@ def gauge_chart(percent=40, label="목표 달성률", width=260, height=180):  #
                             ft.Container(
                                 alignment=ft.Alignment(0,0),  # 🟥 추가: 완전 중앙 정렬
                                 content=ft.Text(
-                                    "누계 실적",
+                                    "",
                                     size=10,
                                     color=TEXT_SECONDARY,
                                     text_align=ft.TextAlign.CENTER,  # 🟥 추가: 텍스트 자체도 중앙

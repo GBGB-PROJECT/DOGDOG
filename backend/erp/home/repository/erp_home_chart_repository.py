@@ -11,93 +11,59 @@ class DashboardRepo:
     def __init__(self, db: Session): 
         self.db = db
 
-    # [추가할 부분] 차트용 주/월/년도별 매출 및 판매량 조회
     def get_chart_data(self, period: str) -> list[dict]:
-        """
-        요청받은 기간(1주일/1개월/1년)에 맞춰 
-        구독 상품과 일반 상품의 매출액(revenue)과 판매량(volume)을 그룹화하여 반환합니다.
-        """
         today = date.today()
-        end_date = today
-        
-        # 1. 기간에 따른 그룹화 기준(DB) 및 조회 시작일 설정
+        end_date = today  # 미래 데이터 차단 원칙 유지
+
+        # 1. 기간 설정 및 그룹화 기준
         if period == "1주일":
             start_date = today - timedelta(days=6)
             group_subs = func.date(OpdSubsItem.last_update)
             group_sales = func.date(OpdSalesOrderItem.last_update)
-        
         elif period == "1개월":
-            # 올해 데이터 (월별)
             start_date = date(today.year, 1, 1)
             group_subs = extract('month', OpdSubsItem.last_update)
             group_sales = extract('month', OpdSalesOrderItem.last_update)
-            
         elif period == "1년":
-            # 최근 5년 (연도별)
             start_date = date(today.year - 4, 1, 1)
             group_subs = extract('year', OpdSubsItem.last_update)
             group_sales = extract('year', OpdSalesOrderItem.last_update)
-            
         else:
             return []
 
+        # 날짜 순서 보장을 위해 순서가 있는 리스트나 정렬용 키를 가진 딕셔너리 사용
         merged_data = defaultdict(lambda: {"revenue": 0, "volume": 0})
 
-        # [추가된 부분] 1주일의 경우 데이터가 없는 날도 포함하여 정확히 7개 출력 보장
-        if period == "1주일":
-            for i in range(6, -1, -1):
-                target_date = today - timedelta(days=i)
-                merged_data[target_date.strftime("%m/%d")] = {"revenue": 0, "volume": 0}
+        # 2. 데이터 조회 함수 (중복 제거를 위해 내부 함수화)
+        def process_query(query_res, period_type):
+            for row in query_res:
+                label = self._format_label(period_type, row.label)
+                merged_data[label]["revenue"] += int(row.revenue or 0)
+                merged_data[label]["volume"] += int(row.volume or 0)
 
-# 3. 구독 상품 조회 (Group By)
-        subs_data = self.db.query(
+        # 구독 상품 조회
+        subs_res = self.db.query(
             group_subs.label("label"),
             func.coalesce(func.sum(OpdSubsItem.final_amount), 0).label("revenue"),
             func.coalesce(func.sum(OpdSubsItem.quantity), 0).label("volume")
-        ).filter(
-            func.date(OpdSubsItem.last_update) >= start_date,
-            func.date(OpdSubsItem.last_update) <= end_date  
-        ).group_by(group_subs).all()
+        ).filter(func.date(OpdSubsItem.last_update).between(start_date, end_date)).group_by(group_subs).all()
+        process_query(subs_res, period)
 
-        for row in subs_data:
-            label_str = self._format_label(period, row.label)
-            merged_data[label_str]["revenue"] += int(row.revenue)
-            merged_data[label_str]["volume"] += int(row.volume)
-
-    # 일반 판매 상품 조회 부분
-        sales_data = self.db.query(
+        # 일반 판매 상품 조회 (누락되었던 처리 추가)
+        sales_res = self.db.query(
             group_sales.label("label"),
             func.coalesce(func.sum(OpdSalesOrderItem.total_amount), 0).label("revenue"),
             func.coalesce(func.sum(OpdSalesOrderItem.quantity), 0).label("volume")
-        ).filter(
-            func.date(OpdSalesOrderItem.last_update) >= start_date,
-            func.date(OpdSalesOrderItem.last_update) <= end_date  # 이 부분이 반드시 포함되어야 합니다.
-        ).group_by(group_sales).all()
+        ).filter(func.date(OpdSalesOrderItem.last_update).between(start_date, end_date)).group_by(group_sales).all()
+        process_query(sales_res, period)
 
-    # 구독 상품 조회 부분
-        subs_data = self.db.query(
-            group_subs.label("label"),
-            func.coalesce(func.sum(OpdSubsItem.final_amount), 0).label("revenue"),
-            func.coalesce(func.sum(OpdSubsItem.quantity), 0).label("volume")
-        ).filter(
-            func.date(OpdSubsItem.last_update) >= start_date,
-            func.date(OpdSubsItem.last_update) <= end_date  # 이 부분이 반드시 포함되어야 합니다.
-        ).group_by(group_subs).all()
-
-        # 누락되었던 반복문 복구
-        for row in subs_data:
-            label_str = self._format_label(period, row.label)
-            merged_data[label_str]["revenue"] += int(row.revenue)
-            merged_data[label_str]["volume"] += int(row.volume)
-
-        # 5. 프론트엔드가 요구하는 형식의 리스트로 변환 후 시간순 정렬
-        formatted_data = []
-        for key in sorted(merged_data.keys()): 
-            formatted_data.append({
-                "period": key,
-                "revenue": merged_data[key]["revenue"],
-                "volume": merged_data[key]["volume"]
-            })
+        # 3. 정렬 로직 보완 (단순 문자열 정렬이 아닌 시간순 정렬 필요)
+        # 팁: _format_label의 결과가 "05/01"이나 "2026" 형식이므로 
+        # "1월" 대신 "01월"처럼 숫자를 맞추면 sorted()가 잘 작동합니다.
+        formatted_data = [
+            {"period": key, "revenue": val["revenue"], "volume": val["volume"]}
+            for key, val in sorted(merged_data.items())
+        ]
 
         return formatted_data
 

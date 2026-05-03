@@ -507,17 +507,13 @@ def _row_to_dict(row):
         "address": full_address,
         "name": row.name,
         "phone": row.phone,
-        # 🔥 재수정: 상품을 집계하지 않고 구독상품 1개 단위로 내려준다.
+        # 🔥 정리: 구독상품 1개 = 화면 1줄 기준 필드만 반환
         "product_id": row.product_id or "",
-        "product_ids": row.product_id or "",  # 🔥 기존 프론트 호환용
         "product_brand": row.product_brand or "",
         "product_name": row.product_name or "",
         "subscription_product": _format_product_name(row.product_brand, row.product_name, row.product_id),
-        "subscription_products": _format_product_name(row.product_brand, row.product_name, row.product_id),  # 🔥 기존 프론트 호환용
         "item_quantity": _format_number(row.item_quantity),
-        "total_quantity": _format_number(row.item_quantity),  # 🔥 기존 프론트 호환용
         "item_final_amount": _format_number(row.item_final_amount),
-        "total_final_amount": _format_number(row.item_final_amount),  # 🔥 기존 프론트 호환용
     }
 
 

@@ -56,17 +56,13 @@ def build_response_rows(items: list, page: int, size: int):
                 "address": row.get("address", ""),
                 "name": row.get("name", ""),
                 "phone": row.get("phone", ""),
-                # 🔥 재수정: 구독상품을 상품 1개 단위로 반환
+                # 🔥 정리: 구독상품 1개 = 화면 1줄 기준 필드만 반환
                 "product_id": row.get("product_id", ""),
-                "product_ids": row.get("product_ids", ""),
                 "product_brand": row.get("product_brand", ""),
                 "product_name": row.get("product_name", ""),
                 "subscription_product": row.get("subscription_product", ""),
-                "subscription_products": row.get("subscription_products", ""),
                 "item_quantity": row.get("item_quantity", ""),
-                "total_quantity": row.get("total_quantity", ""),
                 "item_final_amount": row.get("item_final_amount", ""),
-                "total_final_amount": row.get("total_final_amount", ""),
             }
         )
 

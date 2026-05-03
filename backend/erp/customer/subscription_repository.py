@@ -149,13 +149,18 @@ def _format_subs_sale(value):
     try:
         sale_rate = float(value)
 
-        # 🔥 수정: subs_sale이 결제비율이면 할인율은 1 - subs_sale
-        # 예: 0.95 = 정가의 95% 결제 = 5% 할인
+        # =========================================================
+        # 🔥 재수정: subs_plan.subs_sale은 "결제비율"이 아니라 "할인율" 값이다.
+        # - DB 값 0.1  → 화면 10%
+        # - DB 값 0.05 → 화면 5%
+        # - DB 값 10   → 화면 10%
+        # 기존처럼 (1 - subs_sale) * 100 으로 계산하면 0.1이 90%로 잘못 표시된다.
+        # =========================================================
         if 0 <= sale_rate <= 1:
-            discount_rate = (1 - sale_rate) * 100
+            discount_rate = sale_rate * 100
             return f"{discount_rate:g}%"
 
-        # 🔥 혹시 DB에 5, 10처럼 이미 할인율 숫자로 들어오면 그대로 표시
+        # 🔥 DB에 5, 10처럼 이미 퍼센트 숫자로 들어온 경우 그대로 표시
         return f"{sale_rate:g}%"
 
     except Exception:

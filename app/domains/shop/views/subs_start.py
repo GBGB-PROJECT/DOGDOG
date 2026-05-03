@@ -103,8 +103,19 @@ def subs_options(page: ft.Page, popup):
         ], color=ft.Colors.GREY_600),
     ]
     # ---------------------------------------------------------------------------------------------------
+    # 구독자 여부 파악
+    subscription_state = {
+        "is_subscribed": None,
+        "subscription": None,
+    }
+    from domains.shop.controller.shop_subscription_api import get_subscription_status
+    result = get_subscription_status(page)
+
+    subscription_state["is_subscribed"] = result.get("is_subscribed")
+    subscription_state["subscription"] = result.get("subscription")
+    
     new_subs = dogdog.content_container(
-        on_click=lambda e:options_check(e, new_subs),
+        on_click=None if subscription_state["is_subscribed"] else lambda e: options_check(e, new_subs),
         content_list=[
             ft.Row(height=60, controls=[
                 ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
@@ -115,7 +126,9 @@ def subs_options(page: ft.Page, popup):
         dogdog.basic_text("AI 자동배송 선택", weight="bold", color=ft.Colors.GREY_800),
         ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
             dogdog.radio_group(
-                value="yes", on_change=lambda e:delivery_option_change(e, new_subs_option), contents=[
+                value="yes", 
+                on_change=lambda e:delivery_option_change(e, new_subs_option), 
+                contents=[
                     ft.Radio(value="yes", label="예", fill_color=ft.Colors.GREY_800, 
                         label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
                     ft.Radio(value="no", label="아니오", fill_color=ft.Colors.GREY_800, 
@@ -127,14 +140,28 @@ def subs_options(page: ft.Page, popup):
             expand=True,
             content=ft.Column(controls=ai_delivery_option)) # type: ignore
     ])
+        
     new_subs_option.visible = False
     add_subs = dogdog.content_container(
-        on_click=lambda e:options_check(e, add_subs),
+    on_click=None if subscription_state["is_subscribed"]==False else lambda e: options_check(e, add_subs),
         content_list=[
             ft.Row(height=60, controls=[
                 ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
                 dogdog.basic_text("나의 똑똑 배송에 추가하기", weight="bold", color=ft.Colors.GREY_600, size=16)
     ])])
+    #
+    # if result.get("is_subscribed"):
+    #     # 기존 구독자
+    #     new_subs.disabled = True
+    #     new_subs.opacity = 0.4
+    #     add_subs.disabled = False
+    #     add_subs.opacity = 1
+    # else:
+    #     # 신규 구독자
+    #     new_subs.disabled = False
+    #     new_subs.opacity = 1
+    #     add_subs.disabled = True
+    #     add_subs.opacity = 0.4
     dummy_container = ft.Container(expand=True)
     next_page = dogdog.continue_button(
         value="똑똑배송 시작하기", bgcolor="#E6001A", text_color=ft.Colors.WHITE, 

@@ -12,13 +12,14 @@ router = APIRouter(prefix="/api/v1/subscriptions", tags=["Subscriptions"])
 
 # 구독 내역 조회 ---------------------------------------------------------------------
 @router.get("")
-def read_subscription(
-    customer_id: int,
-    db: Session = Depends(get_db),
-):
 # def read_subscription(
+#     customer_id: int,
 #     db: Session = Depends(get_db),
 # ):
+def read_subscription(
+    db: Session = Depends(get_db),
+    customer_id: int = Depends(get_current_user),
+):
     try:
         result = read_subscription_service(
             db=db,

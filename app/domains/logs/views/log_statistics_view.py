@@ -1,5 +1,4 @@
 import flet as ft
-import flet_charts as fch
 import components as dogdog
 from ..controller.log_statistics_controller import LogStatisticsController
 
@@ -10,7 +9,7 @@ class LogStatisticsView(ft.UserControl):
         # 상단 수치 텍스트
         self.tooltip_text = ft.Text("0", size=28, weight="bold", color="#E65100")
         self.unit_text = ft.Text("ml", size=16, color="#9E9E9E", weight="bold")
-        # 차트 컨테이너 (이 내부의 content를 교체하여 강제 업데이트)
+        # 차트 컨테이너
         self.chart_container = ft.Container(height=220, alignment=ft.alignment.center)
 
     async def did_mount_async(self):
@@ -35,69 +34,72 @@ class LogStatisticsView(ft.UserControl):
         self.update_chart_ui()
 
     def update_chart_ui(self):
-        """차트 영역을 데이터에 기반하여 갱신 (에러 방지 로직 포함)"""
+        """Flet 공식 ft.LineChart로 마이그레이션된 UI 갱신 로직"""
         if not self.controller.weekly_data:
             return
 
-        # 1. Y축 최대값(max_y) 계산 및 방어 로직
+        # 1. Y축 최대값 계산 및 방어 로직
         raw_values = [val for _, val in self.controller.weekly_data]
         actual_max = max(raw_values) if raw_values else 0
-        
-        # [핵심] 데이터가 0이거나 10 이하로 너무 작으면 차트 프레임 유지를 위해 100으로 강제 설정
         max_y_limit = actual_max if actual_max > 10 else 100
         
-        # 2. LineChart 생성 (방어 속성 적용)
-        print(f"[DEBUG] ⚡ View: 차트 리렌더링 및 self.update() 실행 (max_y: {max_y_limit})")
+        # 2. 공식 ft.LineChart 생성
+        print(f"[DEBUG] ⚡ View: 공식 ft.LineChart 마이그레이션 (max_y: {max_y_limit})")
         
-        self.chart_container.content = fch.LineChart(
-            data_series=[
-                fch.LineChartData(
-                    points=self.controller.get_chart_points(),
-                    curved=True,
-                    stroke_width=5,
-                    color="#FF9800",
-                    point=True,
-                    selected_point=fch.ChartSelectedPoint(
-                        point=fch.ChartPoint(size=14, color="#E65100")
-                    )
+        self.chart_container.content = ft.Container(
+            # [UI 요구사항] 부모 컨테이너 테마 주입 (안전 장치)
+            theme=ft.Theme(
+                color_scheme=ft.ColorScheme(
+                    surface=ft.colors.BROWN_50,
+                    on_surface=ft.colors.BROWN_900
                 )
-            ],
-            # [방어 로직] Y축 범위 명시적 선언
-            min_y=0,
-            max_y=max_y_limit,
-            
-            # [방어 로직] 좌측 축 명시 (안정성 확보)
-            left_axis=fch.ChartAxis(
-                labels=[
-                    fch.ChartAxisLabel(value=0, label=ft.Text("0", size=10, color="transparent")),
-                    fch.ChartAxisLabel(value=max_y_limit, label=ft.Text(str(max_y_limit), size=10, color="transparent")),
+            ),
+            content=ft.LineChart(
+                data_series=[
+                    ft.LineChartData(
+                        data_points=self.controller.get_chart_points(),
+                        curved=True,
+                        stroke_width=5,
+                        color="#FF9800",
+                        show_points=True,
+                    )
                 ],
-                show_labels=False, # 숫자는 숨기되 축의 범위는 유지
-            ),
-            
-            # [디자인] 기본 툴팁 비활성화 (커스텀 텍스트로 대체)
-            tooltip=False,
-            
-            bottom_axis=fch.ChartAxis(
-                labels=self.controller.get_bottom_labels(),
-                label_size=32,
-            ),
-            interactive=True,
-            on_chart_event=self.handle_chart_event,
-            expand=True,
+                min_y=0,
+                max_y=max_y_limit,
+                
+                left_axis=ft.ChartAxis(
+                    labels=[
+                        ft.ChartAxisLabel(value=0, label=ft.Text("0", size=10, color="transparent")),
+                        ft.ChartAxisLabel(value=max_y_limit, label=ft.Text(str(max_y_limit), size=10, color="transparent")),
+                    ],
+                    show_labels=False,
+                ),
+                
+                # [공식 API] 툴팁 색상 및 스타일 직접 제어
+                tooltip_bgcolor="#F5F5DC",
+                tooltip_text_style=ft.TextStyle(
+                    color="#424242", 
+                    weight="bold"
+                ),
+                
+                bottom_axis=ft.ChartAxis(
+                    labels=self.controller.get_bottom_labels(),
+                    label_size=32,
+                ),
+                interactive=True,
+                expand=True,
+                on_chart_event=self.handle_chart_event
+            )
         )
-        # UI 강제 갱신
         self.update()
 
-    def handle_chart_event(self, e: fch.ChartEvent):
-        """포인트 클릭 시 상단 수치 실시간 업데이트 (기본 툴팁 대체)"""
+    def handle_chart_event(self, e: ft.LineChartEvent):
+        """공식 이벤트 핸들러: 포인트 클릭 시 상단 수치 업데이트"""
+        # 포인트 클릭 시 상단 텍스트 실시간 반영
         if e.type == "click" and e.point_index is not None:
-            # 선택된 데이터의 값 가져오기
-            val = self.controller.weekly_data[e.point_index][1]
-            # 상단 텍스트 업데이트 (포맷팅 적용)
-            self.tooltip_text.value = self.controller.format_value(val)
-            print(f"[DEBUG] 🎯 포인트 클릭: Index {e.point_index}, Value {val}")
-            self.update()
+             val = self.controller.weekly_data[e.point_index][1]
+             self.tooltip_text.value = self.controller.format_value(val)
+             self.update()
 
     def build(self):
         return ft.Container(

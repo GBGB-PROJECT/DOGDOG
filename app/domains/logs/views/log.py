@@ -201,8 +201,11 @@ def log_view(page: ft.Page, controller):
         print(f"[DEBUG] 📊 차트 스케일링: {controller.selected_metric} (Max: {real_max} -> Limit: {dynamic_max_y})")
 
         # 2. 포인트 및 라벨 생성 (X축 순서 0~6 보장)
+        unit_map = {"급여량": "g", "음수량": "ml", "산책": "분"}
+        unit = unit_map.get(controller.selected_metric, "")
+
         normal_points = [
-            fch.LineChartDataPoint(i, v) for i, (_, v) in enumerate(chart_data)
+            fch.LineChartDataPoint(i, v, tooltip=f"{int(v)} {unit}") for i, (_, v) in enumerate(chart_data)
         ]
         bottom_labels = [
             fch.ChartAxisLabel(
@@ -216,7 +219,7 @@ def log_view(page: ft.Page, controller):
 
         # 최대값 강조 (Highlight)
         highlight_points = [
-            fch.LineChartDataPoint(i, v)
+            fch.LineChartDataPoint(i, v, tooltip=f"{int(v)} {unit}")
             for i, (_, v) in enumerate(chart_data)
             if v == real_max and v > 0
         ]

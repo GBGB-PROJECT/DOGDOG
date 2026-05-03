@@ -1,6 +1,7 @@
 import datetime
 import calendar
 import flet as ft
+import flet_charts as fch
 from api_client import ApiClient
 class LogController:
     """
@@ -37,11 +38,10 @@ class LogController:
         self.selected_metric = "급여량"
         #self.summary_text = "일 평균 000kcal   |   목표 000kcal   |   달성 0회"
         
-        # 실제 서버 데이터가 저장될 맵 (초기값은 빈 리스트)
         self.chart_data_map = {
             "급여량": [],
             "음수량": [],
-            "몸무게": [],
+            "산책": [],
         }
         
         # View 컴포넌트 참조 및 빌더
@@ -80,7 +80,7 @@ class LogController:
         metrics_sum = {
             "feeding": {d: 0.0 for d in date_list},
             "water": {d: 0.0 for d in date_list},
-            "weight": {d: 0.0 for d in date_list}
+            "walk": {d: 0.0 for d in date_list}
         }
 
         # 3. API 호출 (기간 파라미터 추가로 과거 데이터 누락 방지)
@@ -93,7 +93,7 @@ class LogController:
         response = await self.api.get(f"/logs/{self.pet_id}", params=params)
         
         if response and response.status_code == 200:
-            res_json = response.json()  # JSON 변환!
+            res_json = response.json()
             if res_json.get("status") == "success":
                 logs = res_json.get("data", [])
             print(f"[LogController] 📥 수신된 로그 개수: {len(logs)}개")
@@ -102,23 +102,21 @@ class LogController:
                 ts = log.get("timestamp", "")
                 if not ts: continue
                 
-                # 날짜 추출 (YYYY-MM-DD)
                 log_date = ts.split("T")[0]
                 
-                # 차트 범위 내의 데이터인지 확인
                 if log_date in date_list:
                     cat = log.get("category")
                     domain = log.get("domain")
                     amount = float(log.get("amount", 0))
                     
-                    # [매핑 로직] 급여량/음수량/몸무게 분류 합산
+                    # [매핑 로직] 급여량/음수량/산책 분류 합산
                     if cat == "feeding":
                         metrics_sum["feeding"][log_date] += amount
                     elif cat == "water":
                         metrics_sum["water"][log_date] += amount
-                    elif cat == "weight":
-                        # 몸무게는 합산이 아닌 가장 최근 기록으로 갱신
-                        metrics_sum["weight"][log_date] = amount
+                    elif cat == "walk" or (domain == "numeric" and cat == "walk"):
+                        # 산책은 합산(+=) 방식으로 처리
+                        metrics_sum["walk"][log_date] += amount
 
         # 4. 요일 이름 매핑 및 chart_data_map 업데이트
         weekdays_kr = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
@@ -134,7 +132,7 @@ class LogController:
 
         self.chart_data_map["급여량"] = build_result("feeding")
         self.chart_data_map["음수량"] = build_result("water")
-        self.chart_data_map["몸무게"] = build_result("weight")
+        self.chart_data_map["산책"] = build_result("walk")
 
         print(f"[LogController] ✅ 데이터 가공 완료")
         
@@ -236,7 +234,7 @@ class LogController:
                 controls=[
                     self.metric_label_builder("급여량"),
                     self.metric_label_builder("음수량"),
-                    self.metric_label_builder("몸무게"),
+                    self.metric_label_builder("산책"),
                 ],
             )
 

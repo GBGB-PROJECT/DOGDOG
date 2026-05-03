@@ -5,9 +5,71 @@ import asyncio
 # -------------------------------------------------------------------------------------------------------
 def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
-    from api.product_guide import Product
-    def payment_check(e):
-        page.go("/shop/subs_order_success") if "/subs_product_order" in page_name else page.go("/shop/order_success") 
+    # def payment_check(e):
+    #     page.go("/shop/subs_order_success") if "/subs_product_order" in page_name else page.go("/shop/order_success") 
+    async def payment_check(e):
+        if "/subs_product_order" not in page_name:
+            page.go("/shop/order_success")
+            return
+
+        if storage.get("select_subs") != "new_subs":
+            page.go("/shop/subs_order_success")
+            return
+
+        from domains.shop.controller.shop_subscription_api import create_subscription
+
+        def get_field_value(field_column):
+            return (field_column.controls[0].controls[0].value or "").strip()
+
+        address_data = storage.get("order_address_data") or {}
+
+        payload = {
+            "product_id": product_id,
+            "quantity": product_quantity,
+            "delivery_cycle": storage.get("select_delivery_cycle"),
+            "is_auto_delivery": bool(storage.get("select_is_auto_delivery")),
+            "payment_option": selected_pay_method,
+            "recipient_name": get_field_value(delivery_customer_name),
+            "recipient_phone": get_field_value(delivery_customer_phone),
+            "address": address_data.get("road") or "",
+            "detail_address": address_data.get("detail") or "",
+            "postal_code": address_data.get("zip") or "",
+            "memo": delivery_message_menu.value,
+            "used_point": 0,
+        }
+
+        required_fields = [
+            "recipient_name",
+            "recipient_phone",
+            "address",
+            "postal_code",
+        ]
+
+        if any(not payload.get(field) for field in required_fields):
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("배송 정보를 모두 입력해주세요."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
+
+        result = await create_subscription(page, payload)
+
+        if not result:
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("구독 생성에 실패했습니다. 다시 시도해주세요."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
+
+        storage.set("created_subscription", result)
+        page.go("/shop/subs_order_success")
+
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
@@ -25,6 +87,7 @@ def order_view(page: ft.Page, popup, page_name):
         ]))
     product_id = int(storage.get("select_product_id")) # type: ignore
     product_quantity = int(storage.get("select_product_quantity")) # type: ignore
+    selected_pay_method = None
     # for p_id , p_d in Product.guide_product_list.items():
     #     if p_id == product_id:
     #         p_brand = str(p_d.get('brand'))
@@ -91,6 +154,12 @@ def order_view(page: ft.Page, popup, page_name):
         dogdog.task_controls()
         asyncio.create_task(order_timesleep()) # type: ignore
         page.go("/shop/address")
+
+    #----------
+    def pay_method(method):
+        nonlocal selected_pay_method   
+        selected_pay_method = method
+        print("선택:", selected_pay_method)
     # ---------------------------------------------------------------------------------------------------
     delivery_customer_name = dogdog.input_textfield(
         hint_text="최대 10자로 작성해주세요", cancel_event=True)
@@ -163,8 +232,8 @@ def order_view(page: ft.Page, popup, page_name):
         dogdog.basic_text(
             "자동 결제 등록" if "/subs_product_order" in page_name else "결제 방법", size=16, weight="bold"),
         dogdog.order_row(spacing=8, content=[
-            dogdog.flat_button("카드", expand=True),
-            dogdog.flat_button("간편결제", expand=True),
+            dogdog.flat_button("카드", expand=True, on_click=lambda _: pay_method("card")),
+            dogdog.flat_button("간편결제", expand=True, on_click=lambda _: pay_method("easy_pay")),
         ]),
         dogdog.order_row(
             spacing=8,
@@ -185,7 +254,7 @@ def order_view(page: ft.Page, popup, page_name):
         ]),
         dogdog.continue_button(
             value="결제하기", bgcolor="#E6001A", text_color=ft.Colors.WHITE, 
-            on_click=lambda e: payment_check(e))
+            on_click=payment_check)
     ]
     async def load_order_product():
         product = await get_shop_product_detail(page, product_id)

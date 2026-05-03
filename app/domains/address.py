@@ -218,6 +218,7 @@ def address_view(page: ft.Page):
     def handle_address_complete(result_data):
         # print("최종 반환된 데이터:", result_data)
         page.session.store.set("order_address", result_data.get('full_address'))
+        page.session.store.set("order_address_data", result_data)
         page.views.pop()
         page.go(page.views[-1].route)
 

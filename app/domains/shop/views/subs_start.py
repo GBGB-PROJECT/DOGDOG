@@ -21,7 +21,11 @@ def subs_options(page: ft.Page, popup):
         page.go("/shop/subs_product_order")
     # ---------------------------------------------------------------------------------------------------
     def delivery_option_change(e, container):
-        # print(e.data)
+        is_auto_delivery = e.data == "yes"
+
+        storage.set("select_is_auto_delivery", is_auto_delivery)
+        storage.set("select_delivery_cycle", None if is_auto_delivery else 2)
+
         container_option = container.content.controls[2].content
         container_option.controls = ai_delivery_option if 'yes' == e.data else not_ai_delivery_option
         container.update()
@@ -35,6 +39,8 @@ def subs_options(page: ft.Page, popup):
         container_text.color = ft.Colors.BLACK
         if container == new_subs:
             storage.set("select_subs", "new_subs") #***
+            storage.set("select_is_auto_delivery", True) #***
+            storage.set("select_delivery_cycle", None) #***
             new_subs_option.visible = True
             add_subs.bgcolor = ft.Colors.WHITE
             add_subs_container_icon = add_subs.content.controls[0].controls[0] # type: ignore
@@ -78,7 +84,9 @@ def subs_options(page: ft.Page, popup):
         dogdog.basic_text("구매 배송주기 선택", weight="bold", color=ft.Colors.GREY_800),
         ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
             dogdog.radio_group(
-                value="2", on_change=None, contents=[
+                value="2", 
+                on_change=lambda e: storage.set("select_delivery_cycle", int(e.data)), 
+                contents=[
                     ft.Radio(value="2", label="2주", fill_color=ft.Colors.GREY_800, 
                         label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
                     ft.Radio(value="4", label="4주", fill_color=ft.Colors.GREY_800, 
@@ -104,11 +112,6 @@ def subs_options(page: ft.Page, popup):
     ]
     # ---------------------------------------------------------------------------------------------------
     # 구독자 여부 파악
-    subscription_state = {
-        "is_subscribed": None,
-        "subscription": None,
-    }
-
     new_subs = dogdog.content_container(
         on_click=None,
         content_list=[

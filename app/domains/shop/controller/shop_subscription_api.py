@@ -21,6 +21,23 @@ async def get_subscription_status(page):
 
 
 # 구독 생성 ---------------------------------------------------------
+'''
+class SubscriptionCreateRequest(BaseModel):
+    product_id: int
+    quantity: int
+    delivery_cycle: int = None
+    is_auto_delivery: bool
+    payment_option: str
+
+    recipient_name: str
+    recipient_phone: str
+    address: str
+    detail_address: str
+    postal_code: str
+    memo: Optional[str] = None
+
+    used_point: Optional[int] = 0
+'''
 async def create_subscription(page, data):
     api = ApiClient(page)
     response = await api.post("/subscriptions", data=data)

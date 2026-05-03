@@ -108,14 +108,9 @@ def subs_options(page: ft.Page, popup):
         "is_subscribed": None,
         "subscription": None,
     }
-    from domains.shop.controller.shop_subscription_api import get_subscription_status
-    result = get_subscription_status(page)
 
-    subscription_state["is_subscribed"] = result.get("is_subscribed")
-    subscription_state["subscription"] = result.get("subscription")
-    
     new_subs = dogdog.content_container(
-        on_click=None if subscription_state["is_subscribed"] else lambda e: options_check(e, new_subs),
+        on_click=None,
         content_list=[
             ft.Row(height=60, controls=[
                 ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
@@ -143,30 +138,58 @@ def subs_options(page: ft.Page, popup):
         
     new_subs_option.visible = False
     add_subs = dogdog.content_container(
-    on_click=None if subscription_state["is_subscribed"]==False else lambda e: options_check(e, add_subs),
-        content_list=[
-            ft.Row(height=60, controls=[
-                ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
-                dogdog.basic_text("나의 똑똑 배송에 추가하기", weight="bold", color=ft.Colors.GREY_600, size=16)
-    ])])
-    #
-    # if result.get("is_subscribed"):
-    #     # 기존 구독자
-    #     new_subs.disabled = True
-    #     new_subs.opacity = 0.4
-    #     add_subs.disabled = False
-    #     add_subs.opacity = 1
-    # else:
-    #     # 신규 구독자
-    #     new_subs.disabled = False
-    #     new_subs.opacity = 1
-    #     add_subs.disabled = True
-    #     add_subs.opacity = 0.4
+        on_click=None,
+            content_list=[
+                ft.Row(height=60, controls=[
+                    ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
+                    dogdog.basic_text("나의 똑똑 배송에 추가하기", weight="bold", color=ft.Colors.GREY_600, size=16)
+        ])])
+    
     dummy_container = ft.Container(expand=True)
     next_page = dogdog.continue_button(
         value="똑똑배송 시작하기", bgcolor="#E6001A", text_color=ft.Colors.WHITE, 
         on_click=lambda e: subs_options_check(e))
     next_page.visible = False
+
+    # ----------------------
+    new_subs.on_click = None
+    add_subs.on_click = None
+    new_subs.opacity = 0.4
+    add_subs.opacity = 0.4
+
+    async def load_subscription_state():
+        from domains.shop.controller.shop_subscription_api import get_subscription_status
+
+        result = await get_subscription_status(page)
+
+        if not result:
+            # 조회 실패 시 둘 다 막아두기
+            page.update()
+            return
+
+        is_subscribed = result.get("is_subscribed")
+        subscription = result.get("subscription")
+
+        storage.set("select_subscription", subscription)
+
+        # 기존 구독자
+        if is_subscribed:
+            new_subs.on_click = None
+            new_subs.opacity = 0.4
+
+            add_subs.on_click = lambda e: options_check(e, add_subs)
+            add_subs.opacity = 1
+        # 신규 구독자
+        else:
+            new_subs.on_click = lambda e: options_check(e, new_subs)
+            new_subs.opacity = 1
+
+            add_subs.on_click = None
+            add_subs.opacity = 0.4
+
+        page.update()
+
+    page.run_task(load_subscription_state)
     # ---------------------------------------------------------------------------------------------------
     content_column = [
         new_subs,

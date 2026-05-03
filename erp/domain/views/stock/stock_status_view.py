@@ -467,16 +467,22 @@ def erp_stock_status_view():
         items = section_data.get("items", [])[:3]
 
         if items:
-            item_area = ft.Row(
-                spacing=12,
-                controls=[
-                    build_top_stock_item_box(item)
-                    for item in items
-                ],
+            item_area = ft.Container(
+                height=238,
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                content=ft.Row(
+                    spacing=12,
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        build_top_stock_item_box(item)
+                        for item in items
+                    ],
+                ),
             )
         else:
             item_area = ft.Container(
-                height=210,
+                height=238,
                 alignment=ft.Alignment(0, 0),
                 content=build_text(
                     "매출 기준 재고 데이터가 없습니다.",
@@ -487,16 +493,21 @@ def erp_stock_status_view():
 
         return build_base_box(
             expand=1,
+            height=310,  # 🔥 수정: 왼쪽 총 재고량 카드와 높이 통일
             padding=20,
             border_radius=16,
             content=ft.Column(
                 spacing=16,
                 controls=[
-                    build_text(
-                        section_data.get("title", "매출 TOP 3 재고"),
-                        size=18,
-                        color=TEXT_PRIMARY,
-                        weight=ft.FontWeight.W_700,
+                    ft.Container(
+                        height=24,
+                        alignment=ft.Alignment(-1, 0),
+                        content=build_text(
+                            section_data.get("title", "매출 TOP 3 재고"),
+                            size=18,
+                            color=TEXT_PRIMARY,
+                            weight=ft.FontWeight.W_700,
+                        ),
                     ),
                     item_area,
                 ],
@@ -512,10 +523,10 @@ def erp_stock_status_view():
 
         return ft.Container(
             width=180,
-            height=260,
+            height=310,
             bgcolor=CARD_BG,
             border_radius=12,
-            padding=12,
+            padding=20,  # 🔥 수정: 오른쪽 매출 TOP 3 재고 카드와 안쪽 여백 통일
             border=ft.border.all(1, BORDER_COLOR),
             ink=True,
             on_click=open_stock_product_detail_page,
@@ -609,6 +620,7 @@ def erp_stock_status_view():
 
         top_stock_holder.content = ft.Row(
             spacing=6,
+            vertical_alignment=ft.CrossAxisAlignment.START,  # 🔥 수정: 두 카드의 상단 기준선 통일
             controls=[
                 build_stock_summary_side_box(),
                 build_top_stock_box(section_data),

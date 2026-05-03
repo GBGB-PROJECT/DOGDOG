@@ -47,12 +47,10 @@ def banner(
                     height=50,
                     fit=ft.BoxFit.COVER,
                 ),
-            )
-            if image_src
-            else None
+            ) if image_src else ft.Container(width=50, height=50)
         ),
     )
-    left_slot.visible = False if image_src else True
+    # left_slot.visible = False if image_src else True
 
     center_slot = ft.Container(
         expand=True,

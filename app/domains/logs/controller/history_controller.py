@@ -17,23 +17,74 @@ class HistoryController:
         self.saved_tab_index = 0
 
     async def get_timeline_logs(self, pet_id: int):
+        """
+        [리팩터링] 세션 상태에 따라 주간/일간 모드를 판별하여 최적의 파라미터로 데이터를 Fetch합니다.
+        """
+        storage = self.page.session.store
+        query_params = {}
+
+        # 1. 주간/일간 모드 판별 및 파라미터 생성
+        weekly_data = storage.get("select_log_week")
+        daily_data = storage.get("select_log_date")
+
+        if weekly_data:
+            # [주간 모드] "YYYY.MM.DD ~ YYYY.MM.DD" 분리 및 포맷팅
+            try:
+                dates = weekly_data.split("~")
+                start_date = dates[0].strip().replace(".", "-")
+                end_date = dates[1].strip().replace(".", "-")
+                query_params = {"start_date": start_date, "end_date": end_date}
+            except Exception as e:
+                print(f"[HistoryController] 주간 날짜 파싱 실패: {e}")
+                query_params = {"date": datetime.datetime.now().strftime("%Y-%m-%d")}
+        
+        elif daily_data:
+            # [일간 모드] 특정 날짜 포맷팅
+            query_params = {"date": str(daily_data).replace(".", "-")}
+        
+        else:
+            # [기본값] 오늘 날짜
+            query_params = {"date": datetime.datetime.now().strftime("%Y-%m-%d")}
+
         try:
-            response = await self.api_client.get(f"/logs/{pet_id}")
+            # [DEBUG] API 호출 직전 파라미터 로그
+            print(f"[DEBUG] History API 요청: /logs/{pet_id} | Params: {query_params}")
+            
+            # 2. 통합 API 호출 (단일 호출)
+            response = await self.api_client.get(
+                f"/logs/{pet_id}", 
+                params=query_params
+            )
+            
             if response.status_code == 200:
-                return response.json().get("data", [])
-            else:
+                data = response.json()
+                print(f"[DEBUG] History API 응답 원본 수신 완료")
+                
+                # 무적의 파싱 로직 적용
+                if isinstance(data, list):
+                    return data
+                elif isinstance(data, dict):
+                    return data.get("data", [])
                 return []
-        except Exception:
+            else:
+                print(f"[HistoryController] API 호출 실패 (코드: {response.status_code})")
+                return []
+                
+        except Exception as e:
+            print(f"[ERROR] History 데이터 Fetch 중 상세 에러: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
             return []
 
     def get_filtered_logs_and_date_str(self, logs: list):
         """
-        [완벽 정렬 로직] datetime 객체로 변환하여 timestamp(숫자) 기반으로 절대 꼬이지 않게 정렬
+        [리팩터링] 통합 API 스키마(timestamp) 전용 파싱 및 하위 호환성 Key 주입 로직
         """
         storage = self.page.session.store
         now = datetime.datetime.now()
         today_str = now.strftime("%Y.%m.%d")
 
+        # 1. 필터링 기준 날짜 설정
         if storage.get("select_log_date"):
             date_str = storage.get("select_log_date")
             valid_dates = [date_str]
@@ -47,70 +98,48 @@ class HistoryController:
         filtered_logs = []
         for log in logs:
             try:
-                domain = log.get("domain", "")
-                pet_food = log.get("pet_food") or {}
-
-                # 1. 날짜 추출
-                raw_date = (
-                    log.get("log_date")
-                    or log.get("feeding_date")
-                    or log.get("date")
-                    or pet_food.get("feeding_date")
-                    or today_str.replace(".", "-")
-                )
-                d_str = str(raw_date).split("T")[0].split(" ")[0].strip()
-                if d_str.replace("-", ".") not in valid_dates:
+                # [해결 1] 단일 timestamp 기반 파싱 (레거시 객체 탐색 제거)
+                ts_raw = log.get("timestamp")
+                if not ts_raw:
                     continue
 
-                # 2. 시간 추출 및 UI 데이터 강제 덮어쓰기 (Data Masking)
-                if domain == "feeding":
-                    t_raw = (
-                        log.get("feeding_time")
-                        or log.get("time")
-                        or pet_food.get("feeding_time")
-                        or "00:00:00"
-                    )
-                    t_val = str(t_raw).split(".")[0].replace("Z", "").strip().split(" ")[-1]
-                    if len(t_val.split(":")) == 2:
-                        t_val += ":00"
+                # 날짜 및 시간 분리 (YYYY-MM-DDTHH:MM:SS)
+                dt_part = ts_raw.split("T")[0]  # YYYY-MM-DD
+                tm_part = ts_raw.split("T")[1][:5] if "T" in ts_raw else "00:00" # HH:MM
 
-                    sort_iso = f"{d_str}T{t_val}"
+                # [해결 2] 날짜 필터링 (API의 YYYY-MM-DD를 UI의 YYYY.MM.DD로 변환 후 비교)
+                ui_date_format = dt_part.replace("-", ".")
+                if ui_date_format not in valid_dates:
+                    continue
 
-                    # [Deep Masking] 1차: 최상위 log 객체 조작
-                    log["last_update"]  = sort_iso
-                    log["log_date"]     = sort_iso
-                    log["date"]         = sort_iso
-                    log["time"]         = t_val
-                    log["feeding_time"] = t_val
+                # [해결 3] 하위 호환성 Key 주입 (기존 View 컴포넌트 보호)
+                log["date"] = ui_date_format
+                log["time"] = tm_part
+                log["feeding_time"] = tm_part
+                log["log_date"] = ts_raw  # 원본 유지
+                log["display_time"] = log.get("display_time", tm_part)
 
-                    # [Deep Masking] 2차: 중첩된 pet_food 객체 내부까지 원천 봉쇄
-                    if "pet_food" in log and isinstance(log["pet_food"], dict):
-                        log["pet_food"]["last_update"]   = sort_iso
-                        log["pet_food"]["log_date"]      = sort_iso
-                        log["pet_food"]["feeding_date"]  = d_str
-                        log["pet_food"]["feeding_time"]  = t_val
-                        log["pet_food"]["time"]          = t_val
-                else:
-                    raw_log_date = str(log.get("log_date", f"{d_str}T00:00:00"))
-                    t_val = raw_log_date.replace(" ", "T").replace("Z", "").split(".")[0].split("T")[-1]
-                    if len(t_val.split(":")) == 2:
-                        t_val += ":00"
-
-                # 3. 완벽한 정렬을 위한 Timestamp 숫자 생성
+                # [해결 2] 초 단위 정밀 정렬을 위한 datetime 객체 변환 (.timestamp() 활용)
                 try:
-                    dt_obj = datetime.datetime.strptime(f"{d_str}T{t_val}", "%Y-%m-%dT%H:%M:%S")
-                    sort_ts = dt_obj.timestamp()
-                except:
-                    sort_ts = 0.0
+                    # ISO 문자열 전체를 파싱하여 Seconds/Microseconds까지 포함된 Float값 생성
+                    dt_obj = datetime.datetime.fromisoformat(ts_raw)
+                    log["sort_timestamp"] = dt_obj.timestamp()
+                except Exception as te:
+                    print(f"[HistoryController] Timestamp 정밀 파싱 실패 ({ts_raw}): {te}")
+                    log["sort_timestamp"] = 0.0
 
-                log["sort_timestamp"] = sort_ts
                 filtered_logs.append(log)
 
             except Exception as e:
-                print(f"[WARN] Log parsing error: {e}")
+                print(f"[HistoryController] 데이터 가공 중 오류: {e}")
 
-        # 오직 숫자(Timestamp) 기준으로만 내림차순 정렬 (도메인 구끄림 방지)
-        filtered_logs.sort(key=lambda x: x.get("sort_timestamp", 0.0), reverse=True)
+        # [해결] 튜플을 활용한 다중 정렬 (1차: 시간순, 2차: ID순)
+        # 시간이 동일하더라도 ID가 큰(최신) 데이터가 위로 오도록 확실하게 정렬합니다.
+        filtered_logs.sort(
+            key=lambda x: (x.get("sort_timestamp", 0.0), x.get("id", 0)), 
+            reverse=True
+        )
+        
         return filtered_logs, date_str
 
     def register_container(self, log_key: str, container):

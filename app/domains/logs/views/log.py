@@ -83,11 +83,31 @@ def log_view(page: ft.Page, controller):
             and controller.selected_date.day == day
         )
 
+        # [해결] 비동기 클로저 핸들러 생성 (클릭 시점의 일자 d를 고정)
+        def make_day_click_handler(d):
+            async def on_click(e):
+                # 1. 컨트롤러의 날짜 클릭 로직 실행 (비동기 대응)
+                import asyncio
+                if asyncio.iscoroutinefunction(controller.handle_day_click):
+                    await controller.handle_day_click(d)
+                else:
+                    controller.handle_day_click(d)
+                
+                # 2. 세션에 저장할 날짜 포맷팅 (YYYY.MM.DD)
+                date_str = f"{controller.current_year}.{controller.current_month:02d}.{d:02d}"
+                
+                # 3. 세션 스토리지 저장 및 라우팅 이동
+                page.session.store.set("select_log_date", date_str)
+                page.go("/history") # 상세 기록 페이지로 이동
+            
+            return on_click
+
         return ft.Container(
             width=CALENDAR_CELL_WIDTH,
             height=CALENDAR_CELL_WIDTH,
             alignment=ft.Alignment(0, 0),
-            on_click=lambda e, d=day: controller.handle_day_click(d),
+            # [해결] 기존 lambda를 지우고 안전한 비동기 핸들러로 교체
+            on_click=make_day_click_handler(day),
             content=ft.Container(
                 width=28,
                 height=28,
@@ -320,7 +340,7 @@ def log_view(page: ft.Page, controller):
     return [
         controller.calendar_container,
         dogdog.Txt(
-            "일주일 상세 기록", size=16, weight=ft.FontWeight.W_500, color=TEXT_PRIMARY
+            "일주일 상세 기록", size=16, weight="bold", color=TEXT_PRIMARY
         ),
         controller.detail_banner_area,
         dog_stat_card_section(),

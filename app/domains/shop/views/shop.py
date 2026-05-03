@@ -51,7 +51,7 @@ def product_guide(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
-    guide_image_size = page.width / 3.8 # type: ignore
+    guide_image_size = page.width / 4.4 # type: ignore
     product_image_size = page.width / 3.8 # type: ignore
     # ---------------------------------------------------------------------------------------------------
     # Guide Page Arrow Event
@@ -73,9 +73,9 @@ def product_guide(page: ft.Page):
     # ---------------------------------------------------------------------------------------------------    
     product_guide = ft.Tabs(
         length=4,
-        content=ft.Row(height=guide_image_size*1.5, margin=ft.margin.only(top=5), spacing=0, controls=[
+        content=ft.Row(height=guide_image_size*1.8, margin=ft.margin.only(top=5), spacing=0, controls=[
             ft.Container(
-                width=25,
+                width=17,
                 alignment=ft.Alignment.CENTER,
                 content=ft.IconButton(
                     icon=ft.Icons.ARROW_BACK_IOS,
@@ -97,7 +97,7 @@ def product_guide(page: ft.Page):
                 ]
             ),
             ft.Container(
-                width=25,
+                width=17,
                 alignment=ft.Alignment.CENTER,
                 content=ft.IconButton(
                     icon=ft.Icons.ARROW_FORWARD_IOS,

@@ -400,7 +400,7 @@ def erp_stock_product_detail_view():
             selected_start["value"] is not None
             or selected_end["value"] is not None
             or (search_field.value or "").strip() != ""
-            or search_type_value["value"] != "product_id"
+            or search_type_value["value"] != "product"
             or date_filter_type_value["value"] != "expiration_date"
             or (pagination_state["keyword"] or "").strip() != ""
         )
@@ -852,8 +852,8 @@ def erp_stock_product_detail_view():
 
         date_filter_type_value["value"] = "expiration_date"
         date_filter_text.value = date_filter_labels["expiration_date"]
-        search_type_value["value"] = "product_id"
-        search_type_text.value = search_type_labels["product_id"]
+        search_type_value["value"] = "product"
+        search_type_text.value = search_type_labels["product"]
         search_field.value = ""
 
         pagination_state["keyword"] = ""

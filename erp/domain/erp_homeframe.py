@@ -41,6 +41,7 @@ class ErpFrame(ft.Container):
 
         # ☑️ 초기 사이드바 세팅
         self.sidebar_area.content = ly.build_erp_sidebar(
+            page=page,
             selected_menu=self.selected_menu,
             on_menu_click=self._on_menu_click,
         )
@@ -89,6 +90,7 @@ class ErpFrame(ft.Container):
 
         # 🔥 확장 사이드바/선택 표시만 갱신
         self.sidebar_area.content = ly.build_erp_sidebar(
+            page = self.page,
             selected_menu=self.selected_menu,
             on_menu_click=self._on_menu_click,
         )

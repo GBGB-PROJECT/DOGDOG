@@ -45,13 +45,14 @@ def _menu_item(
 
 
 # 🔥 수정: 파란 로고 영역 높이를 오른쪽 topbar 높이와 동일하게 맞춤
-def _sidebar_brand_header():
+def _sidebar_brand_header(page: ft.Page):
     return ft.Container(
         height=SIDEBAR_HEADER_HEIGHT,
         width=BASE_SIDEBAR_WIDTH,
         bgcolor=com.MAIN_COLOR,
         padding=ft.padding.only(left=22),
         alignment=ft.Alignment(-1, 0),
+        on_click=lambda _: page.go("/home"),
         content=ft.Text(
             value="GAEBOBGAEBOB",
             size=22,
@@ -91,7 +92,7 @@ def _section_header(title: str, on_menu_click):
 
 
 # 🔥 수정: 확장형 공통 렌더 - 오른쪽 흰 화면 시작선과 회색 패널 시작선 일치
-def _build_expanded_sidebar(header_control, menu_controls):
+def _build_expanded_sidebar(page: ft.Page, header_control, menu_controls):
     return ft.Container(
         width=BASE_SIDEBAR_WIDTH,
         bgcolor=com.MAIN_COLOR,
@@ -100,7 +101,7 @@ def _build_expanded_sidebar(header_control, menu_controls):
             spacing=0,
             expand=True,
             controls=[
-                _sidebar_brand_header(),
+                _sidebar_brand_header(page),
 
                 # 🔥 수정: topbar 높이 68px 이후부터 회색 패널 시작
                 ft.Container(
@@ -142,7 +143,7 @@ def _build_expanded_menu_controls(items, selected_menu, on_menu_click, disabled_
     ]
 
 
-def build_erp_sidebar(selected_menu: str, on_menu_click):
+def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
     # ☑️ 추가: 재고관리 확장형
     if selected_menu in com.STOCK_ALL_ITEMS:
         is_product_open = selected_menu in ["상품 재고 관리"] + com.STOCK_PRODUCT_ITEMS
@@ -210,6 +211,7 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         )
 
         return _build_expanded_sidebar(
+            page=page,
             header_control=_section_header("재고관리", on_menu_click),
             menu_controls=stock_controls,
         )
@@ -225,6 +227,7 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         )
 
         return _build_expanded_sidebar(
+            page=page,
             header_control=_section_header("상품관리", on_menu_click),
             menu_controls=product_controls,
         )
@@ -241,6 +244,7 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         )
 
         return _build_expanded_sidebar(
+            page=page,
             header_control=_section_header("생산관리", on_menu_click),
             menu_controls=production_controls,
         )
@@ -257,6 +261,7 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         )
 
         return _build_expanded_sidebar(
+            page=page,
             header_control=_section_header("고객관리", on_menu_click),
             menu_controls=customer_controls,
         )
@@ -271,6 +276,7 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
         )
 
         return _build_expanded_sidebar(
+            page,page,
             header_control=_section_header("인사관리", on_menu_click),
             menu_controls=hr_controls,
         )
@@ -295,7 +301,7 @@ def build_erp_sidebar(selected_menu: str, on_menu_click):
             expand=True,
             controls=[
                 # 🔥 수정: 기본 사이드바도 확장 사이드바와 같은 높이 사용
-                _sidebar_brand_header(),
+                _sidebar_brand_header(page),
 
                 ft.Container(
                     expand=True,

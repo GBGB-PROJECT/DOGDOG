@@ -1,5 +1,6 @@
 import datetime
 import flet as ft
+import flet_charts as fch
 from api_client import ApiClient
 
 
@@ -91,23 +92,19 @@ class LogStatisticsController:
         return result
 
     def get_chart_points(self):
-        """합산 데이터를 차트 포인트로 변환 (공식 ft.LineChartDataPoint 마이그레이션)"""
-        unit_map = {"feeding": "g", "water": "ml", "walk": "분"}
-        unit = unit_map.get(self.current_category, "")
-        
+        """fch 전용: 툴팁 중복 방지를 위해 tooltip 인자를 제거한 데이터 포인트 생성"""
         return [
-            ft.LineChartDataPoint(
+            fch.LineChartDataPoint(
                 x=i, 
-                y=val, 
-                tooltip=f"{int(val)} {unit}"  # 공식 모듈에서 단위와 함께 단일 출력
+                y=val
             )
             for i, (_, val) in enumerate(self.weekly_data)
         ]
 
     def get_bottom_labels(self):
-        """차트 하단 요일 라벨 구성 (공식 ft.ChartAxisLabel)"""
+        """fch 규격 하단 요일 라벨 구성"""
         return [
-            ft.ChartAxisLabel(
+            fch.ChartAxisLabel(
                 value=i, label=ft.Text(day, size=11, weight="bold", color="#9E9E9E")
             )
             for i, (day, _) in enumerate(self.weekly_data)

@@ -109,15 +109,15 @@ def create_subscription_service(
                 )
 
         # 5. 결제수단 ID 유효성 검증
-        if body.payment_billing_id <= 0:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "success": False,
-                    "error_code": "INVALID_PAYMENT_BILLING_ID",
-                    "message": "유효하지 않은 결제수단 ID입니다.",
-                },
-            )
+        # if body.payment_billing_id <= 0:
+        #     return JSONResponse(
+        #         status_code=400,
+        #         content={
+        #             "success": False,
+        #             "error_code": "INVALID_PAYMENT_BILLING_ID",
+        #             "message": "유효하지 않은 결제수단 ID입니다.",
+        #         },
+        #     )
 
         # 6. 결제수단 확인
         billing = get_payment_billing(db, customer_id)

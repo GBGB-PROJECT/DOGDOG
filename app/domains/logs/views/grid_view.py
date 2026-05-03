@@ -172,11 +172,19 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
         guide_page.open = True
         page.update()
 
+    # [해결] 인라인 에러 메시지 필드 생성
+    error_message_field = ft.Text(value="", color=ft.Colors.RED_400, size=12, visible=False)
+    s_control.error_field = error_message_field # 컨트롤러와 연결
+
     # 공통 하단 컨트롤
     def add_bottom_controls(is_customer_detail):
         if is_customer_detail:
             bottom_sheet_contents.append(
                 ft.Row(spacing=30, alignment=ft.MainAxisAlignment.CENTER, controls=[data_button, time_button])
+            )
+            # 에러 필드를 버튼 바로 위에 배치
+            bottom_sheet_contents.append(
+                ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[error_message_field])
             )
             bottom_sheet_contents.append(
                 ft.Row(

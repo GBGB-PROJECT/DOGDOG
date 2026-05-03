@@ -96,7 +96,7 @@ class StatusController:
                 # [해결 2] category와 log_status를 기반으로 데이터 추출 및 매핑 (저장 단절 방지)
                 category = self.log_data.get("category")
                 log_status = self.log_data.get("log_status")
-                
+
                 try:
                     if category == "weight" and log_status is not None:
                         self.storage.set(f"{call}_float_weight", float(log_status))
@@ -174,6 +174,7 @@ class StatusController:
     async def save_event(self, call):
         """저장 버튼 클릭 시 API 호출 및 후처리"""
         import components as dogdog
+        import asyncio  # 비동기 딜레이를 위한 임포트
 
         pet_id = (
             self.storage.get("pet_id")
@@ -189,16 +190,51 @@ class StatusController:
         else:
             full_log_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
+        # [해결] 미래 시간 입력 방어 로직 (인라인 에러 메시지 방식 적용)
+        try:
+            target_dt = datetime.datetime.fromisoformat(full_log_date)
+            now_dt = datetime.datetime.now()
+
+            # [초기화] 에러 메시지 숨김
+            if hasattr(self, "error_field"):
+                self.error_field.visible = False
+                self.page.update()
+
+            if target_dt > now_dt:
+                if hasattr(self, "error_field"):
+                    # 인라인 에러 필드에 메시지 주입 및 표시
+                    self.error_field.value = "미래의 시간은 기록할 수 없습니다."
+                    self.error_field.visible = True
+                    self.page.update()
+                else:
+                    # 필드가 없을 경우를 대비한 안전 장치 (스낵바)
+                    self.page.snack_bar = ft.SnackBar(
+                        content=dogdog.basic_text("미래의 시간은 기록할 수 없습니다.")
+                    )
+                    self.page.snack_bar.open = True
+                    self.page.update()
+                return  # 저장 로직 중단
+
+        except Exception as e:
+            print(f"[DEBUG] 시간 비교 중 오류 발생: {e}")
+            if hasattr(self, "error_field"):
+                self.error_field.value = "시간 검증 중 오류가 발생했습니다."
+                self.error_field.visible = True
+                self.page.update()
+            return
+
         if call == "feeding":
             try:
                 # 세션에서 사료 ID 및 급여량 추출
                 food_id = self.storage.get("customer_food_id")
-                amount  = self.storage.get(f"{call}_weight")
+                amount = self.storage.get(f"{call}_weight")
 
                 # 필수 값 검증: 사료 ID 또는 급여량 누락 시 안내
                 if not food_id or not amount:
                     self.page.snack_bar = ft.SnackBar(
-                        content=dogdog.basic_text("사료 정보 또는 급여량을 입력해주세요.")
+                        content=dogdog.basic_text(
+                            "사료 정보 또는 급여량을 입력해주세요."
+                        )
                     )
                     self.page.snack_bar.open = True
                     self.page.update()
@@ -214,13 +250,15 @@ class StatusController:
                     req_time = self.storage.get(f"{call}_time") or "00:00"
 
                     payload = {
-                        "amount":           int(float(amount)),
-                        "memo":             str(self.storage.get(f"{call}_memo") or ""),
+                        "amount": int(float(amount)),
+                        "memo": str(self.storage.get(f"{call}_memo") or ""),
                         "new_feeding_date": req_date,
-                        "feeding_time":     f"{req_time}:00.000Z",
+                        "feeding_time": f"{req_time}:00.000Z",
                     }
 
-                    res = await self.api_client.patch(f"/logs/feeding/{log_id}", data=payload)
+                    res = await self.api_client.patch(
+                        f"/logs/feeding/{log_id}", data=payload
+                    )
                     if res.status_code in [200, 201]:
                         self.page.snack_bar = ft.SnackBar(
                             content=dogdog.basic_text(
@@ -241,7 +279,7 @@ class StatusController:
                         )
                         self.page.snack_bar.open = True
                         self.page.update()
-                    return
+                        return
                 else:
                     # [신규] 기존의 grid_ctrl.save_feeding_api 활용 (안정적인 기존 로직)
                     success = await self.grid_ctrl.save_feeding_api(call)
@@ -274,18 +312,34 @@ class StatusController:
                 try:
                     if log_category == "weight":
                         val = self.storage.get(f"{call}_float_weight")
-                        payload["log_status"] = float(val) if val is not None and str(val).strip() != "" else None
+                        payload["log_status"] = (
+                            float(val)
+                            if val is not None and str(val).strip() != ""
+                            else None
+                        )
                     elif log_category == "bcs":
                         val = self.storage.get(f"{call}_bcs_weight")
-                        payload["log_status"] = int(float(val)) if val is not None and str(val).strip() != "" else None
+                        payload["log_status"] = (
+                            int(float(val))
+                            if val is not None and str(val).strip() != ""
+                            else None
+                        )
                 except (ValueError, TypeError):
                     payload["log_status"] = None
             else:
                 # [신규 등록] 기존처럼 weight와 bcs 두 개를 모두 전송
                 w_val = self.storage.get(f"{call}_float_weight")
                 b_val = self.storage.get(f"{call}_bcs_weight")
-                payload["weight"] = float(w_val) if w_val is not None and str(w_val).strip() != "" else None
-                payload["bcs"] = int(float(b_val)) if b_val is not None and str(b_val).strip() != "" else None
+                payload["weight"] = (
+                    float(w_val)
+                    if w_val is not None and str(w_val).strip() != ""
+                    else None
+                )
+                payload["bcs"] = (
+                    int(float(b_val))
+                    if b_val is not None and str(b_val).strip() != ""
+                    else None
+                )
         elif call == "status_log":
             category = "status"
 

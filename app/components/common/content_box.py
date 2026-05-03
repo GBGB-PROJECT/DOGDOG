@@ -56,30 +56,37 @@ def log_container(page: ft.Page, pet_log_numeric_id, details):
     # 2. 메시지 변환 로직 (Domain 및 Category 분기 처리)
     domain = details.get("domain", "")
     category = details.get("category", "")  # numeric 도메인일 때 사용되는 세부 분류
-    amount = details.get("amount", 0)
+    amount_raw = details.get("amount", 0)
     unit = details.get("unit", "")
+
+    # [해결] 수치 데이터 포맷팅 (정수화 + 천 단위 콤마)
+    try:
+        amount_val = float(amount_raw)
+        formatted_amount = f"{amount_val:,.0f}"
+    except (ValueError, TypeError):
+        formatted_amount = str(amount_raw)
 
     # 2-1. 사료(feeding)는 독자적인 도메인이므로 최우선 처리
     if domain == "feeding":
-        product_name = details.get("product_name", "사료") # 사료명이 있으면 가져오고 없으면 '사료'
-        message = f"{product_name}를 {amount}{unit} 먹었습니다."
+        product_name = details.get("product_name", "사료") 
+        message = f"{product_name}를 {formatted_amount}{unit} 먹었습니다."
 
     # 2-2. numeric 도메인은 내부 category값에 따라 메시지 결정
     elif domain == "numeric":
         # 카테고리별 메시지 템플릿
         numeric_messages = {
-            "water": f"물을 {amount}{unit} 마셨습니다.",
-            "walk": f"산책을 {amount}분 했습니다.",
-            "poop": f"배변 기록을 {amount}점 남겼습니다.",
-            "bcs": f"BCS 기록을 {amount}점 남겼습니다.",
-            "weight": f"체중 기록을 {amount}kg 남겼습니다.",
+            "water": f"물을 {formatted_amount}{unit} 마셨습니다.",
+            "walk": f"산책을 {formatted_amount}분 했습니다.",
+            "poop": f"배변 기록을 {formatted_amount}점 남겼습니다.",
+            "bcs": f"BCS 기록을 {formatted_amount}점 남겼습니다.",
+            "weight": f"체중 기록을 {amount_raw}kg 남겼습니다.", # 체중은 소수점 유지 (Kg 예외)
         }
         # 매핑된 메시지가 있으면 사용하고, 없으면 기본 방어 문구 출력
-        message = numeric_messages.get(category, f"기록을 {amount}{unit} 남겼습니다.")
+        message = numeric_messages.get(category, f"기록을 {formatted_amount}{unit} 남겼습니다.")
 
     # 2-3. 그 외 알 수 없는 도메인 방어 코드
     else:
-        message = f"새로운 기록을 {amount}{unit} 남겼습니다."
+        message = f"새로운 기록을 {formatted_amount}{unit} 남겼습니다."
 
     # 3. UI 조립
     content = ft.Container(

@@ -111,7 +111,7 @@ def now_history(page: ft.Page, popup, stats_data: dict, history_logs: list, on_c
                             border_radius=10,
                         ),
                         dogdog.basic_text(
-                            value=f"{int(stats_data.get('current_kcal', 0))} / {int(stats_data.get('target_kcal', 0))}kcal",
+                            value=f"{int(stats_data.get('current_kcal', 0)):,} / {int(stats_data.get('target_kcal', 0)):,}kcal",
                             size=12,
                             color=ft.Colors.GREY_500,
                             weight="bold",
@@ -138,7 +138,7 @@ def feeding_food_count(page: ft.Page, content_page: str, inventory_stats: dict):
                 dogdog.basic_text(
                     spans=[
                         ft.TextSpan(
-                            f"{int(inventory_stats.get('left_intake', '???'))}g",
+                            f"{int(inventory_stats.get('left_intake', 0)):,}g",
                             style=dogdog.TextStyle(size=16, height=-1),
                         ),
                         ft.TextSpan(f" / {inventory_stats.get('total_weight_kg', 0.0)}Kg"),
@@ -148,7 +148,7 @@ def feeding_food_count(page: ft.Page, content_page: str, inventory_stats: dict):
                     size=16,
                 ),
                 dogdog.flat_button(
-                    f"{int(inventory_stats.get('left_days', '?'))} 일치 남음",
+                    f"{int(inventory_stats.get('left_days', 0)):,} 일치 남음",
                     scale=0.7,
                     disabled=True,
                 ),

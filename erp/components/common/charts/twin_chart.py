@@ -163,7 +163,7 @@ def _build_y_axis_labels(max_y):
 # - 생산관리만 axis_step_unit 옵션으로 축만 조정
 # =========================================================
 def build_twin_chart(
-    title="입출고 현황",
+    title="입출고 금액 현황",
     legend_primary="입고",
     legend_secondary="출고",
     unit_text="단위: 천원",
@@ -452,7 +452,7 @@ def build_twin_chart(
 # =========================================================
 def build_stock_twin_chart(chart_data=None):
     return build_twin_chart(
-        title="입출고 현황",
+        title="입출고 금액 현황",
         legend_primary="입고",
         legend_secondary="출고",
         unit_text="단위: 천원",

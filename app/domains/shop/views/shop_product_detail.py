@@ -14,10 +14,10 @@ class Default_data:
         self.popup = popup
         self.page = page
         self.storage = page.session.store
+        
         self.header_width = page.width / 3 # type: ignore
         # self.product_id = int(content_page.strip("/shop/product/"))
         self.product_id = int(content_page.split("/shop/product/")[-1])
-        # print(f"product_id: {self.product_id}")
         self.is_detail_page = False
 
         self.p_thumbnail = None
@@ -162,8 +162,8 @@ class Default_data:
             self.page.update()
         else:
             # print(self.product_id, self.bt_order_count_value)
-            self.storage.set("select_product_id",self.product_id)
-            self.storage.set("select_product_quantity", self.bt_order_count_value)
+            self.storage.set("select_product_id",self.product_id) #***
+            self.storage.set("select_product_quantity", self.bt_order_count_value) #***
             self.page.go(f"/shop/{key}") if key != "subs_product_order" else self.page.go("/shop/subs_start")
     def show_event(self, text:str):
         self.page.show_dialog(

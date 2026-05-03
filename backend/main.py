@@ -13,8 +13,9 @@ from app.logs.api.feeding_api import router as feeding_router
 from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
 from app.products.products_api import router as products_router
 from app.onboarding.api.onboarding_api import router as onboarding_router
+from app.notifications.api.notifications_api import router as notifications_router
+from app.subscriptions.api.subscriptions_api import router as subscriptions_router
 from app.images_api import router as images_router
-
 
 app = FastAPI(
     title="DOGDOG API",
@@ -76,9 +77,14 @@ app.include_router(calc_feeding_router)
 # 6. Products 도메인
 app.include_router(products_router)
 
+# 6. Notifications 도메인
+app.include_router(notifications_router)
+
+# 7. Subscriptions 도메인
+app.include_router(subscriptions_router)
+
 # 0. 이미지 프록시
 app.include_router(images_router)
-
 
 
 if __name__ == "__main__":

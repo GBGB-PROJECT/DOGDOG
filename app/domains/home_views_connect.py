@@ -310,6 +310,8 @@ async def home_tile(
             body_scroll_column.controls.append(domains.address_view(page=page))
         # -----------------------------------------------------------------------------------------------
         elif shop_content_page == "/order_list":
+            from domains.shop.controller.shop_subscription_api import get_subscription_status
+
             main_container_content.append(
                 dogdog.shop_top(page=page, text="주문 내역", content_page=content_page))
             body_scroll_column.controls.append(ft.Container(

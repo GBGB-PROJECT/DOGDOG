@@ -822,12 +822,12 @@ class OpdSubs(Base):
     __tablename__ = "subs"
     __table_args__ = {"schema": "OPD"}
 
-    subs_id = Column(Integer, primary_key=True)
+    subs_id = Column(Integer, primary_key=True, autoincrement=True)
     customer_id = Column(
         Integer, ForeignKey("OPD.customer.customer_id"), nullable=False, index=True
     )
     subs_plan_id = Column(
-        Integer, ForeignKey("OPD.subs_plan.subs_plan_id"), nullable=False, index=True
+        Integer, ForeignKey("OPD.subs_plan.subs_plan_id"), index=True
     )
     subs_date = Column(
         DateTime, primary_key=True, nullable=False, server_default=text("now()")

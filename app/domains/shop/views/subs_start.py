@@ -21,7 +21,11 @@ def subs_options(page: ft.Page, popup):
         page.go("/shop/subs_product_order")
     # ---------------------------------------------------------------------------------------------------
     def delivery_option_change(e, container):
-        # print(e.data)
+        is_auto_delivery = e.data == "yes"
+
+        storage.set("select_is_auto_delivery", is_auto_delivery)
+        storage.set("select_delivery_cycle", None if is_auto_delivery else 2)
+
         container_option = container.content.controls[2].content
         container_option.controls = ai_delivery_option if 'yes' == e.data else not_ai_delivery_option
         container.update()
@@ -34,7 +38,9 @@ def subs_options(page: ft.Page, popup):
         container_text = container.content.controls[0].controls[1]
         container_text.color = ft.Colors.BLACK
         if container == new_subs:
-            storage.set("select_subs", "new_subs")
+            storage.set("select_subs", "new_subs") #***
+            storage.set("select_is_auto_delivery", True) #***
+            storage.set("select_delivery_cycle", None) #***
             new_subs_option.visible = True
             add_subs.bgcolor = ft.Colors.WHITE
             add_subs_container_icon = add_subs.content.controls[0].controls[0] # type: ignore
@@ -43,7 +49,7 @@ def subs_options(page: ft.Page, popup):
             add_subs_container_text = add_subs.content.controls[0].controls[1] # type: ignore
             add_subs_container_text.color = ft.Colors.GREY_600
         else: 
-            storage.set("select_subs", "add_subs")
+            storage.set("select_subs", "add_subs") #***
             new_subs_option.visible = False
             new_subs.bgcolor = ft.Colors.WHITE
             new_subs_container_icon = new_subs.content.controls[0].controls[0] # type: ignore
@@ -78,7 +84,9 @@ def subs_options(page: ft.Page, popup):
         dogdog.basic_text("구매 배송주기 선택", weight="bold", color=ft.Colors.GREY_800),
         ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
             dogdog.radio_group(
-                value="2", on_change=None, contents=[
+                value="2", 
+                on_change=lambda e: storage.set("select_delivery_cycle", int(e.data)), 
+                contents=[
                     ft.Radio(value="2", label="2주", fill_color=ft.Colors.GREY_800, 
                         label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
                     ft.Radio(value="4", label="4주", fill_color=ft.Colors.GREY_800, 
@@ -103,8 +111,9 @@ def subs_options(page: ft.Page, popup):
         ], color=ft.Colors.GREY_600),
     ]
     # ---------------------------------------------------------------------------------------------------
+    # 구독자 여부 파악
     new_subs = dogdog.content_container(
-        on_click=lambda e:options_check(e, new_subs),
+        on_click=None,
         content_list=[
             ft.Row(height=60, controls=[
                 ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
@@ -115,7 +124,9 @@ def subs_options(page: ft.Page, popup):
         dogdog.basic_text("AI 자동배송 선택", weight="bold", color=ft.Colors.GREY_800),
         ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
             dogdog.radio_group(
-                value="yes", on_change=lambda e:delivery_option_change(e, new_subs_option), contents=[
+                value="yes", 
+                on_change=lambda e:delivery_option_change(e, new_subs_option), 
+                contents=[
                     ft.Radio(value="yes", label="예", fill_color=ft.Colors.GREY_800, 
                         label_style=dogdog.TextStyle(color=ft.Colors.GREY_800)),
                     ft.Radio(value="no", label="아니오", fill_color=ft.Colors.GREY_800, 
@@ -127,19 +138,61 @@ def subs_options(page: ft.Page, popup):
             expand=True,
             content=ft.Column(controls=ai_delivery_option)) # type: ignore
     ])
+        
     new_subs_option.visible = False
     add_subs = dogdog.content_container(
-        on_click=lambda e:options_check(e, add_subs),
-        content_list=[
-            ft.Row(height=60, controls=[
-                ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
-                dogdog.basic_text("나의 똑똑 배송에 추가하기", weight="bold", color=ft.Colors.GREY_600, size=16)
-    ])])
+        on_click=None,
+            content_list=[
+                ft.Row(height=60, controls=[
+                    ft.Icon(icon=ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.GREY_600, size=20),
+                    dogdog.basic_text("나의 똑똑 배송에 추가하기", weight="bold", color=ft.Colors.GREY_600, size=16)
+        ])])
+    
     dummy_container = ft.Container(expand=True)
     next_page = dogdog.continue_button(
         value="똑똑배송 시작하기", bgcolor="#E6001A", text_color=ft.Colors.WHITE, 
         on_click=lambda e: subs_options_check(e))
     next_page.visible = False
+
+    # ----------------------
+    new_subs.on_click = None
+    add_subs.on_click = None
+    new_subs.opacity = 0.4
+    add_subs.opacity = 0.4
+
+    async def load_subscription_state():
+        from domains.shop.controller.shop_subscription_api import get_subscription_status
+
+        result = await get_subscription_status(page)
+
+        if not result:
+            # 조회 실패 시 둘 다 막아두기
+            page.update()
+            return
+
+        is_subscribed = result.get("is_subscribed")
+        subscription = result.get("subscription")
+
+        storage.set("select_subscription", subscription)
+
+        # 기존 구독자
+        if is_subscribed:
+            new_subs.on_click = None
+            new_subs.opacity = 0.4
+
+            add_subs.on_click = lambda e: options_check(e, add_subs)
+            add_subs.opacity = 1
+        # 신규 구독자
+        else:
+            new_subs.on_click = lambda e: options_check(e, new_subs)
+            new_subs.opacity = 1
+
+            add_subs.on_click = None
+            add_subs.opacity = 0.4
+
+        page.update()
+
+    page.run_task(load_subscription_state)
     # ---------------------------------------------------------------------------------------------------
     content_column = [
         new_subs,

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
-from datetime import date
+from datetime import date, datetime
 from db.models import OpdSubsItem, OpdSalesOrderItem
 
 class DashboardRepo:

@@ -7,20 +7,26 @@ class DashboardService:
         self.repo = DashboardRepo(db)
 
     def get_dashboard_hightlight(self):
-        ## 0. 시스템 기준 날짜 기준점 계산산
         today = datetime.date.today()
         target_year = today.year
 
-        ### 월 범위 계산
+        ### 1. 월 범위 계산 (MTD 방식)
         month_start = today.replace(day=1)
-        if today.month == 12:
-            month_end = datetime.date(target_year, 12, 31)
-        else:
-            month_end = (today.replace(month=today.month + 1, day=1) - datetime.timedelta(days=1))
+        # 끝 날짜를 '오늘'로 고정하여 미래 데이터 차단
+        month_end = today 
 
-        ### 주간 범위 계산
+        ### 2. 주간 범위 계산 (WTD 방식)
         week_start = today - datetime.timedelta(days=today.weekday())
-        week_end = week_start + datetime.timedelta(days=6)
+        # 주간 역시 '오늘'까지만의 실적을 집계
+        week_end = today
+
+        # 3. 데이터 조회 (이제 5월 1일 ~ 5월 3일 데이터만 가져옵니다)
+        monthly_raw_amount = self.repo.get_sales_by_period(month_start, month_end)
+        monthly_amount = monthly_raw_amount if monthly_raw_amount is not None else 0
+        
+        # 주간 데이터도 동일하게 처리
+        weekly_raw_amount = self.repo.get_sales_by_period(week_start, week_end)
+        weekly_amount = weekly_raw_amount if weekly_raw_amount is not None else 0
 
         try:
             # 1. 원본데이터 조회
@@ -33,7 +39,7 @@ class DashboardService:
         if not highlight_data:
             return 404, "NOT_FOUND", f"{target_year}년도의 데이터가 존재하지 않습니다.", None
 
-        # 2. 매니저의 계산기 두드리기 타임!
+        # 2. 계산 시작
         total_amount = highlight_data["total_amount"] # 총 매출
         last_year_amount = highlight_data["last_year_amount"] # 지난 해
 
@@ -57,7 +63,10 @@ class DashboardService:
         weekly_target = monthly_target / 4.345 # 주간 목표 (월 목표 / 4.345)
 
         # 월간 기간 데이터(동적연결)
-        monthly_amount = self.repo.get_sales_by_period(month_start, month_end)
+        monthly_raw_amount = self.repo.get_sales_by_period(month_start, month_end)
+        monthly_amount = monthly_raw_amount if monthly_raw_amount is not None else 0
+        ### 디버깅 용도
+        print(f"Debug: {month_start} ~ {month_end}의 기간 매출액은 {monthly_amount}입니다.")
 
         # 주간 기간 데이터(동적 연결)
         weekly_amount = self.repo.get_sales_by_period(week_start, week_end)
@@ -75,9 +84,9 @@ class DashboardService:
         # 프론트엔드에서 목표 금액 텍스트를 그릴 때 쓸 수 있도록 같이 넘겨줍니다.
         highlight_data["yearly_target_amount"] = int(yearly_target_amount)
 
-        highlight_data["monthly_amount"] = monthly_amount
+        highlight_data["monthly_amount"] = int(monthly_amount) if monthly_amount is not None else 0
         highlight_data["monthly_target"] = int(monthly_target) # 금액은 소수점이 나오지 않게 int()로 정수 처리
-        highlight_data["monthly_achievement_rate"] = round(monthly_achievement_rate, 1) # 퍼센트는 소수점 첫째 자리까지
+        highlight_data["monthly_achievement_rate"] = round(monthly_achievement_rate, 1) if monthly_achievement_rate else 0.0
 
         highlight_data["weekly_amount"] = weekly_amount
         highlight_data["weekly_target"] = int(weekly_target)

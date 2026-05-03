@@ -276,7 +276,7 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
         )
 
         return _build_expanded_sidebar(
-            page,page,
+            page=page,
             header_control=_section_header("인사관리", on_menu_click),
             menu_controls=hr_controls,
         )

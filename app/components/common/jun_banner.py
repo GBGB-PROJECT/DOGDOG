@@ -59,7 +59,7 @@ def banner(
         alignment=ft.Alignment(0, 0),
         content=Txt(
             text,
-            size=18,
+            size=16,
             weight=ft.FontWeight.W_600,
             color=TEXT_PRIMARY,
             text_align=ft.TextAlign.CENTER,

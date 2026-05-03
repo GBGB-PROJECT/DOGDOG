@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.db import get_db
-from app.calc_feeding.repository.guideIntake_repository import get_guide_intake, get_feeding_count
+from app.calc_feeding.repository.guideIntake_repository import get_guide_intake, get_feeding_count, get_one_gram_calories
 from dependencies import get_pet_by_id, check_pet_owner, get_current_user
 from app.calc_feeding.cal_guideIntake_service import (
     create_feeding_recommendation_service,
@@ -115,17 +115,24 @@ def read_guide_intake(
 
         adjusted_per_meal = guide.guide_intake/feeding_count
 
+        # 제품 칼로리 조회 및 계산 로직 추가
+        one_gram_calories = get_one_gram_calories(db=db, pet_id=pet_id)
+        kcal_per_kg = 0
+        daily_total_kcal = 0
+        
+        if one_gram_calories:
+            kcal_per_kg = float(one_gram_calories) * 1000
+            daily_total_kcal = float(guide.guide_intake) * float(one_gram_calories)
+
         data = {
-                "pet_id":guide.pet_id,
-
-                "base_daily_food_g": guide.base_intake,
-                # "base_per_meal_g":guide.base_intake,
-
-                "adjusted_daily_food_g":guide.guide_intake,
-                "adjusted_per_meal_g":f"{adjusted_per_meal:.1f}",
-                "feeding_count":feeding_count,
-
-                "recommended_at":guide.guide_date
+                "pet_id": guide.pet_id,
+                "base_daily_food_g": float(guide.base_intake),
+                "adjusted_daily_food_g": float(guide.guide_intake),
+                "adjusted_per_meal_g": f"{adjusted_per_meal:.1f}",
+                "feeding_count": feeding_count,
+                "recommended_at": guide.guide_date,
+                "kcal_per_kg": int(kcal_per_kg),
+                "daily_total_kcal": round(daily_total_kcal, 1)
             }
 
         return {

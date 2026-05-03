@@ -106,7 +106,7 @@ def mypage_view(page: ft.Page, controller=None):
     def build_banners():
         return [
             dogdog.banner(
-                # image_src="대추.jpg",
+                image_src="dogclay.png",
                 text="내 반려동물 정보",
                 selected=(selected_banner["index"] == 0),
                 on_click=select_banner(0),

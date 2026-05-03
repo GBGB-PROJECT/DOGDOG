@@ -186,3 +186,13 @@ async def get_shop_product_detail(page, product_id: int):
     print(data["pdi_images"])
 
     return data
+
+async def get_feeding_guide(page, pet_id: int):
+    api = ApiClient(page)
+    response = await api.get(f"/calc_feeding/{pet_id}/guide")
+    if response.status_code != 200:
+        return None
+    result = response.json()
+    if result.get("success") is False:
+        return None
+    return result.get("data")

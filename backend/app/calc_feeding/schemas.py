@@ -15,6 +15,8 @@ class CalcFeedingRecommendationData(BaseModel):
     adjustment_reason: str
     recommend_kcal: float
     goal_weight: float
+    kcal_per_kg: Optional[float] = None
+    daily_total_kcal: Optional[float] = None
 
 class CalcFeedingRecommendationResponse(BaseModel):
     success: bool
@@ -28,6 +30,8 @@ class GuideIntakeData(BaseModel):
     adjusted_per_meal_g: str
     feeding_count: int
     recommended_at: datetime
+    kcal_per_kg: Optional[float] = None
+    daily_total_kcal: Optional[float] = None
 
 class GuideIntakeResponse(BaseModel):
     success: bool

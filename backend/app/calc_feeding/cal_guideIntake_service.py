@@ -10,7 +10,7 @@ from app.calc_feeding.repository.cal_guideIntake_repository import (
     get_feeding_count,
     create_feeding_recommendation,
 )
-from app.calc_feeding.repository.guideIntake_repository import get_guide_intake
+from app.calc_feeding.repository.guideIntake_repository import get_guide_intake, get_one_gram_calories
 
 # from app.ai.inference.predictor import predict_recommend_g
 from app.ai.recommend import predict_recommend_g
@@ -199,6 +199,15 @@ def create_feeding_recommendation_service(db: Session, pet_id: int, commit: bool
         commit=commit,
     )
 
+    # 추가: 제품 칼로리 조회 및 계산
+    one_gram_calories = get_one_gram_calories(db=db, pet_id=pet_id)
+    kcal_per_kg = 0
+    daily_total_kcal = 0
+    
+    if one_gram_calories:
+        kcal_per_kg = float(one_gram_calories) * 1000
+        daily_total_kcal = float(recommendation.guide_intake) * float(one_gram_calories)
+
     return {
         "pet_id": pet_id,
         "base_intake": recommendation.base_intake,
@@ -212,6 +221,8 @@ def create_feeding_recommendation_service(db: Session, pet_id: int, commit: bool
         "adjustment_reason": build_adjustment_reason(adjustment_ratio),
         "recommend_kcal": round(recommend_kcal, 2),
         "goal_weight": round(goal_weight, 2),
+        "kcal_per_kg": int(kcal_per_kg),
+        "daily_total_kcal": round(daily_total_kcal, 1),
     }
 def get_one_time_feeding_amount_service(db: Session, pet_id: int):
     """

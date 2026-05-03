@@ -310,17 +310,57 @@ async def home_tile(
             body_scroll_column.controls.append(domains.address_view(page=page))
         # -----------------------------------------------------------------------------------------------
         elif shop_content_page == "/order_list":
-            from domains.shop.controller.shop_subscription_api import get_subscription_status
+            import json
 
             main_container_content.append(
-                dogdog.shop_top(page=page, text="주문 내역", content_page=content_page))
-            body_scroll_column.controls.append(ft.Container(
-                padding=ft.Padding.only(left=20, right=20, top=20),
-                bgcolor="#ffffff",
-                content=ft.Column(
-                    controls=[dogdog.basic_text("주문 내역 더미 페이지")]
+                dogdog.shop_top(page=page, text="주문 내역", content_page=content_page)
+            )
+
+            subscription_json_text = ft.Text(
+                value="구독 내역을 불러오는 중입니다...",
+                selectable=True,
+                size=12,
+                font_family="Consolas",
+                color=ft.Colors.GREY_800,
+            )
+
+            body_scroll_column.controls.append(
+                ft.Container(
+                    padding=ft.Padding.only(left=20, right=20, top=20),
+                    bgcolor="#ffffff",
+                    content=ft.Column(
+                        controls=[
+                            dogdog.basic_text("구독 내역 조회 결과", size=16, weight="bold"),
+                            ft.Container(
+                                padding=10,
+                                bgcolor=ft.Colors.GREY_100,
+                                border_radius=8,
+                                content=subscription_json_text,
+                            ),
+                        ]
+                    ),
                 )
-            ))
+            )
+
+            async def load_subscription_json():
+                from domains.shop.controller.shop_subscription_api import get_subscription_status
+
+                result = await get_subscription_status(page)
+
+                if result is None:
+                    subscription_json_text.value = "구독 내역 조회 실패"
+                else:
+                    subscription_json_text.value = json.dumps(
+                        result,
+                        ensure_ascii=False,
+                        indent=2,
+                        default=str,
+                    )
+
+                page.update()
+
+            page.run_task(load_subscription_json)
+
         # -----------------------------------------------------------------------------------------------
         main_container_content.append(ft.Divider(height=1))
         main_container_content.append(

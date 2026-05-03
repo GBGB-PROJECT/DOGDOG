@@ -127,6 +127,6 @@ flet run app/main.py
 flet run erp/main.py
 
 # Flet 브라우저 실행
-flet run --web app/main.py
+flet run -r -w app/main.py
 flet run --web erp/main.py
 ```

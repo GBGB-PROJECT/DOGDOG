@@ -76,13 +76,14 @@ def get_active_subscription_by_customer_id(db: Session, customer_id: int):
 
 # 등록 ----------------------------------------------------------------------------------------------------------
 import numpy as np
+import uuid
 card_options = [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112]
 pay_options = [201, 202, 203, 204, 205, 206]
 def create_payment_billing(db: Session, customer_id: int, option:str):
     payment = OpdPaymentBilling(
         customer_id=customer_id,
         financial_company_id=np.random.choice(card_options) if option=="card" else np.random.choice(pay_options),
-        billing_key="0000 0000 0000 0000",
+        billing_key=str(uuid.uuid4()),
     )
     db.add(payment)
     db.flush()

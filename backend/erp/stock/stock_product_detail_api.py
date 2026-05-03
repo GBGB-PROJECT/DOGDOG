@@ -115,14 +115,11 @@ def build_response_rows(items: list, page: int, size: int):
 def get_stock_product_detail_list(
     search_type: Literal[
         "product",
-        "product_id",
-        "brand",
-        "product_name",
         "inbound_id",
         "inbound_status",
     ] = Query(
         default="product",
-        description="검색 조건",
+        description="검색 조건. product=상품ID/브랜드/상품명/중량 통합 검색",
         examples=["product"],
     ),
     keyword: str = Query(
@@ -160,7 +157,7 @@ def get_stock_product_detail_list(
     ),
 ):
     try:
-        clean_search_type = (search_type or "product_id").strip()
+        clean_search_type = (search_type or "product").strip()
         clean_keyword = (keyword or "").strip()
 
         total_count = count_stocks(

@@ -471,6 +471,38 @@ def fetch_month_total_stock_quantity(year=None, month=None):
 
     finally:
         db.close()
+
+
+# =========================================================
+# 🔥 유통기한 임박 재고
+# - 오늘 기준 30일 이내 만료 예정인 재고 행 개수
+# - 상품별 재고 상세 화면의 유통기한 DatePicker 필터와 같은 기준
+# =========================================================
+def count_expiring_stock_rows(days=30):
+    db = SessionLocal()
+
+    try:
+        today = date.today()
+        end_date = today + timedelta(days=int(days or 30))
+
+        return (
+            db.query(func.count())
+            .select_from(ErpStock)
+            .join(
+                ErpInbound,
+                ErpStock.inbound_id == ErpInbound.inbound_id,
+            )
+            .filter(ErpInbound.inbound_status_id == 103)
+            .filter(ErpStock.stock_available > 0)
+            .filter(ErpStock.expiration_date >= today)
+            .filter(ErpStock.expiration_date <= end_date)
+            .scalar()
+        ) or 0
+
+    finally:
+        db.close()
+
+
 def fetch_top_sales_stock_rows(limit=3, year=None, month=None):
     db = SessionLocal()
 
@@ -577,6 +609,7 @@ __all__ = [
     "fetch_recent_outbound_rows",
     "count_inbound_rows",
     "count_outbound_rows",
+    "count_expiring_stock_rows",
     "fetch_monthly_stock_chart",
     "fetch_month_total_stock_quantity",
     "fetch_top_sales_stock_rows",

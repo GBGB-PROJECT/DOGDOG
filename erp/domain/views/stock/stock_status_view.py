@@ -97,6 +97,9 @@ def _empty_dashboard_data(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_M
         "chart_data": [(f"{month_no}월", 0, 0) for month_no in range(1, 13)],
         "total_stock_quantity": 0,
         "total_stock_quantity_text": "0 ea",
+        "expiring_stock_count": 0,
+        "expiring_stock_count_text": "0건",
+        "expiring_stock_days": 30,
         "top_stock_section_data": {
             "title": "매출 TOP 3 재고",
             "items": [],
@@ -161,13 +164,17 @@ def erp_stock_status_view():
 
         set_stock_dashboard_month_state(state["year"], state["month"])
 
-        # 🔥 총 재고량 카드 클릭 시 상품별 재고 상세도 선택 월로 자동 필터링
-        # - 대시보드 총 재고량 기준과 맞추기 위해 유통기한이 아니라 입고 기준일로 전달
+        # 🔥 수정: 왼쪽 카드는 유통기한 임박 재고 확인용 이동 카드로 사용
+        # - 상품별 재고 상세의 기존 DatePicker 필터를 재사용한다.
+        today = datetime.now().date()
+        expiring_days = int(data.get("expiring_stock_days") or 30)
+        end_date = today + timedelta(days=expiring_days)
+
         set_stock_product_detail_prefilter(
-            start_date=data.get("month_start"),
-            end_date=data.get("month_end"),
-            date_filter_type="inbound_date",
-            search_type="product_id",
+            start_date=today.isoformat(),
+            end_date=end_date.isoformat(),
+            date_filter_type="expiration_date",
+            search_type="product",
             keyword="",
         )
 
@@ -467,16 +474,22 @@ def erp_stock_status_view():
         items = section_data.get("items", [])[:3]
 
         if items:
-            item_area = ft.Row(
-                spacing=12,
-                controls=[
-                    build_top_stock_item_box(item)
-                    for item in items
-                ],
+            item_area = ft.Container(
+                height=238,
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                content=ft.Row(
+                    spacing=12,
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        build_top_stock_item_box(item)
+                        for item in items
+                    ],
+                ),
             )
         else:
             item_area = ft.Container(
-                height=210,
+                height=238,
                 alignment=ft.Alignment(0, 0),
                 content=build_text(
                     "매출 기준 재고 데이터가 없습니다.",
@@ -487,16 +500,21 @@ def erp_stock_status_view():
 
         return build_base_box(
             expand=1,
+            height=310,  # 🔥 수정: 왼쪽 총 재고량 카드와 높이 통일
             padding=20,
             border_radius=16,
             content=ft.Column(
                 spacing=16,
                 controls=[
-                    build_text(
-                        section_data.get("title", "매출 TOP 3 재고"),
-                        size=18,
-                        color=TEXT_PRIMARY,
-                        weight=ft.FontWeight.W_700,
+                    ft.Container(
+                        height=24,
+                        alignment=ft.Alignment(-1, 0),
+                        content=build_text(
+                            section_data.get("title", "매출 TOP 3 재고"),
+                            size=18,
+                            color=TEXT_PRIMARY,
+                            weight=ft.FontWeight.W_700,
+                        ),
                     ),
                     item_area,
                 ],
@@ -508,14 +526,15 @@ def erp_stock_status_view():
             "current_month_text",
             f"{state['year']}년 {state['month']}월",
         )
-        total_stock_text = state["data"].get("total_stock_quantity_text") or "0 ea"
+        expiring_stock_text = state["data"].get("expiring_stock_count_text") or "0건"
+        expiring_days = int(state["data"].get("expiring_stock_days") or 30)
 
         return ft.Container(
             width=180,
-            height=260,
+            height=310,
             bgcolor=CARD_BG,
             border_radius=12,
-            padding=12,
+            padding=20,  # 🔥 수정: 오른쪽 매출 TOP 3 재고 카드와 안쪽 여백 통일
             border=ft.border.all(1, BORDER_COLOR),
             ink=True,
             on_click=open_stock_product_detail_page,
@@ -529,7 +548,7 @@ def erp_stock_status_view():
                             vertical_alignment=ft.CrossAxisAlignment.START,
                             controls=[
                                 ft.Text(
-                                    "총 재고량",
+                                    "유통기한 임박",
                                     size=16,
                                     weight=ft.FontWeight.W_700,
                                     color=TEXT_PRIMARY,
@@ -546,7 +565,7 @@ def erp_stock_status_view():
                         expand=True,
                         alignment=ft.Alignment(1, 0.42),
                         content=ft.Text(
-                            total_stock_text,
+                            expiring_stock_text,
                             size=22,
                             weight=ft.FontWeight.W_700,
                             color=TEXT_PRIMARY,
@@ -557,7 +576,7 @@ def erp_stock_status_view():
                         expand=True,
                         alignment=ft.Alignment(1, 1),
                         content=ft.Text(
-                            month_text,
+                            f"오늘 기준 {expiring_days}일 이내",
                             size=16,
                             weight=ft.FontWeight.W_700,
                             color=TEXT_PRIMARY,
@@ -609,6 +628,7 @@ def erp_stock_status_view():
 
         top_stock_holder.content = ft.Row(
             spacing=6,
+            vertical_alignment=ft.CrossAxisAlignment.START,  # 🔥 수정: 두 카드의 상단 기준선 통일
             controls=[
                 build_stock_summary_side_box(),
                 build_top_stock_box(section_data),

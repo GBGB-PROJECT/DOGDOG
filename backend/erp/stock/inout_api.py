@@ -34,11 +34,11 @@ def get_stock_inout(
         "inbound_id",
         "sales_order_id",
         "product",
-        "product_id",
-        "brand",
-        "product_name",
         "status",
-    ] = Query(default="all", description="검색조건"),
+    ] = Query(
+        default="all",
+        description="검색조건. all=전체, inout_type=구분, inbound_id=입고ID, sales_order_id=주문ID, product=상품ID/브랜드/상품명/중량 통합 검색, status=상태",
+    ),
     keyword: str = Query(default="", description="검색어"),
     inout_type: Literal["all", "inbound", "outbound", "입고", "출고"] = Query(
         default="all",

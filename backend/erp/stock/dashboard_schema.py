@@ -40,6 +40,9 @@ class ErpStockDashboardData(BaseModel):
     chart_data: list[Any]
     total_stock_quantity: int
     total_stock_quantity_text: str
+    expiring_stock_count: int = 0
+    expiring_stock_count_text: str = "0건"
+    expiring_stock_days: int = 30
     top_stock_section_data: ErpStockDashboardTopStockSection
 
 

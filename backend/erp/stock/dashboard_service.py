@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from .dashboard_repository import (
     count_inbound_rows,
     count_outbound_rows,
+    count_expiring_stock_rows,
     fetch_monthly_stock_chart,
     fetch_month_total_stock_quantity,
     fetch_recent_inbound_rows,
@@ -226,7 +227,10 @@ def fetch_stock_dashboard(year=None, month=None):
         month=target_month,
     )
 
-    # 🔥 선택 월에 입고 완료된 재고의 현재 남은 총 재고량
+    # 🔥 유통기한 임박 재고: 오늘 기준 30일 이내 만료 예정 재고 행 개수
+    expiring_stock_count = count_expiring_stock_rows(days=30)
+
+    # 🔥 기존 월 입고분 현재고 값은 호환성을 위해 유지
     total_stock_quantity = fetch_month_total_stock_quantity(
         year=target_year,
         month=target_month,
@@ -290,6 +294,9 @@ def fetch_stock_dashboard(year=None, month=None):
         "chart_data": _build_chart_data(monthly_data),
         "total_stock_quantity": _to_int(total_stock_quantity),
         "total_stock_quantity_text": _format_quantity(total_stock_quantity),
+        "expiring_stock_count": _to_int(expiring_stock_count),
+        "expiring_stock_count_text": _format_count_text(expiring_stock_count),
+        "expiring_stock_days": 30,
         "top_stock_section_data": top_stock_section_data,
     }
 

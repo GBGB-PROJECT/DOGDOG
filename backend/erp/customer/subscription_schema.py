@@ -18,6 +18,16 @@ class ErpCustomerSubscriptionItem(BaseModel):
     address: Any = None
     name: Any = None
     phone: Any = None
+    product_id: Any = None
+    product_ids: Any = None
+    product_brand: Any = None
+    product_name: Any = None
+    subscription_product: Any = None
+    subscription_products: Any = None
+    item_quantity: Any = None
+    total_quantity: Any = None
+    item_final_amount: Any = None
+    total_final_amount: Any = None
 
 
 class ErpCustomerSubscriptionPagination(BaseModel):

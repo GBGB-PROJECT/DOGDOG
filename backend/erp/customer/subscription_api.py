@@ -23,6 +23,8 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "subs_id": "구독ID",
+    # 🔥 추가/정리: 구독상품 검색조건은 상품명/브랜드/product_id 부분검색용
+    "subscription_product": "구독상품",
     "customer_id": "고객ID",
     "name": "구독자명",
     "phone": "전화번호",
@@ -54,6 +56,17 @@ def build_response_rows(items: list, page: int, size: int):
                 "address": row.get("address", ""),
                 "name": row.get("name", ""),
                 "phone": row.get("phone", ""),
+                # 🔥 재수정: 구독상품을 상품 1개 단위로 반환
+                "product_id": row.get("product_id", ""),
+                "product_ids": row.get("product_ids", ""),
+                "product_brand": row.get("product_brand", ""),
+                "product_name": row.get("product_name", ""),
+                "subscription_product": row.get("subscription_product", ""),
+                "subscription_products": row.get("subscription_products", ""),
+                "item_quantity": row.get("item_quantity", ""),
+                "total_quantity": row.get("total_quantity", ""),
+                "item_final_amount": row.get("item_final_amount", ""),
+                "total_final_amount": row.get("total_final_amount", ""),
             }
         )
 
@@ -65,7 +78,7 @@ def build_response_rows(items: list, page: int, size: int):
     summary="고객 구독 관리 목록 조회",
     description=(
         "고객 구독 관리 화면에서 사용하는 목록 조회 API입니다. "
-        "OPD.subs, OPD.subs_plan, OPD.subs_detail을 JOIN하여 구독 목록을 반환합니다."
+        "OPD.subs, OPD.subs_plan, OPD.subs_detail에 OPD.subs_item, OPD.product, OPD.product_detail을 연결해 구독 상품까지 반환합니다."
     ),
     response_model=ErpCustomerSubscriptionListResponse,  # 🔥 ERP 조회 응답 Schema 연결
 )
@@ -80,6 +93,7 @@ def get_customer_subscription_list(
         "is_auto_delivery",
         "delivery_cycle",
         "subs_day",
+        "subscription_product",
     ] = Query(
         default="subs_id",
         description="검색 조건",

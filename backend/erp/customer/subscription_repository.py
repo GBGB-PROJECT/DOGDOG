@@ -1,8 +1,8 @@
 # =========================================================
 # 🔥 고객 구독 관리 Repository
 # - OPD.subs + OPD.subs_plan + OPD.subs_detail JOIN
-# - subs_item은 제외
-#   이유: subs_item은 구독 상품 단위라서 JOIN하면 구독 1건이 여러 행으로 뻥튀기됨
+# - OPD.subs_item + OPD.product + OPD.product_detail 직접 JOIN
+#   이유: 고객이 구독 중인 상품을 상품별로 따로 확인해야 함
 # - 구독ID / 고객ID / 구독자명 / 전화번호 / 배송지 / 구독상태 / 자동배송 / 배송주기 / 신청요일 검색
 # - 구독플랜ID / 할인율은 화면 검색조건에서 제외
 # - 구독시작일(subs_date)은 DatePicker start_date/end_date로만 필터
@@ -10,15 +10,21 @@
 
 import datetime
 
-from sqlalchemy import cast, or_
+from sqlalchemy import cast, func, literal, or_
 from sqlalchemy.types import String
 
 from db.db import SessionLocal
-from db.models import OpdSubs, OpdSubsPlan, OpdSubsDetail
+from db.models import OpdProduct, OpdProductDetail, OpdSubs, OpdSubsItem, OpdSubsPlan, OpdSubsDetail
 from ..common.query_utils import like_keyword, normalize_bool_keyword
 
 
 def _base_query(db):
+    # =========================================================
+    # 🔥 재수정: 구독상품을 집계하지 않고 상품 1개 = 화면 1줄로 조회
+    # - 요청사항: x1/x2처럼 한 줄에 우겨넣지 말고 상품을 따로따로 보여준다.
+    # - subs_item을 직접 JOIN해서 구독상품별 행을 만든다.
+    # - product_detail의 brand/product_name을 가져와 사용자가 상품명을 바로 확인하게 한다.
+    # =========================================================
     return (
         db.query(
             OpdSubs.subs_id.label("subs_id"),
@@ -36,6 +42,13 @@ def _base_query(db):
             OpdSubsDetail.detail_address.label("detail_address"),
             OpdSubsDetail.name.label("name"),
             OpdSubsDetail.phone.label("phone"),
+
+            # 🔥 추가: 구독상품 1개 단위 표시용 컬럼
+            OpdSubsItem.product_id.label("product_id"),
+            OpdSubsItem.quantity.label("item_quantity"),
+            OpdSubsItem.final_amount.label("item_final_amount"),
+            OpdProductDetail.brand.label("product_brand"),
+            OpdProductDetail.product_name.label("product_name"),
         )
         .outerjoin(
             OpdSubsPlan,
@@ -45,8 +58,19 @@ def _base_query(db):
             OpdSubsDetail,
             OpdSubs.subs_id == OpdSubsDetail.subs_id,
         )
+        .outerjoin(
+            OpdSubsItem,
+            OpdSubs.subs_id == OpdSubsItem.subs_id,
+        )
+        .outerjoin(
+            OpdProduct,
+            OpdSubsItem.product_id == OpdProduct.product_id,
+        )
+        .outerjoin(
+            OpdProductDetail,
+            OpdProduct.product_detail_id == OpdProductDetail.product_detail_id,
+        )
     )
-
 
 def _normalize_start_datetime(value):
     if not value:
@@ -400,6 +424,25 @@ def _apply_filter(query, search_type, keyword):
             cast(OpdSubsDetail.phone, String).ilike(like_keyword(clean))
         )
 
+    if search_type == "subscription_product":
+        # =========================================================
+        # 🔥 추가/확인: 구독상품 부분검색
+        # - 상품ID 숫자 일부, 브랜드 일부, 상품명 일부 모두 검색 가능
+        # - 예: "크런치", "닭고기", "더리얼", "105"
+        # =========================================================
+        return query.filter(
+            or_(
+                cast(OpdSubsItem.product_id, String).ilike(like_keyword(clean)),
+                cast(OpdProductDetail.brand, String).ilike(like_keyword(clean)),
+                cast(OpdProductDetail.product_name, String).ilike(like_keyword(clean)),
+                func.concat(
+                    func.coalesce(cast(OpdProductDetail.brand, String), ""),
+                    " ",
+                    func.coalesce(cast(OpdProductDetail.product_name, String), ""),
+                ).ilike(like_keyword(clean)),
+            )
+        )
+
     return query
 
 
@@ -415,6 +458,31 @@ def _apply_date_filter(query, start_date=None, end_date=None):
 
     return query
 
+
+def _format_number(value):
+    if value is None:
+        return ""
+
+    try:
+        return f"{int(value):,}"
+    except Exception:
+        return str(value)
+
+
+def _format_product_name(brand, product_name, product_id):
+    brand_text = str(brand or "").strip()
+    name_text = str(product_name or "").strip()
+
+    if brand_text and name_text:
+        return f"{brand_text} {name_text}"
+
+    if name_text:
+        return name_text
+
+    if product_id:
+        return f"상품ID {product_id}"
+
+    return ""
 
 def _row_to_dict(row):
     address_text = str(row.address or "").strip()
@@ -434,6 +502,17 @@ def _row_to_dict(row):
         "address": full_address,
         "name": row.name,
         "phone": row.phone,
+        # 🔥 재수정: 상품을 집계하지 않고 구독상품 1개 단위로 내려준다.
+        "product_id": row.product_id or "",
+        "product_ids": row.product_id or "",  # 🔥 기존 프론트 호환용
+        "product_brand": row.product_brand or "",
+        "product_name": row.product_name or "",
+        "subscription_product": _format_product_name(row.product_brand, row.product_name, row.product_id),
+        "subscription_products": _format_product_name(row.product_brand, row.product_name, row.product_id),  # 🔥 기존 프론트 호환용
+        "item_quantity": _format_number(row.item_quantity),
+        "total_quantity": _format_number(row.item_quantity),  # 🔥 기존 프론트 호환용
+        "item_final_amount": _format_number(row.item_final_amount),
+        "total_final_amount": _format_number(row.item_final_amount),  # 🔥 기존 프론트 호환용
     }
 
 
@@ -483,6 +562,7 @@ def fetch_customer_subscriptions(
             query.order_by(
                 OpdSubs.subs_date.desc(),
                 OpdSubs.subs_id.desc(),
+                OpdSubsItem.product_id.asc(),
             )
             .limit(limit)
             .offset(offset)

@@ -13,7 +13,7 @@ from components.common.erp_view_layout import build_lookup_page_layout, build_lo
 
 # =========================================================
 # 🔥 고객 구독 관리 화면
-# - 구독 1건 = 화면 1줄 유지
+# - 구독상품 1개 = 화면 1줄 표시
 # - 고객ID와 구독자명을 한 칸으로 묶어 ID 노출을 줄임
 # - 구독플랜ID는 테이블에서 제거
 # - 구독시작일은 날짜만 표시
@@ -31,6 +31,30 @@ def format_datetime_text(value):
         return ""
     # 🔥 구독 관리 목록에서는 초 단위 시각보다 날짜가 중요하므로 날짜만 표시
     return str(value)[:10]
+
+
+def format_money_text(value):
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    return text if text.endswith("원") else f"{text}원"
+
+
+def split_subscription_products(value):
+    # 🔥 수정: 구독상품은 한 줄 생략이 아니라 상품별 줄 표시가 필요하므로 분리해서 보관
+    text = str(value or "").strip()
+    if not text:
+        return []
+
+    if "||" in text:
+        return [item.strip() for item in text.split("||") if item.strip()]
+
+    return [item.strip() for item in text.split(", ") if item.strip()]
+
+
+def format_subscription_products_for_text(value):
+    # 🔥 수정: 툴팁/검색 확인용 전체 텍스트
+    return "\n".join(split_subscription_products(value))
 
 
 def format_customer_subscriber(customer_id, subscriber_name):
@@ -62,6 +86,15 @@ def customer_subscription_db_row_adapter(db_rows: list, page_no: int):
                     row.get("name", ""),
                 ),
                 "subs_plan_id": row.get("subs_plan_id", ""),  # 🔥 테이블에는 숨기고 데이터만 유지
+                # 🔥 재수정: 구독상품을 한 줄에 합치지 않고 상품 1개 단위로 표시
+                "product_id": row.get("product_id", row.get("product_ids", "")),
+                "product_ids": row.get("product_ids", row.get("product_id", "")),
+                "subscription_product": row.get("subscription_product", row.get("subscription_products", "")),
+                "subscription_products": row.get("subscription_product", row.get("subscription_products", "")),
+                "item_quantity": row.get("item_quantity", row.get("total_quantity", "")),
+                "total_quantity": row.get("item_quantity", row.get("total_quantity", "")),
+                "item_final_amount": format_money_text(row.get("item_final_amount", row.get("total_final_amount", ""))),
+                "total_final_amount": format_money_text(row.get("item_final_amount", row.get("total_final_amount", ""))),
                 "subs_day": row.get("subs_day", ""),
                 "is_auto_delivery": row.get("is_auto_delivery", ""),
                 "delivery_cycle": row.get("delivery_cycle", ""),
@@ -115,19 +148,26 @@ def erp_customer_subscription_view():
     col_expand = {
         "no": 3,
         "subs_id": 4,
-        "customer_subscriber": 8,
+        "customer_subscriber": 7,
+        # 🔥 재수정: 상품 1개가 한 행으로 나오므로 상품명 컬럼만 넉넉히 확보
+        "subscription_products": 26,
+        "total_quantity": 4,
+        "total_final_amount": 6,
         "is_subs_status": 5,
         "is_auto_delivery": 4,
         "delivery_cycle": 4,
         "subs_day": 5,
         "subs_sale": 4,
-        "address": 10,
+        "address": 9,
         "phone": 7,
         "subs_date": 7,
     }
 
     search_type_labels = {
         "subs_id": "구독ID",
+        # 🔥 추가/정리: 구독상품 검색조건을 앞쪽에 배치
+        # - 상품명/브랜드/product_id 부분검색은 백엔드 subscription_product 조건에서 처리
+        "subscription_product": "구독상품",
         "customer_id": "고객ID",
         "name": "구독자명",
         "phone": "전화번호",
@@ -320,6 +360,28 @@ def erp_customer_subscription_view():
         content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
     )
 
+
+    def build_product_table_cell(product_text, expand):
+        # =========================================================
+        # 🔥 재수정: 구독상품 1개 = 화면 1줄
+        # - x1, x2 같은 축약 표기를 쓰지 않는다.
+        # - 여러 상품을 한 칸에 몰아넣지 않는다.
+        # - 테이블 안 글자는 다른 컬럼과 동일하게 중앙정렬한다.
+        # =========================================================
+        value = str(product_text or "").strip()
+
+        return ft.Container(
+            expand=expand,
+            alignment=ft.Alignment(0, 0),
+            tooltip=value,
+            content=ft.Text(
+                value=value,
+                size=11,
+                color=TEXT_ROW,
+                text_align=ft.TextAlign.CENTER,
+            ),
+        )
+
     def build_table_header():
         return ft.Container(
             bgcolor=TABLE_HEADER_BG,
@@ -332,6 +394,9 @@ def erp_customer_subscription_view():
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
                     build_table_cell("구독ID", col_expand["subs_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("고객ID / 구독자명", col_expand["customer_subscriber"], 0, ft.FontWeight.W_700),
+                    build_table_cell("구독상품", col_expand["subscription_products"], 0, ft.FontWeight.W_700),
+                    build_table_cell("수량", col_expand["total_quantity"], 0, ft.FontWeight.W_700),
+                    build_table_cell("최종금액", col_expand["total_final_amount"], 0, ft.FontWeight.W_700),
                     build_table_cell("구독상태", col_expand["is_subs_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("자동배송", col_expand["is_auto_delivery"], 0, ft.FontWeight.W_700),
                     build_table_cell("배송주기", col_expand["delivery_cycle"], 0, ft.FontWeight.W_700),
@@ -348,7 +413,7 @@ def erp_customer_subscription_view():
         status_color = "#059669" if row.get("is_subs_status") == "구독중" else "#F97316"
 
         return ft.Container(
-            padding=ft.Padding.only(left=14, right=14, top=14, bottom=14),
+            padding=ft.Padding.only(left=14, right=14, top=12, bottom=12),
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
             content=ft.Row(
@@ -359,6 +424,9 @@ def erp_customer_subscription_view():
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
                     build_table_cell(row.get("subs_id", ""), col_expand["subs_id"], 0),
                     build_table_cell(row.get("customer_subscriber", ""), col_expand["customer_subscriber"], 0),
+                    build_product_table_cell(row.get("subscription_products", ""), col_expand["subscription_products"]),
+                    build_table_cell(row.get("total_quantity", ""), col_expand["total_quantity"], 0),
+                    build_table_cell(row.get("total_final_amount", ""), col_expand["total_final_amount"], 0),
                     build_table_cell(
                         row.get("is_subs_status", ""),
                         col_expand["is_subs_status"],
@@ -498,8 +566,8 @@ def erp_customer_subscription_view():
             f"기간: {start_text} ~ {end_text} / "
             f"검색조건: {search_label} / "
             f"검색어: {keyword_text} / "
-            f"전체 구독 {pagination_state['total_count']}건 / "
-            f"현재 페이지 구독 {len(rows_state)}건 / "
+            f"전체 구독상품 {pagination_state['total_count']}건 / "
+            f"현재 페이지 구독상품 {len(rows_state)}건 / "
             f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
         )
 

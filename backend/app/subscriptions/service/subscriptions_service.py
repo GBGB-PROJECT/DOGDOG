@@ -120,7 +120,7 @@ def create_subscription_service(
             )
 
         # 6. 결제수단 확인
-        billing = get_payment_billing(db, body.payment_billing_id, customer_id)
+        billing = get_payment_billing(db, customer_id)
         if not billing:
             return JSONResponse(
                 status_code=404,
@@ -204,7 +204,7 @@ def create_subscription_service(
             print("subs", subs.customer_id)
 
         # 12. detail 생성
-        create_subs_detail(db, subs.subs_id, body.payment_billing_id, body)
+        create_subs_detail(db, subs.subs_id, billing.payment_billing_id, body)
 
         # 13. item 생성
         create_subs_item(

@@ -34,7 +34,7 @@ def subs_options(page: ft.Page, popup):
         container_text = container.content.controls[0].controls[1]
         container_text.color = ft.Colors.BLACK
         if container == new_subs:
-            storage.set("select_subs", "new_subs")
+            storage.set("select_subs", "new_subs") #***
             new_subs_option.visible = True
             add_subs.bgcolor = ft.Colors.WHITE
             add_subs_container_icon = add_subs.content.controls[0].controls[0] # type: ignore
@@ -43,7 +43,7 @@ def subs_options(page: ft.Page, popup):
             add_subs_container_text = add_subs.content.controls[0].controls[1] # type: ignore
             add_subs_container_text.color = ft.Colors.GREY_600
         else: 
-            storage.set("select_subs", "add_subs")
+            storage.set("select_subs", "add_subs") #***
             new_subs_option.visible = False
             new_subs.bgcolor = ft.Colors.WHITE
             new_subs_container_icon = new_subs.content.controls[0].controls[0] # type: ignore

@@ -30,10 +30,10 @@ def get_subs_plan(db: Session, delivery_cycle: int):
     ).scalar_one_or_none()
 
 
-def get_payment_billing(db: Session, billing_id: int, customer_id: int):
+def get_payment_billing(db: Session, customer_id: int):
     return db.execute(
         select(OpdPaymentBilling).where(
-            OpdPaymentBilling.payment_billing_id == billing_id,
+            # OpdPaymentBilling.payment_billing_id == billing_id,
             OpdPaymentBilling.customer_id == customer_id
         )
     ).scalar_one_or_none()

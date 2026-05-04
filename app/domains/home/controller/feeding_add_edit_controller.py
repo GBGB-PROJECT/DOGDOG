@@ -8,6 +8,7 @@ class FeedingAddEditController:
     [Controller] FeedingAddEditController
     역할: 사료의 신규 등록 및 수정을 전담하는 컨트롤러입니다.
     - 데이터 검증, API 통신, 세션 관리 및 삭제 확인 팝업 로직을 포함합니다.
+    - [QA 수정] 상태 동기화 및 비동기 처리 안정화 로직이 적용되었습니다.
     """
 
     def __init__(self, page: ft.Page, popup=None):
@@ -15,6 +16,33 @@ class FeedingAddEditController:
         self.popup = popup
         self.api_client = ApiClient(page)
         self.storage = page.session.store
+
+    def _clear_feeding_session(self):
+        """
+        [QA 수정] 등록/삭제 성공 시 세션의 사료 관련 정보를 강제로 청소합니다.
+        유령 데이터(과거 세션 캐시)를 방지하고 최신 서버 데이터를 가져오게 합니다.
+        """
+        keys_to_clear = [
+            "pet_food_detail", 
+            "select_feeding_data", 
+            "select_customer_food_id",
+            "food_text", 
+            "product_id", 
+            "food_weight"
+        ]
+        for key in keys_to_clear:
+            if self.storage.contains_key(key):
+                self.storage.remove(key)
+        
+        # 대시보드 인벤토리 및 사료 정보 즉시 초기화
+        customer_detail = self.storage.get("customer_detail") or {}
+        if "dashboard_sync" in customer_detail:
+            customer_detail["dashboard_sync"]["food_inventory"] = {}
+            customer_detail["dashboard_sync"]["current_food_info"] = None
+            self.storage.set("customer_detail", customer_detail)
+        
+        # UI 상태 동기화를 위해 페이지 업데이트
+        self.page.update()
 
     def get_initial_data(self, view_mode: str):
         """
@@ -48,20 +76,16 @@ class FeedingAddEditController:
             res = await self.api_client.post(f"/pets/{pet_id}/pet_food", data=payload)
 
             if res.status_code in [200, 201]:
-                # 성공 시 세션 정리 (목록 갱신 유도)
-                if self.storage.contains_key("pet_food_detail"):
-                    self.storage.remove("pet_food_detail")
-                if self.storage.contains_key("select_feeding_data"):
-                    self.storage.remove("select_feeding_data")
+                # [QA 수정] 1. 세션 캐시 강제 무효화 및 상태 업데이트
+                self._clear_feeding_session()
 
-                customer_detail = self.storage.get("customer_detail") or {}
-                if "dashboard_sync" in customer_detail:
-                    customer_detail["dashboard_sync"]["food_inventory"] = {}
-                    self.storage.set("customer_detail", customer_detail)
+                # [QA 수정] 4. 전역 알림(PubSub) 신호 추가 발송
+                self.page.pubsub.send_all("update_dashboard")
+                self.page.pubsub.send_all("refresh_feeding_list")
 
                 return True, "사료가 성공적으로 등록되었습니다."
             else:
-                # [QA 수정] 3. 상세 에러 로그 기록 (res.text)
+                # 상세 에러 로그 기록 (res.text)
                 detail = res.json().get("detail", "알 수 없는 오류")
                 print(f"❌ [로그] 컨트롤러: 등록 실패 ({res.status_code})")
                 print(f"❌ [로그] 서버 응답 상세: {res.text}")
@@ -77,17 +101,15 @@ class FeedingAddEditController:
         payload = {"total_weight": int(left_intake)}
 
         try:
-            # PATCH /api/v1/customer_food/{id} (가정)
             res = await self.api_client.patch(
                 f"/customer_food/{customer_food_id}", data=payload
             )
             if res.status_code == 200:
+                # 수정 시에도 리스트 갱신 신호 발송
+                self.page.pubsub.send_all("refresh_feeding_list")
                 return True, "사료 정보가 수정되었습니다."
             else:
-                return (
-                    False,
-                    f"수정 실패: {res.json().get('detail', '알 수 없는 오류')}",
-                )
+                return False, f"수정 실패: {res.json().get('detail', '알 수 없는 오류')}"
         except Exception as e:
             return False, f"서버 통신 오류: {str(e)}"
 
@@ -105,15 +127,19 @@ class FeedingAddEditController:
             print(f"👉 [로그] 컨트롤러: 삭제 API 호출 시작 (pet_id: {pet_id})")
             res = await self.api_client.delete(f"/pets/{pet_id}/pet_food")
 
-            if res.status_code == 200:
-                print("👉 [로그] 컨트롤러: 삭제 성공")
+            # [QA 수정] 2. 404 응답을 성공으로 간주 (Idempotency 보장)
+            if res.status_code in [200, 404]:
+                if res.status_code == 404:
+                    print(f"⚠️ [로그] 컨트롤러: 삭제 대상이 이미 존재하지 않음 (404) - {res.text}")
+                else:
+                    print("👉 [로그] 컨트롤러: 삭제 성공 (200)")
                 return True, "삭제되었습니다."
             else:
                 detail = res.json().get("detail", "알 수 없는 오류")
-                print(f"👉 [로그] 컨트롤러: 삭제 실패 ({res.status_code}) - {detail}")
+                print(f"❌ [로그] 컨트롤러: 삭제 실패 ({res.status_code}) - {res.text}")
                 return False, f"삭제 실패: {detail}"
         except Exception as e:
-            print(f"👉 [로그] 컨트롤러: 삭제 API 통신 오류 - {str(e)}")
+            print(f"❌ [로그] 컨트롤러: 삭제 API 통신 오류 - {str(e)}")
             return False, f"서버 통신 오류: {str(e)}"
 
     def show_delete_confirm_dialog(self, on_success_callback=None):
@@ -124,11 +150,9 @@ class FeedingAddEditController:
 
         async def on_confirm(e):
             print("👉 [로그] 컨트롤러: 삭제 확인 버튼 클릭 - API 연동 시작")
-            # 1. API 호출
             success, msg = await self.delete_feeding_product()
 
             if success:
-                # 2. 성공 시 처리
                 dialog.open = False
                 self.page.update()
 
@@ -138,29 +162,20 @@ class FeedingAddEditController:
                 )
                 self.page.snack_bar.open = True
 
-                # 3. 데이터 동기화 및 세션 정리 (빈 상태 반영)
-                self.storage.remove("pet_food_detail")
-                if self.storage.contains_key("select_feeding_data"):
-                    self.storage.remove("select_feeding_data")
-                if self.storage.contains_key("select_customer_food_id"):
-                    self.storage.remove("select_customer_food_id")
+                # [QA 수정] 1. 세션 캐시 강제 무효화
+                self._clear_feeding_session()
 
-                # 대시보드 통계 정보에서도 사료 관련 정보를 초기화하기 위해 전체 동기화 권장
-                customer_detail = self.storage.get("customer_detail") or {}
-                if "dashboard_sync" in customer_detail:
-                    customer_detail["dashboard_sync"]["food_inventory"] = {}
-                    self.storage.set("customer_detail", customer_detail)
+                # [QA 수정] 4. 전역 알림(PubSub) 신호 발송
+                self.page.pubsub.send_all("update_dashboard")
+                self.page.pubsub.send_all("refresh_feeding_list")
 
-                # 4. 화면 이동 (사료 리스트로 복귀)
+                # 리스트 화면으로 복귀
                 self.page.go("/feeding")
 
-                # 대시보드 갱신 알림 (PubSub)
-                self.page.pubsub.send_all("update_dashboard")
-
+                # [QA 수정] 3. 비동기 콜백 예약 (await 제거 - Flet 0.81.0 준수)
                 if on_success_callback:
                     self.page.run_task(on_success_callback)
             else:
-                # 4. 실패 시 처리
                 self.page.snack_bar = ft.SnackBar(
                     ft.Text(msg), bgcolor=ft.Colors.RED_400
                 )
@@ -182,7 +197,6 @@ class FeedingAddEditController:
             actions_alignment=ft.MainAxisAlignment.END,
         )
 
-        # [강력한 업데이트 방식] Overlay 추가 및 할당
         if dialog not in self.page.overlay:
             self.page.overlay.append(dialog)
         self.page.dialog = dialog
@@ -193,10 +207,7 @@ class FeedingAddEditController:
         """
         중복 등록 방지 알림창을 띄웁니다.
         """
-        print("👉 [로그] 컨트롤러: 중복 등록 에러 다이얼로그 함수 진입")
-
         def on_close(e):
-            print("👉 [로그] 컨트롤러: 중복 에러 확인 버튼 클릭")
             dialog.open = False
             self.page.update()
 
@@ -209,7 +220,6 @@ class FeedingAddEditController:
             actions_alignment=ft.MainAxisAlignment.END,
         )
 
-        # [강력한 업데이트 방식] Overlay 추가 및 할당 (Flet 0.81.0 대응)
         if dialog not in self.page.overlay:
             self.page.overlay.append(dialog)
         self.page.dialog = dialog

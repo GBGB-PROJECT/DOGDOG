@@ -37,7 +37,7 @@ class DashboardRepository:
         }
 
     def get_target_calories(self, pet_id: int):
-        """최신 추천 섭취량(guide_intake)을 조회합니다."""
+        """최신 추천 섭취량 및 목표 칼로리 정보를 조회합니다."""
         guide = (
             self.db.query(CompanionFeedingGuide)
             .filter(CompanionFeedingGuide.pet_id == pet_id)
@@ -55,7 +55,11 @@ class DashboardRepository:
                     OpdProduct.product_detail
                 )
             )
-            .filter_by(pet_id=pet_id, is_feeding_check=True)
+            .filter(
+                CompanionPetProductFeeding.pet_id == pet_id,
+                CompanionPetProductFeeding.is_feeding_check == True
+            )
+            .order_by(CompanionPetProductFeeding.last_update.desc())
             .first()
         )
 
@@ -63,18 +67,21 @@ class DashboardRepository:
         """사료 재고율 게이지를 위한 잔여량 및 제품 정보를 조회합니다."""
         result = (
             self.db.query(CompanionCustomerFood, OpdProduct)
-            .join(
+            .outerjoin(
                 CompanionPetProductFeeding,
                 CompanionCustomerFood.pet_id == CompanionPetProductFeeding.pet_id,
             )
-            .join(
+            .outerjoin(
                 OpdProduct,
                 CompanionPetProductFeeding.product_id == OpdProduct.product_id,
             )
             .filter(
                 CompanionCustomerFood.pet_id == pet_id,
-                CompanionPetProductFeeding.is_feeding_check == True,
+                # 급여 중인 사료 정보가 있는 경우 해당 건을 우선함
+                (CompanionPetProductFeeding.is_feeding_check == True) | 
+                (CompanionPetProductFeeding.is_feeding_check == None)
             )
+            .order_by(CompanionPetProductFeeding.last_update.desc().nullslast())
             .first()
         )
         return result

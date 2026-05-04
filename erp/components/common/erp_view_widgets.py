@@ -1,7 +1,5 @@
 import flet as ft
 
-from components.common.erp_busy_cursor import busy_cursor_control, with_busy_cursor
-
 from components.common.erp_view_style import (
     FIELD_BG,
     FIELD_BORDER,
@@ -90,29 +88,49 @@ def calendar_icon_box(on_click=None):
 
 def action_button(text, on_click=None, width=78, bgcolor=BUTTON_BG, color=BUTTON_TEXT):
     # 🔥 ERP 조회 화면 공통 액션 버튼
-    # - Flet 0.81.0에서는 Container(mouse_cursor=...)를 쓰지 않는다.
-    # - GestureDetector로 감싸서 조회/초기화/인쇄/다운로드/등록 버튼 위에서 progress 커서가 보이게 한다.
-    # - on_click 실행 중에는 ERP 전체 커서도 progress로 바꾼다.
-    return busy_cursor_control(
-        ft.Container(
-            width=width,
-            height=38,
-            bgcolor=bgcolor,
-            border=ft.Border.all(1, BUTTON_BORDER),
-            border_radius=6,
-            alignment=ft.Alignment(0, 0),
-            on_click=with_busy_cursor(on_click),
-            content=ft.Text(
-                value=text,
-                size=13,
-                color=color,
-                weight=ft.FontWeight.W_500,
-                text_align=ft.TextAlign.CENTER,
-                max_lines=1,
-                overflow=ft.TextOverflow.CLIP,
-            ),
-        )
+    # - 클릭 즉시 버튼 자체를 먼저 갱신해서 API 호출 전에도 반응이 보이게 한다.
+    button = ft.Container(
+        width=width,
+        height=38,
+        bgcolor=bgcolor,
+        border=ft.Border.all(1, BUTTON_BORDER),
+        border_radius=6,
+        alignment=ft.Alignment(0, 0),
+        ink=True,
+        content=ft.Text(
+            value=text,
+            size=13,
+            color=color,
+            weight=ft.FontWeight.W_500,
+            text_align=ft.TextAlign.CENTER,
+            max_lines=1,
+            overflow=ft.TextOverflow.CLIP,
+        ),
     )
+
+    def handle_click(e):
+        if on_click is None or getattr(button, "_erp_clicking", False):
+            return
+
+        setattr(button, "_erp_clicking", True)
+        button.opacity = 0.62
+        try:
+            button.update()
+        except Exception:
+            pass
+
+        try:
+            return on_click(e)
+        finally:
+            button.opacity = 1
+            setattr(button, "_erp_clicking", False)
+            try:
+                button.update()
+            except Exception:
+                pass
+
+    button.on_click = handle_click
+    return button
 
 
 def build_expand_table_cell(

@@ -1,18 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Domain Routers
-from app.pets.api.pets_api import router as pets_router
-from app.users.users_api import router as users_router
-from app.auth.api.auth_api import router as auth_router
-from app.logs.api.poop_api import router as poop_router
-from app.home.api.dashboard_api import router as dashboard_router
-from app.logs.api.logs_api import router as logs_router
-from app.logs.api.weight_bcs_api import router as weight_bcs_router
-from app.logs.api.feeding_api import router as feeding_router
-from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
-from app.products.products_api import router as products_router
-
 # Erp router
 from erp.auth.api.erp_signinup_api import router as erp_employee_router
 from erp.home.api.erp_home_api import router as erp_home_router
@@ -77,25 +65,6 @@ app.include_router(erp_employee_router)
 app.include_router(erp_home_router)
 app.include_router(erp_home_inventory_router)
 app.include_router(erp_home_chart_router)
-# 1. Auth & Users 도메인
-app.include_router(auth_router)
-app.include_router(users_router)
-
-# 2. Pets 도메인
-app.include_router(pets_router)
-
-# 3. Logs & Dashboard 도메인
-app.include_router(dashboard_router)
-app.include_router(logs_router)
-app.include_router(feeding_router)
-app.include_router(poop_router)
-app.include_router(weight_bcs_router)
-
-# 4. calc_feeding 도메인
-app.include_router(calc_feeding_router)
-
-# 5. Products 도메인
-app.include_router(products_router)
 
 # 🔥🔥🔥 추가: ERP 상품 상세 정보 관리 라우터 등록
 app.include_router(erp_merchandise_router)

@@ -3,7 +3,7 @@ from components import layout as ly
 
 # ☑️ route 기준 메뉴/뷰 연결용
 from components.common import content_move as hcm
-from components.common.erp_busy_cursor import go_with_busy_cursor, register_busy_cursor_host
+from components.common.erp_busy_cursor import register_busy_cursor_host
 
 
 class ErpFrame(ft.Container):
@@ -26,7 +26,7 @@ class ErpFrame(ft.Container):
             # 🔥 화면 이동 안정화
             # - 현재 프로젝트는 page.go() 기반으로 route_change가 정상 동작한다.
             # - push_route() 사용 시 로그인/메뉴 이동이 멈추는 환경이 있어 page.go()로 고정한다.
-            go_with_busy_cursor(self.main_page, target_route)
+            self.main_page.go(target_route)
 
         self._on_menu_click = on_menu_click
 
@@ -69,7 +69,7 @@ class ErpFrame(ft.Container):
         register_busy_cursor_host(page, self._root_busy_cursor)
         self.content = self._root_busy_cursor
 
-    def set_route(self, route: str):
+    def set_route(self, route: str, *, update: bool = False):
         """
         🔥 화면 전환 속도 개선
         - ErpFrame/topbar/전체 Row는 재생성하지 않는다.
@@ -82,6 +82,10 @@ class ErpFrame(ft.Container):
             normalized_route = hcm.DEFAULT_AUTH_ROUTE
             resolved_menu = hcm.get_menu_by_route(normalized_route)
 
+        if self.current_route == normalized_route:
+            return False
+
+        previous_menu = self.selected_menu
         self.current_route = normalized_route
         self.selected_menu = resolved_menu or "홈"
 
@@ -89,8 +93,17 @@ class ErpFrame(ft.Container):
         self.content_area.content = hcm.get_view_by_route(self.current_route)
 
         # 🔥 확장 사이드바/선택 표시만 갱신
-        self.sidebar_area.content = ly.build_erp_sidebar(
-            page = self.page,
-            selected_menu=self.selected_menu,
-            on_menu_click=self._on_menu_click,
-        )
+        sidebar_changed = previous_menu != self.selected_menu
+        if sidebar_changed:
+            self.sidebar_area.content = ly.build_erp_sidebar(
+                page=self.main_page,
+                selected_menu=self.selected_menu,
+                on_menu_click=self._on_menu_click,
+            )
+
+        if update:
+            self.content_area.update()
+            if sidebar_changed:
+                self.sidebar_area.update()
+
+        return True

@@ -20,7 +20,7 @@ from domain.erp_homeframe import ErpFrame
 from domain.views.auth.erp_login import ErpLoginView
 # 라우터 인식을 위해서 content_move를 연결
 from components.common import content_move as cm
-from components.common.erp_busy_cursor import go_with_busy_cursor, set_busy_cursor
+from components.common.erp_busy_cursor import set_busy_cursor
 
 
 def main(page: ft.Page):
@@ -29,11 +29,21 @@ def main(page: ft.Page):
     page.window_height = 800
     page.padding = 0
     page.bgcolor = ft.Colors.WHITE
+    page.theme = ft.Theme(
+            page_transitions=ft.PageTransitionsTheme(
+                android="None",  # type: ignore
+                ios="None",  # type: ignore
+                macos="None",  # type: ignore
+                linux="None",  # type: ignore
+                windows="None",  # type: ignore
+            ),
+        )
 
     # 🔥 화면 전환 속도 개선
     # - 건형님이 바꾼 ft.View 라우팅 구조는 유지한다.
     # - 단, 메뉴 이동마다 ErpFrame/sidebar/topbar를 새로 만들지 않도록 한 번 만든 프레임을 재사용한다.
     erp_frame_holder = {"frame": None}
+    erp_view_holder = {"view": None}
 
     def move_route(target_route: str):
         """
@@ -42,23 +52,23 @@ def main(page: ft.Page):
         - push_route()는 버전에 따라 on_route_change가 기대대로 돌지 않아
           로그인 성공 후 화면이 멈춘 것처럼 보일 수 있으므로 여기서는 page.go()를 유지한다.
         """
-        go_with_busy_cursor(page, target_route)
+        page.go(target_route)
 
     # router 기준의 단일 랜더 함수(router 변경 시 화면 조립)
     def render_route(route: str | None):
         normalized_route = cm.normalize_route(route)
 
-        # 화면 초기화 (page.clean 대신 views.clear 사용)
-        page.views.clear()
-
         # / or 빈 경로 => 로그인 화면 간주
         if normalized_route in ("/", cm.LOGIN_ROUTE):
             # 🔥 로그인 화면으로 돌아오면 이전 ERP 프레임 참조 제거
             erp_frame_holder["frame"] = None
+            erp_view_holder["view"] = None
 
             login_view = ErpLoginView(page, on_login_success=on_login_success)
             # ft.View 객체로 감싸서 views 배열에 추가
+            page.views.clear()
             page.views.append(ft.View(route=normalized_route, controls=[login_view]))
+            page.update()
         else:
             # 정의되지 않은 route => Home으로 보정
             resolved_menu = cm.get_menu_by_route(normalized_route)
@@ -68,21 +78,36 @@ def main(page: ft.Page):
             # 🔥 화면 전환 속도 개선
             # - 최초 진입 때만 ErpFrame을 생성한다.
             # - 이후 route 변경은 ErpFrame.set_route()로 우측 본문과 사이드바 선택 상태만 교체한다.
-            if erp_frame_holder["frame"] is None:
-                erp_frame_holder["frame"] = ErpFrame(page, current_route=normalized_route)
-            else:
-                erp_frame_holder["frame"].set_route(normalized_route)
-
-            # 메인 프레임을 ft.View 객체로 감싸서 추가
-            page.views.append(
-                ft.View(
-                    route=normalized_route,
-                    controls=[erp_frame_holder["frame"]],
-                )
+            frame = erp_frame_holder["frame"]
+            current_view = page.views[-1] if page.views else None
+            is_erp_view_mounted = (
+                frame is not None
+                and current_view is erp_view_holder["view"]
+                and frame in current_view.controls
             )
 
-        # 렌더링 후 화면 업데이트
-        page.update()
+            if frame is None:
+                frame = ErpFrame(page, current_route=normalized_route)
+                erp_frame_holder["frame"] = frame
+                erp_view_holder["view"] = ft.View(
+                    route=normalized_route,
+                    controls=[frame],
+                )
+                page.views.clear()
+                page.views.append(erp_view_holder["view"])
+                page.update()
+            elif is_erp_view_mounted:
+                current_view.route = normalized_route
+                frame.set_route(normalized_route, update=True)
+            else:
+                frame.set_route(normalized_route)
+                erp_view_holder["view"] = ft.View(
+                    route=normalized_route,
+                    controls=[frame],
+                )
+                page.views.clear()
+                page.views.append(erp_view_holder["view"])
+                page.update()
 
         # 🔥 route 렌더링이 끝나면 화면 이동용 progress cursor 복구
         set_busy_cursor(page, False)
@@ -102,6 +127,11 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
+    import logging, warnings
+
+    level = logging.INFO
+    logging.basicConfig(level=level)
+    warnings.filterwarnings(action="ignore")
     if os.getenv("FLET_NO_BROWSER"):
         webbrowser.open = lambda *args, **kwargs: None
 
@@ -109,5 +139,6 @@ if __name__ == "__main__":
         main,
         assets_dir="components/assets",
         view=ft.AppView.WEB_BROWSER,
+        web_renderer=ft.WebRenderer.CANVAS_KIT,
         port=34636,
     )

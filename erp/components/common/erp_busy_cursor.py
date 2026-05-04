@@ -37,11 +37,16 @@ def set_busy_cursor(page: ft.Page | None, busy: bool):
     if page is None:
         return
 
-    setattr(page, BUSY_CURSOR_STATE_ATTR, bool(busy))
+    next_busy = bool(busy)
+    current_busy = bool(getattr(page, BUSY_CURSOR_STATE_ATTR, False))
+    if current_busy == next_busy:
+        return
+
+    setattr(page, BUSY_CURSOR_STATE_ATTR, next_busy)
     host = getattr(page, BUSY_CURSOR_HOST_ATTR, None)
 
     if host is not None:
-        host.mouse_cursor = ft.MouseCursor.PROGRESS if busy else ft.MouseCursor.BASIC
+        host.mouse_cursor = ft.MouseCursor.PROGRESS if next_busy else ft.MouseCursor.BASIC
         _safe_update(host)
 
 
@@ -69,7 +74,6 @@ def go_with_busy_cursor(page: ft.Page | None, route: str):
     if page is None:
         return
 
-    set_busy_cursor(page, True)
     page.go(route)
 
 

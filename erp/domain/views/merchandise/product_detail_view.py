@@ -130,8 +130,10 @@ def erp_product_detail_view():
         "total_count": 0,
         "total_pages": 1,
         "keyword": "",
+        "search_type": "product_name",
         "page_ref": None,
     }
+    request_state = {"id": 0, "initial_loaded": False}
 
     result_text = ft.Text(
         value="DB 조회 전입니다.",
@@ -191,13 +193,26 @@ def erp_product_detail_view():
         )
         reset_button_holder.visible = has_filter
 
+    def update_lookup_controls():
+        for control in (
+            table_rows_holder,
+            pagination_holder,
+            result_text,
+            reset_button_holder,
+        ):
+            try:
+                control.update()
+            except Exception:
+                pass
+
     def set_search_type(value: str, page: ft.Page | None = None):
         search_type_value["value"] = value
         search_type_text.value = search_type_labels[value]
         update_reset_button_visibility()
 
         if page:
-            page.update()
+            search_type_text.update()
+            reset_button_holder.update()
         else:
             search_type_text.update()
 
@@ -342,16 +357,16 @@ def erp_product_detail_view():
     # ☑️ SQLAlchemy ORM: 상품 상세 count/list 조회
     # - OPD.product + OPD.product_detail JOIN 기반 조회
     # =========================================================
-    def fetch_total_count(keyword=""):
+    def fetch_total_count(keyword="", search_type=None):
         return count_product_join_rows(
-            search_type=search_type_value["value"],
+            search_type=search_type or search_type_value["value"],
             keyword=keyword,
         )
 
-    def fetch_product_rows(keyword="", page_no=1):
+    def fetch_product_rows(keyword="", page_no=1, search_type=None):
         offset = (page_no - 1) * PAGE_SIZE
         db_rows = fetch_product_join_rows(
-            search_type=search_type_value["value"],
+            search_type=search_type or search_type_value["value"],
             keyword=keyword,
             limit=PAGE_SIZE,
             offset=offset,
@@ -365,10 +380,14 @@ def erp_product_detail_view():
         if page_no > pagination_state["total_pages"]:
             return
 
-        pagination_state["current_page"] = page_no
-        pagination_state["page_ref"] = page
-        reload_current_page()
-        page.update()
+        start_lookup(
+            page,
+            keyword=pagination_state["keyword"],
+            page_no=page_no,
+            search_type=pagination_state["search_type"],
+            recalc_count=False,
+            loading_message=f"{page_no}페이지 조회 중...",
+        )
 
     def build_page_button(label, page_no=None, selected=False, disabled=False):
         text_color = ft.Colors.WHITE if selected else "#0F172A"
@@ -479,38 +498,57 @@ def erp_product_detail_view():
             ),
         )
 
-    def reload_current_page():
-        keyword = pagination_state["keyword"]
-        current_page = pagination_state["current_page"]
-
-        fetched_rows = fetch_product_rows(keyword, current_page)
+    def apply_loaded_rows(keyword, page_no, search_type, total_count, total_pages, fetched_rows):
+        pagination_state["keyword"] = keyword
+        pagination_state["current_page"] = page_no
+        pagination_state["search_type"] = search_type
+        pagination_state["total_count"] = total_count
+        pagination_state["total_pages"] = total_pages
 
         rows_state.clear()
         rows_state.extend(fetched_rows)
         refresh_table(rows_state)
         refresh_pagination()
 
-        if pagination_state["total_count"] == 0:
+        search_label = search_type_labels.get(search_type, search_type)
+
+        if total_count == 0:
             result_text.value = (
-                f"검색조건: {search_type_labels[search_type_value['value']]} / "
+                f"검색조건: {search_label} / "
                 f"검색어: {keyword if keyword else '없음'} / "
                 "일치하는 정보가 없습니다."
             )
             return
 
         result_text.value = (
-            f"검색조건: {search_type_labels[search_type_value['value']]} / "
+            f"검색조건: {search_label} / "
             f"검색어: {keyword if keyword else '없음'} / "
-            f"전체 {pagination_state['total_count']}건 / "
+            f"전체 {total_count}건 / "
             f"현재 {len(rows_state)}건 / "
-            f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
+            f"{page_no} / {total_pages} 페이지"
+        )
+
+    def reload_current_page():
+        keyword = pagination_state["keyword"]
+        current_page = pagination_state["current_page"]
+        search_type = pagination_state["search_type"]
+
+        fetched_rows = fetch_product_rows(keyword, current_page, search_type)
+        apply_loaded_rows(
+            keyword,
+            current_page,
+            search_type,
+            pagination_state["total_count"],
+            pagination_state["total_pages"],
+            fetched_rows,
         )
 
     def load_rows(page_ref: ft.Page | None = None):
         pagination_state["keyword"] = ""
         pagination_state["current_page"] = 1
+        pagination_state["search_type"] = search_type_value["value"]
         pagination_state["page_ref"] = page_ref
-        pagination_state["total_count"] = fetch_total_count("")
+        pagination_state["total_count"] = fetch_total_count("", pagination_state["search_type"])
         pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
         reload_current_page()
         update_reset_button_visibility()
@@ -520,11 +558,77 @@ def erp_product_detail_view():
 
         pagination_state["keyword"] = keyword
         pagination_state["current_page"] = 1
+        pagination_state["search_type"] = search_type_value["value"]
         pagination_state["page_ref"] = page_ref
-        pagination_state["total_count"] = fetch_total_count(keyword)
+        pagination_state["total_count"] = fetch_total_count(keyword, pagination_state["search_type"])
         pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
         reload_current_page()
         update_reset_button_visibility()
+
+    def set_lookup_loading(message: str):
+        result_text.value = message
+        table_rows_holder.controls.clear()
+        table_rows_holder.controls.append(build_empty_row(message))
+        pagination_holder.content = None
+
+    def start_lookup(
+        page_ref: ft.Page | None,
+        *,
+        keyword: str,
+        page_no: int = 1,
+        search_type: str | None = None,
+        recalc_count: bool = True,
+        loading_message: str = "조회 중...",
+    ):
+        if page_ref is None:
+            return
+
+        request_state["id"] += 1
+        request_id = request_state["id"]
+        selected_search_type = search_type or search_type_value["value"]
+
+        pagination_state["keyword"] = keyword
+        pagination_state["current_page"] = page_no
+        pagination_state["search_type"] = selected_search_type
+        pagination_state["page_ref"] = page_ref
+        update_reset_button_visibility()
+        set_lookup_loading(loading_message)
+        update_lookup_controls()
+
+        def worker():
+            try:
+                total_count = (
+                    fetch_total_count(keyword, selected_search_type)
+                    if recalc_count
+                    else pagination_state["total_count"]
+                )
+                total_pages = calc_total_pages(total_count, PAGE_SIZE)
+                rows = fetch_product_rows(keyword, page_no, selected_search_type)
+
+                if request_id != request_state["id"]:
+                    return
+
+                apply_loaded_rows(
+                    keyword,
+                    page_no,
+                    selected_search_type,
+                    total_count,
+                    total_pages,
+                    rows,
+                )
+            except Exception as exc:
+                if request_id == request_state["id"]:
+                    rows_state.clear()
+                    table_rows_holder.controls.clear()
+                    table_rows_holder.controls.append(build_empty_row("조회 중 오류가 발생했습니다."))
+                    pagination_holder.content = None
+                    result_text.value = f"DB 조회 실패: {exc}"
+            finally:
+                if request_id == request_state["id"]:
+                    update_reset_button_visibility()
+                    update_lookup_controls()
+
+        page_ref.run_thread(worker)
 
     def on_reset_click(e):
         # 🔥 추가: 검색조건/검색어를 기본값으로 되돌리고 첫 화면 재조회
@@ -536,15 +640,23 @@ def erp_product_detail_view():
         pagination_state["current_page"] = 1
         pagination_state["page_ref"] = e.page
 
-        load_rows(e.page)
-        update_reset_button_visibility()
-        e.page.update()
+        search_type_text.update()
+        search_field.update()
+        start_lookup(
+            e.page,
+            keyword="",
+            page_no=1,
+            search_type="product_name",
+            recalc_count=True,
+            loading_message="초기화 후 조회 중...",
+        )
 
     def close_register_modal(e):
         dim_bg.visible = False
         popup_layer.visible = False
         popup_layer.content = None
-        e.page.update()
+        dim_bg.update()
+        popup_layer.update()
 
     def clear_register_session(page: ft.Page):
         for field in PRODUCT_DETAIL_FIELDS:
@@ -572,19 +684,24 @@ def erp_product_detail_view():
         )
         dim_bg.visible = True
         popup_layer.visible = True
-        e.page.update()
+        dim_bg.update()
+        popup_layer.update()
 
     dim_bg.on_click = close_register_modal
-    search_field.on_submit = lambda e: (run_search(e.page), update_reset_button_visibility(), e.page.update())
+    search_field.on_submit = lambda e: start_lookup(
+        e.page,
+        keyword=(search_field.value or "").strip(),
+        page_no=1,
+        search_type=search_type_value["value"],
+        recalc_count=True,
+        loading_message="검색 중...",
+    )
 
     # 🔥 추가: 처음에는 숨겨두고, 검색조건/검색어가 생기면 표시
     reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
     update_reset_button_visibility()
 
-    try:
-        load_rows()
-    except Exception as exc:
-        result_text.value = f"DB 조회 실패: {exc}"
+    set_lookup_loading("화면 준비 중...")
 
     # =========================================================
     # 🔥 조회 화면 공통 레이아웃 적용
@@ -625,7 +742,7 @@ def erp_product_detail_view():
         ),
     )
 
-    return build_lookup_page_layout(
+    page_layout = build_lookup_page_layout(
         page_title=page_title,
         result_text=result_text,
         table_area=table_area,
@@ -636,10 +753,13 @@ def erp_product_detail_view():
             search_field,
             action_button(
                 "조회",
-                on_click=lambda e: (
-                    load_rows(e.page) if not (search_field.value or "").strip() else run_search(e.page),
-                    update_reset_button_visibility(),
-                    e.page.update(),
+                on_click=lambda e: start_lookup(
+                    e.page,
+                    keyword=(search_field.value or "").strip(),
+                    page_no=1,
+                    search_type=search_type_value["value"],
+                    recalc_count=True,
+                    loading_message="조회 중...",
                 ),
                 width=78,
             ),
@@ -648,3 +768,19 @@ def erp_product_detail_view():
             action_button("등록", on_click=open_register_modal, width=78),
         ],
     )
+
+    class ProductDetailPage(ft.Container):
+        def did_mount(self):
+            if request_state["initial_loaded"]:
+                return
+            request_state["initial_loaded"] = True
+            start_lookup(
+                self.page,
+                keyword="",
+                page_no=1,
+                search_type=search_type_value["value"],
+                recalc_count=True,
+                loading_message="조회 중...",
+            )
+
+    return ProductDetailPage(expand=True, content=page_layout)

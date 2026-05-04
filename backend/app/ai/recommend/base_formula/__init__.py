@@ -1,1 +1,0 @@
-from .food_amount_cal_add_size import calculate_base_g

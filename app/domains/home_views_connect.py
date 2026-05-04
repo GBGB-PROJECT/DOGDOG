@@ -201,7 +201,7 @@ async def home_tile(
         page.run_task(load_history_data)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding":
-        home_background , top_banner = dogdog.home_layout(page=page, text="급여 중인 제품")
+        home_background , top_banner = dogdog.home_layout(page=page, text="급여 중인 상품")
         main_container_content.append(top_banner)
         main_container_content.append(
             domains.feeding_view.feeding_tabs_view(
@@ -212,12 +212,12 @@ async def home_tile(
         )
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding_edit":
-        home_background , top_banner = dogdog.home_layout(page=page, text="제품 정보 변경")
+        home_background , top_banner = dogdog.home_layout(page=page, text="급여 상품 정보 변경")
         main_container_content.append(top_banner)
         main_container_content.append(domains.feeding_add_edit.feeding_add_edit(page=page, view="edit"))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding_add":
-        home_background , top_banner = dogdog.home_layout(page=page, text="제품 등록")
+        home_background , top_banner = dogdog.home_layout(page=page, text="급여 상품 신규 등록")
         main_container_content.append(top_banner)
         main_container_content.append(domains.feeding_add_edit.feeding_add_edit(page=page, view="add"))
     # ---------------------------------------------------------------------------------------------------

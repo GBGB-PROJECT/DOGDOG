@@ -20,9 +20,9 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
     storage = page.session.store
 
     def feeding_edit_event(e):
-        if storage.get("select_customer_food_id"):
+        if storage.contains_key("select_customer_food_id"):
             storage.remove("select_customer_food_id")
-        if storage.get("select_feeding_data"):
+        if storage.contains_key("select_feeding_data"):
             storage.remove("select_feeding_data")
         storage.set("select_customer_food_id", customer_food_id)
         # raw_data는 컨트롤러에서 원본 데이터를 넘겨준 것이라고 가정
@@ -37,10 +37,10 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
             expand=True,
             controls=[
                 dogdog.basic_text(
-                    spans=[ft.TextSpan(" 등록된 제품이 없습니다.")],
-                    color=ft.Colors.GREY_600,
-                    size=14,
-                )
+                    spans=[ft.TextSpan(" 등록된 상품이 없습니다.")],
+                color=ft.Colors.GREY_600,
+                size=14,
+            )
             ],
             alignment=ft.MainAxisAlignment.CENTER
         )
@@ -65,7 +65,7 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
             ),
             ft.Column(
                 controls=[
-                    dogdog.flat_button(text="변경", scale=0.8, on_click=feeding_edit_event)
+                    dogdog.flat_button(text="수정", scale=0.8, on_click=feeding_edit_event)
                 ]
             ),
         ]
@@ -196,10 +196,10 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None, feeding_detail_da
                             height=-1,
                         ),
                         dogdog.flat_button(
-                            text="사료 등록",
+                            text="상품 등록",
                             scale=0.8,
-                            icon=ft.Icons.EDIT,
-                            on_click=lambda _: page.go("/feeding_add"),
+                            #icon=ft.Icons.EDIT,
+                            on_click=lambda _: page.run_task(handle_add_product),
                         ),
                     ],
                 ),
@@ -210,5 +210,17 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None, feeding_detail_da
             ],
         ),
     )
+
+    async def handle_add_product():
+        print("👉 [로그] 뷰: [상품 등록] 버튼 클릭 이벤트 발생")
+        # [QA 수정] 현재 급여 중인 상품이 있는지 확인 (데이터가 존재하면 경고창)
+        if feeding_detail_data and feeding_detail_data.get("product_name"):
+            print("👉 [로그] 뷰: 기존 급여 상품 존재 확인 - 중복 등록 에러 다이얼로그 호출")
+            from domains.home.controller.feeding_add_edit_controller import FeedingAddEditController
+            temp_ctrl = FeedingAddEditController(page)
+            temp_ctrl.show_duplicate_error_dialog()
+        else:
+            # 데이터가 없을 때만 등록 화면으로 이동
+            page.go("/feeding_add")
 
     return feeding_view

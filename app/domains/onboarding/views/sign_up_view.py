@@ -15,7 +15,18 @@ def sign_up_view(page: ft.Page, controller, check_email_callback=None):
     # Default Value
     # -----------------------------------------------------------------------------------------------
     def email_on_change(e):
-        controller.update_field("user_email", e.control.value)
+        value = e.control.value
+        controller.update_field("user_email", value)
+        
+        if value:
+            is_valid, error_msg = controller.validate_email(value)
+            if not is_valid:
+                email_input.error_text = error_msg
+            else:
+                email_input.error_text = None
+        else:
+            email_input.error_text = None
+        email_input.update()
 
     def name_on_change(e):
         controller.update_field("user_name", e.control.value)
@@ -51,7 +62,7 @@ def sign_up_view(page: ft.Page, controller, check_email_callback=None):
         )
 
     email_input = dogdog.input_textfield(
-        hint_text="example@gmail.com",
+        hint_text="example@dogdog.com",
         max_length=None,  # type: ignore
         on_change=email_on_change,
         input_type="email",

@@ -82,7 +82,7 @@ def pet_food_view(page: ft.Page, popup, controller):
             pass
 
     selected_food_weight = dogdog.input_textfield(
-        hint_text="현재 급여 중인 사료의 잔여량을 적어주세요",
+        hint_text="현재 급여 중인 상품의 잔여량을 적어주세요",
         input_type="int",
         suffix="g",
         on_change=on_food_weight_change,
@@ -94,7 +94,7 @@ def pet_food_view(page: ft.Page, popup, controller):
     # Pet Feeding Food Page Assembly
     # ---------------------------------------------------------------------------------------------------
     content_column = [
-        dogdog.basic_text(value="현재 급여 중인 사료", weight="bold"),
+        dogdog.basic_text(value="현재 급여 중인 상품", weight="bold"),
         food_picker_field,
         product_weight_list,
         ft.Container(height=10),

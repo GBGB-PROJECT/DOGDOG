@@ -207,7 +207,7 @@ def notification_setting(page: ft.Page):
                 "사료 소진일 알림 설정\n",
                 style=dogdog.TextStyle(size=16, color=ft.Colors.GREY_800),
             ),
-            ft.TextSpan("제품이 소진되기 3일, 7일 전 미리 알림을 받을 수 있어요."),
+            ft.TextSpan("상품이 소진되기 3일, 7일 전 미리 알림을 받을 수 있어요."),
         ],
         color=ft.Colors.GREY_600,
         size=12,

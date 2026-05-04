@@ -281,7 +281,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
             # 기존 "등록된 제품이 없습니다" 로직 유지
             not_customer_detail = ft.Row(
                 height=100, alignment=ft.MainAxisAlignment.CENTER,
-                controls=[dogdog.basic_text("등록된 제품이 없습니다.", size=16, weight="bold", color=ft.Colors.GREY_600)],
+                controls=[dogdog.basic_text("등록된 상품이 없습니다.", size=16, weight="bold", color=ft.Colors.GREY_600)],
             )
             def go_to_add(e):
                 popup.bottom_sheet_popup.open = False

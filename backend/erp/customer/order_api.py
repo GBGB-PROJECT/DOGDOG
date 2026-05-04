@@ -51,6 +51,7 @@ def build_response_rows(items: list, page: int, size: int):
                 "retail_price": row.get("retail_price", ""),
                 "total_amount": row.get("total_amount", ""),
                 "payment_billing_id": row.get("payment_billing_id", ""),
+                "pay_number": row.get("pay_number", ""),
             }
         )
 

@@ -105,6 +105,16 @@ def format_number_text(value):
         return str(value)
 
 
+def _build_product_no(product_detail_id, product_id):
+    product_detail_id = str(product_detail_id or "").strip()
+    product_id = str(product_id or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+
+    return product_detail_id or product_id
+
+
 # =========================================================
 # 🔥 DB row -> 화면 row 변환
 # =========================================================
@@ -122,6 +132,8 @@ def defective_db_row_adapter(db_rows: list, page_no: int):
                 "supplier_name": row.get("supplier_name", ""),
                 "inbound_status": row.get("inbound_status", ""),
                 "product_id": row.get("product_id", ""),
+                "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": row.get("product_no") or _build_product_no(row.get("product_detail_id", ""), row.get("product_id", "")),  # 🔥 추가: 상품 상세 정보 관리와 동일한 상품번
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "defective": format_number_text(row.get("defective", "")),
@@ -212,15 +224,15 @@ def erp_defective_view():
     # =========================================================
     col_expand = {
         "no": 3,
-        # 🔥 수정: 상품ID/브랜드/상품명을 상품 컬럼 하나로 통합
-        "product": 18,
         "inbound_id": 5,
+        "product_no": 6,  # 🔥 추가: 상품 상세 정보 관리의 상품번과 동일한 형식
+        "product_name": 14,
         "supplier_name": 8,
-        "inbound_status": 6,
         "defective": 5,
         "purchase_price": 6,
         "defective_amount": 7,
         "inbound_complete": 7,
+        "inbound_status": 6,
         "employee_id": 5,
         "last_update": 8,
     }
@@ -230,7 +242,7 @@ def erp_defective_view():
         "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
         "inbound_status": "입고상태",
-        "product": "상품",
+        "product": "상품번/상품명",
         "employee_id": "담당자ID",
     }
 
@@ -410,15 +422,15 @@ def erp_defective_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상품", col_expand["product"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고ID", col_expand["inbound_id"], 0, ft.FontWeight.W_700),
-                    # 🔥 수정: 발주ID 컬럼 제거
+                    build_table_cell("상품번", col_expand["product_no"], 0, ft.FontWeight.W_700),  # 🔥 추가
+                    build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),
-                    build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("불량수량", col_expand["defective"], 0, ft.FontWeight.W_700),
                     build_table_cell("구매단가", col_expand["purchase_price"], 0, ft.FontWeight.W_700),
                     build_table_cell("불량손실액", col_expand["defective_amount"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고완료일", col_expand["inbound_complete"], 0, ft.FontWeight.W_700),
+                    build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),
                 ],
@@ -438,11 +450,10 @@ def erp_defective_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(product_display, col_expand["product"], 0),
                     build_table_cell(row.get("inbound_id", ""), col_expand["inbound_id"], 0),
-                    # 🔥 수정: 발주ID 컬럼 제거
+                    build_table_cell(row.get("product_no", ""), col_expand["product_no"], 0),  # 🔥 추가
+                    build_table_cell(row.get("product_name", ""), col_expand["product_name"], 0),
                     build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),
-                    build_table_cell(row.get("inbound_status", ""), col_expand["inbound_status"], 0),
                     build_table_cell(
                         row.get("defective", ""),
                         col_expand["defective"],
@@ -459,6 +470,7 @@ def erp_defective_view():
                         ACTION_RED,
                     ),
                     build_table_cell(row.get("inbound_complete", ""), col_expand["inbound_complete"], 0),
+                    build_table_cell(row.get("inbound_status", ""), col_expand["inbound_status"], 0),
                     build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
                     build_table_cell(row.get("last_update", ""), col_expand["last_update"], 0),
                 ],

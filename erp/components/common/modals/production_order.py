@@ -1,4 +1,6 @@
 import os
+import io
+import re
 import flet as ft
 from openpyxl import Workbook
 from openpyxl.styles import Border, Side, Alignment, PatternFill, Font
@@ -87,6 +89,18 @@ def to_int(value):
         return int(value)
     except:
         return 0
+
+
+def safe_excel_filename(value, default="production_order.xlsx"):
+    # 🔥 추가: 문서번호를 파일명에 써도 Windows 저장 오류가 나지 않도록 금지문자 제거
+    text = str(value or "").strip()
+    if not text:
+        return default
+
+    text = re.sub(r'[\\/:*?"<>|]', "_", text)
+    if not text.lower().endswith(".xlsx"):
+        text = f"{text}.xlsx"
+    return text
 
 
 def format_number(value):
@@ -778,24 +792,66 @@ class ProductionOrderDialog:
     # =====================================================
     # ☑️ 엑셀 내보내기 버튼
     # =====================================================
-    # ❌ build_excel_workbook()로 만든 워크북을 실제 .xlsx 파일로 저장하는 함수
-    # ❌ 저장 경로 결정, wb.save(), 저장 완료 메시지 출력이 전부 여기서 처리됨
-    def export_to_excel(self, e):
+    # 🔥 수정: 고정 경로 저장 방식 제거
+    # - 기존: production_order.py가 있는 폴더에 production_order.xlsx로 무조건 저장
+    # - 변경: 엑셀 내보내기 버튼 클릭 시 저장 대화상자를 띄워 사용자가 저장 위치와 파일명을 직접 선택
+    # - Web 실행 시에는 로컬 경로 접근이 제한되므로 src_bytes로 브라우저 다운로드 처리
+    async def export_to_excel(self, e):
         try:
             wb = self.build_excel_workbook()
+            default_file_name = safe_excel_filename(
+                self.doc_no.value,
+                default="production_order.xlsx",
+            )
 
-            # 🔥 핵심 수정 1: 상대경로 말고 현재 py 파일 기준 절대경로 사용
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            save_path = os.path.join(base_dir, "production_order.xlsx")
+            # 🔥 추가: Web 모드에서는 로컬 절대경로를 받을 수 없으므로 파일 바이트로 다운로드
+            if getattr(self.page, "web", False):
+                excel_buffer = io.BytesIO()
+                wb.save(excel_buffer)
+                excel_buffer.seek(0)
 
-            # 🔥 핵심 수정 2: 실제 저장
+                await ft.FilePicker().save_file(
+                    dialog_title="생산지시서 엑셀 저장",
+                    file_name=default_file_name,
+                    file_type=ft.FilePickerFileType.CUSTOM,
+                    allowed_extensions=["xlsx"],
+                    src_bytes=excel_buffer.getvalue(),
+                )
+
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"엑셀 파일 다운로드가 실행되었습니다. ({default_file_name})"),
+                    open=True,
+                )
+                self.page.update()
+                return
+
+            # 🔥 추가: Desktop 모드에서는 사용자가 저장 위치와 파일명을 직접 선택
+            save_path = await ft.FilePicker().save_file(
+                dialog_title="생산지시서 엑셀 저장",
+                file_name=default_file_name,
+                file_type=ft.FilePickerFileType.CUSTOM,
+                allowed_extensions=["xlsx"],
+            )
+
+            # 🔥 추가: 사용자가 저장 창에서 취소한 경우
+            if not save_path:
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text("엑셀 저장이 취소되었습니다."),
+                    open=True,
+                )
+                self.page.update()
+                return
+
+            # 🔥 추가: 사용자가 확장자를 지우고 저장해도 xlsx로 저장되게 보정
+            if not save_path.lower().endswith(".xlsx"):
+                save_path = f"{save_path}.xlsx"
+
             wb.save(save_path)
 
-            # 🔥 핵심 수정 3: 콘솔에도 저장 위치 출력
             print("엑셀 저장 완료:", save_path)
 
             self.page.snack_bar = ft.SnackBar(
-                content=ft.Text(f"엑셀 파일이 저장되었습니다.\n{save_path}"),
+                content=ft.Text(f"엑셀 파일이 저장되었습니다. ({save_path})"),
                 open=True,
             )
             self.page.update()

@@ -137,14 +137,14 @@ def erp_production_supplier_view():
 
     col_expand = {
         "no": 4,
-        "supplier_id": 6,
-        "supplier_name": 12,
+        "supplier_name": 14,
         "brn": 10,
-        "is_contact_status": 8,
+        "sup_manager": 8,
+        "employee_id": 7,
+        "phone": 10,
         "designated_payment_date": 8,
         "scheduled_payment_date": 10,
-        "employee_manager": 12,
-        "phone": 10,
+        "is_contact_status": 8,
         "last_update": 12,
     }
 
@@ -153,7 +153,6 @@ def erp_production_supplier_view():
     row_padding_y = 14
 
     search_type_labels = {
-        "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
         "brn": "사업자번호",
         "designated_payment_date": "지정결제일",  # 🔥 추가: 지정결제일도 검색조건에 포함
@@ -351,14 +350,14 @@ def erp_production_supplier_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("거래처ID", col_expand["supplier_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),  # 🔥 수정: 거래처명 중앙정렬
+                    build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),  # 🔥 수정: 거래처ID 컬럼 삭제
                     build_table_cell("사업자번호", col_expand["brn"], 0, ft.FontWeight.W_700),
-                    build_table_cell("연락상태", col_expand["is_contact_status"], 0, ft.FontWeight.W_700),
+                    build_table_cell("담당자명", col_expand["sup_manager"], 0, ft.FontWeight.W_700),
+                    build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
                     build_table_cell("지정결제일", col_expand["designated_payment_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("예정결제일", col_expand["scheduled_payment_date"], 0, ft.FontWeight.W_700),
-                    build_table_cell("담당자ID / 담당자명", col_expand["employee_manager"], 0, ft.FontWeight.W_700),
-                    build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
+                    build_table_cell("연락상태", col_expand["is_contact_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),
                 ],
             ),
@@ -382,9 +381,13 @@ def erp_production_supplier_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("supplier_id", ""), col_expand["supplier_id"], 0),
-                    build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),  # 🔥 수정: 거래처명 중앙정렬
+                    build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),  # 🔥 수정: 거래처ID 컬럼 삭제
                     build_table_cell(row.get("brn", ""), col_expand["brn"], 0),
+                    build_table_cell(row.get("sup_manager", ""), col_expand["sup_manager"], 0),
+                    build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
+                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
+                    build_table_cell(row.get("designated_payment_date", ""), col_expand["designated_payment_date"], 0),
+                    build_table_cell(row.get("scheduled_payment_date", ""), col_expand["scheduled_payment_date"], 0),
                     build_table_cell(
                         row.get("is_contact_status", ""),
                         col_expand["is_contact_status"],
@@ -392,10 +395,6 @@ def erp_production_supplier_view():
                         ft.FontWeight.W_700,
                         contact_color,
                     ),
-                    build_table_cell(row.get("designated_payment_date", ""), col_expand["designated_payment_date"], 0),
-                    build_table_cell(row.get("scheduled_payment_date", ""), col_expand["scheduled_payment_date"], 0),
-                    build_table_cell(row.get("employee_manager", ""), col_expand["employee_manager"], 0),
-                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
                     build_table_cell(row.get("last_update", ""), col_expand["last_update"], 0),
                 ],
             ),

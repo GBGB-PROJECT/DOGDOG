@@ -201,15 +201,14 @@ def erp_purchase_order_view():
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
         {"key": "purchase_order_id", "label": "발주ID", "width": 80, "align_x": 0},
-        {"key": "supplier_id", "label": "거래처ID", "width": 90, "align_x": 0},
         {"key": "supplier_name", "label": "거래처명", "width": 130, "align_x": 0},
         {"key": "contract_date", "label": "계약일자", "width": 110, "align_x": 0},
-        {"key": "inbound_scheduled_date", "label": "입고예정일", "width": 110, "align_x": 0},
-        {"key": "pay_status", "label": "결제상태", "width": 90, "align_x": 0},
-        {"key": "is_purchase_order_cancel", "label": "발주상태", "width": 90, "align_x": 0},  # 🔥 수정
-        {"key": "employee_id", "label": "담당자ID", "width": 90, "align_x": 0},
         {"key": "item_count", "label": "품목수", "width": 80, "align_x": 0},
         {"key": "final_amount_sum", "label": "최종금액합계", "width": 140, "align_x": 0},
+        {"key": "inbound_scheduled_date", "label": "입고예정일", "width": 110, "align_x": 0},
+        {"key": "is_purchase_order_cancel", "label": "발주상태", "width": 90, "align_x": 0},
+        {"key": "pay_status", "label": "결제상태", "width": 90, "align_x": 0},
+        {"key": "employee_id", "label": "담당자ID", "width": 90, "align_x": 0},
         {"key": "last_update", "label": "최종수정일", "width": 190, "align_x": 0},
     ]
 

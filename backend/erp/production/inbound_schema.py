@@ -13,6 +13,8 @@ class ErpProductionInboundItem(BaseModel):
 
     # 🔥 상품별 생산입고 현황 컬럼
     product_id: Any = None
+    product_detail_id: Any = None
+    product_no: Any = None
     brand: Any = None
     product_name: Any = None
     weight: Any = None

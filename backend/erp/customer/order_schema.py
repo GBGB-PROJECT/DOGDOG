@@ -23,6 +23,7 @@ class ErpCustomerOrderItem(BaseModel):
     retail_price: Any = None
     total_amount: Any = None
     payment_billing_id: Any = None
+    pay_number: Any = None
 
 
 class ErpCustomerOrderPagination(BaseModel):

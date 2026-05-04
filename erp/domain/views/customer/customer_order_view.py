@@ -130,6 +130,8 @@ def customer_order_db_row_adapter(db_rows: list, page_no: int):
                 "retail_price": format_money(row.get("retail_price", "")),
                 "total_amount": format_money(row.get("total_amount", "")),
                 "payment_billing_id": row.get("payment_billing_id", ""),
+                # 🔥 추가: OPD.payment.pay_number를 결제번호로 상세창에 표시한다.
+                "pay_number": row.get("pay_number", ""),
             }
         )
 
@@ -417,7 +419,7 @@ def erp_customer_order_view():
                         build_detail_line("판매단가", row.get("retail_price")),
                         build_detail_line("상품수량", row.get("quantity")),
                         build_detail_line("상품금액", row.get("total_amount")),
-                        build_detail_line("결제ID", row.get("payment_billing_id")),
+                        build_detail_line("결제번호", row.get("pay_number")),
                     ],
                 ),
             ),

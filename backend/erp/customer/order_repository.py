@@ -16,6 +16,7 @@ from db.db import SessionLocal
 from db.models import (
     OpdProduct,
     OpdProductDetail,
+    OpdPayment,
     OpdSalesOrder,
     OpdSalesOrderItem,
 )
@@ -34,6 +35,8 @@ def _base_query(db):
             OpdSalesOrder.address.label("address"),
             OpdSalesOrder.detail_address.label("detail_address"),
             OpdSalesOrder.payment_billing_id.label("payment_billing_id"),
+            # 🔥 추가: 화면 상세창의 결제ID 대신 OPD.payment.pay_number(결제번호)를 내려준다.
+            OpdPayment.pay_number.label("pay_number"),
             OpdSalesOrderItem.product_id.label("product_id"),
             OpdSalesOrderItem.quantity.label("quantity"),
             OpdSalesOrderItem.retail_price.label("retail_price"),
@@ -48,6 +51,11 @@ def _base_query(db):
         .outerjoin(
             OpdSalesOrderItem,
             OpdSalesOrder.sales_order_id == OpdSalesOrderItem.sales_order_id,
+        )
+        # 🔥 추가: OPD.payment.sales_order_id 기준으로 결제번호(pay_number)를 연결한다.
+        .outerjoin(
+            OpdPayment,
+            OpdSalesOrder.sales_order_id == OpdPayment.sales_order_id,
         )
         # 🔥 중요: 여기서 INNER JOIN을 쓰면 기존 주문상품 행이 사라질 수 있으므로 LEFT JOIN만 사용한다.
         .outerjoin(
@@ -257,6 +265,7 @@ def fetch_customer_orders(
                     "retail_price": row.retail_price,
                     "total_amount": row.total_amount,
                     "payment_billing_id": row.payment_billing_id,
+                    "pay_number": row.pay_number,
                 }
             )
 

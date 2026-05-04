@@ -340,7 +340,7 @@ async def home_tile(
                         ]
                     ),
                 )
-            )
+            ) 
 
             async def load_subscription_json():
                 from domains.shop.controller.shop_subscription_api import get_subscription_status

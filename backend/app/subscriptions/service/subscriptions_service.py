@@ -35,7 +35,7 @@ def read_subscription_service(db: Session, customer_id: int):
             "subs_id": subs.subs_id,
             "is_auto_delivery": subs.is_auto_delivery,
             "is_subs_status": subs.is_subs_status,
-            "delivery_cycle": subs_plan.delivery_cycle,
+            "delivery_cycle": subs_plan.delivery_cycle if subs_plan else None,
             "subs_day": subs.subs_day,
             "subs_item": subs_item.product_id,
             "recipient": recipient,

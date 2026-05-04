@@ -1,4 +1,5 @@
 from components import common as com
+from components.common.modals.under_production import DevPopup
 import flet as ft
 
 # ☑️ 추가: 폭 설정
@@ -10,6 +11,7 @@ SIDEBAR_HEADER_HEIGHT = 68
 
 # ☑️ 수정: 기존 함수 확장
 def _menu_item(
+    page: ft.Page,
     text: str,
     selected_menu: str,
     on_menu_click,
@@ -26,12 +28,24 @@ def _menu_item(
     # 🔥 수정: 비활성 메뉴도 글자색은 그대로 두고 클릭만 막는다.
     final_text_color = active_color if is_selected else text_color
 
+    ## 팝업제어 핸들러
+    def handle_click(e):
+        print(f"클릭됨: {text} | 비활성 여부: {is_disabled}")
+        if is_disabled:
+            # 1. 인스턴스 생성 (현재 활성화된 e.page 전달)
+            popup = DevPopup(e.page)
+            # 2. show() 메서드 호출
+            popup.show()
+        else:
+            # 정상 페이지 이동
+            on_menu_click(text)
+
     return ft.Container(
         width=BASE_SIDEBAR_WIDTH,
         bgcolor=active_bgcolor if is_selected else ft.Colors.TRANSPARENT,
         # 🔥 수정: Flet 0.81.0 Container에는 mouse_cursor 인자가 없어서 제거
         # - 비활성 메뉴는 on_click 자체를 None으로 빼서 클릭 자체를 막는다.
-        on_click=None if is_disabled else lambda e, menu=text: on_menu_click(menu),
+        on_click=handle_click,
         content=ft.Container(
             padding=ft.padding.only(left=left_padding, top=10, bottom=10, right=12),
             content=ft.Text(
@@ -125,11 +139,12 @@ def _build_expanded_sidebar(page: ft.Page, header_control, menu_controls):
 
 
 # ☑️ 추가: 확장 메뉴 공통 생성
-def _build_expanded_menu_controls(items, selected_menu, on_menu_click, disabled_items=None):
+def _build_expanded_menu_controls(page:ft.Page, items, selected_menu, on_menu_click, disabled_items=None):
     disabled_items = disabled_items or []
 
     return [
         _menu_item(
+            page=page,
             text=item,
             selected_menu=selected_menu,
             on_menu_click=on_menu_click,
@@ -150,6 +165,7 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
 
         stock_controls = [
             _menu_item(
+                page=page,
                 text="창고관리",
                 selected_menu=selected_menu,
                 on_menu_click=on_menu_click,
@@ -160,6 +176,7 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
                 is_disabled="창고관리" in com.DISABLED_STOCK_MENU_ITEMS,
             ),
             _menu_item(
+                page=page,
                 text="원자재 재고 관리",
                 selected_menu=selected_menu,
                 on_menu_click=on_menu_click,
@@ -170,6 +187,7 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
                 is_disabled="원자재 재고 관리" in com.DISABLED_STOCK_MENU_ITEMS,
             ),
             _menu_item(
+                page=page,
                 text="상품 재고 관리",
                 selected_menu=selected_menu,
                 on_menu_click=on_menu_click,
@@ -184,6 +202,7 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
             stock_controls.extend(
                 [
                     _menu_item(
+                        page=page,
                         text=item,
                         selected_menu=selected_menu,
                         on_menu_click=on_menu_click,
@@ -199,6 +218,7 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
 
         stock_controls.append(
             _menu_item(
+                page=page,
                 text="상품 부자재 관리",
                 selected_menu=selected_menu,
                 on_menu_click=on_menu_click,
@@ -219,9 +239,10 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
     # ☑️ 추가: 상품관리 확장형
     if selected_menu in com.PRODUCT_ALL_ITEMS:
         product_controls = _build_expanded_menu_controls(
-            com.PRODUCT_MAIN_ITEMS,
-            selected_menu,
-            on_menu_click,
+            page=page,
+            items=com.PRODUCT_MAIN_ITEMS,
+            selected_menu=selected_menu,
+            on_menu_click=on_menu_click,
             # 🔥 추가: 상품 상세 정보 관리만 클릭 가능, 나머지 3개는 클릭 불가
             disabled_items=com.DISABLED_PRODUCT_MENU_ITEMS,
         )
@@ -235,6 +256,7 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
     # ☑️ 추가: 생산관리 확장형
     if selected_menu in com.PRODUCTION_ALL_ITEMS:
         production_controls = _build_expanded_menu_controls(
+            page,
             com.PRODUCTION_MAIN_ITEMS,
             selected_menu,
             on_menu_click,
@@ -252,9 +274,10 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
     # 🔥 추가: 고객관리 확장형
     if selected_menu in com.CUSTOMER_ALL_ITEMS:
         customer_controls = _build_expanded_menu_controls(
-            com.CUSTOMER_MAIN_ITEMS,
-            selected_menu,
-            on_menu_click,
+            page=page,
+            items=com.CUSTOMER_MAIN_ITEMS,
+            selected_menu=selected_menu,
+            on_menu_click=on_menu_click,
             # 🔥 추가: 고객 정보/주문/구독 관리만 클릭 가능
             # 🔥 고객 문의 관리, 고객 센터 관리는 클릭 불가
             disabled_items=com.DISABLED_CUSTOMER_MENU_ITEMS,
@@ -276,13 +299,14 @@ def build_erp_sidebar(page:ft.Page, selected_menu: str, on_menu_click):
         )
 
         return _build_expanded_sidebar(
-            page=page,
+            page,page,
             header_control=_section_header("인사관리", on_menu_click),
             menu_controls=hr_controls,
         )
 
     menu_controls = [
         _menu_item(
+            page=page,
             text=item,
             selected_menu=selected_menu,
             on_menu_click=on_menu_click,

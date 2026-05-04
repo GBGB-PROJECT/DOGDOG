@@ -19,7 +19,7 @@ router = APIRouter(
 )
 
 SEARCH_TYPE_LABELS = {
-    "product": "상품",
+    "product": "상품번/상품명",
     "inbound_id": "입고ID",
     "inbound_status": "입고상태",
 }
@@ -83,6 +83,7 @@ def build_response_rows(items: list, page: int, size: int):
             {
                 "no": index,
                 "product_id": row.get("product_id", ""),
+                "product_detail_id": row.get("product_detail_id", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "weight": row.get("weight", ""),
@@ -119,7 +120,7 @@ def get_stock_product_detail_list(
         "inbound_status",
     ] = Query(
         default="product",
-        description="검색 조건. product=상품ID/브랜드/상품명/중량 통합 검색",
+        description="검색 조건. product=상품번/상품ID/상품상세ID/브랜드/상품명/중량 통합 검색",
         examples=["product"],
     ),
     keyword: str = Query(

@@ -43,6 +43,20 @@ def format_plain_number(value):
         return str(value)
 
 
+def build_product_no(row):
+    # 🔥 상품 상세 정보 관리의 상품번 형식과 동일하게 상품상세ID-상품ID로 표시
+    product_detail_id = str(row.get("product_detail_id") or "").strip()
+    product_id = str(row.get("product_id") or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+    if product_detail_id:
+        return product_detail_id
+    if product_id:
+        return product_id
+    return ""
+
+
 def build_full_table_cell(
     text,
     expand,
@@ -67,24 +81,19 @@ def build_full_table_cell(
 
 
 def build_product_display(row):
-    # 🔥 상품ID만 노출하지 않고 OPD.product_detail의 브랜드/상품명을 같이 표시
+    # 🔥 상품명에는 상품번을 섞지 않고 브랜드/상품명/중량만 표시
     brand = str(row.get("product_brand") or "").strip()
     product_name = str(row.get("product_name") or "").strip()
-    product_id = str(row.get("product_id") or "").strip()
     weight = format_plain_number(row.get("product_weight"))
 
     name = " ".join([part for part in [brand, product_name] if part]).strip()
     if not name:
         name = "상품명 없음"
 
-    spec_parts = []
     if weight:
-        spec_parts.append(f"{weight}g")
-    if product_id:
-        spec_parts.append(f"#{product_id}")
+        return f"{name} ({weight}g)"
 
-    spec_text = f" ({' / '.join(spec_parts)})" if spec_parts else ""
-    return f"{name}{spec_text}"
+    return name
 
 
 def format_datetime_text(value):
@@ -122,6 +131,7 @@ def customer_order_db_row_adapter(db_rows: list, page_no: int):
                 "address": row.get("address", ""),
                 "product_id": row.get("product_id", ""),
                 "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": build_product_no(row),
                 "product_brand": row.get("product_brand", ""),
                 "product_name": row.get("product_name", ""),
                 "product_weight": row.get("product_weight", ""),
@@ -172,12 +182,13 @@ def erp_customer_order_view():
     col_expand = {
         "no": 3,
         "order_number": 8,
+        "product_no": 6,
         "order_date": 7,
         "customer_id": 5,
         "recipient": 8,
         "phone": 7,
         "address": 12,
-        "product_display": 18,
+        "product_display": 17,
         "quantity": 4,
         "total_amount": 7,
     }
@@ -188,7 +199,7 @@ def erp_customer_order_view():
         "recipient": "배송수령인",
         "phone": "전화번호",
         "address": "배송지",
-        "product": "상품",  # 🔥 상품ID/브랜드/상품명 통합 검색
+        "product": "상품번/상품명",  # 🔥 상품번/브랜드/상품명 통합 검색
     }
 
     def format_date_text(value):
@@ -367,12 +378,13 @@ def erp_customer_order_view():
                 controls=[
                     build_full_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
                     build_full_table_cell("주문번호", col_expand["order_number"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("상품번", col_expand["product_no"], 0, ft.FontWeight.W_700),
                     build_full_table_cell("주문일", col_expand["order_date"], 0, ft.FontWeight.W_700),
                     build_full_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
                     build_full_table_cell("배송수령인", col_expand["recipient"], 0, ft.FontWeight.W_700),
                     build_full_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
                     build_full_table_cell("배송지", col_expand["address"], 0, ft.FontWeight.W_700),
-                    build_full_table_cell("상품", col_expand["product_display"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("상품명", col_expand["product_display"], 0, ft.FontWeight.W_700),
                     build_full_table_cell("상품수량", col_expand["quantity"], 0, ft.FontWeight.W_700),
                     build_full_table_cell("상품금액", col_expand["total_amount"], 0, ft.FontWeight.W_700),
                 ],
@@ -413,9 +425,9 @@ def erp_customer_order_view():
                         build_detail_line("배송수령인", row.get("recipient")),
                         build_detail_line("전화번호", row.get("phone")),
                         build_detail_line("배송지", row.get("address")),
-                        build_detail_line("상품", row.get("product_display")),
-                        build_detail_line("상품ID", row.get("product_id")),
+                        build_detail_line("상품명", row.get("product_display")),
                         build_detail_line("상품상세ID", row.get("product_detail_id")),
+                        build_detail_line("상품ID", row.get("product_id")),
                         build_detail_line("판매단가", row.get("retail_price")),
                         build_detail_line("상품수량", row.get("quantity")),
                         build_detail_line("상품금액", row.get("total_amount")),
@@ -449,6 +461,7 @@ def erp_customer_order_view():
                 controls=[
                     build_full_table_cell(row.get("no", ""), col_expand["no"], 0),
                     build_full_table_cell(row.get("order_number", ""), col_expand["order_number"], 0),
+                    build_full_table_cell(row.get("product_no", ""), col_expand["product_no"], 0),
                     build_full_table_cell(row.get("order_date", ""), col_expand["order_date"], 0),
                     build_full_table_cell(row.get("customer_id", ""), col_expand["customer_id"], 0),
                     build_full_table_cell(row.get("recipient", ""), col_expand["recipient"], 0),

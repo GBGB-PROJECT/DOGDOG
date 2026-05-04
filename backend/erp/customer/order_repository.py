@@ -9,7 +9,7 @@
 
 import datetime
 
-from sqlalchemy import cast, or_
+from sqlalchemy import cast, func, or_
 from sqlalchemy.types import String
 
 from db.db import SessionLocal
@@ -136,10 +136,18 @@ def _apply_filter(query, search_type, keyword):
             cast(OpdSalesOrder.customer_id, String).like(like_keyword(clean))
         )
 
-    # 🔥 추가: 상품 검색은 상품ID/브랜드/상품명 통합 검색으로 처리한다.
+    # 🔥 수정: 상품 검색은 상품번(상품상세ID-상품ID) / 상품ID / 상품상세ID / 브랜드 / 상품명을 모두 부분검색한다.
     if search_type == "product":
+        product_no_expr = func.concat(
+            cast(OpdProduct.product_detail_id, String),
+            "-",
+            cast(OpdSalesOrderItem.product_id, String),
+        )
+
         return query.filter(
             or_(
+                product_no_expr.like(like_keyword(clean)),
+                cast(OpdProduct.product_detail_id, String).like(like_keyword(clean)),
                 cast(OpdSalesOrderItem.product_id, String).like(like_keyword(clean)),
                 cast(OpdProductDetail.brand, String).ilike(like_keyword(clean)),
                 cast(OpdProductDetail.product_name, String).ilike(like_keyword(clean)),

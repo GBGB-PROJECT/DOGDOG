@@ -22,7 +22,7 @@ SEARCH_TYPE_LABELS = {
     "recipient": "배송수령인",
     "phone": "전화번호",
     "address": "배송지",
-    "product": "상품",  # 🔥 상품ID/브랜드/상품명 통합 검색
+    "product": "상품번/상품명",  # 🔥 상품번/브랜드/상품명 통합 검색
 }
 
 
@@ -74,7 +74,7 @@ def get_customer_orders(
         "recipient",
         "phone",
         "address",
-        "product",  # 🔥 상품ID/브랜드/상품명 통합 검색
+        "product",  # 🔥 상품번/브랜드/상품명 통합 검색
     ] = Query(
         default="order_number",
         description="검색 조건",

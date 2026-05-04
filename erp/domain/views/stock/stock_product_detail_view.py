@@ -109,22 +109,30 @@ def _format_date_only(value):
 
 
 
+def _build_product_no(row):
+    # 🔥 상품 상세 정보 관리의 상품번 형식과 동일하게 상품상세ID-상품ID로 표시
+    product_detail_id = str(row.get("product_detail_id") or "").strip()
+    product_id = str(row.get("product_id") or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+    if product_detail_id:
+        return product_detail_id
+    if product_id:
+        return product_id
+    return ""
+
+
 def _format_product_display(row):
+    # 🔥 상품명에는 상품번을 섞지 않고 브랜드/상품명/중량만 표시
     brand = str(row.get("brand") or "").strip()
     product_name = str(row.get("product_name") or "").strip()
     weight_text = str(row.get("weight_text") or "").strip()
-    product_id = row.get("product_id", "")
 
     product_main = f"{brand} {product_name}".strip() or "-"
 
-    product_meta = []
     if weight_text:
-        product_meta.append(weight_text)
-    if product_id not in [None, ""]:
-        product_meta.append(f"#{product_id}")
-
-    if product_meta:
-        return f"{product_main} ({' / '.join(product_meta)})"
+        return f"{product_main} ({weight_text})"
 
     return product_main
 
@@ -138,6 +146,8 @@ def stock_db_row_adapter(db_rows: list, page_no: int):
             {
                 "no": str(index),
                 "product_id": row.get("product_id", ""),
+                "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": _build_product_no(row),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "weight_text": row.get("weight_text", ""),
@@ -203,7 +213,7 @@ def erp_stock_product_detail_view():
     date_filter_type_value = {"value": initial_date_filter_type}
 
     search_type_labels = {
-        "product": "상품",
+        "product": "상품번/상품명",
         "inbound_id": "입고ID",
         "inbound_status": "입고상태",
     }
@@ -222,7 +232,8 @@ def erp_stock_product_detail_view():
     # =========================================================
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product", "label": "상품", "width": 480, "align_x": 0},
+        {"key": "product_no", "label": "상품번", "width": 100, "align_x": 0},
+        {"key": "product", "label": "상품명", "width": 420, "align_x": 0},
         {"key": "expiration_date", "label": "유통기한", "width": 120, "align_x": 0},
         # 🔥 총 재고량 카드 월 필터 근거 컬럼
         # - 이 날짜가 2026-06-01 ~ 2026-06-30 안에 들어가야 6월 입고 재고임을 화면에서 확인 가능
@@ -558,6 +569,60 @@ def erp_stock_product_detail_view():
             ),
         )
 
+    def build_detail_line(label, value):
+        return ft.Row(
+            spacing=10,
+            vertical_alignment=ft.CrossAxisAlignment.START,
+            controls=[
+                ft.Container(
+                    width=96,
+                    content=ft.Text(label, size=12, color=TEXT_SECONDARY, weight=ft.FontWeight.W_700),
+                ),
+                ft.Container(
+                    expand=True,
+                    content=ft.Text(str(value or "-"), size=12, color=TEXT_PRIMARY, selectable=True),
+                ),
+            ],
+        )
+
+    def close_stock_detail_modal(e, dialog):
+        dialog.open = False
+        e.page.update()
+
+    def open_stock_detail_modal(e, row):
+        # 🔥 고객 주문 관리와 동일하게 행 클릭 시 현재 행 기준 상세 팝업을 표시
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("상품별 재고 상세", size=18, weight=ft.FontWeight.W_700),
+            content=ft.Container(
+                width=520,
+                content=ft.Column(
+                    tight=True,
+                    spacing=10,
+                    controls=[
+                        build_detail_line("상품명", row.get("product")),
+                        build_detail_line("상품상세ID", row.get("product_detail_id")),
+                        build_detail_line("상품ID", row.get("product_id")),
+                        build_detail_line("입고ID", row.get("inbound_id")),
+                        build_detail_line("입고상태", row.get("inbound_status")),
+                        build_detail_line("유통기한", row.get("expiration_date")),
+                        build_detail_line("입고일자", row.get("inbound_date")),
+                        build_detail_line("보관재고", row.get("save_stock")),
+                        build_detail_line("판매재고", row.get("sale_stock")),
+                        build_detail_line("가용재고", row.get("stock_available")),
+                        build_detail_line("폐기재고", row.get("scrap_stock")),
+                        build_detail_line("최종수정일", row.get("last_update")),
+                    ],
+                ),
+            ),
+            actions=[
+                ft.TextButton("닫기", on_click=lambda close_e: close_stock_detail_modal(close_e, dialog)),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        e.page.show_dialog(dialog)
+        e.page.update()
+
     def build_table_row(row):
         return ft.Container(
             padding=ft.Padding.only(
@@ -568,6 +633,8 @@ def erp_stock_product_detail_view():
             ),
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
+            ink=True,
+            on_click=lambda e, selected_row=row: open_stock_detail_modal(e, selected_row),
             content=ft.Row(
                 spacing=row_spacing,
                 controls=[

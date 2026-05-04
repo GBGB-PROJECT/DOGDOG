@@ -19,37 +19,37 @@ class PetInfoController:
         else:
             self.storage.set(key, value)
 
-    async def pick_profile_image(self, e, image_picker_field, image_container):
-        file_picker = ft.FilePicker()
-        if file_picker not in self.page.overlay:
-            self.page.overlay.append(file_picker)
-            self.page.update()
+    # async def pick_profile_image(self, e, image_picker_field, image_container):
+    #     file_picker = ft.FilePicker()
+    #     if file_picker not in self.page.overlay:
+    #         self.page.overlay.append(file_picker)
+    #         self.page.update()
 
-        files = await file_picker.pick_files(
-            allow_multiple=False,
-            file_type=ft.FilePickerFileType.IMAGE,
-        )
-        if files:
-            file = files[0]
-            try:
-                if file.path is None:
-                    image_picker_field.content.controls[0].value = "파일 경로를 가져올 수 없습니다."
-                    self.page.update()
-                    return
-                self.storage.set("image_path", file.path)
-                self.storage.set("image_name", file.name)
-                image_picker_field.content.controls[0].value = file.name
-                image_container.visible = True
-                image_container.image.src = file.path
-            except:
-                pass
-        else:
-            if self.storage.get("image_path"):
-                self.storage.remove("image_path")
-                self.storage.remove("image_name")
-            image_container.visible = False
-            image_container.image = None
-        self.page.update()
+    #     files = await file_picker.pick_files(
+    #         allow_multiple=False,
+    #         file_type=ft.FilePickerFileType.IMAGE,
+    #     )
+    #     if files:
+    #         file = files[0]
+    #         try:
+    #             if file.path is None:
+    #                 image_picker_field.content.controls[0].value = "파일 경로를 가져올 수 없습니다."
+    #                 self.page.update()
+    #                 return
+    #             self.storage.set("image_path", file.path)
+    #             self.storage.set("image_name", file.name)
+    #             image_picker_field.content.controls[0].value = file.name
+    #             image_container.visible = True
+    #             image_container.image.src = file.path
+    #         except:
+    #             pass
+    #     else:
+    #         if self.storage.get("image_path"):
+    #             self.storage.remove("image_path")
+    #             self.storage.remove("image_name")
+    #         image_container.visible = False
+    #         image_container.image = None
+    #     self.page.update()
 
     def open_breed_bottom_sheet(self, e, breed_search_field, breed_list_column, select_breed_callback):
         breed_search_field.value = ""

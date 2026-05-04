@@ -199,7 +199,10 @@ class PetFoodController:
                     return
 
                 product_weight_list.options = [
-                    dogdog.dropdown_menu_option(key=str(w.get("product_id")), text=f"{w.get('weight')}g")
+                    dogdog.dropdown_menu_option(
+                        key=str(w.get("product_id")), 
+                        text=f"{int(float(w.get('weight')))}g"
+                    )
                     for w in weights_data if w.get("active")
                 ]
                 

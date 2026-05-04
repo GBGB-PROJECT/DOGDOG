@@ -93,51 +93,51 @@ class LogStatisticsView(ft.UserControl):
         
         self.update()
 
-    def handle_chart_event(self, e: fch.ChartEvent):
-        """포인트 클릭 시 상단 수치 실시간 업데이트"""
-        if e.type == "click" and e.point_index is not None:
-             val = self.controller.weekly_data[e.point_index][1]
-             self.tooltip_text.value = self.controller.format_value(val)
-             self.update()
+    # def handle_chart_event(self, e: fch.ChartEvent):
+    #     """포인트 클릭 시 상단 수치 실시간 업데이트"""
+    #     if e.type == "click" and e.point_index is not None:
+    #          val = self.controller.weekly_data[e.point_index][1]
+    #          self.tooltip_text.value = self.controller.format_value(val)
+    #          self.update()
 
-    def build(self):
-        return ft.Container(
-            padding=24,
-            bgcolor="#FFFFFF",
-            border_radius=28,
-            shadow=ft.BoxShadow(blur_radius=20, color=ft.Colors.with_opacity(0.1, "#000000")),
-            content=ft.Column(
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                controls=[
-                    ft.Row(
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        vertical_alignment=ft.CrossAxisAlignment.END,
-                        controls=[self.tooltip_text, self.unit_text]
-                    ),
-                    ft.Text("주간 활동 통계", size=14, color="#9E9E9E", weight="bold"),
-                    ft.Divider(height=25, color="transparent"),
-                    self.chart_container,
-                    ft.Divider(height=25, color="transparent"),
-                    ft.Row(
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        spacing=10,
-                        controls=[
-                            self.tab_button("급여량", "feeding"),
-                            self.tab_button("음수량", "water"),
-                            self.tab_button("산책", "walk"),
-                        ]
-                    )
-                ]
-            )
-        )
+    # def build(self):
+    #     return ft.Container(
+    #         padding=24,
+    #         bgcolor="#FFFFFF",
+    #         border_radius=28,
+    #         shadow=ft.BoxShadow(blur_radius=20, color=ft.Colors.with_opacity(0.1, "#000000")),
+    #         content=ft.Column(
+    #             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+    #             controls=[
+    #                 ft.Row(
+    #                     alignment=ft.MainAxisAlignment.CENTER,
+    #                     vertical_alignment=ft.CrossAxisAlignment.END,
+    #                     controls=[self.tooltip_text, self.unit_text]
+    #                 ),
+    #                 ft.Text("주간 활동 통계", size=14, color="#FFFFFF", weight="bold"),
+    #                 ft.Divider(height=25, color="transparent"),
+    #                 self.chart_container,
+    #                 ft.Divider(height=25, color="transparent"),
+    #                 ft.Row(
+    #                     alignment=ft.MainAxisAlignment.CENTER,
+    #                     spacing=10,
+    #                     controls=[
+    #                         self.tab_button("급여량", "feeding"),
+    #                         self.tab_button("음수량", "water"),
+    #                         self.tab_button("산책", "walk"),
+    #                     ]
+    #                 )
+    #             ]
+    #         )
+    #     )
 
-    def tab_button(self, text, category):
-        is_selected = self.controller.current_category == category
-        return ft.Container(
-            content=ft.Text(text, size=13, weight="bold", color="#FFFFFF" if is_selected else "#757575"),
-            padding=ft.padding.symmetric(horizontal=18, vertical=12),
-            bgcolor="#FF9800" if is_selected else "#F5F5F5",
-            border_radius=14,
-            on_click=lambda _: self.refresh_data(category),
-            animate=ft.animation.Animation(300, ft.AnimationCurve.DECELERATE)
-        )
+    # def tab_button(self, text, category):
+    #     is_selected = self.controller.current_category == category
+    #     return ft.Container(
+    #         content=ft.Text(text, size=13, weight="bold", color="#FFFFFF" if is_selected else "#757575"),
+    #         padding=ft.padding.symmetric(horizontal=18, vertical=12),
+    #         bgcolor="#FF9800" if is_selected else "#F5F5F5",
+    #         border_radius=14,
+    #         on_click=lambda _: self.refresh_data(category),
+    #         animate=ft.animation.Animation(300, ft.AnimationCurve.DECELERATE)
+    #     )

@@ -22,21 +22,21 @@ def pet_info_view(page: ft.Page, popup, controller):
         pet_name_field.value = storage.get("pet_name")
         
     # ---------------------------------------------------------------------------------------------------
-    # Image View and Picker
+    # Image View and Picker # TODO: 추후구현
     # ---------------------------------------------------------------------------------------------------
-    image_container = dogdog.image_circle(event=lambda e: page.run_task(controller.pick_profile_image, e, image_picker_field, image_container), size=200)
-    image_container.visible = False
+    # image_container = dogdog.image_circle(event=lambda e: page.run_task(controller.pick_profile_image, e, image_picker_field, image_container), size=200)
+    # image_container.visible = False
     
-    image_picker_field = dogdog.picker_field(
-        text="이미지를 등록해주세요.",
-        on_click=lambda e: page.run_task(controller.pick_profile_image, e, image_picker_field, image_container),
-        icon=ft.Icons.UPLOAD_FILE,
-    )
+    # image_picker_field = dogdog.picker_field(
+    #     text="이미지를 등록해주세요.",
+    #     on_click=lambda e: page.run_task(controller.pick_profile_image, e, image_picker_field, image_container),
+    #     icon=ft.Icons.UPLOAD_FILE,
+    # )
     
-    if storage.get("image_path"):
-        image_picker_field.content.controls[0].value = storage.get("image_name") # type: ignore
-        image_container.visible = True
-        image_container.image.src = storage.get("image_path") # type: ignore
+    # if storage.get("image_path"):
+    #     image_picker_field.content.controls[0].value = storage.get("image_name") # type: ignore
+    #     image_container.visible = True
+    #     image_container.image.src = storage.get("image_path") # type: ignore
 
     # ---------------------------------------------------------------------------------------------------
     # Breed List Picker and Bottom Sheet
@@ -179,13 +179,13 @@ def pet_info_view(page: ft.Page, popup, controller):
     content_column = [
         dogdog.basic_text(value="이름", weight="bold"),
         pet_name_field,
-        ft.Container(
-            content=image_container, 
-            alignment=ft.Alignment.CENTER
-        ),
-        dogdog.basic_text(value="프로필 이미지", weight="bold"),
-        image_picker_field,
-        ft.Container(height=8),
+        # ft.Container(
+        #     content=image_container, 
+        #     alignment=ft.Alignment.CENTER
+        # ),
+        # dogdog.basic_text(value="프로필 이미지", weight="bold"),
+        # image_picker_field,
+        # ft.Container(height=8),
         dogdog.basic_text(value="품종", weight="bold"),
         breed_picker_field,
         ft.Container(height=8),

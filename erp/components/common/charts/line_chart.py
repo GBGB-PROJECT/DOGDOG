@@ -216,8 +216,8 @@ def build_sales_linechart():
             expand=True,
             controls=[
                 bar_layer,
+                label_layer,
                 line_layer,  
-                label_layer
             ],
         )
 

@@ -320,7 +320,7 @@ def log_view(page: ft.Page, controller):
                                                 horizontal=10, vertical=5
                                             ),
                                             content=dogdog.Txt(
-                                                "Last 7 Days",
+                                                "지난 일주일 기록",
                                                 size=11,
                                                 color=TEXT_PRIMARY,
                                             ),

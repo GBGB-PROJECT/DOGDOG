@@ -127,6 +127,7 @@ def _base_inbound_query(db):
             ErpInbound.inbound_id.label("inbound_id"),
             literal(None).label("sales_order_id"),
             ErpStock.product_id.label("product_id"),
+            OpdProduct.product_detail_id.label("product_detail_id"),  # 🔥 추가: 상품번(상품상세ID-상품ID) 구성을 위한 상품상세ID
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
             OpdProduct.weight.label("weight"),
@@ -177,6 +178,7 @@ def _base_outbound_query(db):
             OpdSalesOrderItem.inbound_id.label("inbound_id"),
             OpdSalesOrder.sales_order_id.label("sales_order_id"),
             OpdSalesOrderItem.product_id.label("product_id"),
+            OpdProduct.product_detail_id.label("product_detail_id"),  # 🔥 추가: 상품번(상품상세ID-상품ID) 구성을 위한 상품상세ID
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
             OpdProduct.weight.label("weight"),
@@ -212,10 +214,23 @@ def _apply_inbound_search_filter(query, search_type="", keyword=""):
     if search_type == "inbound_id":
         return query.filter(cast(ErpInbound.inbound_id, String).ilike(pattern))
 
-    if search_type in ("product", "product_id", "brand", "product_name"):
+    if search_type == "product_no":
+        product_no_expr = func.concat(
+            cast(OpdProduct.product_detail_id, String),
+            "-",
+            cast(ErpStock.product_id, String),
+        )
         return query.filter(
             or_(
+                product_no_expr.like(pattern),
+                cast(OpdProduct.product_detail_id, String).ilike(pattern),
                 cast(ErpStock.product_id, String).ilike(pattern),
+            )
+        )
+
+    if search_type in ("product", "product_name", "brand"):
+        return query.filter(
+            or_(
                 func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern),
                 func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern),
                 cast(OpdProduct.weight, String).ilike(pattern),
@@ -231,6 +246,8 @@ def _apply_inbound_search_filter(query, search_type="", keyword=""):
     return query.filter(
         or_(
             cast(ErpInbound.inbound_id, String).ilike(pattern),
+            func.concat(cast(OpdProduct.product_detail_id, String), "-", cast(ErpStock.product_id, String)).like(pattern),
+            cast(OpdProduct.product_detail_id, String).ilike(pattern),
             cast(ErpStock.product_id, String).ilike(pattern),
             func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern),
             func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern),
@@ -253,10 +270,23 @@ def _apply_outbound_search_filter(query, search_type="", keyword=""):
     if search_type == "inbound_id":
         return query.filter(cast(OpdSalesOrderItem.inbound_id, String).ilike(pattern))
 
-    if search_type in ("product", "product_id", "brand", "product_name"):
+    if search_type == "product_no":
+        product_no_expr = func.concat(
+            cast(OpdProduct.product_detail_id, String),
+            "-",
+            cast(OpdSalesOrderItem.product_id, String),
+        )
         return query.filter(
             or_(
+                product_no_expr.like(pattern),
+                cast(OpdProduct.product_detail_id, String).ilike(pattern),
                 cast(OpdSalesOrderItem.product_id, String).ilike(pattern),
+            )
+        )
+
+    if search_type in ("product", "product_name", "brand"):
+        return query.filter(
+            or_(
                 func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern),
                 func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern),
                 cast(OpdProduct.weight, String).ilike(pattern),
@@ -273,6 +303,8 @@ def _apply_outbound_search_filter(query, search_type="", keyword=""):
         or_(
             cast(OpdSalesOrder.sales_order_id, String).ilike(pattern),
             cast(OpdSalesOrderItem.inbound_id, String).ilike(pattern),
+            func.concat(cast(OpdProduct.product_detail_id, String), "-", cast(OpdSalesOrderItem.product_id, String)).like(pattern),
+            cast(OpdProduct.product_detail_id, String).ilike(pattern),
             cast(OpdSalesOrderItem.product_id, String).ilike(pattern),
             func.lower(func.coalesce(OpdProductDetail.brand, "")).like(pattern),
             func.lower(func.coalesce(OpdProductDetail.product_name, "")).like(pattern),

@@ -10,6 +10,8 @@ class ErpStockInoutItem(BaseModel):
     inbound_id: Any = None
     sales_order_id: Any = None
     product_id: Any = None
+    product_detail_id: Any = None
+    product_no: Any = None
     brand: Any = None
     product_name: Any = None
     weight: Any = None

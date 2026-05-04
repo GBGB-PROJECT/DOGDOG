@@ -19,7 +19,8 @@ router = APIRouter(
 )
 
 SEARCH_TYPE_LABELS = {
-    "product": "상품번/상품명",
+    "product_no": "상품번",
+    "product_name": "상품명",
     "inbound_id": "입고ID",
     "inbound_status": "입고상태",
 }
@@ -115,13 +116,14 @@ def build_response_rows(items: list, page: int, size: int):
 )
 def get_stock_product_detail_list(
     search_type: Literal[
-        "product",
+        "product_no",
+        "product_name",
         "inbound_id",
         "inbound_status",
     ] = Query(
-        default="product",
-        description="검색 조건. product=상품번/상품ID/상품상세ID/브랜드/상품명/중량 통합 검색",
-        examples=["product"],
+        default="product_name",
+        description="검색 조건. product_no=상품번, product_name=상품명",
+        examples=["product_name"],
     ),
     keyword: str = Query(
         default="",
@@ -158,7 +160,7 @@ def get_stock_product_detail_list(
     ),
 ):
     try:
-        clean_search_type = (search_type or "product").strip()
+        clean_search_type = (search_type or "product_name").strip()
         clean_keyword = (keyword or "").strip()
 
         total_count = count_stocks(

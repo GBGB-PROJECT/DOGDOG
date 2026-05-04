@@ -199,7 +199,8 @@ def erp_customer_order_view():
         "recipient": "배송수령인",
         "phone": "전화번호",
         "address": "배송지",
-        "product": "상품번/상품명",  # 🔥 상품번/브랜드/상품명 통합 검색
+        "product_no": "상품번",
+        "product_name": "상품명",
     }
 
     def format_date_text(value):

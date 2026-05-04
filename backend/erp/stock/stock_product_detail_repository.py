@@ -22,7 +22,7 @@ from db.models import (
 from ..common.query_utils import like_keyword, to_plain_value
 
 
-SEARCH_TYPE_DEFAULT = "product"
+SEARCH_TYPE_DEFAULT = "product_name"
 
 
 def _base_query(db):
@@ -117,8 +117,8 @@ def _apply_filter(query, search_type: str, keyword: str):
     if not clean:
         return query
 
-    # 🔥 수정: 상품 검색은 상품번(상품상세ID-상품ID) / 상품ID / 상품상세ID / 브랜드 / 상품명 / 중량을 모두 부분검색한다.
-    if search_type in {"product", "product_id", "brand", "product_name"}:
+    # 🔥 수정: 상품번과 상품명을 검색조건에서 분리한다.
+    if search_type == "product_no":
         product_no_expr = func.concat(
             cast(OpdProduct.product_detail_id, String),
             "-",
@@ -129,7 +129,11 @@ def _apply_filter(query, search_type: str, keyword: str):
             product_no_expr.like(like_keyword(clean))
             | cast(OpdProduct.product_detail_id, String).like(like_keyword(clean))
             | cast(ErpStock.product_id, String).like(like_keyword(clean))
-            | cast(OpdProductDetail.brand, String).ilike(like_keyword(clean))
+        )
+
+    if search_type in {"product_name", "product", "brand"}:
+        return query.filter(
+            cast(OpdProductDetail.brand, String).ilike(like_keyword(clean))
             | cast(OpdProductDetail.product_name, String).ilike(like_keyword(clean))
             | cast(OpdProduct.weight, String).like(like_keyword(clean))
         )

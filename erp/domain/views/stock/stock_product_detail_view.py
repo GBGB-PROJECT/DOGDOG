@@ -28,14 +28,14 @@ def set_stock_product_detail_prefilter(
     start_date=None,
     end_date=None,
     date_filter_type="inbound_date",
-    search_type="product",
+    search_type="product_name",
     keyword="",
 ):
     _STOCK_PRODUCT_DETAIL_PREFILTER["value"] = {
         "start_date": start_date,
         "end_date": end_date,
         "date_filter_type": date_filter_type or "inbound_date",
-        "search_type": search_type or "product",
+        "search_type": search_type or "product_name",
         "keyword": keyword or "",
     }
 
@@ -190,19 +190,20 @@ def erp_stock_product_detail_view():
     # 🔥 수정: 검색조건과 DatePicker 날짜기준을 분리
     # - 입력 검색조건: 텍스트/숫자로 검색할 컬럼
     # - 날짜기준: DatePicker가 조회할 날짜 컬럼(유통기한/입고일자)
-    initial_search_type = initial_prefilter.get("search_type") or "product"
+    initial_search_type = initial_prefilter.get("search_type") or "product_name"
     initial_date_filter_type = initial_prefilter.get("date_filter_type") or "expiration_date"
 
     if initial_search_type in {"expiration_date", "inbound_date"}:
         initial_date_filter_type = initial_search_type
-        initial_search_type = "product"
+        initial_search_type = "product_name"
 
     if initial_search_type not in {
-        "product",
+        "product_no",
+        "product_name",
         "inbound_id",
         "inbound_status",
     }:
-        initial_search_type = "product"
+        initial_search_type = "product_name"
 
     if initial_date_filter_type not in {"expiration_date", "inbound_date"}:
         initial_date_filter_type = "expiration_date"
@@ -213,7 +214,8 @@ def erp_stock_product_detail_view():
     date_filter_type_value = {"value": initial_date_filter_type}
 
     search_type_labels = {
-        "product": "상품번/상품명",
+        "product_no": "상품번",
+        "product_name": "상품명",
         "inbound_id": "입고ID",
         "inbound_status": "입고상태",
     }
@@ -411,7 +413,7 @@ def erp_stock_product_detail_view():
             selected_start["value"] is not None
             or selected_end["value"] is not None
             or (search_field.value or "").strip() != ""
-            or search_type_value["value"] != "product"
+            or search_type_value["value"] != "product_name"
             or date_filter_type_value["value"] != "expiration_date"
             or (pagination_state["keyword"] or "").strip() != ""
         )
@@ -845,8 +847,8 @@ def erp_stock_product_detail_view():
 
         date_filter_type_value["value"] = "expiration_date"
         date_filter_text.value = date_filter_labels["expiration_date"]
-        search_type_value["value"] = "product"
-        search_type_text.value = search_type_labels["product"]
+        search_type_value["value"] = "product_name"
+        search_type_text.value = search_type_labels["product_name"]
         search_field.value = ""
 
         pagination_state["keyword"] = ""

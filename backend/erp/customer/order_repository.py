@@ -3,7 +3,7 @@
 # - OPD.sales_order + OPD.sales_order_item JOIN
 # - 🔥 상품명 표시용 OPD.product + OPD.product_detail LEFT JOIN 추가
 # - 🔥 고객명은 별도 고객 테이블 JOIN 없이 sales_order.recipient 값을 사용
-# - 🔥 최종 검색조건은 주문번호 / 고객ID / 전화번호 / 배송지 / 상품만 사용
+# - 🔥 최종 검색조건은 주문번호 / 고객ID / 전화번호 / 배송지 / 상품번 / 상품명 사용
 # - 🔥 기존 주문상품 행 수가 줄어들지 않도록 모든 추가 JOIN은 LEFT OUTER JOIN만 사용
 # =========================================================
 
@@ -136,8 +136,8 @@ def _apply_filter(query, search_type, keyword):
             cast(OpdSalesOrder.customer_id, String).like(like_keyword(clean))
         )
 
-    # 🔥 수정: 상품 검색은 상품번(상품상세ID-상품ID) / 상품ID / 상품상세ID / 브랜드 / 상품명을 모두 부분검색한다.
-    if search_type == "product":
+    # 🔥 수정: 상품번과 상품명을 검색조건에서 분리한다.
+    if search_type == "product_no":
         product_no_expr = func.concat(
             cast(OpdProduct.product_detail_id, String),
             "-",
@@ -149,8 +149,15 @@ def _apply_filter(query, search_type, keyword):
                 product_no_expr.like(like_keyword(clean)),
                 cast(OpdProduct.product_detail_id, String).like(like_keyword(clean)),
                 cast(OpdSalesOrderItem.product_id, String).like(like_keyword(clean)),
+            )
+        )
+
+    if search_type in {"product_name", "product"}:
+        return query.filter(
+            or_(
                 cast(OpdProductDetail.brand, String).ilike(like_keyword(clean)),
                 cast(OpdProductDetail.product_name, String).ilike(like_keyword(clean)),
+                cast(OpdProduct.weight, String).like(like_keyword(clean)),
             )
         )
 

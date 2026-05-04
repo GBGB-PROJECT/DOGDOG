@@ -47,9 +47,13 @@ class DashboardRepository:
         return guide.guide_intake if guide and guide.guide_intake else 0
 
     def get_active_feeding_info(self, pet_id: int):
-        """현재 급여 중인 사료 정보(g당 칼로리 등)를 조회합니다."""
+        """현재 급여 중인 사료 정보 및 급여 시작일을 조회합니다."""
         return (
-            self.db.query(CompanionPetProductFeeding)
+            self.db.query(CompanionPetProductFeeding, CompanionCustomerFood.feeding_start)
+            .join(
+                CompanionCustomerFood,
+                CompanionPetProductFeeding.pet_id == CompanionCustomerFood.pet_id
+            )
             .options(
                 joinedload(CompanionPetProductFeeding.product).joinedload(
                     OpdProduct.product_detail

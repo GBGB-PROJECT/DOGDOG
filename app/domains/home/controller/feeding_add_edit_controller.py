@@ -28,7 +28,8 @@ class FeedingAddEditController:
             "select_customer_food_id",
             "food_text", 
             "product_id", 
-            "food_weight"
+            "food_weight",
+            "feeding_start"
         ]
         for key in keys_to_clear:
             if self.storage.contains_key(key):
@@ -94,23 +95,45 @@ class FeedingAddEditController:
             print(f"❌ [로그] 컨트롤러: 등록 API 통신 오류 - {str(e)}")
             return False, f"서버 통신 오류: {str(e)}"
 
-    async def update_feeding_product(self, customer_food_id, left_intake):
+    async def update_feeding_product(self, f_weight, f_date):
         """
-        기존 사료 제품 정보를 수정(잔여량 등)합니다.
+        [Step 3] 기존 사료 제품 정보를 수정(PATCH /pets/{pet_id}/pet_food)합니다.
         """
-        payload = {"total_weight": int(left_intake)}
+        pet_id = self.storage.get("current_pet_id")
+        product_id = self.storage.get("product_id")
+
+        if not pet_id:
+            return False, "반려견 정보를 찾을 수 없습니다."
+        if not product_id:
+            return False, "상품 정보를 찾을 수 없습니다."
+
+        payload = {
+            "product_id": int(product_id),
+            "total_weight": int(f_weight),
+            "effective_date": f_date
+        }
 
         try:
+            print(f"👉 [로그] 컨트롤러: 사료 수정 API 호출 (PATCH /pets/{pet_id}/pet_food)")
+            print(f"👉 [로그] 페이로드: {payload}")
+
             res = await self.api_client.patch(
-                f"/customer_food/{customer_food_id}", data=payload
+                f"/pets/{pet_id}/pet_food", data=payload
             )
             if res.status_code == 200:
+                # [QA 수정] 1. 세션 캐시 강제 무효화 및 상태 업데이트
+                self._clear_feeding_session()
+
                 # 수정 시에도 리스트 갱신 신호 발송
+                self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
                 return True, "사료 정보가 수정되었습니다."
             else:
-                return False, f"수정 실패: {res.json().get('detail', '알 수 없는 오류')}"
+                detail = res.json().get("detail", "알 수 없는 오류")
+                print(f"❌ [로그] 컨트롤러: 수정 실패 ({res.status_code}) - {res.text}")
+                return False, f"수정 실패: {detail}"
         except Exception as e:
+            print(f"❌ [로그] 컨트롤러: 수정 API 통신 오류 - {str(e)}")
             return False, f"서버 통신 오류: {str(e)}"
 
     async def delete_feeding_product(self):

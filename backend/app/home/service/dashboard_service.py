@@ -29,7 +29,13 @@ class DashboardService:
             guide_intake = self.repo.get_target_calories(pet_id)
         
         # 현재 급여 중인 사료 정보 조회 (없을 수 있음)
-        info = self.repo.get_active_feeding_info(pet_id)
+        active_info = self.repo.get_active_feeding_info(pet_id)
+        
+        info = None
+        feeding_start = None
+        if active_info:
+            info, feeding_start = active_info
+
         cal_per_gram = float(info.one_gram_calories) if info and info.one_gram_calories else 0
         
         # 방어적 사료 정보 조립 (사용자 요청: current_food_info)
@@ -42,7 +48,8 @@ class DashboardService:
             current_food_info = {
                 "product_id": info.product_id,
                 "product_name": product_name,
-                "one_gram_calories": cal_per_gram
+                "one_gram_calories": cal_per_gram,
+                "feeding_start": feeding_start.strftime("%Y-%m-%d") if feeding_start else None
             }
 
         progress_rate = 0

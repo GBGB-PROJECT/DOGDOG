@@ -238,6 +238,8 @@ class HomeController:
 
         # 데이터 병합
         feeding_data = {**pet_food_detail, **inventory}
+        if current_food_info:
+            feeding_data["feeding_start"] = current_food_info.get("feeding_start")
         
         # [해결] 사료 정보가 없으면 세션 안전하게 비우고 None 반환
         if not current_food_info:
@@ -290,6 +292,8 @@ class HomeController:
                 or "dogbowl.png"
             )
 
+            feeding_start = current_food_info.get("feeding_start") if current_food_info else None
+            
             result_data = {
                 "raw_data": feeding_data,
                 "left_intake": left_intake,
@@ -300,6 +304,7 @@ class HomeController:
                 "brand": brand,
                 "product_name": product_name,
                 "thumbnail": thumbnail,
+                "feeding_start": feeding_start # [Step 1] 급여 시작일 추가
             }
 
             return result_data

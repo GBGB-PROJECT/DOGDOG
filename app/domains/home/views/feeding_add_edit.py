@@ -123,22 +123,73 @@ def feeding_add_edit(page: ft.Page, view: str):
                 ]
             
             target_dropdown.value = clean_weight_str
-            storage.set("product_id", int(clean_weight_str))
             target_dropdown.visible = True
+        
+        # [Step 2] 급여 시작일 세션 저장 및 Fallback 처리
+        f_start = feeding_data.get("feeding_start")
+        if not f_start or f_start == "정보 없음":
+            from datetime import datetime
+            f_start = datetime.now().strftime("%Y-%m-%d")
+        
+        storage.set("feeding_start", f_start)
 
-    # 3. 급여 시작일 (수정 모드 전용)
-    feeding_start_date = ft.Row(
-        alignment=ft.MainAxisAlignment.CENTER,
-        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=5,
+    # 3. 급여 시작일 (수정 모드 전용) - Date Picker 연동
+    from datetime import datetime
+    
+    # 3-1. 날짜 텍스트 객체 선언
+    date_display_text = dogdog.basic_text(
+        value=storage.get("feeding_start"),
+        color=ft.Colors.GREY_600,
+        size=14
+    )
+
+    # 3-2. 피커 핸들러
+    def handle_date_change(e):
+        if date_picker.value:
+            from datetime import timedelta
+            # [버그 해결] UTC -> KST (9시간 더해서 강제 보정)
+            # Flet DatePicker가 반환하는 value는 UTC 기준이므로 한국 시간대 보정이 필요함
+            corrected_datetime = date_picker.value + timedelta(hours=9)
+            selected_date = corrected_datetime.strftime("%Y-%m-%d")
+            
+            storage.set("feeding_start", selected_date)
+            date_display_text.value = selected_date
+            date_display_text.update()
+
+    # 3-3. DatePicker 정의 및 오버레이 등록
+    now = datetime.now()
+    initial_date_val = now
+    try:
+        if storage.get("feeding_start"):
+            initial_date_val = datetime.strptime(storage.get("feeding_start"), "%Y-%m-%d")
+    except Exception:
+        pass
+
+    date_picker = ft.DatePicker(
+        value=initial_date_val,
+        on_change=handle_date_change,
+        first_date=datetime(2020, 1, 1),
+        last_date=now, # [기능 개선] 미래 날짜 선택 제한 (오늘까지만 가능)
+    )
+    
+    # 중복 등록 방지 처리 후 추가
+    if date_picker not in page.overlay:
+        page.overlay.append(date_picker)
+
+    # 3-4. UI 컴포넌트 구성
+    feeding_start_date = ft.Container(
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=5,
+            controls=[
+                ft.Icon(icon=ft.Icons.CALENDAR_MONTH, color=ft.Colors.GREY_600, size=16),
+                date_display_text
+            ]
+        ),
         visible=(view == "edit"),
-        # controls=[
-        #     ft.Icon(icon=ft.Icons.CALENDAR_MONTH, color=ft.Colors.GREY_600, size=16),
-        #     dogdog.basic_text(
-        #         value=f"급여 시작일 : {feeding_data.get('feeding_start', '정보 없음')}", 
-        #         color=ft.Colors.GREY_600
-        #     ),
-        # ]
+        on_click=lambda _: setattr(date_picker, "open", True) or page.update(),
+        padding=ft.padding.symmetric(vertical=10),
     )
 
     # ---------------------------------------------------------------------------------------------------
@@ -158,8 +209,9 @@ def feeding_add_edit(page: ft.Page, view: str):
         if view == "add":
             success, msg = await controller.save_feeding_product(p_id, f_weight)
         else:
-            customer_food_id = storage.get("select_customer_food_id")
-            success, msg = await controller.update_feeding_product(customer_food_id, f_weight)
+            # [Step 2] 세션에서 급여 시작일 추출하여 전달
+            f_date = storage.get("feeding_start")
+            success, msg = await controller.update_feeding_product(f_weight, f_date)
 
         if success:
             show_toast(msg)

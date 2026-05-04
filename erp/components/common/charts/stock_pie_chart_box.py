@@ -63,6 +63,32 @@ def build_stock_pie_chart_box(feed_data: dict):
             color = color_categories[i % len(color_categories)]
             categories.append((color, label, value))
 
+    ## 5개 씩 나누기
+    first_col_items = categories[:5]
+    second_col_items = categories[5:]
+
+    ## 각 열을 구성하는 함수
+    def create_legend_column(items):
+        return ft.Column(
+            spacing=5,
+            controls=[_legend_item(clr, lbl, f"{val}%") for clr, lbl, val in items]
+        )
+    
+    legend_content = ft.Row(
+        vertical_alignment=ft.CrossAxisAlignment.START,
+        spacing=20,
+        controls=[
+            ft.Container(expand=True, content=create_legend_column(first_col_items)),
+        ]
+    )
+    ## 6개일 경우 2번째 열
+    if second_col_items:
+        legend_content.controls.append(ft.Container(expand=True, content=create_legend_column(second_col_items)))
+
+    
+
+
+
     return ft.Container(
         width=480,  # ☑️ 수정: 기존 440 -> 480 / 카드 전체 조금 더 확대
         height=320,  # ☑️ 수정: 기존 250 -> 270 / 카드 높이도 확대
@@ -128,7 +154,7 @@ def build_stock_pie_chart_box(feed_data: dict):
                                         # 구분선이 빠졌다면 여기에 추가해주는 게 예쁩니다.
                                         ft.Container(height=1, bgcolor="#D1D5DB"), 
                                         # 리스트 컴프리헨션으로 만든 아이템들을 여기에 풉니다.
-                                        *[_legend_item(clr, lbl, f"{val}%") for clr, lbl, val in categories]
+                                        legend_content
                                     ]
                                     )
                                 )

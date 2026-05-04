@@ -1,21 +1,17 @@
 import flet as ft
 
-from .form_inputs import build_textfield
-from .validators import validate_form, show_message
+from .validators import show_message, validate_field_value
 
 
-def build_form_row(page: ft.Page, field: dict, session_key: str):
-    def on_change(e):
-        page.session.store.set(session_key, e.control.value)
+def _field_key(session_prefix: str, field: dict):
+    return f"{session_prefix}_{field['key']}"
 
-    suffix_text = "kg" if field.get("key") == "spec_weight" else None
-    tf = build_textfield(
-        value=page.session.store.get(session_key) or "",
-        on_change=on_change,
-        field_type=field.get("type", "text"),
-        suffix_text=suffix_text,
-    )
 
+def _is_empty_required(field: dict, value: str):
+    return field.get("required", False) and not (value or "").strip()
+
+
+def build_form_row(field: dict, control: ft.TextField):
     return ft.Row(
         controls=[
             ft.Container(
@@ -23,7 +19,7 @@ def build_form_row(page: ft.Page, field: dict, session_key: str):
                 alignment=ft.Alignment(-1, 0),
                 content=ft.Text(field["label"], size=14, weight=ft.FontWeight.W_600),
             ),
-            tf,
+            control,
         ],
         spacing=12,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -40,84 +36,104 @@ def build_modal(
     on_submit_success=None,
     mode="register",
     confirm_message=None,
+    initial_values=None,
 ):
     is_edit_mode = mode == "edit"
+    field_controls = {}
+
     title_text = ft.Text(
         edit_title if is_edit_mode else register_title,
         size=18,
         weight=ft.FontWeight.W_700,
     )
+    error_text = ft.Text("", size=13, color="#DC2626", visible=False)
+    confirm_panel = ft.Container(visible=False)
+    pending_data = {"value": None}
 
-    original_values = {}
-    for field in fields:
-        key = f"{session_prefix}_{field['key']}"
-        original_values[key] = page.session.store.get(key)
+    def initial_value_for(field):
+        if initial_values is not None:
+            return initial_values.get(field["key"], "") or ""
+        return page.session.store.get(_field_key(session_prefix, field)) or ""
 
-    def has_saved_data():
-        if is_edit_mode:
-            return True
+    def current_value(field):
+        control = field_controls[field["key"]]
+        return (control.value or "").strip()
+
+    def show_inline_error(message: str):
+        error_text.value = message
+        error_text.visible = True
+        confirm_panel.visible = False
+        page.update()
+
+    def clear_inline_error():
+        error_text.value = ""
+        error_text.visible = False
+
+    def validate_local_form():
+        values = {}
         for field in fields:
-            key = f"{session_prefix}_{field['key']}"
-            if page.session.store.get(key):
-                return True
-        return False
+            value = current_value(field)
+            values[field["key"]] = value
+            if _is_empty_required(field, value):
+                show_inline_error(f"{field['label']}을(를) 입력해주세요.")
+                return None
 
-    def refresh_title():
-        title_text.value = edit_title if has_saved_data() else register_title
+        for field in fields:
+            error = validate_field_value(field, values[field["key"]])
+            if error:
+                show_inline_error(error)
+                return None
+
+        clear_inline_error()
+        return values
 
     def cancel_modal(e):
-        for key, value in original_values.items():
-            page.session.store.set(key, value)
         close_handler(e)
 
-    def close_confirm(e, dialog):
-        dialog.open = False
-        e.page.update()
+    def close_confirm(e):
+        pending_data["value"] = None
+        confirm_panel.visible = False
+        page.update()
 
-    def confirm_submit(e, dialog, callback):
-        dialog.open = False
-        e.page.update()
-        callback()
-
-    def submit(e):
-        if not validate_form(page, fields, session_prefix):
-            return
-
-        def do_submit():
-            saved_data = {}
-            for field in fields:
-                key = f"{session_prefix}_{field['key']}"
-                saved_data[field["key"]] = (page.session.store.get(key) or "").strip()
-
+    def do_submit(e, saved_data):
+        def worker():
             try:
                 if on_submit_success:
                     on_submit_success(saved_data)
             except Exception as exc:
-                show_message(page, f"저장 실패: {exc}")
+                show_inline_error(f"저장 실패: {exc}")
                 page.update()
                 return
 
-            refresh_title()
             show_message(page, "저장이 완료되었습니다.")
             close_handler(e)
             page.update()
 
+        if getattr(e, "page", None) is not None:
+            e.page.run_thread(worker)
+            return
+        worker()
+
+    def confirm_submit(e):
+        saved_data = pending_data["value"]
+        pending_data["value"] = None
+        confirm_panel.visible = False
+        page.update()
+        if saved_data is not None:
+            do_submit(e, saved_data)
+
+    def submit(e):
+        saved_data = validate_local_form()
+        if saved_data is None:
+            return
+
         if confirm_message:
-            dialog = ft.AlertDialog(
-                modal=True,
-                title=ft.Text("확인", size=18, weight=ft.FontWeight.W_700),
-                content=ft.Text(confirm_message, size=13),
-                actions=[
-                    ft.TextButton("취소", on_click=lambda ce: close_confirm(ce, dialog)),
-                    ft.TextButton("확인", on_click=lambda ce: confirm_submit(ce, dialog, do_submit)),
-                ],
-                actions_alignment=ft.MainAxisAlignment.END,
-            )
-            page.show_dialog(dialog)
+            pending_data["value"] = saved_data
+            confirm_panel.visible = True
             page.update()
             return
 
-        do_submit()
+        do_submit(e, saved_data)
 
     form_controls = [
         ft.Container(
@@ -141,24 +157,62 @@ def build_modal(
     ]
 
     for field in fields:
-        full_key = f"{session_prefix}_{field['key']}"
-        form_controls.append(build_form_row(page, field, full_key))
+        control = ft.TextField(
+            width=420,
+            height=40,
+            value=initial_value_for(field),
+            on_change=None,
+            text_size=14,
+            border=ft.InputBorder.OUTLINE,
+            border_color=ft.Colors.OUTLINE_VARIANT,
+            border_radius=0,
+            content_padding=ft.Padding.only(left=14, right=14),
+            hint_text="YYYY-MM-DD" if field.get("type") == "date" else None,
+            suffix="kg" if field.get("key") == "spec_weight" else None,
+        )
+        field_controls[field["key"]] = control
+        form_controls.append(build_form_row(field, control))
         form_controls.append(ft.Container(height=10))
 
-    form_controls.append(
-        ft.Row(
-            alignment=ft.MainAxisAlignment.END,
-            spacing=10,
-            controls=[
-                ft.Button("저장", on_click=submit),
-                ft.Button("취소", on_click=cancel_modal),
-            ],
-        )
+    confirm_panel.padding = 16
+    confirm_panel.bgcolor = "#F8FAFC"
+    confirm_panel.border = ft.Border.all(1, "#CBD5E1")
+    confirm_panel.border_radius = 8
+    confirm_panel.content = ft.Column(
+        tight=True,
+        spacing=12,
+        controls=[
+            ft.Text("확인", size=15, weight=ft.FontWeight.W_700),
+            ft.Text(confirm_message or "", size=13, color="#334155"),
+            ft.Row(
+                alignment=ft.MainAxisAlignment.END,
+                spacing=8,
+                controls=[
+                    ft.TextButton("취소", on_click=close_confirm),
+                    ft.TextButton("확인", on_click=confirm_submit),
+                ],
+            ),
+        ],
     )
 
-    refresh_title()
-    modal_height = min(page.height * 0.9, 820) if page.height else 820
+    form_controls.extend(
+        [
+            error_text,
+            ft.Container(height=6),
+            confirm_panel,
+            ft.Container(height=10),
+            ft.Row(
+                alignment=ft.MainAxisAlignment.END,
+                spacing=10,
+                controls=[
+                    ft.Button("저장", on_click=submit),
+                    ft.Button("취소", on_click=cancel_modal),
+                ],
+            ),
+        ]
+    )
 
+    modal_height = min(page.height * 0.9, 820) if page.height else 820
     return ft.Container(
         width=700,
         height=modal_height,

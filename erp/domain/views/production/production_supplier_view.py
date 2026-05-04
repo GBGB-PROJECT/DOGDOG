@@ -539,12 +539,16 @@ def erp_production_supplier_view():
             page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
 
     def handle_register_success(saved_data: dict):
+        result_text.value = "저장 후 목록을 다시 조회하는 중입니다."
+        result_text.update()
         create_supplier(saved_data)
         run_search(1)
 
     def handle_edit_success(saved_data: dict):
         if not edit_state["supplier_id"]:
             raise ValueError("수정할 거래처ID를 찾을 수 없습니다.")
+        result_text.value = "수정 후 목록을 다시 조회하는 중입니다."
+        result_text.update()
         update_supplier(edit_state["supplier_id"], saved_data)
         run_search(pagination_state["current_page"])
 
@@ -554,17 +558,18 @@ def erp_production_supplier_view():
             return "false"
         return "true"
 
-    def set_supplier_session(page: ft.Page, row: dict):
+    def build_supplier_edit_values(row: dict):
+        values = {}
         for field in SUPPLIER_FIELDS:
             key = field["key"]
             value = row.get(key, "")
             if key == "is_contact_status":
                 value = contact_status_for_form(value)
-            page.session.store.set(f"{SESSION_PREFIX}_{key}", str(value or ""))
+            values[key] = str(value or "")
+        return values
 
     def open_register_modal(e):
         edit_state["supplier_id"] = None
-        clear_register_session(e.page)
 
         popup_layer.content = build_modal(
             page=e.page,
@@ -576,6 +581,7 @@ def erp_production_supplier_view():
             on_submit_success=handle_register_success,
             mode="register",
             confirm_message="거래처를 등록하시겠습니까?\n등록 후 조회 화면에 바로 반영됩니다.",
+            initial_values={},
         )
         dim_bg.visible = True
         popup_layer.visible = True
@@ -586,7 +592,6 @@ def erp_production_supplier_view():
         if not supplier_id:
             return
         edit_state["supplier_id"] = supplier_id
-        set_supplier_session(e.page, row)
 
         popup_layer.content = build_modal(
             page=e.page,
@@ -598,6 +603,7 @@ def erp_production_supplier_view():
             on_submit_success=handle_edit_success,
             mode="edit",
             confirm_message="거래처 정보를 수정하시겠습니까?\n기존 데이터가 변경됩니다.",
+            initial_values=build_supplier_edit_values(row),
         )
         dim_bg.visible = True
         popup_layer.visible = True

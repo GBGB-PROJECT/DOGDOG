@@ -75,33 +75,39 @@ def feeding_add_edit(page: ft.Page, view: str):
         on_change=on_weight_change
     )
 
-    # [QA 수정] 용량 선택 시 잔여량 자동 입력 통합 핸들러
-    def handle_weight_change(e):
-        # 1. 컨트롤러의 기존 로직 실행 (용량 ID 저장 등)
-        food_select_ctrl.food_product_weight_set(e, food_select_ctrl.product_weight_list)
-        
-        # 2. 선택된 용량 값을 잔여량 텍스트 필드에 자동 입력
-        selected_id = e.control.value
-        # e.control은 이벤트를 발생시킨 실제 Dropdown 객체입니다.
-        selected_option = next((opt for opt in e.control.options if opt.key == selected_id), None)
-        if selected_option:
-            try:
-                # "1600g" -> "1600"
-                weight_val = selected_option.text.replace("g", "")
-                selected_food_weight.value = weight_val
-                storage.set("food_weight", int(float(weight_val)))
-                selected_food_weight.update()
-            except Exception:
-                pass
+    # [QA 수정] 용량 선택 시 잔여량 자동 입력 (메서드 가로채기 방식)
+    # 기존 컨트롤러의 이벤트를 감싸서 UI 업데이트 로직을 100% 실행하도록 보장
+    original_weight_set = food_select_ctrl.food_product_weight_set
 
-    # [핵심] 실제 Dropdown 컨트롤을 찾아 on_change 이벤트 연결 (래핑 대응)
-    target_dropdown = food_select_ctrl.product_weight_list
-    # dogdog.dropdown_menu가 Container(content=Dropdown) 구조일 경우를 대비
-    if hasattr(target_dropdown, "content") and isinstance(target_dropdown.content, ft.Dropdown):
-        target_dropdown = target_dropdown.content
-    
-    target_dropdown.on_change = handle_weight_change
-    
+    def intercepted_weight_set(e, weight_list_control):
+        # 1. 컨트롤러 원본 로직 먼저 실행 (용량 ID 저장 등)
+        original_weight_set(e, weight_list_control)
+        
+        # 2. UI 자동완성 로직 실행 (가로채기)
+        try:
+            import re
+            val_str = str(e.control.value)
+            # 옵션 리스트에서 현재 선택된 객체 찾기
+            selected_option = next((opt for opt in e.control.options if str(opt.key) == val_str), None)
+            
+            # [Fallback] 옵션 텍스트가 있으면 텍스트에서, 없으면 value 자체에서 숫자만 추출
+            raw_source = selected_option.text if selected_option else val_str
+            weight_val = re.sub(r'[^0-9]', '', raw_source)
+            
+            if weight_val:
+                selected_food_weight.value = weight_val
+                storage.set("food_weight", int(weight_val))
+                
+                # [가장 중요] 개별 컴포넌트와 화면 전체를 강제 렌더링하여 즉각 반영
+                selected_food_weight.update()
+                page.update() 
+                print(f"👉 [성공] 잔여량 자동 입력 가로채기 완료: {weight_val}g")
+        except Exception as ex:
+            print(f"👉 [에러] 자동 입력 처리 실패: {ex}")
+
+    # 컨트롤러 메서드 덮어쓰기 (Monkey Patching)
+    food_select_ctrl.food_product_weight_set = intercepted_weight_set
+
     # 수정 모드 시 잔여량 자동 완성
     if view == "edit":
         # 1. 잔여량 텍스트 필드 채우기
@@ -109,19 +115,14 @@ def feeding_add_edit(page: ft.Page, view: str):
         selected_food_weight.value = initial_left
         storage.set("food_weight", int(initial_left))
         
-        # 2. 사료 용량 드롭다운 채우기 (중요: key 값과 value 타입 일치)
-        # [QA 수정] 용량 데이터(total_weight 등)를 가져와서 드롭다운 value에 할당
+        # 2. 사료 용량 드롭다운 채우기
         raw_total = feeding_data.get("total_weight") or feeding_data.get("product_weight")
         if raw_total:
-            # str(int(float(...))) 처리를 통해 소수점 제거 및 타입 일치
             clean_weight_str = str(int(float(raw_total)))
-            
-            # [핵심] 옵션 리스트가 비어있으면 value를 설정해도 화면에 나오지 않으므로 임시 옵션 생성
             if not target_dropdown.options:
                 target_dropdown.options = [
                     dogdog.dropdown_menu_option(key=clean_weight_str, text=f"{clean_weight_str}g")
                 ]
-            
             target_dropdown.value = clean_weight_str
             target_dropdown.visible = True
         
@@ -148,7 +149,6 @@ def feeding_add_edit(page: ft.Page, view: str):
         if date_picker.value:
             from datetime import timedelta
             # [버그 해결] UTC -> KST (9시간 더해서 강제 보정)
-            # Flet DatePicker가 반환하는 value는 UTC 기준이므로 한국 시간대 보정이 필요함
             corrected_datetime = date_picker.value + timedelta(hours=9)
             selected_date = corrected_datetime.strftime("%Y-%m-%d")
             
@@ -169,10 +169,9 @@ def feeding_add_edit(page: ft.Page, view: str):
         value=initial_date_val,
         on_change=handle_date_change,
         first_date=datetime(2020, 1, 1),
-        last_date=now, # [기능 개선] 미래 날짜 선택 제한 (오늘까지만 가능)
+        last_date=now,
     )
     
-    # 중복 등록 방지 처리 후 추가
     if date_picker not in page.overlay:
         page.overlay.append(date_picker)
 
@@ -183,6 +182,7 @@ def feeding_add_edit(page: ft.Page, view: str):
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=5,
             controls=[
+                dogdog.basic_text(value="급여 시작일:", color=ft.Colors.GREY_600, size=14),
                 ft.Icon(icon=ft.Icons.CALENDAR_MONTH, color=ft.Colors.GREY_600, size=16),
                 date_display_text
             ]
@@ -209,19 +209,24 @@ def feeding_add_edit(page: ft.Page, view: str):
         if view == "add":
             success, msg = await controller.save_feeding_product(p_id, f_weight)
         else:
-            # [Step 2] 세션에서 급여 시작일 추출하여 전달
             f_date = storage.get("feeding_start")
             success, msg = await controller.update_feeding_product(f_weight, f_date)
 
         if success:
             show_toast(msg)
-            # [QA 수정] 등록 성공 후 입력 임시 데이터 정리
-            for key in ["food_text", "product_id", "food_weight"]:
+            # [Issue 1 해결] 성공 시 낡은 세션 완벽 청소 (임시 데이터 및 상세 데이터)
+            keys_to_clear = ["food_text", "product_id", "food_weight", "select_feeding_data"]
+            for key in keys_to_clear:
                 if storage.contains_key(key):
                     storage.remove(key)
             
-            page.go("/feeding")
-            # 홈 화면 대시보드 갱신 유도
+            # [Issue 1 해결] 라우팅 최적화
+            if view == "edit":
+                page.go("/feeding") # 수정은 목록으로
+            else:
+                page.go("/home")    # 등록은 홈으로 (대시보드 갱신 유도)
+
+            # 전역 갱신 신호 발송
             page.pubsub.send_all("update_dashboard")
         else:
             show_toast(msg)
@@ -233,6 +238,10 @@ def feeding_add_edit(page: ft.Page, view: str):
             success, msg = await controller.delete_feeding_product()
             if success:
                 show_toast(msg)
+                # [Issue 1 해결] 삭제 성공 시 세션 비우기
+                if storage.contains_key("select_feeding_data"):
+                    storage.remove("select_feeding_data")
+                    
                 page.go("/feeding")
                 page.pubsub.send_all("update_dashboard")
             else:

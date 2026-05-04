@@ -39,32 +39,34 @@ def _row_to_dict(row):
 def _apply_supplier_filter(query, search_type: str, keyword: str, start_date=None, end_date=None):
     clean = (keyword or "").strip()
     if clean:
-        if search_type == "supplier_id":
-            query = query.filter(cast(ErpSupplier.supplier_id, String).like(like_keyword(clean)))
-        elif search_type == "supplier_name":
+        if search_type == "supplier_name":
             query = query.filter(ErpSupplier.supplier_name.ilike(like_keyword(clean)))
         elif search_type == "brn":
             query = query.filter(ErpSupplier.brn.ilike(like_keyword(clean)))
+        elif search_type == "sup_manager":
+            query = query.filter(ErpSupplier.sup_manager.ilike(like_keyword(clean)))
+        elif search_type == "employee_id":
+            # 🔥 추가: 거래처관리 컬럼 기준에 맞춰 담당자ID 검색 지원
+            query = query.filter(cast(ErpSupplier.employee_id, String).like(like_keyword(clean)))
+        elif search_type == "phone":
+            query = query.filter(ErpSupplier.phone.ilike(like_keyword(clean)))
         elif search_type == "designated_payment_date":
-            # 🔥 추가: 지정결제일 검색조건
-            # - DB 값은 1~31 숫자이므로 숫자 검색은 정확히 매칭
-            # - 예외적으로 문자열 입력도 받을 수 있게 LIKE 보조 처리
+            # 🔥 유지: 지정결제일 검색조건
             if clean.isdigit():
                 query = query.filter(ErpSupplier.designated_payment_date == int(clean))
             else:
                 query = query.filter(
                     cast(ErpSupplier.designated_payment_date, String).like(like_keyword(clean))
                 )
+        elif search_type == "scheduled_payment_date":
+            # 🔥 추가: 화면 컬럼의 예정결제일을 입력 검색조건에서도 검색 가능하게 처리
+            query = query.filter(cast(ErpSupplier.scheduled_payment_date, String).like(like_keyword(clean)))
         elif search_type == "is_contact_status":
-            bool_value = normalize_bool_keyword(clean, true_words={"가능"}, false_words={"불가"})
+            bool_value = normalize_bool_keyword(clean, true_words={"가능", "활성"}, false_words={"불가", "비활성"})
             if bool_value is not None:
                 query = query.filter(ErpSupplier.is_contact_status.is_(bool_value))
             else:
                 query = query.filter(cast(ErpSupplier.is_contact_status, String).ilike(like_keyword(clean)))
-        elif search_type == "sup_manager":
-            query = query.filter(ErpSupplier.sup_manager.ilike(like_keyword(clean)))
-        elif search_type == "phone":
-            query = query.filter(ErpSupplier.phone.ilike(like_keyword(clean)))
 
     parsed_start = parse_date(start_date)
     parsed_end = parse_date(end_date)

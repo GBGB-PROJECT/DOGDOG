@@ -31,10 +31,9 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "purchase_order_id": "발주ID",
-    "supplier_id": "거래처ID",
     "supplier_name": "거래처명",
-    "pay_status": "결제상태",
     "is_purchase_order_cancel": "발주상태",
+    "pay_status": "결제상태",
     "employee_id": "담당자ID",
 }
 
@@ -141,10 +140,9 @@ def build_detail_row(row: dict | None):
 def get_purchase_orders(
     search_type: Literal[
         "purchase_order_id",
-        "supplier_id",
         "supplier_name",
-        "pay_status",
         "is_purchase_order_cancel",
+        "pay_status",
         "employee_id",
     ] = Query(default="purchase_order_id", description="검색 조건", examples=["purchase_order_id"]),
     keyword: str = Query(default="", description="검색어", examples=["368"]),

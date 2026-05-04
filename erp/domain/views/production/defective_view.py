@@ -182,10 +182,9 @@ def erp_defective_view():
     initial_search_type = initial_prefilter.get("search_type") or "inbound_id"
     if initial_search_type not in {
         "inbound_id",
-        "supplier_id",
+        "product",
         "supplier_name",
         "inbound_status",
-        "product",
         "employee_id",
     }:
         initial_search_type = "inbound_id"
@@ -239,10 +238,9 @@ def erp_defective_view():
 
     search_type_labels = {
         "inbound_id": "입고ID",
-        "supplier_id": "거래처ID",
+        "product": "상품번/상품명",
         "supplier_name": "거래처명",
         "inbound_status": "입고상태",
-        "product": "상품번/상품명",
         "employee_id": "담당자ID",
     }
 

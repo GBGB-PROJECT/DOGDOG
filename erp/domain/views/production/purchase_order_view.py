@@ -183,10 +183,9 @@ def erp_purchase_order_view():
 
     search_type_labels = {
         "purchase_order_id": "발주ID",
-        "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
-        "pay_status": "결제상태",
         "is_purchase_order_cancel": "발주상태",  # 🔥 수정: 취소여부 → 발주상태
+        "pay_status": "결제상태",
         "employee_id": "담당자ID",
     }
 

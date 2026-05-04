@@ -19,13 +19,14 @@ router = APIRouter(
 )
 
 SEARCH_TYPE_LABELS = {
-    "supplier_id": "거래처ID",
     "supplier_name": "거래처명",
     "brn": "사업자번호",
-    "designated_payment_date": "지정결제일",  # 🔥 추가
-    "is_contact_status": "연락상태",
     "sup_manager": "담당자명",
+    "employee_id": "담당자ID",
     "phone": "전화번호",
+    "designated_payment_date": "지정결제일",
+    "scheduled_payment_date": "예정결제일",
+    "is_contact_status": "연락상태",
 }
 
 
@@ -80,13 +81,14 @@ def build_response_rows(items: list, page: int, size: int):
 )
 def get_suppliers(
     search_type: Literal[
-        "supplier_id",
         "supplier_name",
         "brn",
-        "designated_payment_date",  # 🔥 추가: 지정결제일 검색조건
-        "is_contact_status",
         "sup_manager",
+        "employee_id",
         "phone",
+        "designated_payment_date",
+        "scheduled_payment_date",
+        "is_contact_status",
     ] = Query(default="supplier_name", description="검색 조건", examples=["supplier_name"]),
     keyword: str = Query(default="", description="검색어", examples=["하림"]),
     page: int = Query(default=1, ge=1, description="페이지 번호", examples=[1]),

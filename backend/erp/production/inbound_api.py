@@ -24,10 +24,9 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "inbound_id": "입고ID",
-    "supplier_id": "거래처ID",
+    "product": "상품번/상품명",
     "supplier_name": "거래처명",
     "inbound_status": "입고상태",
-    "product": "상품번/상품명",
     "employee_id": "담당자ID",
 }
 
@@ -123,10 +122,9 @@ def build_response_rows(items: list, page: int, size: int):
 def get_inbound_list(
     search_type: Literal[
         "inbound_id",
-        "supplier_id",
+        "product",
         "supplier_name",
         "inbound_status",
-        "product",
         "employee_id",
     ] = Query(
         default="inbound_id",

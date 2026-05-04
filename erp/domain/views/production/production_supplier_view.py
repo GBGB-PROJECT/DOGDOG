@@ -155,10 +155,12 @@ def erp_production_supplier_view():
     search_type_labels = {
         "supplier_name": "거래처명",
         "brn": "사업자번호",
-        "designated_payment_date": "지정결제일",  # 🔥 추가: 지정결제일도 검색조건에 포함
-        "is_contact_status": "연락상태",
         "sup_manager": "담당자명",
+        "employee_id": "담당자ID",
         "phone": "전화번호",
+        "designated_payment_date": "지정결제일",
+        "scheduled_payment_date": "예정결제일",
+        "is_contact_status": "연락상태",
     }
 
     def format_date_text(value):

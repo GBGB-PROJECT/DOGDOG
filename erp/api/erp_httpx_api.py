@@ -1,5 +1,7 @@
 # erp/api/erp_httpx_api.py
 
+import time
+
 import httpx
 
 # 🔥 FastAPI 서버 주소
@@ -11,6 +13,13 @@ _CLIENT = httpx.Client(
     base_url=BASE_URL,
     timeout=10.0,
 )
+_GET_CACHE = {}
+_GET_CACHE_TTL_SECONDS = 6.0
+
+
+def _cache_key(path: str, params: dict | None = None):
+    frozen_params = tuple(sorted((params or {}).items()))
+    return path, frozen_params
 
 
 def _get(path: str, params: dict | None = None):
@@ -24,12 +33,19 @@ def _get(path: str, params: dict | None = None):
       }
     """
     url = f"{BASE_URL}{path}"
+    key = _cache_key(path, params)
+    cached = _GET_CACHE.get(key)
+    now = time.monotonic()
+    if cached and now - cached["time"] <= _GET_CACHE_TTL_SECONDS:
+        return cached["data"]
 
     try:
         response = _CLIENT.get(path, params=params)
         response.raise_for_status()
         result = response.json()
-        return result.get("data", {})
+        data = result.get("data", {})
+        _GET_CACHE[key] = {"time": now, "data": data}
+        return data
 
     except httpx.HTTPStatusError as e:
         print(f"🔥 API 응답 오류: {url}")
@@ -65,6 +81,7 @@ def _mutate(method: str, path: str, payload: dict | None = None):
         response = _CLIENT.request(method, path, json=payload or {})
         result = response.json()
         response.raise_for_status()
+        _GET_CACHE.clear()
         return result.get("data", {})
     except httpx.HTTPStatusError as e:
         try:

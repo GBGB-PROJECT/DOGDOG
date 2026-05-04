@@ -19,7 +19,7 @@ def order_success(page: ft.Page, page_name):
         ft.Row([
             dogdog.continue_button(
                 value="주문 내역 보기", bgcolor="#E6001A", text_color=ft.Colors.WHITE, 
-                on_click=lambda _: page.go("/shop/order_list"))
+                on_click=lambda _: page.go("/shop/pay_list"))
         ])
     ] if PAYMENT_ID else [
         dogdog.basic_text(

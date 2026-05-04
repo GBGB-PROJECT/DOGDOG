@@ -309,7 +309,7 @@ async def home_tile(
                 dogdog.shop_top(page=page, text="주소 검색", content_page=content_page))
             body_scroll_column.controls.append(domains.address_view(page=page))
         # -----------------------------------------------------------------------------------------------
-        elif shop_content_page == "/order_list":
+        elif shop_content_page == "/pay_list":
             import json
 
             main_container_content.append(

@@ -24,7 +24,8 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "inbound_id": "입고ID",
-    "product": "상품번/상품명",
+    "product_no": "상품번",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
+    "product_name": "상품명",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
     "supplier_name": "거래처명",
     "inbound_status": "입고상태",
     "employee_id": "담당자ID",
@@ -122,14 +123,15 @@ def build_response_rows(items: list, page: int, size: int):
 def get_inbound_list(
     search_type: Literal[
         "inbound_id",
-        "product",
+        "product_no",
+        "product_name",
         "supplier_name",
         "inbound_status",
         "employee_id",
     ] = Query(
         default="inbound_id",
-        description="검색 조건. product=상품번/상품ID/브랜드/상품명/중량 통합 검색",
-        examples=["product_name"],
+        description="검색 조건. product_no=상품번, product_name=상품명/브랜드/중량 검색",
+        examples=["product_no"],
     ),
     keyword: str = Query(
         default="",

@@ -194,7 +194,8 @@ def erp_inbound_view():
     initial_search_type = initial_prefilter.get("search_type") or "inbound_id"
     if initial_search_type not in {
         "inbound_id",
-        "product",
+        "product_no",
+        "product_name",
         "supplier_name",
         "inbound_status",
         "employee_id",
@@ -266,7 +267,8 @@ def erp_inbound_view():
 
     search_type_labels = {
         "inbound_id": "입고ID",
-        "product": "상품번/상품명",
+        "product_no": "상품번",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
+        "product_name": "상품명",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
         "supplier_name": "거래처명",
         "inbound_status": "입고상태",
         "employee_id": "담당자ID",

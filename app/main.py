@@ -1,6 +1,7 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
 import domains
+from domains.onboarding.views.splash import splash_view
 import time
 import asyncio
 import components as dogdog
@@ -54,37 +55,12 @@ class Front_dogdog:
         page.views.clear()
 
         if IS_TEST_MODE:
-            self.is_onboarding_complete = False  # Default until sync
-
-            # 임시 로딩 뷰 생성 및 저장 (텍스트 갱신용)
-            self.loading_text = dogdog.basic_text(
-                "데이터를 불러오는 중입니다...", size=16, weight="bold"
-            )
-
-            loading_view = ft.View(
-                route="/loading",
-                bgcolor="#FFFFFF",
-                controls=[
-                    ft.Column(
-                        width=float("inf"),
-                        expand=True,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        controls=[ft.ProgressRing(), self.loading_text],
-                    )
-                ],
-            )
-            self.page.views.append(loading_view)
-            self.page.update()
-
+            self.is_onboarding_complete = False
+            page.go("/splash") # 스플래시로 먼저 진입
             self.page.run_task(self.dev_auto_login)
         else:
             self.is_onboarding_complete = False
-            target_route = "/home" if self.is_onboarding_complete else "/login"
-            if self.page.route == target_route:
-                self.routing_view(page_name=target_route)
-            else:
-                page.go(target_route)
+            page.go("/splash") # 일반 모드에서도 스플래시 우선
 
     # ---------------------------------------------------------------------------------------------------
     # Dev Auto Login Relay
@@ -208,11 +184,9 @@ class Front_dogdog:
             print("[DEV] Auto login relay Success. Routing to /home")
             self.is_onboarding_complete = True
 
-            # 즉시 홈 화면으로 이동 및 갱신
-            if self.page.route == "/home":
-                await self.routing_view(page_name="/home")
-            else:
-                self.page.go("/home")
+            # 스플래시 화면이 로직을 제어하므로 명시적 이동 제거 또는 /splash로 유지
+            if self.page.route != "/splash":
+                self.page.go("/splash")
 
             self.page.update()
 
@@ -318,6 +292,11 @@ class Front_dogdog:
         ]
 
         # 2. 라우트 성격 분류
+        if page_name == "/splash":
+            self.page.views.append(splash_view(self.page))
+            self.page.update()
+            return
+
         onboarding_routes = [
             "/login",
             "/login_email",

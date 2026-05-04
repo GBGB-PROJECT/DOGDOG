@@ -8,9 +8,9 @@ from math import ceil
 from typing import Literal
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 
-from .production_supplier_service import count_suppliers, fetch_suppliers
+from .production_supplier_service import count_suppliers, fetch_suppliers, create_supplier, update_supplier
 from .production_supplier_schema import ErpProductionSupplierListResponse
 
 router = APIRouter(
@@ -161,4 +161,38 @@ def get_suppliers(
                 "error_code": "SUPPLIER_LIST_FAILED",
                 "message": f"거래처 목록 조회 중 서버 오류가 발생했습니다. {exc}",
             },
+        )
+
+
+@router.post("")
+def post_supplier(payload: dict = Body(...)):
+    try:
+        item = create_supplier(payload)
+        return {"success": True, "message": "Supplier created.", "data": {"item": item}}
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"success": False, "error_code": "SUPPLIER_CREATE_INVALID", "message": str(exc)},
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"success": False, "error_code": "SUPPLIER_CREATE_FAILED", "message": str(exc)},
+        )
+
+
+@router.patch("/{supplier_id}")
+def patch_supplier(supplier_id: int, payload: dict = Body(...)):
+    try:
+        item = update_supplier(supplier_id, payload)
+        return {"success": True, "message": "Supplier updated.", "data": {"item": item}}
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"success": False, "error_code": "SUPPLIER_UPDATE_INVALID", "message": str(exc)},
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"success": False, "error_code": "SUPPLIER_UPDATE_FAILED", "message": str(exc)},
         )

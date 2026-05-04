@@ -5,7 +5,7 @@ from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import SUPPLIER_FIELDS
 # 🔥 httpx 방식 API 호출로 변경
-from api.erp_httpx_api import count_suppliers, fetch_suppliers, create_supplier
+from api.erp_httpx_api import count_suppliers, fetch_suppliers, create_supplier, update_supplier
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages, build_pagination_bar
@@ -33,6 +33,20 @@ def _format_employee_manager(employee_id, manager_name):
     if employee_id:
         return f"#{employee_id}"
     return manager_name
+
+
+def _format_contact_status(value):
+    if value is True:
+        return "활성"
+    if value is False:
+        return "비활성"
+
+    text = str(value or "").strip().lower()
+    if text in {"false", "0", "n", "no"} or "비활" in text or "불가" in text:
+        return "비활성"
+    if text:
+        return "활성"
+    return ""
 
 
 def supplier_row_adapter(saved_data: dict, next_no: int):
@@ -71,7 +85,7 @@ def supplier_db_row_adapter(db_rows: list, page_no: int):
                 "supplier_id": row.get("supplier_id", ""),
                 "supplier_name": row.get("supplier_name", ""),
                 "brn": row.get("brn", ""),
-                "is_contact_status": "활성" if row.get("is_contact_status") else "비활성",
+                "is_contact_status": _format_contact_status(row.get("is_contact_status")),
                 "designated_payment_date": row.get("designated_payment_date", ""),
                 "scheduled_payment_date": row.get("scheduled_payment_date", ""),
                 "employee_id": row.get("employee_id", ""),
@@ -93,6 +107,7 @@ def erp_production_supplier_view():
     page_title = "생산관리 > 거래처 관리"
 
     rows_state = []
+    edit_state = {"supplier_id": None}
 
     selected_start = {"value": None}
     selected_end = {"value": None}
@@ -377,6 +392,8 @@ def erp_production_supplier_view():
             ),
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
+            ink=True,
+            on_click=lambda e, selected_row=row: open_edit_modal(e, selected_row),
             content=ft.Row(
                 expand=True,
                 spacing=row_spacing,
@@ -525,7 +542,28 @@ def erp_production_supplier_view():
         create_supplier(saved_data)
         run_search(1)
 
+    def handle_edit_success(saved_data: dict):
+        if not edit_state["supplier_id"]:
+            raise ValueError("수정할 거래처ID를 찾을 수 없습니다.")
+        update_supplier(edit_state["supplier_id"], saved_data)
+        run_search(pagination_state["current_page"])
+
+    def contact_status_for_form(value):
+        text = str(value or "").strip().lower()
+        if text in {"false", "0", "n", "no"} or "비활" in text:
+            return "false"
+        return "true"
+
+    def set_supplier_session(page: ft.Page, row: dict):
+        for field in SUPPLIER_FIELDS:
+            key = field["key"]
+            value = row.get(key, "")
+            if key == "is_contact_status":
+                value = contact_status_for_form(value)
+            page.session.store.set(f"{SESSION_PREFIX}_{key}", str(value or ""))
+
     def open_register_modal(e):
+        edit_state["supplier_id"] = None
         clear_register_session(e.page)
 
         popup_layer.content = build_modal(
@@ -536,6 +574,30 @@ def erp_production_supplier_view():
             session_prefix=SESSION_PREFIX,
             close_handler=close_register_modal,
             on_submit_success=handle_register_success,
+            mode="register",
+            confirm_message="거래처를 등록하시겠습니까?\n등록 후 조회 화면에 바로 반영됩니다.",
+        )
+        dim_bg.visible = True
+        popup_layer.visible = True
+        e.page.update()
+
+    def open_edit_modal(e, row):
+        supplier_id = row.get("supplier_id")
+        if not supplier_id:
+            return
+        edit_state["supplier_id"] = supplier_id
+        set_supplier_session(e.page, row)
+
+        popup_layer.content = build_modal(
+            page=e.page,
+            register_title="거래처 등록",
+            edit_title="거래처 정보 수정",
+            fields=SUPPLIER_FIELDS,
+            session_prefix=SESSION_PREFIX,
+            close_handler=close_register_modal,
+            on_submit_success=handle_edit_success,
+            mode="edit",
+            confirm_message="거래처 정보를 수정하시겠습니까?\n기존 데이터가 변경됩니다.",
         )
         dim_bg.visible = True
         popup_layer.visible = True

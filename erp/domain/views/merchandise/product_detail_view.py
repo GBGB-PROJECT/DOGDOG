@@ -3,9 +3,9 @@ import re
 import flet as ft
 from components import common as cm
 # 🔥 httpx 방식 API 호출로 변경
-from api.erp_httpx_api import count_product_join_rows, fetch_product_join_rows, create_product_detail
+from api.erp_httpx_api import count_product_join_rows, fetch_product_join_rows, create_product_detail, update_product_detail
 from components.common.modals.modal import build_modal
-from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
+from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS, PRODUCT_DETAIL_EDIT_FIELDS
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages, build_pagination_bar
@@ -137,6 +137,7 @@ def product_detail_row_adapter(saved_data: dict, next_no: int):
 
 
 def erp_product_detail_view():
+    edit_state = {"product_id": None}
     page_title = "상품관리 > 상품 상세 정보 관리"
 
     search_type_value = {"value": "product_name"}
@@ -350,6 +351,8 @@ def erp_product_detail_view():
             ),
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
+            ink=True,
+            on_click=lambda e, selected_row=row: open_edit_modal(e, selected_row),
             content=ft.Row(
                 spacing=row_spacing,
                 controls=[
@@ -654,7 +657,28 @@ def erp_product_detail_view():
         pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
         reload_current_page()
 
+    def handle_edit_success(saved_data: dict):
+        if not edit_state["product_id"]:
+            raise ValueError("수정할 상품ID를 찾을 수 없습니다.")
+        update_product_detail(edit_state["product_id"], saved_data)
+        reload_current_page()
+
+    def active_for_form(value):
+        text = str(value or "").strip().lower()
+        if text in {"false", "0", "n", "no"} or "중지" in text:
+            return "false"
+        return "true"
+
+    def set_product_edit_session(page: ft.Page, row: dict):
+        for field in PRODUCT_DETAIL_EDIT_FIELDS:
+            key = field["key"]
+            value = row.get(key, "")
+            if key == "active":
+                value = active_for_form(value)
+            page.session.store.set(f"{SESSION_PREFIX}_{key}", str(value or ""))
+
     def open_register_modal(e):
+        edit_state["product_id"] = None
         clear_register_session(e.page)
 
         popup_layer.content = build_modal(
@@ -665,6 +689,31 @@ def erp_product_detail_view():
             session_prefix=SESSION_PREFIX,
             close_handler=close_register_modal,
             on_submit_success=handle_register_success,
+            mode="register",
+            confirm_message="상품 상세 정보를 등록하시겠습니까?\n등록 후 조회 화면에 바로 반영됩니다.",
+        )
+        dim_bg.visible = True
+        popup_layer.visible = True
+        dim_bg.update()
+        popup_layer.update()
+
+    def open_edit_modal(e, row):
+        product_id = row.get("product_id")
+        if not product_id:
+            return
+        edit_state["product_id"] = product_id
+        set_product_edit_session(e.page, row)
+
+        popup_layer.content = build_modal(
+            page=e.page,
+            register_title="상품 상세 정보 등록",
+            edit_title="상품 상세 정보 수정",
+            fields=PRODUCT_DETAIL_EDIT_FIELDS,
+            session_prefix=SESSION_PREFIX,
+            close_handler=close_register_modal,
+            on_submit_success=handle_edit_success,
+            mode="edit",
+            confirm_message="상품 정보를 수정하시겠습니까?\n이미 주문/재고에서 사용 중인 상품이면 과거 조회 화면에도 변경된 정보가 표시될 수 있습니다.",
         )
         dim_bg.visible = True
         popup_layer.visible = True

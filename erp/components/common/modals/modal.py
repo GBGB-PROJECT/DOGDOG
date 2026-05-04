@@ -1,22 +1,19 @@
 import flet as ft
 
-# 👊 수정: modals 폴더 내부 파일들을 상대경로로 import
 from .form_inputs import build_textfield
 from .validators import validate_form, show_message
 
 
 def build_form_row(page: ft.Page, field: dict, session_key: str):
     def on_change(e):
-        page.session.store.set(session_key, e.control.value)   # 🔥 입력 즉시 session 저장
+        page.session.store.set(session_key, e.control.value)
 
-    # 🔥 spec_weight 하나에만 suffix 적용
     suffix_text = "kg" if field.get("key") == "spec_weight" else None
-
     tf = build_textfield(
         value=page.session.store.get(session_key) or "",
         on_change=on_change,
         field_type=field.get("type", "text"),
-        suffix_text=suffix_text,  # 🔥 추가
+        suffix_text=suffix_text,
     )
 
     return ft.Row(
@@ -24,11 +21,7 @@ def build_form_row(page: ft.Page, field: dict, session_key: str):
             ft.Container(
                 width=130,
                 alignment=ft.Alignment(-1, 0),
-                content=ft.Text(
-                    field["label"],
-                    size=14,
-                    weight=ft.FontWeight.W_600,
-                ),
+                content=ft.Text(field["label"], size=14, weight=ft.FontWeight.W_600),
             ),
             tf,
         ],
@@ -44,13 +37,13 @@ def build_modal(
     fields: list,
     session_prefix: str,
     close_handler,
-    # =========================================================
-    # 👊 추가: 저장 성공 시 바깥으로 데이터 전달하는 콜백
-    # =========================================================
     on_submit_success=None,
+    mode="register",
+    confirm_message=None,
 ):
+    is_edit_mode = mode == "edit"
     title_text = ft.Text(
-        register_title,
+        edit_title if is_edit_mode else register_title,
         size=18,
         weight=ft.FontWeight.W_700,
     )
@@ -61,6 +54,8 @@ def build_modal(
         original_values[key] = page.session.store.get(key)
 
     def has_saved_data():
+        if is_edit_mode:
+            return True
         for field in fields:
             key = f"{session_prefix}_{field['key']}"
             if page.session.store.get(key):
@@ -75,31 +70,54 @@ def build_modal(
             page.session.store.set(key, value)
         close_handler(e)
 
+    def close_confirm(e, dialog):
+        dialog.open = False
+        e.page.update()
+
+    def confirm_submit(e, dialog, callback):
+        dialog.open = False
+        e.page.update()
+        callback()
+
     def submit(e):
         if not validate_form(page, fields, session_prefix):
             return
 
-        # =========================================================
-        # 👊 추가: 현재 입력값을 모아서 저장 성공 콜백으로 전달
-        # =========================================================
-        saved_data = {}
-        for field in fields:
-            key = f"{session_prefix}_{field['key']}"
-            saved_data[field["key"]] = (page.session.store.get(key) or "").strip()
+        def do_submit():
+            saved_data = {}
+            for field in fields:
+                key = f"{session_prefix}_{field['key']}"
+                saved_data[field["key"]] = (page.session.store.get(key) or "").strip()
 
-        try:
-            if on_submit_success:
-                on_submit_success(saved_data)
-        except Exception as exc:
-            # ☑️ DB insert / 제약조건 / 중복값 오류가 나면 모달을 닫지 않고 안내만 표시
-            show_message(page, f"저장 실패: {exc}")
+            try:
+                if on_submit_success:
+                    on_submit_success(saved_data)
+            except Exception as exc:
+                show_message(page, f"저장 실패: {exc}")
+                page.update()
+                return
+
+            refresh_title()
+            show_message(page, "저장이 완료되었습니다.")
+            close_handler(e)
+            page.update()
+
+        if confirm_message:
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("확인", size=18, weight=ft.FontWeight.W_700),
+                content=ft.Text(confirm_message, size=13),
+                actions=[
+                    ft.TextButton("취소", on_click=lambda ce: close_confirm(ce, dialog)),
+                    ft.TextButton("확인", on_click=lambda ce: confirm_submit(ce, dialog, do_submit)),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+            page.show_dialog(dialog)
             page.update()
             return
 
-        refresh_title()
-        show_message(page, "저장이 완료되었습니다.")
-        close_handler(e)
-        page.update()
+        do_submit()
 
     form_controls = [
         ft.Container(
@@ -118,11 +136,7 @@ def build_modal(
             )
         ),
         ft.Container(height=8),
-        ft.Container(
-            width=580,
-            height=1,
-            bgcolor="#D1D5DB",
-        ),
+        ft.Container(width=580, height=1, bgcolor="#D1D5DB"),
         ft.Container(height=16),
     ]
 
@@ -143,7 +157,6 @@ def build_modal(
     )
 
     refresh_title()
-
     modal_height = min(page.height * 0.9, 820) if page.height else 820
 
     return ft.Container(

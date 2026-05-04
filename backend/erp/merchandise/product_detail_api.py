@@ -1,9 +1,14 @@
 from math import ceil
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 
-from .product_detail_service import count_product_join_rows, fetch_product_join_rows
+from .product_detail_service import (
+    count_product_join_rows,
+    fetch_product_join_rows,
+    create_product_detail,
+    update_product_detail,
+)
 from .product_detail_schema import ErpMerchandiseDetailListResponse
 
 router = APIRouter(
@@ -205,4 +210,38 @@ def get_product_detail_list(
                 "error_code": "INTERNAL_ERROR",
                 "message": f"상품 상세 정보 목록 조회 중 서버 오류가 발생했습니다. {exc}",
             },
+        )
+
+
+@router.post("/details")
+def post_product_detail(payload: dict = Body(...)):
+    try:
+        item = create_product_detail(payload)
+        return {"success": True, "message": "Product detail created.", "data": {"item": item}}
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"success": False, "error_code": "PRODUCT_DETAIL_CREATE_INVALID", "message": str(exc)},
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"success": False, "error_code": "PRODUCT_DETAIL_CREATE_FAILED", "message": str(exc)},
+        )
+
+
+@router.patch("/details/{product_id}")
+def patch_product_detail(product_id: int, payload: dict = Body(...)):
+    try:
+        item = update_product_detail(product_id, payload)
+        return {"success": True, "message": "Product detail updated.", "data": {"item": item}}
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"success": False, "error_code": "PRODUCT_DETAIL_UPDATE_INVALID", "message": str(exc)},
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"success": False, "error_code": "PRODUCT_DETAIL_UPDATE_FAILED", "message": str(exc)},
         )

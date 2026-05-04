@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import cast, func
 from sqlalchemy.types import String
 from db.db import SessionLocal
@@ -132,6 +134,53 @@ def create_supplier(data: dict):
             phone=require_text(data.get("phone"), "전화번호"),
         )
         db.add(supplier)
+        db.commit()
+        db.refresh(supplier)
+        return model_to_dict(supplier, SUPPLIER_COLUMNS)
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def update_supplier(supplier_id: int, data: dict):
+    db = SessionLocal()
+    try:
+        supplier_id = require_int(supplier_id, "supplier_id")
+        supplier = db.query(ErpSupplier).filter(ErpSupplier.supplier_id == supplier_id).first()
+        if not supplier:
+            raise ValueError(f"존재하지 않는 거래처ID입니다: {supplier_id}")
+
+        brn = require_text(data.get("brn"), "사업자번호")
+        employee_id = require_int(data.get("employee_id"), "담당자ID")
+        designated_payment_date = require_int(data.get("designated_payment_date"), "지정결제일")
+
+        if designated_payment_date < 1 or designated_payment_date > 31:
+            raise ValueError("지정결제일은 1~31 사이 숫자여야 합니다.")
+
+        duplicate = (
+            db.query(ErpSupplier)
+            .filter(ErpSupplier.brn == brn, ErpSupplier.supplier_id != supplier_id)
+            .first()
+        )
+        if duplicate:
+            raise ValueError(f"이미 존재하는 사업자번호입니다: {brn}")
+
+        if not db.query(ErpEmployee).filter(ErpEmployee.employee_id == employee_id).first():
+            raise ValueError(f"존재하지 않는 담당자ID입니다: {employee_id}")
+
+        supplier.supplier_name = require_text(data.get("supplier_name"), "거래처명")
+        supplier.brn = brn
+        supplier.is_contact_status = require_bool(data.get("is_contact_status"), "연락상태")
+        supplier.designated_payment_date = designated_payment_date
+        supplier.scheduled_payment_date = require_date(data.get("scheduled_payment_date"), "예정결제일")
+        supplier.employee_id = employee_id
+        supplier.memo = clean_text(data.get("memo"))
+        supplier.sup_manager = require_text(data.get("sup_manager"), "담당자명")
+        supplier.phone = require_text(data.get("phone"), "전화번호")
+        supplier.last_update = datetime.now()
+
         db.commit()
         db.refresh(supplier)
         return model_to_dict(supplier, SUPPLIER_COLUMNS)

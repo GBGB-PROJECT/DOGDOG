@@ -167,9 +167,46 @@ def product_guide(page: ft.Page):
         content=ft.Column(controls=[ft.Container(alignment=ft.Alignment(0, 0), content=ft.ProgressRing())])
     )
 
+    # 설정
+    product_state = {
+        "items": {},
+        "offset": 0,
+        "limit": 9,
+        "sort": None,
+        "is_loading": False,
+        "has_more": True,
+    }
+
+    more_button = dogdog.continue_button(
+        value="더보기",
+        bgcolor=ft.Colors.WHITE,
+        text_color=ft.Colors.GREY_800,
+        on_click=lambda e: page.run_task(
+            ShopController.load_products,
+            page,
+            product_list,
+            product_image_size,
+            product_state,
+            more_button,
+            product_state["sort"],
+            False,
+        ),
+    )
+    more_button.visible = False
+
+
     def selected_filter(e):
         sort = None if e.data == "all" else e.data
-        page.run_task(ShopController.load_products, page, product_list, product_image_size, sort)
+        page.run_task(
+            ShopController.load_products,
+            page,
+            product_list,
+            product_image_size,
+            product_state,
+            more_button,
+            sort,
+            True,
+        )
 
     filter_list = [
         dogdog.dropdown_menu_option("전체", key="all"),
@@ -189,12 +226,20 @@ def product_guide(page: ft.Page):
         ft.Divider(),
         dogdog.basic_text("전체 상품", size=16, weight="bold"),
         product_filter,
-        product_list
+        product_list,
+        more_button,
     ]
 
     # 태스크 시작
     asyncio.create_task(ShopController.shop_timesleep(product_guide_tabs))
-    page.run_task(ShopController.load_products, page, product_list, product_image_size)
+    page.run_task(
+        ShopController.load_products,
+        page,
+        product_list,
+        product_image_size,
+        product_state,
+        more_button,
+    )
     page.run_task(ShopController.load_recommended_foods, page, product_guide_tabs, guide_image_size)
     
     return ft.Container(

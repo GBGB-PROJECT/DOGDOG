@@ -12,7 +12,7 @@ import flet as ft
 from api.erp_httpx_api import count_stock_inouts, fetch_stock_inouts
 from components.common.erp_view_widgets import build_text, date_value_box_hint as date_value_box, calendar_icon_box, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
@@ -145,7 +145,8 @@ def erp_stock_inout_view():
         "inout_type",
         "inbound_id",
         "sales_order_id",
-        "product",
+        "product_no",
+        "product_name",
         "status",
     }:
         initial_search_type = "all"
@@ -182,7 +183,8 @@ def erp_stock_inout_view():
         "no": 3,
         "inout_type": 4,
         "base_id": 5,
-        "product": 18,
+        "product_no": 5,  # 🔥 추가: 상품번 독립 컬럼
+        "product_name": 16,  # 🔥 수정: 상품명과 상품번 분리
         "quantity": 5,
         "unit_price": 6,
         "amount": 7,
@@ -200,7 +202,8 @@ def erp_stock_inout_view():
         "inout_type": "구분",
         "inbound_id": "입고ID",
         "sales_order_id": "주문ID",
-        "product": "상품",
+        "product_no": "상품번",
+        "product_name": "상품명",
         "status": "상태",
     }
 
@@ -422,7 +425,8 @@ def erp_stock_inout_view():
                     # - 출고 행: sales_order_id
                     # =========================================================
                     build_table_cell("입고ID/주문ID", col_expand["base_id"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
-                    build_table_cell("상품", col_expand["product"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
+                    build_table_cell("상품번", col_expand["product_no"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
+                    build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("수량", col_expand["quantity"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("단가", col_expand["unit_price"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
                     build_table_cell("금액", col_expand["amount"], 0, ft.FontWeight.W_700, TEXT_PRIMARY),
@@ -438,19 +442,10 @@ def erp_stock_inout_view():
         brand = (row.get("brand") or "").strip()
         product_name = (row.get("product_name") or "").strip()
         weight_text = (row.get("weight_text") or "").strip()
-        product_id = row.get("product_id")
 
+        # 🔥 수정: 상품명 안에 상품ID/상품번을 섞지 않고, 상품번은 독립 컬럼으로만 표시
         product_main = f"{brand} {product_name}".strip() or "-"
-        product_meta = []
-        if weight_text:
-            product_meta.append(weight_text)
-        if product_id not in (None, ""):
-            product_meta.append(f"#{product_id}")
-
-        if product_meta:
-            product_display = f"{product_main} ({' / '.join(product_meta)})"
-        else:
-            product_display = product_main
+        product_display = f"{product_main} ({weight_text})" if weight_text else product_main
 
         return ft.Container(
             height=54,
@@ -465,7 +460,8 @@ def erp_stock_inout_view():
                     build_table_cell(index, col_expand["no"]),
                     build_table_cell(row.get("inout_type"), col_expand["inout_type"], 0, ft.FontWeight.W_700, status_color),
                     build_table_cell(row.get("base_id"), col_expand["base_id"]),
-                    build_table_cell(product_display, col_expand["product"]),
+                    build_table_cell(row.get("product_no"), col_expand["product_no"]),
+                    build_table_cell(product_display, col_expand["product_name"]),
                     build_table_cell(row.get("quantity_text"), col_expand["quantity"]),
                     build_table_cell(row.get("unit_price_text"), col_expand["unit_price"]),
                     build_table_cell(row.get("amount_text"), col_expand["amount"]),
@@ -558,30 +554,14 @@ def erp_stock_inout_view():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
-        if total_pages <= 1:
-            pagination_holder.content = None
-            return
-
-        page_controls = [
-            build_page_button("<", current_page - 1, disabled=(current_page == 1))
-        ]
-
-        start_page = max(1, current_page - 2)
-        end_page = min(total_pages, current_page + 2)
-
-        for page_no in range(start_page, end_page + 1):
-            page_controls.append(
-                build_page_button(str(page_no), page_no, selected=(page_no == current_page))
-            )
-
-        page_controls.append(
-            build_page_button(">", current_page + 1, disabled=(current_page == total_pages))
-        )
-
-        pagination_holder.content = ft.Row(
-            alignment=ft.MainAxisAlignment.CENTER,
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no, e.page)),
+            width=36,
+            height=36,
+            border_radius=9,
             spacing=6,
-            controls=page_controls,
         )
 
     def reload_current_page(page_no=None):

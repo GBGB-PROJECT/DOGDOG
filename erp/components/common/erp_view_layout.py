@@ -22,25 +22,37 @@ def build_lookup_filter_bar(controls):
     )
 
 
-def build_lookup_table_area(table_header, table_rows_holder, border=None):
+def build_lookup_table_area(table_header, table_rows_holder, border=None, min_table_width=1800):
+    # 🔥 수정: 조회 테이블 공통 영역에 가로 스크롤 적용
+    # - 긴 상품명/최종수정일이 ...으로 잘리는 화면을 막기 위해 헤더와 본문을 같은 넓이로 묶는다.
+    # - 세로 스크롤은 본문 영역에 유지하고, 가로 스크롤은 테이블 전체에 적용한다.
     return ft.Container(
         expand=True,
         bgcolor=CARD_BG,
         border=border,
         border_radius=10,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        content=ft.Column(
+        content=ft.Row(
             expand=True,
-            spacing=0,
+            scroll=ft.ScrollMode.AUTO,
             controls=[
-                table_header,
                 ft.Container(
-                    expand=True,
+                    width=min_table_width,
                     content=ft.Column(
                         expand=True,
                         spacing=0,
-                        scroll=ft.ScrollMode.AUTO,
-                        controls=[table_rows_holder],
+                        controls=[
+                            table_header,
+                            ft.Container(
+                                expand=True,
+                                content=ft.Column(
+                                    expand=True,
+                                    spacing=0,
+                                    scroll=ft.ScrollMode.AUTO,
+                                    controls=[table_rows_holder],
+                                ),
+                            ),
+                        ],
                     ),
                 ),
             ],

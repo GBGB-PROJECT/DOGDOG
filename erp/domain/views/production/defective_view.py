@@ -14,7 +14,7 @@ import flet as ft
 from api.erp_httpx_api import count_defectives, fetch_defectives
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
@@ -105,6 +105,16 @@ def format_number_text(value):
         return str(value)
 
 
+def _build_product_no(product_detail_id, product_id):
+    product_detail_id = str(product_detail_id or "").strip()
+    product_id = str(product_id or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+
+    return product_detail_id or product_id
+
+
 # =========================================================
 # 🔥 DB row -> 화면 row 변환
 # =========================================================
@@ -122,6 +132,8 @@ def defective_db_row_adapter(db_rows: list, page_no: int):
                 "supplier_name": row.get("supplier_name", ""),
                 "inbound_status": row.get("inbound_status", ""),
                 "product_id": row.get("product_id", ""),
+                "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": row.get("product_no") or _build_product_no(row.get("product_detail_id", ""), row.get("product_id", "")),  # 🔥 추가: 상품 상세 정보 관리와 동일한 상품번
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "defective": format_number_text(row.get("defective", "")),
@@ -170,10 +182,10 @@ def erp_defective_view():
     initial_search_type = initial_prefilter.get("search_type") or "inbound_id"
     if initial_search_type not in {
         "inbound_id",
-        "supplier_id",
+        "product_no",
+        "product_name",
         "supplier_name",
         "inbound_status",
-        "product",
         "employee_id",
     }:
         initial_search_type = "inbound_id"
@@ -212,25 +224,25 @@ def erp_defective_view():
     # =========================================================
     col_expand = {
         "no": 3,
-        # 🔥 수정: 상품ID/브랜드/상품명을 상품 컬럼 하나로 통합
-        "product": 18,
         "inbound_id": 5,
+        "product_no": 6,  # 🔥 추가: 상품 상세 정보 관리의 상품번과 동일한 형식
+        "product_name": 14,
         "supplier_name": 8,
-        "inbound_status": 6,
         "defective": 5,
         "purchase_price": 6,
         "defective_amount": 7,
         "inbound_complete": 7,
+        "inbound_status": 6,
         "employee_id": 5,
         "last_update": 8,
     }
 
     search_type_labels = {
         "inbound_id": "입고ID",
-        "supplier_id": "거래처ID",
+        "product_no": "상품번",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
+        "product_name": "상품명",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
         "supplier_name": "거래처명",
         "inbound_status": "입고상태",
-        "product": "상품",
         "employee_id": "담당자ID",
     }
 
@@ -410,15 +422,15 @@ def erp_defective_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상품", col_expand["product"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고ID", col_expand["inbound_id"], 0, ft.FontWeight.W_700),
-                    # 🔥 수정: 발주ID 컬럼 제거
+                    build_table_cell("상품번", col_expand["product_no"], 0, ft.FontWeight.W_700),  # 🔥 추가
+                    build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700),
                     build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),
-                    build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("불량수량", col_expand["defective"], 0, ft.FontWeight.W_700),
                     build_table_cell("구매단가", col_expand["purchase_price"], 0, ft.FontWeight.W_700),
                     build_table_cell("불량손실액", col_expand["defective_amount"], 0, ft.FontWeight.W_700),
                     build_table_cell("입고완료일", col_expand["inbound_complete"], 0, ft.FontWeight.W_700),
+                    build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),
                 ],
@@ -438,11 +450,10 @@ def erp_defective_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(product_display, col_expand["product"], 0),
                     build_table_cell(row.get("inbound_id", ""), col_expand["inbound_id"], 0),
-                    # 🔥 수정: 발주ID 컬럼 제거
+                    build_table_cell(row.get("product_no", ""), col_expand["product_no"], 0),  # 🔥 추가
+                    build_table_cell(row.get("product_name", ""), col_expand["product_name"], 0),
                     build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),
-                    build_table_cell(row.get("inbound_status", ""), col_expand["inbound_status"], 0),
                     build_table_cell(
                         row.get("defective", ""),
                         col_expand["defective"],
@@ -459,6 +470,7 @@ def erp_defective_view():
                         ACTION_RED,
                     ),
                     build_table_cell(row.get("inbound_complete", ""), col_expand["inbound_complete"], 0),
+                    build_table_cell(row.get("inbound_status", ""), col_expand["inbound_status"], 0),
                     build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
                     build_table_cell(row.get("last_update", ""), col_expand["last_update"], 0),
                 ],
@@ -560,36 +572,10 @@ def erp_defective_view():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
-        if total_pages <= 1:
-            pagination_holder.content = None
-            return
-
-        page_controls = []
-        page_controls.append(build_page_button("<", current_page - 1, disabled=(current_page == 1)))
-
-        start_page = max(1, current_page - 2)
-        end_page = min(total_pages, current_page + 2)
-
-        for page_no in range(start_page, end_page + 1):
-            page_controls.append(
-                build_page_button(
-                    str(page_no),
-                    page_no,
-                    selected=(page_no == current_page),
-                )
-            )
-
-        page_controls.append(build_page_button(">", current_page + 1, disabled=(current_page == total_pages)))
-
-        pagination_holder.content = ft.Container(
-            padding=ft.Padding.only(top=14, bottom=6),
-            alignment=ft.Alignment(0, 0),
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
-                controls=page_controls,
-            ),
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no, e.page)),
         )
 
     def load_page(page_no=1, page=None):

@@ -56,6 +56,13 @@ def _format_weight(value):
     return f"{weight:,}g"
 
 
+def _format_product_no(product_detail_id, product_id):
+    # 🔥 추가: 상품 상세 정보 관리와 동일하게 상품상세ID-상품ID 형식으로 상품번 표시
+    if product_detail_id not in (None, "") and product_id not in (None, ""):
+        return f"{product_detail_id}-{product_id}"
+    return product_detail_id or product_id or "-"
+
+
 def _format_item(row):
     inout_type = row.get("inout_type") or "-"
     inbound_id = row.get("inbound_id")
@@ -72,6 +79,8 @@ def _format_item(row):
         "inbound_id": inbound_id,
         "sales_order_id": sales_order_id,
         "product_id": row.get("product_id"),
+        "product_detail_id": row.get("product_detail_id"),  # 🔥 추가
+        "product_no": _format_product_no(row.get("product_detail_id"), row.get("product_id")),  # 🔥 추가
         "brand": row.get("brand") or "-",
         "product_name": row.get("product_name") or "-",
         "weight": _to_int(row.get("weight")),

@@ -24,10 +24,10 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "inbound_id": "입고ID",
-    "supplier_id": "거래처ID",
+    "product_no": "상품번",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
+    "product_name": "상품명",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
     "supplier_name": "거래처명",
     "inbound_status": "입고상태",
-    "product": "상품",
     "employee_id": "담당자ID",
 }
 
@@ -65,6 +65,16 @@ def _format_weight(value):
     return f"{weight:,}g"
 
 
+def _build_product_no(product_detail_id, product_id):
+    product_detail_id = str(product_detail_id or "").strip()
+    product_id = str(product_id or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+
+    return product_detail_id or product_id
+
+
 def build_response_rows(items: list, page: int, size: int):
     start_no = ((page - 1) * size) + 1
     rows = []
@@ -78,6 +88,8 @@ def build_response_rows(items: list, page: int, size: int):
                 "supplier_name": row.get("supplier_name", ""),
                 "inbound_status": row.get("inbound_status", ""),  # 🔥 상태명 문자
                 "product_id": row.get("product_id", ""),
+                "product_detail_id": row.get("product_detail_id", ""),  # 🔥 추가: 상품번 구성용
+                "product_no": _build_product_no(row.get("product_detail_id", ""), row.get("product_id", "")),  # 🔥 추가: 상품 상세 정보 관리와 동일한 상품번
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "weight": row.get("weight", ""),
@@ -111,15 +123,15 @@ def build_response_rows(items: list, page: int, size: int):
 def get_inbound_list(
     search_type: Literal[
         "inbound_id",
-        "supplier_id",
+        "product_no",
+        "product_name",
         "supplier_name",
         "inbound_status",
-        "product",
         "employee_id",
     ] = Query(
         default="inbound_id",
-        description="검색 조건. product=상품ID/브랜드/상품명/중량 통합 검색",
-        examples=["product_name"],
+        description="검색 조건. product_no=상품번, product_name=상품명/브랜드/중량 검색",
+        examples=["product_no"],
     ),
     keyword: str = Query(
         default="",

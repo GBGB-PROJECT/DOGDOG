@@ -106,6 +106,7 @@ def _base_query(db):
             ErpSupplier.supplier_name.label("supplier_name"),
             ErpInboundStatus.status.label("inbound_status"),
             ErpPurchaseOrderItem.product_id.label("product_id"),
+            OpdProduct.product_detail_id.label("product_detail_id"),  # 🔥 추가: 화면 상품번(product_detail_id-product_id) 구성용
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
             OpdProduct.weight.label("weight"),
@@ -177,10 +178,31 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
     if search_type == "inbound_status":
         return query.filter(ErpInboundStatus.status.ilike(like_keyword(clean)))
 
-    if search_type in {"product", "product_id", "brand", "product_name"}:
+    if search_type in {"product_no", "product_id"}:
         return query.filter(
             or_(
                 cast(ErpPurchaseOrderItem.product_id, String).like(like_keyword(clean)),
+                cast(OpdProduct.product_detail_id, String).like(like_keyword(clean)),
+                func.concat(cast(OpdProduct.product_detail_id, String), "-", cast(ErpPurchaseOrderItem.product_id, String)).like(like_keyword(clean)),
+            )
+        )
+
+    if search_type in {"product_name", "brand"}:
+        return query.filter(
+            or_(
+                OpdProductDetail.brand.ilike(like_keyword(clean)),
+                OpdProductDetail.product_name.ilike(like_keyword(clean)),
+                cast(OpdProduct.weight, String).like(like_keyword(clean)),
+            )
+        )
+
+    # 🔥 호환용: 예전 product 통합 검색이 넘어와도 기존처럼 처리
+    if search_type == "product":
+        return query.filter(
+            or_(
+                cast(ErpPurchaseOrderItem.product_id, String).like(like_keyword(clean)),
+                cast(OpdProduct.product_detail_id, String).like(like_keyword(clean)),
+                func.concat(cast(OpdProduct.product_detail_id, String), "-", cast(ErpPurchaseOrderItem.product_id, String)).like(like_keyword(clean)),
                 OpdProductDetail.brand.ilike(like_keyword(clean)),
                 OpdProductDetail.product_name.ilike(like_keyword(clean)),
                 cast(OpdProduct.weight, String).like(like_keyword(clean)),
@@ -208,6 +230,8 @@ def _apply_filter(query, search_type="inbound_id", keyword=""):
             ErpInboundStatus.status.ilike(like_keyword(clean)),
             ErpSupplier.supplier_name.ilike(like_keyword(clean)),
             cast(ErpPurchaseOrderItem.product_id, String).like(like_keyword(clean)),
+            cast(OpdProduct.product_detail_id, String).like(like_keyword(clean)),  # 🔥 추가: 상품번 앞자리 검색
+            func.concat(cast(OpdProduct.product_detail_id, String), "-", cast(ErpPurchaseOrderItem.product_id, String)).like(like_keyword(clean)),  # 🔥 추가: 57-135 형태 상품번 검색
             OpdProductDetail.brand.ilike(like_keyword(clean)),
             OpdProductDetail.product_name.ilike(like_keyword(clean)),
             cast(OpdProduct.weight, String).like(like_keyword(clean)),

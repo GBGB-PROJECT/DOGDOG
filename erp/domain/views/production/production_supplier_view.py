@@ -5,10 +5,10 @@ from components import common as cm
 from components.common.modals.modal import build_modal
 from components.common.modals.field_defs import SUPPLIER_FIELDS
 # 🔥 httpx 방식 API 호출로 변경
-from api.erp_httpx_api import count_suppliers, fetch_suppliers, create_supplier
+from api.erp_httpx_api import count_suppliers, fetch_suppliers, create_supplier, update_supplier
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
@@ -33,6 +33,20 @@ def _format_employee_manager(employee_id, manager_name):
     if employee_id:
         return f"#{employee_id}"
     return manager_name
+
+
+def _format_contact_status(value):
+    if value is True:
+        return "활성"
+    if value is False:
+        return "비활성"
+
+    text = str(value or "").strip().lower()
+    if text in {"false", "0", "n", "no"} or "비활" in text or "불가" in text:
+        return "비활성"
+    if text:
+        return "활성"
+    return ""
 
 
 def supplier_row_adapter(saved_data: dict, next_no: int):
@@ -71,7 +85,7 @@ def supplier_db_row_adapter(db_rows: list, page_no: int):
                 "supplier_id": row.get("supplier_id", ""),
                 "supplier_name": row.get("supplier_name", ""),
                 "brn": row.get("brn", ""),
-                "is_contact_status": "활성" if row.get("is_contact_status") else "비활성",
+                "is_contact_status": _format_contact_status(row.get("is_contact_status")),
                 "designated_payment_date": row.get("designated_payment_date", ""),
                 "scheduled_payment_date": row.get("scheduled_payment_date", ""),
                 "employee_id": row.get("employee_id", ""),
@@ -93,6 +107,7 @@ def erp_production_supplier_view():
     page_title = "생산관리 > 거래처 관리"
 
     rows_state = []
+    edit_state = {"supplier_id": None}
 
     selected_start = {"value": None}
     selected_end = {"value": None}
@@ -137,14 +152,14 @@ def erp_production_supplier_view():
 
     col_expand = {
         "no": 4,
-        "supplier_id": 6,
-        "supplier_name": 12,
+        "supplier_name": 14,
         "brn": 10,
-        "is_contact_status": 8,
+        "sup_manager": 8,
+        "employee_id": 7,
+        "phone": 10,
         "designated_payment_date": 8,
         "scheduled_payment_date": 10,
-        "employee_manager": 12,
-        "phone": 10,
+        "is_contact_status": 8,
         "last_update": 12,
     }
 
@@ -153,13 +168,14 @@ def erp_production_supplier_view():
     row_padding_y = 14
 
     search_type_labels = {
-        "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
         "brn": "사업자번호",
-        "designated_payment_date": "지정결제일",  # 🔥 추가: 지정결제일도 검색조건에 포함
-        "is_contact_status": "연락상태",
         "sup_manager": "담당자명",
+        "employee_id": "담당자ID",
         "phone": "전화번호",
+        "designated_payment_date": "지정결제일",
+        "scheduled_payment_date": "예정결제일",
+        "is_contact_status": "연락상태",
     }
 
     def format_date_text(value):
@@ -351,14 +367,14 @@ def erp_production_supplier_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("거래처ID", col_expand["supplier_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),  # 🔥 수정: 거래처명 중앙정렬
+                    build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),  # 🔥 수정: 거래처ID 컬럼 삭제
                     build_table_cell("사업자번호", col_expand["brn"], 0, ft.FontWeight.W_700),
-                    build_table_cell("연락상태", col_expand["is_contact_status"], 0, ft.FontWeight.W_700),
+                    build_table_cell("담당자명", col_expand["sup_manager"], 0, ft.FontWeight.W_700),
+                    build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
                     build_table_cell("지정결제일", col_expand["designated_payment_date"], 0, ft.FontWeight.W_700),
                     build_table_cell("예정결제일", col_expand["scheduled_payment_date"], 0, ft.FontWeight.W_700),
-                    build_table_cell("담당자ID / 담당자명", col_expand["employee_manager"], 0, ft.FontWeight.W_700),
-                    build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
+                    build_table_cell("연락상태", col_expand["is_contact_status"], 0, ft.FontWeight.W_700),
                     build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),
                 ],
             ),
@@ -376,15 +392,21 @@ def erp_production_supplier_view():
             ),
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
+            ink=True,
+            on_click=lambda e, selected_row=row: open_edit_modal(e, selected_row),
             content=ft.Row(
                 expand=True,
                 spacing=row_spacing,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("supplier_id", ""), col_expand["supplier_id"], 0),
-                    build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),  # 🔥 수정: 거래처명 중앙정렬
+                    build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),  # 🔥 수정: 거래처ID 컬럼 삭제
                     build_table_cell(row.get("brn", ""), col_expand["brn"], 0),
+                    build_table_cell(row.get("sup_manager", ""), col_expand["sup_manager"], 0),
+                    build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
+                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
+                    build_table_cell(row.get("designated_payment_date", ""), col_expand["designated_payment_date"], 0),
+                    build_table_cell(row.get("scheduled_payment_date", ""), col_expand["scheduled_payment_date"], 0),
                     build_table_cell(
                         row.get("is_contact_status", ""),
                         col_expand["is_contact_status"],
@@ -392,10 +414,6 @@ def erp_production_supplier_view():
                         ft.FontWeight.W_700,
                         contact_color,
                     ),
-                    build_table_cell(row.get("designated_payment_date", ""), col_expand["designated_payment_date"], 0),
-                    build_table_cell(row.get("scheduled_payment_date", ""), col_expand["scheduled_payment_date"], 0),
-                    build_table_cell(row.get("employee_manager", ""), col_expand["employee_manager"], 0),
-                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
                     build_table_cell(row.get("last_update", ""), col_expand["last_update"], 0),
                 ],
             ),
@@ -421,58 +439,16 @@ def erp_production_supplier_view():
                 return
             run_search(target_page)
 
-        start_page = max(1, current_page - 2)
-        end_page = min(total_pages, start_page + 4)
-
-        # ☑️ 끝 페이지가 5개보다 적게 보이면 시작 페이지를 다시 보정
-        if end_page - start_page < 4:
-            start_page = max(1, end_page - 4)
-
-        page_buttons = []
-
-        page_buttons.append(
-            action_button(
-                "이전",
-                on_click=lambda e: move_page(current_page - 1) if current_page > 1 else None,
-                width=60,
-                run_async=True,
-            )
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no)),
+            width=38,
+            height=38,
+            border_radius=6,
         )
+        return
 
-        for page_no in range(start_page, end_page + 1):
-            is_current = page_no == current_page
-            page_buttons.append(
-                ft.Container(
-                    width=38,
-                    height=38,
-                    bgcolor="#111827" if is_current else BUTTON_BG,
-                    border=ft.Border.all(1, BUTTON_BORDER),
-                    border_radius=6,
-                    alignment=ft.Alignment(0, 0),
-                    on_click=None if is_current else (lambda e, p=page_no: e.page.run_thread(lambda: move_page(p))),
-                    content=ft.Text(
-                        value=str(page_no),
-                        size=13,
-                        color=ft.Colors.WHITE if is_current else BUTTON_TEXT,
-                        weight=ft.FontWeight.W_600,
-                    ),
-                )
-            )
-
-        page_buttons.append(
-            action_button(
-                "다음",
-                on_click=lambda e: move_page(current_page + 1) if current_page < total_pages else None,
-                width=60,
-                run_async=True,
-            )
-        )
-
-        pagination_holder.content = ft.Row(
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=8,
-            controls=page_buttons,
-        )
 
     # =========================================================
     # ☑️ SQLAlchemy ORM: 거래처 count/list 조회
@@ -566,7 +542,28 @@ def erp_production_supplier_view():
         create_supplier(saved_data)
         run_search(1)
 
+    def handle_edit_success(saved_data: dict):
+        if not edit_state["supplier_id"]:
+            raise ValueError("수정할 거래처ID를 찾을 수 없습니다.")
+        update_supplier(edit_state["supplier_id"], saved_data)
+        run_search(pagination_state["current_page"])
+
+    def contact_status_for_form(value):
+        text = str(value or "").strip().lower()
+        if text in {"false", "0", "n", "no"} or "비활" in text:
+            return "false"
+        return "true"
+
+    def set_supplier_session(page: ft.Page, row: dict):
+        for field in SUPPLIER_FIELDS:
+            key = field["key"]
+            value = row.get(key, "")
+            if key == "is_contact_status":
+                value = contact_status_for_form(value)
+            page.session.store.set(f"{SESSION_PREFIX}_{key}", str(value or ""))
+
     def open_register_modal(e):
+        edit_state["supplier_id"] = None
         clear_register_session(e.page)
 
         popup_layer.content = build_modal(
@@ -577,6 +574,30 @@ def erp_production_supplier_view():
             session_prefix=SESSION_PREFIX,
             close_handler=close_register_modal,
             on_submit_success=handle_register_success,
+            mode="register",
+            confirm_message="거래처를 등록하시겠습니까?\n등록 후 조회 화면에 바로 반영됩니다.",
+        )
+        dim_bg.visible = True
+        popup_layer.visible = True
+        e.page.update()
+
+    def open_edit_modal(e, row):
+        supplier_id = row.get("supplier_id")
+        if not supplier_id:
+            return
+        edit_state["supplier_id"] = supplier_id
+        set_supplier_session(e.page, row)
+
+        popup_layer.content = build_modal(
+            page=e.page,
+            register_title="거래처 등록",
+            edit_title="거래처 정보 수정",
+            fields=SUPPLIER_FIELDS,
+            session_prefix=SESSION_PREFIX,
+            close_handler=close_register_modal,
+            on_submit_success=handle_edit_success,
+            mode="edit",
+            confirm_message="거래처 정보를 수정하시겠습니까?\n기존 데이터가 변경됩니다.",
         )
         dim_bg.visible = True
         popup_layer.visible = True
@@ -614,25 +635,35 @@ def erp_production_supplier_view():
         action_button("등록", on_click=open_register_modal, width=78),
     ]
 
+    # 🔥 수정: 긴 거래처명/전화번호/최종수정일이 ...으로 잘리지 않도록 가로 스크롤 적용
     table_section = ft.Container(
         expand=True,
         bgcolor=CARD_BG,
         border=ft.Border.all(1, TABLE_BORDER),
         border_radius=10,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        content=ft.Column(
+        content=ft.Row(
             expand=True,
-            spacing=0,
+            scroll=ft.ScrollMode.AUTO,
             controls=[
-                build_table_header(),
-                # 🔥 수정: 거래처 관리도 inbound_view.py처럼 데이터 행 영역만 스크롤
                 ft.Container(
-                    expand=True,
+                    width=1800,
                     content=ft.Column(
                         expand=True,
                         spacing=0,
-                        scroll=ft.ScrollMode.AUTO,
-                        controls=[table_rows_holder],
+                        controls=[
+                            build_table_header(),
+                            # 🔥 수정: 거래처 관리도 inbound_view.py처럼 데이터 행 영역만 스크롤
+                            ft.Container(
+                                expand=True,
+                                content=ft.Column(
+                                    expand=True,
+                                    spacing=0,
+                                    scroll=ft.ScrollMode.AUTO,
+                                    controls=[table_rows_holder],
+                                ),
+                            ),
+                        ],
                     ),
                 ),
             ],

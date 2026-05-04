@@ -4,17 +4,17 @@ import flet as ft
 
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_customer_subscriptions, fetch_customer_subscriptions
-from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
-from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
+from components.common.erp_view_layout import build_lookup_page_layout
 
 
 # =========================================================
 # 🔥 고객 구독 관리 화면
 # - 구독상품 1개 = 화면 1줄 표시
-# - 고객ID와 구독자명을 한 칸으로 묶어 ID 노출을 줄임
+# - 고객ID와 구독자명을 별도 컬럼으로 표시
 # - 구독플랜ID는 테이블에서 제거
 # - 구독시작일은 날짜만 표시
 # - 검색조건은 실무에서 쓰기 좋은 항목만 유지
@@ -57,17 +57,27 @@ def format_subscription_products_for_text(value):
     return "\n".join(split_subscription_products(value))
 
 
-def format_customer_subscriber(customer_id, subscriber_name):
-    customer_id_text = str(customer_id or "").strip()
-    subscriber_text = str(subscriber_name or "").strip()
-
-    if customer_id_text and subscriber_text:
-        return f"#{customer_id_text} / {subscriber_text}"
-
-    if customer_id_text:
-        return f"#{customer_id_text}"
-
-    return subscriber_text
+def build_full_table_cell(
+    text,
+    width,
+    align_x=0,
+    weight=ft.FontWeight.W_400,
+    color=TEXT_ROW,
+    size=12,
+):
+    return ft.Container(
+        width=width,
+        alignment=ft.Alignment(align_x, 0),
+        tooltip=str(text or ""),
+        content=ft.Text(
+            value=str(text or ""),
+            size=size,
+            color=color,
+            weight=weight,
+            text_align=ft.TextAlign.CENTER if align_x == 0 else (ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT),
+            selectable=True,
+        ),
+    )
 
 
 def customer_subscription_db_row_adapter(db_rows: list, page_no: int):
@@ -78,13 +88,8 @@ def customer_subscription_db_row_adapter(db_rows: list, page_no: int):
         rows.append(
             {
                 "no": str(index),
-                "subs_id": row.get("subs_id", ""),
                 "customer_id": row.get("customer_id", ""),
                 "subscriber_name": row.get("name", ""),
-                "customer_subscriber": format_customer_subscriber(
-                    row.get("customer_id", ""),
-                    row.get("name", ""),
-                ),
                 "subs_plan_id": row.get("subs_plan_id", ""),  # 🔥 테이블에는 숨기고 데이터만 유지
                 # 🔥 재수정: 구독상품을 한 줄에 합치지 않고 상품 1개 단위로 표시
                 "product_id": row.get("product_id", row.get("product_ids", "")),
@@ -116,7 +121,7 @@ def erp_customer_subscription_view():
 
     selected_start = {"value": None}
     selected_end = {"value": None}
-    search_type_value = {"value": "subs_id"}
+    search_type_value = {"value": "subscription_product"}
 
     pagination_state = {
         "current_page": 1,
@@ -146,25 +151,23 @@ def erp_customer_subscription_view():
     # 🔥 수정: 컬럼 순서 변경에 맞춰 비율 재조정
     # =========================================================
     col_expand = {
-        "no": 3,
-        "subs_id": 4,
-        "customer_subscriber": 7,
-        # 🔥 재수정: 상품 1개가 한 행으로 나오므로 상품명 컬럼만 넉넉히 확보
-        "subscription_product": 26,
-        "item_quantity": 4,
-        "item_final_amount": 6,
-        "is_subs_status": 5,
-        "is_auto_delivery": 4,
-        "delivery_cycle": 4,
-        "subs_day": 5,
-        "subs_sale": 4,
-        "address": 9,
-        "phone": 7,
-        "subs_date": 7,
+        "no": 60,
+        "customer_id": 90,
+        "subscriber_name": 130,
+        "subscription_product": 380,
+        "item_quantity": 80,
+        "item_final_amount": 130,
+        "is_subs_status": 110,
+        "is_auto_delivery": 90,
+        "delivery_cycle": 90,
+        "subs_day": 100,
+        "subs_sale": 80,
+        "address": 230,
+        "phone": 150,
+        "subs_date": 120,
     }
 
     search_type_labels = {
-        "subs_id": "구독ID",
         # 🔥 추가/정리: 구독상품 검색조건을 앞쪽에 배치
         # - 상품명/브랜드/product_id 부분검색은 백엔드 subscription_product 조건에서 처리
         "subscription_product": "구독상품",
@@ -281,7 +284,7 @@ def erp_customer_subscription_view():
             selected_start["value"] is not None
             or selected_end["value"] is not None
             or (search_field.value or "").strip() != ""
-            or search_type_value["value"] != "subs_id"
+            or search_type_value["value"] != "subscription_product"
             or (pagination_state["keyword"] or "").strip() != ""
         )
         reset_button_holder.visible = has_filter
@@ -371,7 +374,7 @@ def erp_customer_subscription_view():
         value = str(product_text or "").strip()
 
         return ft.Container(
-            expand=expand,
+            width=expand,
             alignment=ft.Alignment(0, 0),
             tooltip=value,
             content=ft.Text(
@@ -387,24 +390,23 @@ def erp_customer_subscription_view():
             bgcolor=TABLE_HEADER_BG,
             padding=ft.Padding.only(left=14, right=14, top=14, bottom=14),
             content=ft.Row(
-                expand=True,
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독ID", col_expand["subs_id"], 0, ft.FontWeight.W_700),
-                    build_table_cell("고객ID / 구독자명", col_expand["customer_subscriber"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독상품", col_expand["subscription_product"], 0, ft.FontWeight.W_700),
-                    build_table_cell("수량", col_expand["item_quantity"], 0, ft.FontWeight.W_700),
-                    build_table_cell("최종금액", col_expand["item_final_amount"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독상태", col_expand["is_subs_status"], 0, ft.FontWeight.W_700),
-                    build_table_cell("자동배송", col_expand["is_auto_delivery"], 0, ft.FontWeight.W_700),
-                    build_table_cell("배송주기", col_expand["delivery_cycle"], 0, ft.FontWeight.W_700),
-                    build_table_cell("신청요일", col_expand["subs_day"], 0, ft.FontWeight.W_700),
-                    build_table_cell("할인율", col_expand["subs_sale"], 0, ft.FontWeight.W_700),
-                    build_table_cell("배송지", col_expand["address"], 0, ft.FontWeight.W_700),
-                    build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
-                    build_table_cell("구독시작일", col_expand["subs_date"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("구독자명", col_expand["subscriber_name"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("구독상품", col_expand["subscription_product"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("수량", col_expand["item_quantity"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("최종금액", col_expand["item_final_amount"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("구독상태", col_expand["is_subs_status"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("자동배송", col_expand["is_auto_delivery"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("배송주기", col_expand["delivery_cycle"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("신청요일", col_expand["subs_day"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("할인율", col_expand["subs_sale"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("배송지", col_expand["address"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("구독시작일", col_expand["subs_date"], 0, ft.FontWeight.W_700),
                 ],
             ),
         )
@@ -417,30 +419,29 @@ def erp_customer_subscription_view():
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
             content=ft.Row(
-                expand=True,
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("subs_id", ""), col_expand["subs_id"], 0),
-                    build_table_cell(row.get("customer_subscriber", ""), col_expand["customer_subscriber"], 0),
+                    build_full_table_cell(row.get("no", ""), col_expand["no"], 0),
+                    build_full_table_cell(row.get("customer_id", ""), col_expand["customer_id"], 0),
+                    build_full_table_cell(row.get("subscriber_name", ""), col_expand["subscriber_name"], 0),
                     build_product_table_cell(row.get("subscription_product", ""), col_expand["subscription_product"]),
-                    build_table_cell(row.get("item_quantity", ""), col_expand["item_quantity"], 0),
-                    build_table_cell(row.get("item_final_amount", ""), col_expand["item_final_amount"], 0),
-                    build_table_cell(
+                    build_full_table_cell(row.get("item_quantity", ""), col_expand["item_quantity"], 0),
+                    build_full_table_cell(row.get("item_final_amount", ""), col_expand["item_final_amount"], 0),
+                    build_full_table_cell(
                         row.get("is_subs_status", ""),
                         col_expand["is_subs_status"],
                         0,
                         ft.FontWeight.W_700,
                         status_color,
                     ),
-                    build_table_cell(row.get("is_auto_delivery", ""), col_expand["is_auto_delivery"], 0),
-                    build_table_cell(row.get("delivery_cycle", ""), col_expand["delivery_cycle"], 0),
-                    build_table_cell(row.get("subs_day", ""), col_expand["subs_day"], 0),
-                    build_table_cell(row.get("subs_sale", ""), col_expand["subs_sale"], 0),
-                    build_table_cell(row.get("address", ""), col_expand["address"], 0),
-                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
-                    build_table_cell(row.get("subs_date", ""), col_expand["subs_date"], 0),
+                    build_full_table_cell(row.get("is_auto_delivery", ""), col_expand["is_auto_delivery"], 0),
+                    build_full_table_cell(row.get("delivery_cycle", ""), col_expand["delivery_cycle"], 0),
+                    build_full_table_cell(row.get("subs_day", ""), col_expand["subs_day"], 0),
+                    build_full_table_cell(row.get("subs_sale", ""), col_expand["subs_sale"], 0),
+                    build_full_table_cell(row.get("address", ""), col_expand["address"], 0),
+                    build_full_table_cell(row.get("phone", ""), col_expand["phone"], 0),
+                    build_full_table_cell(row.get("subs_date", ""), col_expand["subs_date"], 0),
                 ],
             ),
         )
@@ -518,47 +519,16 @@ def erp_customer_subscription_view():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
-        if total_pages <= 1:
-            pagination_holder.content = None
-            return
-
-        page_controls = []
-
-        page_controls.append(
-            build_page_button("<", current_page - 1, disabled=(current_page == 1))
-        )
-
-        start_page = max(1, current_page - 2)
-        end_page = min(total_pages, current_page + 2)
-
-        for page_no in range(start_page, end_page + 1):
-            page_controls.append(
-                build_page_button(
-                    str(page_no),
-                    page_no,
-                    selected=(page_no == current_page),
-                )
-            )
-
-        page_controls.append(
-            build_page_button(">", current_page + 1, disabled=(current_page == total_pages))
-        )
-
-        pagination_holder.content = ft.Container(
-            padding=ft.Padding.only(top=14, bottom=6),
-            alignment=ft.Alignment(0, 0),
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
-                controls=page_controls,
-            ),
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no, e.page)),
         )
 
     def update_result_text():
         start_text = format_date_text(selected_start["value"]) or "미선택"
         end_text = format_date_text(selected_end["value"]) or "미선택"
-        search_label = search_type_labels.get(search_type_value["value"], "구독ID")
+        search_label = search_type_labels.get(search_type_value["value"], "구독상품")
         keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
 
         result_text.value = (
@@ -606,8 +576,8 @@ def erp_customer_subscription_view():
         selected_start["value"] = None
         selected_end["value"] = None
 
-        search_type_value["value"] = "subs_id"
-        search_type_text.value = search_type_labels["subs_id"]
+        search_type_value["value"] = "subscription_product"
+        search_type_text.value = search_type_labels["subscription_product"]
         search_field.value = ""
 
         pagination_state["keyword"] = ""
@@ -627,7 +597,41 @@ def erp_customer_subscription_view():
     pagination_state["keyword"] = ""
     pagination_state["current_page"] = 1
 
-    table_area = build_lookup_table_area(build_table_header(), table_rows_holder)
+    table_spacing = 8
+    table_padding_x = 14
+    table_total_width = sum(col_expand.values()) + (table_spacing * (len(col_expand) - 1))
+
+    table_area = ft.Container(
+        expand=True,
+        border=ft.border.all(1, TABLE_BORDER),
+        border_radius=10,
+        bgcolor=CARD_BG,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        content=ft.Row(
+            scroll=ft.ScrollMode.AUTO,
+            controls=[
+                ft.Container(
+                    width=table_total_width + (table_padding_x * 2),
+                    content=ft.Column(
+                        expand=True,
+                        spacing=0,
+                        controls=[
+                            build_table_header(),
+                            ft.Container(
+                                expand=True,
+                                content=ft.Column(
+                                    expand=True,
+                                    spacing=0,
+                                    scroll=ft.ScrollMode.AUTO,
+                                    controls=[table_rows_holder],
+                                ),
+                            ),
+                        ],
+                    ),
+                ),
+            ],
+        ),
+    )
 
     page_layout = build_lookup_page_layout(
         page_title=page_title,

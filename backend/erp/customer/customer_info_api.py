@@ -13,7 +13,6 @@ router = APIRouter(
 )
 
 SEARCH_TYPE_LABELS = {
-    "customer_id": "고객ID",
     "email": "이메일",
     "oauth_type": "OAuth유형",
     "nickname": "닉네임",
@@ -66,7 +65,6 @@ def build_response_rows(items: list, page: int, size: int):
 )
 def get_customer_list(
     search_type: Literal[
-        "customer_id",
         "email",
         "oauth_type",
         "nickname",
@@ -75,9 +73,9 @@ def get_customer_list(
         "subs_count",
         "active",
     ] = Query(
-        default="customer_id",
+        default="email",
         description="검색 조건",
-        examples=["customer_id"],
+        examples=["email"],
     ),
     keyword: str = Query(
         default="",
@@ -109,7 +107,7 @@ def get_customer_list(
     ),  # 🔥 수정: str → date, Swagger UI 날짜 선택 형식
 ):
     try:
-        clean_search_type = (search_type or "customer_id").strip()
+        clean_search_type = (search_type or "email").strip()
         clean_keyword = (keyword or "").strip()
 
         total_count = count_customers(

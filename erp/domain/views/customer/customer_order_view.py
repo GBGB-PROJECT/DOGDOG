@@ -3,9 +3,9 @@ import flet as ft
 
 # 🔥 httpx 방식 API 호출로 변경
 from api.erp_httpx_api import count_customer_orders, fetch_customer_orders
-from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
@@ -43,42 +43,57 @@ def format_plain_number(value):
         return str(value)
 
 
-def build_customer_display(row):
-    # 🔥 검색조건이 고객ID일 때 바로 이해되도록 고객ID를 앞에 표시
-    # - 기존: 고객1912 (#21)  → 고객ID 21 검색 시 헷갈림
-    # - 변경: #21 / 고객1912 → 고객ID가 먼저 보여서 검색 결과 이해가 쉬움
-    # - DB 값은 조작하지 않고 sales_order.customer_id / recipient 원본 표시 순서만 변경
-    recipient = str(row.get("recipient") or "").strip()
-    customer_id = str(row.get("customer_id") or "").strip()
+def build_product_no(row):
+    # 🔥 상품 상세 정보 관리의 상품번 형식과 동일하게 상품상세ID-상품ID로 표시
+    product_detail_id = str(row.get("product_detail_id") or "").strip()
+    product_id = str(row.get("product_id") or "").strip()
 
-    if customer_id and recipient:
-        return f"#{customer_id} / {recipient}"
-    if customer_id:
-        return f"#{customer_id}"
-    if recipient:
-        return recipient
-    return "-"
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+    if product_detail_id:
+        return product_detail_id
+    if product_id:
+        return product_id
+    return ""
+
+
+def build_full_table_cell(
+    text,
+    expand,
+    align_x=0,
+    weight=ft.FontWeight.W_400,
+    color=TEXT_ROW,
+    size=12,
+):
+    return ft.Container(
+        expand=expand,
+        alignment=ft.Alignment(align_x, 0),
+        tooltip=str(text or ""),
+        content=ft.Text(
+            value=str(text or ""),
+            size=size,
+            color=color,
+            weight=weight,
+            text_align=ft.TextAlign.CENTER if align_x == 0 else (ft.TextAlign.RIGHT if align_x == 1 else ft.TextAlign.LEFT),
+            selectable=True,
+        ),
+    )
 
 
 def build_product_display(row):
-    # 🔥 상품ID만 노출하지 않고 OPD.product_detail의 브랜드/상품명을 같이 표시
+    # 🔥 상품명에는 상품번을 섞지 않고 브랜드/상품명/중량만 표시
     brand = str(row.get("product_brand") or "").strip()
     product_name = str(row.get("product_name") or "").strip()
-    product_id = str(row.get("product_id") or "").strip()
     weight = format_plain_number(row.get("product_weight"))
 
     name = " ".join([part for part in [brand, product_name] if part]).strip()
     if not name:
         name = "상품명 없음"
 
-    spec_parts = []
     if weight:
-        spec_parts.append(f"{weight}g")
-    if product_id:
-        spec_parts.append(f"#{product_id}")
+        return f"{name} ({weight}g)"
 
-    spec_text = f" ({' / '.join(spec_parts)})" if spec_parts else ""
-    return f"{name}{spec_text}"
+    return name
 
 
 def format_datetime_text(value):
@@ -111,12 +126,12 @@ def customer_order_db_row_adapter(db_rows: list, page_no: int):
                 "order_date": format_datetime_text(row.get("order_date", "")),
                 "sales_order_id": row.get("sales_order_id", ""),
                 "customer_id": row.get("customer_id", ""),
-                "customer_display": build_customer_display(row),
                 "recipient": row.get("recipient", ""),
                 "phone": row.get("phone", ""),
                 "address": row.get("address", ""),
                 "product_id": row.get("product_id", ""),
                 "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": build_product_no(row),
                 "product_brand": row.get("product_brand", ""),
                 "product_name": row.get("product_name", ""),
                 "product_weight": row.get("product_weight", ""),
@@ -125,6 +140,8 @@ def customer_order_db_row_adapter(db_rows: list, page_no: int):
                 "retail_price": format_money(row.get("retail_price", "")),
                 "total_amount": format_money(row.get("total_amount", "")),
                 "payment_billing_id": row.get("payment_billing_id", ""),
+                # 🔥 추가: OPD.payment.pay_number를 결제번호로 상세창에 표시한다.
+                "pay_number": row.get("pay_number", ""),
             }
         )
 
@@ -165,11 +182,13 @@ def erp_customer_order_view():
     col_expand = {
         "no": 3,
         "order_number": 8,
+        "product_no": 6,
         "order_date": 7,
-        "customer_display": 8,
+        "customer_id": 5,
+        "recipient": 8,
         "phone": 7,
         "address": 12,
-        "product_display": 18,
+        "product_display": 17,
         "quantity": 4,
         "total_amount": 7,
     }
@@ -177,9 +196,11 @@ def erp_customer_order_view():
     search_type_labels = {
         "order_number": "주문번호",
         "customer_id": "고객ID",
+        "recipient": "배송수령인",
         "phone": "전화번호",
         "address": "배송지",
-        "product": "상품",  # 🔥 상품ID/브랜드/상품명 통합 검색
+        "product_no": "상품번",
+        "product_name": "상품명",
     }
 
     def format_date_text(value):
@@ -356,15 +377,17 @@ def erp_customer_order_view():
                 spacing=10,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("주문번호", col_expand["order_number"], 0, ft.FontWeight.W_700),
-                    build_table_cell("주문일", col_expand["order_date"], 0, ft.FontWeight.W_700),
-                    build_table_cell("고객ID / 배송수령인", col_expand["customer_display"], 0, ft.FontWeight.W_700),
-                    build_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
-                    build_table_cell("배송지", col_expand["address"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상품", col_expand["product_display"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상품수량", col_expand["quantity"], 0, ft.FontWeight.W_700),
-                    build_table_cell("상품금액", col_expand["total_amount"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("주문번호", col_expand["order_number"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("상품번", col_expand["product_no"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("주문일", col_expand["order_date"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("배송수령인", col_expand["recipient"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("전화번호", col_expand["phone"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("배송지", col_expand["address"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("상품명", col_expand["product_display"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("상품수량", col_expand["quantity"], 0, ft.FontWeight.W_700),
+                    build_full_table_cell("상품금액", col_expand["total_amount"], 0, ft.FontWeight.W_700),
                 ],
             ),
         )
@@ -399,16 +422,17 @@ def erp_customer_order_view():
                         build_detail_line("주문번호", row.get("order_number")),
                         build_detail_line("주문ID", row.get("sales_order_id")),
                         build_detail_line("주문일", row.get("order_date")),
-                        build_detail_line("고객ID / 배송수령인", row.get("customer_display")),
+                        build_detail_line("고객ID", row.get("customer_id")),
+                        build_detail_line("배송수령인", row.get("recipient")),
                         build_detail_line("전화번호", row.get("phone")),
                         build_detail_line("배송지", row.get("address")),
-                        build_detail_line("상품", row.get("product_display")),
-                        build_detail_line("상품ID", row.get("product_id")),
+                        build_detail_line("상품명", row.get("product_display")),
                         build_detail_line("상품상세ID", row.get("product_detail_id")),
+                        build_detail_line("상품ID", row.get("product_id")),
                         build_detail_line("판매단가", row.get("retail_price")),
                         build_detail_line("상품수량", row.get("quantity")),
                         build_detail_line("상품금액", row.get("total_amount")),
-                        build_detail_line("결제ID", row.get("payment_billing_id")),
+                        build_detail_line("결제번호", row.get("pay_number")),
                     ],
                 ),
             ),
@@ -436,15 +460,17 @@ def erp_customer_order_view():
                 spacing=10,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("order_number", ""), col_expand["order_number"], 0),
-                    build_table_cell(row.get("order_date", ""), col_expand["order_date"], 0),
-                    build_table_cell(row.get("customer_display", ""), col_expand["customer_display"], 0),
-                    build_table_cell(row.get("phone", ""), col_expand["phone"], 0),
-                    build_table_cell(row.get("address", ""), col_expand["address"], 0),
-                    build_table_cell(row.get("product_display", ""), col_expand["product_display"], -1, max_lines=1),
-                    build_table_cell(row.get("quantity", ""), col_expand["quantity"], 0),
-                    build_table_cell(
+                    build_full_table_cell(row.get("no", ""), col_expand["no"], 0),
+                    build_full_table_cell(row.get("order_number", ""), col_expand["order_number"], 0),
+                    build_full_table_cell(row.get("product_no", ""), col_expand["product_no"], 0),
+                    build_full_table_cell(row.get("order_date", ""), col_expand["order_date"], 0),
+                    build_full_table_cell(row.get("customer_id", ""), col_expand["customer_id"], 0),
+                    build_full_table_cell(row.get("recipient", ""), col_expand["recipient"], 0),
+                    build_full_table_cell(row.get("phone", ""), col_expand["phone"], 0),
+                    build_full_table_cell(row.get("address", ""), col_expand["address"], 0),
+                    build_full_table_cell(row.get("product_display", ""), col_expand["product_display"], -1),
+                    build_full_table_cell(row.get("quantity", ""), col_expand["quantity"], 0),
+                    build_full_table_cell(
                         row.get("total_amount", ""),
                         col_expand["total_amount"],
                         0,
@@ -523,41 +549,10 @@ def erp_customer_order_view():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
-        if total_pages <= 1:
-            pagination_holder.content = None
-            return
-
-        page_controls = []
-
-        page_controls.append(
-            build_page_button("<", current_page - 1, disabled=(current_page == 1))
-        )
-
-        start_page = max(1, current_page - 2)
-        end_page = min(total_pages, current_page + 2)
-
-        for page_no in range(start_page, end_page + 1):
-            page_controls.append(
-                build_page_button(
-                    str(page_no),
-                    page_no,
-                    selected=(page_no == current_page),
-                )
-            )
-
-        page_controls.append(
-            build_page_button(">", current_page + 1, disabled=(current_page == total_pages))
-        )
-
-        pagination_holder.content = ft.Container(
-            padding=ft.Padding.only(top=14, bottom=6),
-            alignment=ft.Alignment(0, 0),
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
-                controls=page_controls,
-            ),
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no, e.page)),
         )
 
     def update_result_text():

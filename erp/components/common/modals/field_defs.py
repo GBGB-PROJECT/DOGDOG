@@ -106,3 +106,22 @@ SUPPLIER_FIELDS = [
     {"label": "담당자명", "key": "sup_manager", "type": "name", "required": True, "max_length": 10},
     {"label": "전화번호", "key": "phone", "type": "phone", "required": True, "max_length": 13},
 ]
+
+
+PRODUCT_DETAIL_EDIT_FIELDS = [
+    {"label": "타입", "key": "type", "type": "text", "required": True, "max_length": 9},
+    {"label": "브랜드", "key": "brand", "type": "text", "required": True, "max_length": 255},
+    {"label": "상품명", "key": "product_name", "type": "text", "required": True, "max_length": 100},
+    {"label": "기능", "key": "function", "type": "text", "required": False, "max_length": 200},
+    {"label": "주원료", "key": "main_protein", "type": "text", "required": False, "max_length": 30},
+    {
+        "label": "생애주기",
+        "key": "life",
+        "type": "text",
+        "required": True,
+        "max_length": 6,
+        "allowed_values": ["전연령", "퍼피", "어덜트", "시니어"],
+    },
+    {"label": "판매가", "key": "retail_price", "type": "int", "required": True, "max_length": 10, "min_value": 0},
+    {"label": "판매상태", "key": "active", "type": "bool", "required": True, "max_length": 10},
+]

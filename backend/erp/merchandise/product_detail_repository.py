@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from db.db import SessionLocal
 from db.models import OpdProduct, OpdProductDetail
 from ..common.query_utils import like_keyword, model_to_dict
@@ -10,7 +12,7 @@ from ..common.mutation_utils import (
     require_int,
     require_bool,
 )
-from sqlalchemy import String
+from sqlalchemy import String, or_
 
 
 # =========================================================
@@ -143,6 +145,16 @@ def _normalize_numeric_keyword(keyword: str):
     return (keyword or "").replace(",", "").replace("g", "").replace("G", "").strip()
 
 
+def _normalize_product_no_keyword(keyword: str):
+    return (
+        (keyword or "")
+        .replace(",", "")
+        .replace(" ", "")
+        .replace("_", "-")
+        .strip()
+    )
+
+
 def _apply_product_join_filter(query, search_type: str, keyword: str):
     clean = (keyword or "").strip()
 
@@ -151,6 +163,32 @@ def _apply_product_join_filter(query, search_type: str, keyword: str):
 
     if search_type == "product_name":
         return query.filter(OpdProductDetail.product_name.ilike(like_keyword(clean)))
+
+    if search_type == "product_no":
+        normalized = _normalize_product_no_keyword(clean)
+        if "-" in normalized:
+            detail_id, product_id = (normalized.split("-", 1) + [""])[:2]
+            if detail_id.isdigit() and product_id.isdigit():
+                return query.filter(
+                    OpdProductDetail.product_detail_id == int(detail_id),
+                    OpdProduct.product_id == int(product_id),
+                )
+
+        numeric = _normalize_numeric_keyword(clean)
+        if numeric.isdigit():
+            return query.filter(
+                or_(
+                    OpdProductDetail.product_detail_id == int(numeric),
+                    OpdProduct.product_id == int(numeric),
+                )
+            )
+
+        return query.filter(
+            or_(
+                OpdProductDetail.product_detail_id.cast(String).ilike(like_keyword(numeric)),
+                OpdProduct.product_id.cast(String).ilike(like_keyword(numeric)),
+            )
+        )
 
     if search_type == "product_id":
         numeric = _normalize_numeric_keyword(clean)
@@ -196,6 +234,14 @@ def _apply_product_join_filter(query, search_type: str, keyword: str):
         if numeric.isdigit():
             return query.filter(OpdProduct.quantity == int(numeric))
         return query.filter(OpdProduct.quantity.cast(String).ilike(like_keyword(numeric)))
+
+    if search_type == "active":
+        lowered = clean.lower()
+        if lowered in {"true", "1", "y", "yes", "판매중", "판매"}:
+            return query.filter(OpdProduct.active.is_(True))
+        if lowered in {"false", "0", "n", "no", "판매중지", "중지"}:
+            return query.filter(OpdProduct.active.is_(False))
+        return query.filter(OpdProduct.active.cast(String).ilike(like_keyword(clean)))
 
     return query
 
@@ -343,6 +389,71 @@ def create_product_detail(data: dict):
                 "last_update": getattr(product, "last_update", None),
             },
         }
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def update_product_detail(product_id: int, data: dict):
+    db = SessionLocal()
+    try:
+        product_id = require_int(product_id, "product_id")
+        product = db.query(OpdProduct).filter(OpdProduct.product_id == product_id).first()
+        if not product:
+            raise ValueError(f"존재하지 않는 상품ID입니다: {product_id}")
+
+        detail = (
+            db.query(OpdProductDetail)
+            .filter(OpdProductDetail.product_detail_id == product.product_detail_id)
+            .first()
+        )
+        if not detail:
+            raise ValueError(f"존재하지 않는 상품상세ID입니다: {product.product_detail_id}")
+
+        product_type = require_text(data.get("type"), "타입")
+        brand = require_text(data.get("brand"), "브랜드")
+        product_name = require_text(data.get("product_name"), "상품명")
+        life = require_text(data.get("life"), "생애주기")
+
+        if life not in {"전연령", "퍼피", "어덜트", "시니어"}:
+            raise ValueError("생애주기는 전연령, 퍼피, 어덜트, 시니어 중 하나여야 합니다.")
+
+        duplicate = (
+            db.query(OpdProductDetail)
+            .filter(
+                OpdProductDetail.type == product_type,
+                OpdProductDetail.brand == brand,
+                OpdProductDetail.product_name == product_name,
+                OpdProductDetail.product_detail_id != detail.product_detail_id,
+            )
+            .first()
+        )
+        if duplicate:
+            raise ValueError("동일한 타입/브랜드/상품명이 이미 존재합니다.")
+
+        retail_price = require_int(data.get("retail_price"), "판매가")
+        if retail_price < 0:
+            raise ValueError("판매가는 0 이상이어야 합니다.")
+
+        detail.type = product_type
+        detail.brand = brand
+        detail.product_name = product_name
+        detail.function = clean_text(data.get("function"))
+        detail.main_protein = clean_text(data.get("main_protein"))
+        detail.life = life
+        detail.last_update = datetime.now()
+
+        product.retail_price = retail_price
+        product.active = require_bool(data.get("active"), "판매상태")
+        product.last_update = datetime.now()
+
+        db.commit()
+        db.refresh(detail)
+        db.refresh(product)
+
+        return _product_join_row_to_dict(product, detail)
     except Exception:
         db.rollback()
         raise

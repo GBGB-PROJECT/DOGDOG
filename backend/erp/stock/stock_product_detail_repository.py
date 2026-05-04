@@ -22,7 +22,7 @@ from db.models import (
 from ..common.query_utils import like_keyword, to_plain_value
 
 
-SEARCH_TYPE_DEFAULT = "product"
+SEARCH_TYPE_DEFAULT = "product_name"
 
 
 def _base_query(db):
@@ -47,6 +47,7 @@ def _base_query(db):
             ).label("inbound_date"),
 
             # 🔥 상품 식별용 보조 컬럼
+            OpdProduct.product_detail_id.label("product_detail_id"),
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
             OpdProduct.weight.label("weight"),
@@ -116,12 +117,23 @@ def _apply_filter(query, search_type: str, keyword: str):
     if not clean:
         return query
 
-    # 🔥 수정: 상품 컬럼 통합에 맞춰 상품 검색도 통합
-    # - 상품ID / 브랜드 / 상품명 / 중량을 한 번에 검색
-    if search_type in {"product", "product_id", "brand", "product_name"}:
+    # 🔥 수정: 상품번과 상품명을 검색조건에서 분리한다.
+    if search_type == "product_no":
+        product_no_expr = func.concat(
+            cast(OpdProduct.product_detail_id, String),
+            "-",
+            cast(ErpStock.product_id, String),
+        )
+
         return query.filter(
-            cast(ErpStock.product_id, String).like(like_keyword(clean))
-            | cast(OpdProductDetail.brand, String).ilike(like_keyword(clean))
+            product_no_expr.like(like_keyword(clean))
+            | cast(OpdProduct.product_detail_id, String).like(like_keyword(clean))
+            | cast(ErpStock.product_id, String).like(like_keyword(clean))
+        )
+
+    if search_type in {"product_name", "product", "brand"}:
+        return query.filter(
+            cast(OpdProductDetail.brand, String).ilike(like_keyword(clean))
             | cast(OpdProductDetail.product_name, String).ilike(like_keyword(clean))
             | cast(OpdProduct.weight, String).like(like_keyword(clean))
         )
@@ -167,6 +179,7 @@ def _apply_date_filter(query, start_date=None, end_date=None, date_filter_type="
 def _row_to_dict(row):
     return {
         "product_id": to_plain_value(row.product_id),
+        "product_detail_id": to_plain_value(row.product_detail_id),
         "brand": to_plain_value(row.brand),
         "inbound_id": to_plain_value(row.inbound_id),
         "inbound_status": to_plain_value(row.inbound_status),

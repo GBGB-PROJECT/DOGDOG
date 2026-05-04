@@ -4,6 +4,7 @@ from .product_detail_repository import (
     count_product_join_rows,
     fetch_product_join_rows,
     create_product_detail,
+    update_product_detail,
 )
 
 
@@ -17,4 +18,5 @@ __all__ = [
     "count_product_join_rows",
     "fetch_product_join_rows",
     "create_product_detail",
+    "update_product_detail",
 ]

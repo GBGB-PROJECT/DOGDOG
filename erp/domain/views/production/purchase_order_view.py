@@ -13,7 +13,7 @@ from api.erp_httpx_api import (
 )
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
@@ -183,10 +183,9 @@ def erp_purchase_order_view():
 
     search_type_labels = {
         "purchase_order_id": "발주ID",
-        "supplier_id": "거래처ID",
         "supplier_name": "거래처명",
-        "pay_status": "결제상태",
         "is_purchase_order_cancel": "발주상태",  # 🔥 수정: 취소여부 → 발주상태
+        "pay_status": "결제상태",
         "employee_id": "담당자ID",
     }
 
@@ -201,15 +200,14 @@ def erp_purchase_order_view():
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
         {"key": "purchase_order_id", "label": "발주ID", "width": 80, "align_x": 0},
-        {"key": "supplier_id", "label": "거래처ID", "width": 90, "align_x": 0},
         {"key": "supplier_name", "label": "거래처명", "width": 130, "align_x": 0},
         {"key": "contract_date", "label": "계약일자", "width": 110, "align_x": 0},
-        {"key": "inbound_scheduled_date", "label": "입고예정일", "width": 110, "align_x": 0},
-        {"key": "pay_status", "label": "결제상태", "width": 90, "align_x": 0},
-        {"key": "is_purchase_order_cancel", "label": "발주상태", "width": 90, "align_x": 0},  # 🔥 수정
-        {"key": "employee_id", "label": "담당자ID", "width": 90, "align_x": 0},
         {"key": "item_count", "label": "품목수", "width": 80, "align_x": 0},
         {"key": "final_amount_sum", "label": "최종금액합계", "width": 140, "align_x": 0},
+        {"key": "inbound_scheduled_date", "label": "입고예정일", "width": 110, "align_x": 0},
+        {"key": "is_purchase_order_cancel", "label": "발주상태", "width": 90, "align_x": 0},
+        {"key": "pay_status", "label": "결제상태", "width": 90, "align_x": 0},
+        {"key": "employee_id", "label": "담당자ID", "width": 90, "align_x": 0},
         {"key": "last_update", "label": "최종수정일", "width": 190, "align_x": 0},
     ]
 
@@ -702,69 +700,10 @@ def erp_purchase_order_view():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
-        if total_pages <= 1:
-            pagination_holder.content = None
-            return
-
-        page_controls = [
-            build_icon_page_button(
-                ft.Icons.CHEVRON_LEFT,
-                current_page - 1,
-                disabled=(current_page == 1),
-            )
-        ]
-
-        if total_pages <= 5:
-            page_numbers = list(range(1, total_pages + 1))
-        else:
-            if current_page <= 3:
-                page_numbers = [1, 2, 3, 4, None, total_pages]
-            elif current_page >= total_pages - 2:
-                page_numbers = [1, None, total_pages - 3, total_pages - 2, total_pages - 1, total_pages]
-            else:
-                page_numbers = [1, current_page - 1, current_page, current_page + 1, None, total_pages]
-
-        for page_no in page_numbers:
-            if page_no is None:
-                page_controls.append(
-                    ft.Container(
-                        width=40,
-                        height=40,
-                        alignment=ft.Alignment(0, 0),
-                        content=ft.Text(
-                            "...",
-                            size=18,
-                            color="#0F172A",
-                            weight=ft.FontWeight.W_700,
-                        ),
-                    )
-                )
-            else:
-                page_controls.append(
-                    build_page_button(
-                        label=str(page_no),
-                        page_no=page_no,
-                        selected=(page_no == current_page),
-                    )
-                )
-
-        page_controls.append(
-            build_icon_page_button(
-                ft.Icons.CHEVRON_RIGHT,
-                current_page + 1,
-                disabled=(current_page == total_pages),
-            )
-        )
-
-        pagination_holder.content = ft.Container(
-            padding=ft.Padding.only(top=14, bottom=6),
-            alignment=ft.Alignment(0, 0),
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
-                controls=page_controls,
-            ),
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no, e.page)),
         )
 
     def update_result_text():
@@ -860,6 +799,9 @@ def erp_purchase_order_view():
     reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78, run_async=True)
     update_reset_button_visibility()
 
+    # 🔥 수정: 긴 거래처명/최종수정일이 ...으로 잘리지 않도록 테이블 전체 가로폭 확보
+    table_total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1)) + (row_padding_x * 2)
+
     table_content = ft.Column(
         expand=True,
         spacing=0,
@@ -885,9 +827,10 @@ def erp_purchase_order_view():
         bgcolor=CARD_BG,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Row(
+            expand=True,
             scroll=ft.ScrollMode.AUTO,
             controls=[
-                ft.Container(content=table_content),
+                ft.Container(width=table_total_width, content=table_content),
             ],
         ),
     )

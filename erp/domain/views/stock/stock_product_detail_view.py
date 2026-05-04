@@ -6,7 +6,7 @@ from components import common as cm
 from api.erp_httpx_api import count_stocks, fetch_stocks
 from components.common.erp_view_widgets import build_text, date_value_box_center as date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
@@ -28,14 +28,14 @@ def set_stock_product_detail_prefilter(
     start_date=None,
     end_date=None,
     date_filter_type="inbound_date",
-    search_type="product",
+    search_type="product_name",
     keyword="",
 ):
     _STOCK_PRODUCT_DETAIL_PREFILTER["value"] = {
         "start_date": start_date,
         "end_date": end_date,
         "date_filter_type": date_filter_type or "inbound_date",
-        "search_type": search_type or "product",
+        "search_type": search_type or "product_name",
         "keyword": keyword or "",
     }
 
@@ -109,22 +109,30 @@ def _format_date_only(value):
 
 
 
+def _build_product_no(row):
+    # 🔥 상품 상세 정보 관리의 상품번 형식과 동일하게 상품상세ID-상품ID로 표시
+    product_detail_id = str(row.get("product_detail_id") or "").strip()
+    product_id = str(row.get("product_id") or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+    if product_detail_id:
+        return product_detail_id
+    if product_id:
+        return product_id
+    return ""
+
+
 def _format_product_display(row):
+    # 🔥 상품명에는 상품번을 섞지 않고 브랜드/상품명/중량만 표시
     brand = str(row.get("brand") or "").strip()
     product_name = str(row.get("product_name") or "").strip()
     weight_text = str(row.get("weight_text") or "").strip()
-    product_id = row.get("product_id", "")
 
     product_main = f"{brand} {product_name}".strip() or "-"
 
-    product_meta = []
     if weight_text:
-        product_meta.append(weight_text)
-    if product_id not in [None, ""]:
-        product_meta.append(f"#{product_id}")
-
-    if product_meta:
-        return f"{product_main} ({' / '.join(product_meta)})"
+        return f"{product_main} ({weight_text})"
 
     return product_main
 
@@ -138,6 +146,8 @@ def stock_db_row_adapter(db_rows: list, page_no: int):
             {
                 "no": str(index),
                 "product_id": row.get("product_id", ""),
+                "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": _build_product_no(row),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "weight_text": row.get("weight_text", ""),
@@ -180,19 +190,20 @@ def erp_stock_product_detail_view():
     # 🔥 수정: 검색조건과 DatePicker 날짜기준을 분리
     # - 입력 검색조건: 텍스트/숫자로 검색할 컬럼
     # - 날짜기준: DatePicker가 조회할 날짜 컬럼(유통기한/입고일자)
-    initial_search_type = initial_prefilter.get("search_type") or "product"
+    initial_search_type = initial_prefilter.get("search_type") or "product_name"
     initial_date_filter_type = initial_prefilter.get("date_filter_type") or "expiration_date"
 
     if initial_search_type in {"expiration_date", "inbound_date"}:
         initial_date_filter_type = initial_search_type
-        initial_search_type = "product"
+        initial_search_type = "product_name"
 
     if initial_search_type not in {
-        "product",
+        "product_no",
+        "product_name",
         "inbound_id",
         "inbound_status",
     }:
-        initial_search_type = "product"
+        initial_search_type = "product_name"
 
     if initial_date_filter_type not in {"expiration_date", "inbound_date"}:
         initial_date_filter_type = "expiration_date"
@@ -203,7 +214,8 @@ def erp_stock_product_detail_view():
     date_filter_type_value = {"value": initial_date_filter_type}
 
     search_type_labels = {
-        "product": "상품",
+        "product_no": "상품번",
+        "product_name": "상품명",
         "inbound_id": "입고ID",
         "inbound_status": "입고상태",
     }
@@ -222,7 +234,8 @@ def erp_stock_product_detail_view():
     # =========================================================
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product", "label": "상품", "width": 480, "align_x": 0},
+        {"key": "product_no", "label": "상품번", "width": 100, "align_x": 0},
+        {"key": "product", "label": "상품명", "width": 420, "align_x": 0},
         {"key": "expiration_date", "label": "유통기한", "width": 120, "align_x": 0},
         # 🔥 총 재고량 카드 월 필터 근거 컬럼
         # - 이 날짜가 2026-06-01 ~ 2026-06-30 안에 들어가야 6월 입고 재고임을 화면에서 확인 가능
@@ -400,7 +413,7 @@ def erp_stock_product_detail_view():
             selected_start["value"] is not None
             or selected_end["value"] is not None
             or (search_field.value or "").strip() != ""
-            or search_type_value["value"] != "product"
+            or search_type_value["value"] != "product_name"
             or date_filter_type_value["value"] != "expiration_date"
             or (pagination_state["keyword"] or "").strip() != ""
         )
@@ -558,6 +571,60 @@ def erp_stock_product_detail_view():
             ),
         )
 
+    def build_detail_line(label, value):
+        return ft.Row(
+            spacing=10,
+            vertical_alignment=ft.CrossAxisAlignment.START,
+            controls=[
+                ft.Container(
+                    width=96,
+                    content=ft.Text(label, size=12, color=TEXT_SECONDARY, weight=ft.FontWeight.W_700),
+                ),
+                ft.Container(
+                    expand=True,
+                    content=ft.Text(str(value or "-"), size=12, color=TEXT_PRIMARY, selectable=True),
+                ),
+            ],
+        )
+
+    def close_stock_detail_modal(e, dialog):
+        dialog.open = False
+        e.page.update()
+
+    def open_stock_detail_modal(e, row):
+        # 🔥 고객 주문 관리와 동일하게 행 클릭 시 현재 행 기준 상세 팝업을 표시
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("상품별 재고 상세", size=18, weight=ft.FontWeight.W_700),
+            content=ft.Container(
+                width=520,
+                content=ft.Column(
+                    tight=True,
+                    spacing=10,
+                    controls=[
+                        build_detail_line("상품명", row.get("product")),
+                        build_detail_line("상품상세ID", row.get("product_detail_id")),
+                        build_detail_line("상품ID", row.get("product_id")),
+                        build_detail_line("입고ID", row.get("inbound_id")),
+                        build_detail_line("입고상태", row.get("inbound_status")),
+                        build_detail_line("유통기한", row.get("expiration_date")),
+                        build_detail_line("입고일자", row.get("inbound_date")),
+                        build_detail_line("보관재고", row.get("save_stock")),
+                        build_detail_line("판매재고", row.get("sale_stock")),
+                        build_detail_line("가용재고", row.get("stock_available")),
+                        build_detail_line("폐기재고", row.get("scrap_stock")),
+                        build_detail_line("최종수정일", row.get("last_update")),
+                    ],
+                ),
+            ),
+            actions=[
+                ft.TextButton("닫기", on_click=lambda close_e: close_stock_detail_modal(close_e, dialog)),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        e.page.show_dialog(dialog)
+        e.page.update()
+
     def build_table_row(row):
         return ft.Container(
             padding=ft.Padding.only(
@@ -568,6 +635,8 @@ def erp_stock_product_detail_view():
             ),
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
+            ink=True,
+            on_click=lambda e, selected_row=row: open_stock_detail_modal(e, selected_row),
             content=ft.Row(
                 spacing=row_spacing,
                 controls=[
@@ -700,84 +769,10 @@ def erp_stock_product_detail_view():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
-        if total_pages <= 1:
-            pagination_holder.content = None
-            return
-
-        page_controls = [
-            build_icon_page_button(
-                ft.Icons.CHEVRON_LEFT,
-                current_page - 1,
-                disabled=(current_page == 1),
-            )
-        ]
-
-        if total_pages <= 5:
-            page_numbers = list(range(1, total_pages + 1))
-        else:
-            if current_page <= 3:
-                page_numbers = [1, 2, 3, 4, None, total_pages]
-            elif current_page >= total_pages - 2:
-                page_numbers = [
-                    1,
-                    None,
-                    total_pages - 3,
-                    total_pages - 2,
-                    total_pages - 1,
-                    total_pages,
-                ]
-            else:
-                page_numbers = [
-                    1,
-                    current_page - 1,
-                    current_page,
-                    current_page + 1,
-                    None,
-                    total_pages,
-                ]
-
-        for page_no in page_numbers:
-            if page_no is None:
-                page_controls.append(
-                    ft.Container(
-                        width=40,
-                        height=40,
-                        alignment=ft.Alignment(0, 0),
-                        content=ft.Text(
-                            "...",
-                            size=18,
-                            color="#0F172A",
-                            weight=ft.FontWeight.W_700,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                    )
-                )
-            else:
-                page_controls.append(
-                    build_page_button(
-                        label=str(page_no),
-                        page_no=page_no,
-                        selected=(page_no == current_page),
-                    )
-                )
-
-        page_controls.append(
-            build_icon_page_button(
-                ft.Icons.CHEVRON_RIGHT,
-                current_page + 1,
-                disabled=(current_page == total_pages),
-            )
-        )
-
-        pagination_holder.content = ft.Container(
-            padding=ft.Padding.only(top=14, bottom=6),
-            alignment=ft.Alignment(0, 0),
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
-                controls=page_controls,
-            ),
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no, e.page)),
         )
 
     def reload_current_page():
@@ -852,8 +847,8 @@ def erp_stock_product_detail_view():
 
         date_filter_type_value["value"] = "expiration_date"
         date_filter_text.value = date_filter_labels["expiration_date"]
-        search_type_value["value"] = "product"
-        search_type_text.value = search_type_labels["product"]
+        search_type_value["value"] = "product_name"
+        search_type_text.value = search_type_labels["product_name"]
         search_field.value = ""
 
         pagination_state["keyword"] = ""

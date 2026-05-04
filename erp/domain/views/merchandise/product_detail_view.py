@@ -1,12 +1,14 @@
+import re
+
 import flet as ft
 from components import common as cm
 # 🔥 httpx 방식 API 호출로 변경
-from api.erp_httpx_api import count_product_join_rows, fetch_product_join_rows, create_product_detail
+from api.erp_httpx_api import count_product_join_rows, fetch_product_join_rows, create_product_detail, update_product_detail
 from components.common.modals.modal import build_modal
-from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS
+from components.common.modals.field_defs import PRODUCT_DETAIL_FIELDS, PRODUCT_DETAIL_EDIT_FIELDS
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_width_table_cell as build_table_cell
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
 
@@ -47,23 +49,62 @@ def _format_sale_status(value):
     return str(value or "")
 
 
+def _build_product_no(product_detail_id, product_id):
+    product_detail_id = str(product_detail_id or "").strip()
+    product_id = str(product_id or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+
+    return product_detail_id or product_id
+
+
+def _strip_product_weight(product_name, weight=None):
+    name = str(product_name or "").strip()
+    if not name:
+        return ""
+
+    weight_text = str(weight or "").replace(",", "").strip()
+    if weight_text:
+        name = re.sub(
+            rf"\s*\(?\s*{re.escape(weight_text)}\s*(?:g|kg|ml|l|G|KG|ML|L)\s*\)?\s*$",
+            "",
+            name,
+        ).strip()
+        name = re.sub(
+            rf"\s*\(\s*{re.escape(weight_text)}\s*(?:g|kg|ml|l|G|KG|ML|L)[^)]*\)\s*$",
+            "",
+            name,
+        ).strip()
+
+    return re.sub(
+        r"\s*(?:\(\s*)?\d+(?:\.\d+)?\s*(?:g|kg|ml|l|G|KG|ML|L)(?:[^)]*\))?\s*$",
+        "",
+        name,
+    ).strip()
+
+
 def product_detail_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
 
     for index, row in enumerate(db_rows, start=start_no):
+        product_detail_id = row.get("product_detail_id", "")
+        product_id = row.get("product_id", "")
+        weight = row.get("weight", "")
         rows.append(
             {
                 "no": str(row.get("no", index)),  # 🔥 API에서 내려준 no가 있으면 우선 사용
-                "product_detail_id": row.get("product_detail_id", ""),  # 🔥 수정: 상품상세ID 분리 표시
-                "product_id": row.get("product_id", ""),  # 🔥 수정: 상품ID 분리 표시
+                "product_no": _build_product_no(product_detail_id, product_id),
+                "product_detail_id": product_detail_id,
+                "product_id": product_id,
                 "type": row.get("type", ""),
                 "brand": row.get("brand", ""),
-                "product_name": row.get("product_name", ""),
+                "product_name": _strip_product_weight(row.get("product_name", ""), weight),
                 "function": row.get("function", ""),
                 "main_protein": row.get("main_protein", ""),
                 "life": row.get("life", ""),
-                "weight": row.get("weight", ""),
+                "weight": weight,
                 "retail_price": row.get("retail_price", ""),
                 "quantity": row.get("quantity", ""),
                 "active": row.get("active", ""),
@@ -79,11 +120,12 @@ def product_detail_db_row_adapter(db_rows: list, page_no: int):
 def product_detail_row_adapter(saved_data: dict, next_no: int):
     return {
         "no": str(next_no),
+        "product_no": "",
         "product_detail_id": "",
         "product_id": "",
         "type": saved_data.get("type", ""),
         "brand": saved_data.get("brand", ""),
-        "product_name": saved_data.get("product_name", ""),
+        "product_name": _strip_product_weight(saved_data.get("product_name", ""), saved_data.get("weight", "")),
         "function": saved_data.get("function", ""),
         "main_protein": saved_data.get("main_protein", ""),
         "life": saved_data.get("life", ""),
@@ -95,33 +137,36 @@ def product_detail_row_adapter(saved_data: dict, next_no: int):
 
 
 def erp_product_detail_view():
+    edit_state = {"product_id": None}
     page_title = "상품관리 > 상품 상세 정보 관리"
 
     search_type_value = {"value": "product_name"}
     search_type_labels = {
         "product_name": "상품명",
-        "product_id": "상품ID",  # 🔥 추가: 화면에 보이는 ID는 검색도 가능하게 맞춤
-        "product_detail_id": "상품상세ID",  # 🔥 추가: 화면에 보이는 ID는 검색도 가능하게 맞춤
+        "product_no": "상품번",
         "type": "타입",
         "brand": "브랜드",
+        "quantity": "수량(ea)",
+        "weight": "중량(g)",
+        "retail_price": "판매가(원)",
         "function": "기능",
         "main_protein": "주원료",
         "life": "생애주기",  # 🔥 추가: 생애주기 부분검색 조건
+        "active": "판매상태",
     }
 
     columns = [
         {"key": "no", "label": "No", "width": 60, "align_x": 0},
-        {"key": "product_detail_id", "label": "상품상세ID", "width": 100, "align_x": 0},  # 🔥 수정: ID 분리
-        {"key": "product_id", "label": "상품ID", "width": 90, "align_x": 0},  # 🔥 수정: ID 분리
-        {"key": "type", "label": "타입", "width": 90, "align_x": 0},
-        {"key": "brand", "label": "브랜드", "width": 100, "align_x": 0},
+        {"key": "product_no", "label": "상품번", "width": 110, "align_x": 0},
         {"key": "product_name", "label": "상품명", "width": 250, "align_x": 0},
-        {"key": "function", "label": "기능", "width": 200, "align_x": 0},
-        {"key": "main_protein", "label": "주원료", "width": 140, "align_x": 0},
-        {"key": "life", "label": "생애주기", "width": 90, "align_x": 0},
+        {"key": "quantity", "label": "수량(ea)", "width": 80, "align_x": 0},
         {"key": "weight", "label": "중량(g)", "width": 90, "align_x": 0},
         {"key": "retail_price", "label": "판매가(원)", "width": 110, "align_x": 0},
-        {"key": "quantity", "label": "수량(ea)", "width": 90, "align_x": 0},
+        {"key": "brand", "label": "브랜드", "width": 100, "align_x": 0},
+        {"key": "type", "label": "타입", "width": 90, "align_x": 0},
+        {"key": "main_protein", "label": "주원료", "width": 130, "align_x": 0},
+        {"key": "life", "label": "생애주기", "width": 90, "align_x": 0},
+        {"key": "function", "label": "기능", "width": 210, "align_x": 0},
         {"key": "active", "label": "판매상태", "width": 100, "align_x": 0},
     ]
 
@@ -306,6 +351,8 @@ def erp_product_detail_view():
             ),
             border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
             bgcolor=CARD_BG,
+            ink=True,
+            on_click=lambda e, selected_row=row: open_edit_modal(e, selected_row),
             content=ft.Row(
                 spacing=row_spacing,
                 controls=[
@@ -432,70 +479,10 @@ def erp_product_detail_view():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
-        if total_pages <= 1:
-            pagination_holder.content = None
-            return
-
-        page_controls = [
-            build_icon_page_button(
-                ft.Icons.CHEVRON_LEFT,
-                current_page - 1,
-                disabled=(current_page == 1),
-            )
-        ]
-
-        if total_pages <= 5:
-            page_numbers = list(range(1, total_pages + 1))
-        else:
-            if current_page <= 3:
-                page_numbers = [1, 2, 3, 4, None, total_pages]
-            elif current_page >= total_pages - 2:
-                page_numbers = [1, None, total_pages - 3, total_pages - 2, total_pages - 1, total_pages]
-            else:
-                page_numbers = [1, current_page - 1, current_page, current_page + 1, None, total_pages]
-
-        for page_no in page_numbers:
-            if page_no is None:
-                page_controls.append(
-                    ft.Container(
-                        width=40,
-                        height=40,
-                        alignment=ft.Alignment(0, 0),
-                        content=ft.Text(
-                            "...",
-                            size=18,
-                            color="#0F172A",
-                            weight=ft.FontWeight.W_700,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                    )
-                )
-            else:
-                page_controls.append(
-                    build_page_button(
-                        label=str(page_no),
-                        page_no=page_no,
-                        selected=(page_no == current_page),
-                    )
-                )
-
-        page_controls.append(
-            build_icon_page_button(
-                ft.Icons.CHEVRON_RIGHT,
-                current_page + 1,
-                disabled=(current_page == total_pages),
-            )
-        )
-
-        pagination_holder.content = ft.Container(
-            padding=ft.Padding.only(top=14, bottom=6),
-            alignment=ft.Alignment(0, 0),
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
-                controls=page_controls,
-            ),
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: move_page(page_no, e.page),
         )
 
     def apply_loaded_rows(keyword, page_no, search_type, total_count, total_pages, fetched_rows):
@@ -670,7 +657,28 @@ def erp_product_detail_view():
         pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
         reload_current_page()
 
+    def handle_edit_success(saved_data: dict):
+        if not edit_state["product_id"]:
+            raise ValueError("수정할 상품ID를 찾을 수 없습니다.")
+        update_product_detail(edit_state["product_id"], saved_data)
+        reload_current_page()
+
+    def active_for_form(value):
+        text = str(value or "").strip().lower()
+        if text in {"false", "0", "n", "no"} or "중지" in text:
+            return "false"
+        return "true"
+
+    def set_product_edit_session(page: ft.Page, row: dict):
+        for field in PRODUCT_DETAIL_EDIT_FIELDS:
+            key = field["key"]
+            value = row.get(key, "")
+            if key == "active":
+                value = active_for_form(value)
+            page.session.store.set(f"{SESSION_PREFIX}_{key}", str(value or ""))
+
     def open_register_modal(e):
+        edit_state["product_id"] = None
         clear_register_session(e.page)
 
         popup_layer.content = build_modal(
@@ -681,6 +689,31 @@ def erp_product_detail_view():
             session_prefix=SESSION_PREFIX,
             close_handler=close_register_modal,
             on_submit_success=handle_register_success,
+            mode="register",
+            confirm_message="상품 상세 정보를 등록하시겠습니까?\n등록 후 조회 화면에 바로 반영됩니다.",
+        )
+        dim_bg.visible = True
+        popup_layer.visible = True
+        dim_bg.update()
+        popup_layer.update()
+
+    def open_edit_modal(e, row):
+        product_id = row.get("product_id")
+        if not product_id:
+            return
+        edit_state["product_id"] = product_id
+        set_product_edit_session(e.page, row)
+
+        popup_layer.content = build_modal(
+            page=e.page,
+            register_title="상품 상세 정보 등록",
+            edit_title="상품 상세 정보 수정",
+            fields=PRODUCT_DETAIL_EDIT_FIELDS,
+            session_prefix=SESSION_PREFIX,
+            close_handler=close_register_modal,
+            on_submit_success=handle_edit_success,
+            mode="edit",
+            confirm_message="상품 정보를 수정하시겠습니까?\n이미 주문/재고에서 사용 중인 상품이면 과거 조회 화면에도 변경된 정보가 표시될 수 있습니다.",
         )
         dim_bg.visible = True
         popup_layer.visible = True

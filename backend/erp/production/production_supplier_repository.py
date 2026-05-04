@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import cast, func
 from sqlalchemy.types import String
 from db.db import SessionLocal
@@ -39,32 +41,34 @@ def _row_to_dict(row):
 def _apply_supplier_filter(query, search_type: str, keyword: str, start_date=None, end_date=None):
     clean = (keyword or "").strip()
     if clean:
-        if search_type == "supplier_id":
-            query = query.filter(cast(ErpSupplier.supplier_id, String).like(like_keyword(clean)))
-        elif search_type == "supplier_name":
+        if search_type == "supplier_name":
             query = query.filter(ErpSupplier.supplier_name.ilike(like_keyword(clean)))
         elif search_type == "brn":
             query = query.filter(ErpSupplier.brn.ilike(like_keyword(clean)))
+        elif search_type == "sup_manager":
+            query = query.filter(ErpSupplier.sup_manager.ilike(like_keyword(clean)))
+        elif search_type == "employee_id":
+            # 🔥 추가: 거래처관리 컬럼 기준에 맞춰 담당자ID 검색 지원
+            query = query.filter(cast(ErpSupplier.employee_id, String).like(like_keyword(clean)))
+        elif search_type == "phone":
+            query = query.filter(ErpSupplier.phone.ilike(like_keyword(clean)))
         elif search_type == "designated_payment_date":
-            # 🔥 추가: 지정결제일 검색조건
-            # - DB 값은 1~31 숫자이므로 숫자 검색은 정확히 매칭
-            # - 예외적으로 문자열 입력도 받을 수 있게 LIKE 보조 처리
+            # 🔥 유지: 지정결제일 검색조건
             if clean.isdigit():
                 query = query.filter(ErpSupplier.designated_payment_date == int(clean))
             else:
                 query = query.filter(
                     cast(ErpSupplier.designated_payment_date, String).like(like_keyword(clean))
                 )
+        elif search_type == "scheduled_payment_date":
+            # 🔥 추가: 화면 컬럼의 예정결제일을 입력 검색조건에서도 검색 가능하게 처리
+            query = query.filter(cast(ErpSupplier.scheduled_payment_date, String).like(like_keyword(clean)))
         elif search_type == "is_contact_status":
-            bool_value = normalize_bool_keyword(clean, true_words={"가능"}, false_words={"불가"})
+            bool_value = normalize_bool_keyword(clean, true_words={"가능", "활성"}, false_words={"불가", "비활성"})
             if bool_value is not None:
                 query = query.filter(ErpSupplier.is_contact_status.is_(bool_value))
             else:
                 query = query.filter(cast(ErpSupplier.is_contact_status, String).ilike(like_keyword(clean)))
-        elif search_type == "sup_manager":
-            query = query.filter(ErpSupplier.sup_manager.ilike(like_keyword(clean)))
-        elif search_type == "phone":
-            query = query.filter(ErpSupplier.phone.ilike(like_keyword(clean)))
 
     parsed_start = parse_date(start_date)
     parsed_end = parse_date(end_date)
@@ -130,6 +134,53 @@ def create_supplier(data: dict):
             phone=require_text(data.get("phone"), "전화번호"),
         )
         db.add(supplier)
+        db.commit()
+        db.refresh(supplier)
+        return model_to_dict(supplier, SUPPLIER_COLUMNS)
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def update_supplier(supplier_id: int, data: dict):
+    db = SessionLocal()
+    try:
+        supplier_id = require_int(supplier_id, "supplier_id")
+        supplier = db.query(ErpSupplier).filter(ErpSupplier.supplier_id == supplier_id).first()
+        if not supplier:
+            raise ValueError(f"존재하지 않는 거래처ID입니다: {supplier_id}")
+
+        brn = require_text(data.get("brn"), "사업자번호")
+        employee_id = require_int(data.get("employee_id"), "담당자ID")
+        designated_payment_date = require_int(data.get("designated_payment_date"), "지정결제일")
+
+        if designated_payment_date < 1 or designated_payment_date > 31:
+            raise ValueError("지정결제일은 1~31 사이 숫자여야 합니다.")
+
+        duplicate = (
+            db.query(ErpSupplier)
+            .filter(ErpSupplier.brn == brn, ErpSupplier.supplier_id != supplier_id)
+            .first()
+        )
+        if duplicate:
+            raise ValueError(f"이미 존재하는 사업자번호입니다: {brn}")
+
+        if not db.query(ErpEmployee).filter(ErpEmployee.employee_id == employee_id).first():
+            raise ValueError(f"존재하지 않는 담당자ID입니다: {employee_id}")
+
+        supplier.supplier_name = require_text(data.get("supplier_name"), "거래처명")
+        supplier.brn = brn
+        supplier.is_contact_status = require_bool(data.get("is_contact_status"), "연락상태")
+        supplier.designated_payment_date = designated_payment_date
+        supplier.scheduled_payment_date = require_date(data.get("scheduled_payment_date"), "예정결제일")
+        supplier.employee_id = employee_id
+        supplier.memo = clean_text(data.get("memo"))
+        supplier.sup_manager = require_text(data.get("sup_manager"), "담당자명")
+        supplier.phone = require_text(data.get("phone"), "전화번호")
+        supplier.last_update = datetime.now()
+
         db.commit()
         db.refresh(supplier)
         return model_to_dict(supplier, SUPPLIER_COLUMNS)

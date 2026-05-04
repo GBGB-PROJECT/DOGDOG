@@ -1,9 +1,14 @@
 from math import ceil
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 
-from .product_detail_service import count_product_join_rows, fetch_product_join_rows
+from .product_detail_service import (
+    count_product_join_rows,
+    fetch_product_join_rows,
+    create_product_detail,
+    update_product_detail,
+)
 from .product_detail_schema import ErpMerchandiseDetailListResponse
 
 router = APIRouter(
@@ -13,13 +18,16 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "product_name": "상품명",
-    "product_id": "상품ID",  # 🔥 추가: 화면 컬럼과 검색조건 일치
-    "product_detail_id": "상품상세ID",  # 🔥 추가: 화면 컬럼과 검색조건 일치
+    "product_no": "상품번",
     "type": "타입",
     "brand": "브랜드",
+    "quantity": "수량(ea)",
+    "weight": "중량(g)",
+    "retail_price": "판매가(원)",
     "function": "기능",
     "main_protein": "주원료",
     "life": "생애주기",  # 🔥 추가: 생애주기 부분검색 조건
+    "active": "판매상태",
 }
 
 
@@ -55,11 +63,14 @@ def build_response_rows(items: list, page: int, size: int):
     rows = []
 
     for index, row in enumerate(items, start=start_no):
+        product_detail_id = row.get("product_detail_id", "")
+        product_id = row.get("product_id", "")
         rows.append(
             {
                 "no": index,
-                "product_detail_id": row.get("product_detail_id", ""),  # 🔥 수정: 상품상세ID 분리 반환
-                "product_id": row.get("product_id", ""),  # 🔥 수정: 상품ID 분리 반환
+                "product_no": f"{product_detail_id}-{product_id}" if product_detail_id and product_id else product_detail_id or product_id,
+                "product_detail_id": product_detail_id,
+                "product_id": product_id,
                 "type": row.get("type", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
@@ -89,13 +100,18 @@ def build_response_rows(items: list, page: int, size: int):
 def get_product_detail_list(
     search_type: Literal[
         "product_name",
+        "product_no",
         "product_id",
         "product_detail_id",
         "type",
         "brand",
+        "quantity",
+        "weight",
+        "retail_price",
         "function",
         "main_protein",
         "life",  # 🔥 추가: 생애주기 검색조건
+        "active",
     ] = Query(
         default="product_name",
         description="검색 조건",
@@ -194,4 +210,38 @@ def get_product_detail_list(
                 "error_code": "INTERNAL_ERROR",
                 "message": f"상품 상세 정보 목록 조회 중 서버 오류가 발생했습니다. {exc}",
             },
+        )
+
+
+@router.post("/details")
+def post_product_detail(payload: dict = Body(...)):
+    try:
+        item = create_product_detail(payload)
+        return {"success": True, "message": "Product detail created.", "data": {"item": item}}
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"success": False, "error_code": "PRODUCT_DETAIL_CREATE_INVALID", "message": str(exc)},
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"success": False, "error_code": "PRODUCT_DETAIL_CREATE_FAILED", "message": str(exc)},
+        )
+
+
+@router.patch("/details/{product_id}")
+def patch_product_detail(product_id: int, payload: dict = Body(...)):
+    try:
+        item = update_product_detail(product_id, payload)
+        return {"success": True, "message": "Product detail updated.", "data": {"item": item}}
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"success": False, "error_code": "PRODUCT_DETAIL_UPDATE_INVALID", "message": str(exc)},
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"success": False, "error_code": "PRODUCT_DETAIL_UPDATE_FAILED", "message": str(exc)},
         )

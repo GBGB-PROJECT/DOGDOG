@@ -46,7 +46,7 @@ def build_text(
         weight=weight,
         text_align=text_align,
         max_lines=1,
-        overflow=ft.TextOverflow.ELLIPSIS,
+        overflow=ft.TextOverflow.CLIP,
     )
 
 
@@ -755,16 +755,28 @@ def build_product_search_table_page(
     )
 
     # ⭐ 실제 상품 목록 테이블 영역
+    # 🔥 수정: 긴 상품명/바코드가 ...으로 생략되지 않도록 테이블 본문에 가로 스크롤 적용
+    # - 글자를 줄바꿈하지 않고, 필요한 경우 사용자가 좌우로 이동해서 전체 내용을 확인한다.
     table_area = ft.Container(
         expand=True,
         border=ft.border.all(1, TABLE_BORDER),
         border_radius=10,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
         bgcolor=CARD_BG,
-        content=ft.Column(
-            spacing=0,
+        content=ft.Row(
+            expand=True,
+            scroll=ft.ScrollMode.AUTO,
             controls=[
-                build_table_header(),
-                table_rows_holder,
+                ft.Container(
+                    width=1800,
+                    content=ft.Column(
+                        spacing=0,
+                        controls=[
+                            build_table_header(),
+                            table_rows_holder,
+                        ],
+                    ),
+                ),
             ],
         ),
     )

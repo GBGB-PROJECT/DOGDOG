@@ -38,14 +38,44 @@ def _get(path: str, params: dict | None = None):
         return {}
 
     except httpx.RequestError as e:
-        print(f"🔥 API 요청 실패: {url}")
+        print(f"API request failed: {url}")
         print(e)
         return {}
 
     except Exception as e:
-        print(f"🔥 API 처리 중 알 수 없는 오류: {url}")
+        print(f"Unexpected API error: {url}")
         print(e)
         return {}
+
+
+def _extract_error_message(result):
+    detail = result.get("detail") if isinstance(result, dict) else None
+    if isinstance(detail, dict):
+        return detail.get("message") or str(detail)
+    if isinstance(detail, str):
+        return detail
+    if isinstance(result, dict):
+        return result.get("message") or str(result)
+    return str(result)
+
+
+def _mutate(method: str, path: str, payload: dict | None = None):
+    url = f"{BASE_URL}{path}"
+    try:
+        response = _CLIENT.request(method, path, json=payload or {})
+        result = response.json()
+        response.raise_for_status()
+        return result.get("data", {})
+    except httpx.HTTPStatusError as e:
+        try:
+            result = e.response.json()
+        except Exception:
+            result = {"detail": e.response.text}
+        raise RuntimeError(_extract_error_message(result)) from e
+    except httpx.RequestError as e:
+        raise RuntimeError(f"API 요청 실패: {url} / {e}") from e
+    except Exception as e:
+        raise RuntimeError(f"API 처리 실패: {url} / {e}") from e
 
 
 def _list_request(path: str, search_type="", keyword="", page=1, size=50, start_date=None, end_date=None, **extra):
@@ -84,7 +114,7 @@ def _list_request(path: str, search_type="", keyword="", page=1, size=50, start_
 # ☑️ 고객 정보 조회
 # =========================================================
 
-def fetch_customers(search_type="customer_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+def fetch_customers(search_type="email", keyword="", limit=50, offset=0, start_date=None, end_date=None):
     page = (offset // limit) + 1
 
     result = _list_request(
@@ -100,7 +130,7 @@ def fetch_customers(search_type="customer_id", keyword="", limit=50, offset=0, s
     return result["items"]
 
 
-def count_customers(search_type="customer_id", keyword="", start_date=None, end_date=None):
+def count_customers(search_type="email", keyword="", start_date=None, end_date=None):
     result = _list_request(
         "/erp/customer/info",
         search_type=search_type,
@@ -188,7 +218,7 @@ def count_customer_subscriptions(search_type="subs_id", keyword="", start_date=N
 # ☑️ 사원 정보 조회
 # =========================================================
 
-def fetch_employees(search_type="employee_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+def fetch_employees(search_type="username", keyword="", limit=50, offset=0, start_date=None, end_date=None):
     page = (offset // limit) + 1
 
     result = _list_request(
@@ -204,7 +234,7 @@ def fetch_employees(search_type="employee_id", keyword="", limit=50, offset=0, s
     return result["items"]
 
 
-def count_employees(search_type="employee_id", keyword="", start_date=None, end_date=None):
+def count_employees(search_type="username", keyword="", start_date=None, end_date=None):
     result = _list_request(
         "/erp/hr",
         search_type=search_type,
@@ -544,13 +574,21 @@ def create_employee(*args, **kwargs):
 
 
 def create_product_detail(*args, **kwargs):
-    print("🔥 create_product_detail는 현재 조회 전용 화면에서 사용하지 않습니다.")
-    return None
+    payload = args[0] if args else kwargs
+    return _mutate("POST", "/erp/merchandise/details", payload)
+
+
+def update_product_detail(product_id, payload):
+    return _mutate("PATCH", f"/erp/merchandise/details/{product_id}", payload)
 
 
 def create_supplier(*args, **kwargs):
-    print("🔥 create_supplier는 현재 조회 전용 화면에서 사용하지 않습니다.")
-    return None
+    payload = args[0] if args else kwargs
+    return _mutate("POST", "/erp/production/supplier", payload)
+
+
+def update_supplier(supplier_id, payload):
+    return _mutate("PATCH", f"/erp/production/supplier/{supplier_id}", payload)
 
 # =========================================================
 

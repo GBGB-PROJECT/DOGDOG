@@ -56,13 +56,93 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
     # ---------------------------------------------------------------------------------------------------
     # On Boarding Tile Routeing
     # ---------------------------------------------------------------------------------------------------
-    if content_page == "/sign_up":
+    if content_page == "/login":
+        def login_next(e):
+            key = e.control.data.get('key')
+            if key == 'Email':
+                change_page_callback("/login_email")
+            elif key == 'sign_up':
+                change_page_callback("/sign_up")
+            else:
+                show_error(text="기능 구현중입니다.")
+                return
+        top = ft.Row(height=200,
+            alignment=ft.MainAxisAlignment.CENTER, 
+            vertical_alignment=ft.CrossAxisAlignment.END,
+            controls=[ft.Image(src="dogdog_logo.png", width=300)])
+        login_content = ft.Container(
+            alignment=ft.Alignment.CENTER, expand=True, padding=ft.padding.only(top=10, bottom=20),
+            content=ft.Column(
+                alignment=ft.MainAxisAlignment.CENTER, 
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+                controls=[
+                    dogdog.continue_button(
+                        value="Continue with Google", icon="Google", expand=False, 
+                        on_click=login_next, data={'key':'Google'}),
+                    dogdog.continue_button(
+                        value="Continue with Naver", icon="Naver", expand=False,  
+                        on_click=login_next, data={'key':'Naver'}),
+                    dogdog.continue_button(
+                        value="Continue with Kakao", icon="Kakao", expand=False, 
+                        on_click=login_next, data={'key':'Kakao'}),
+                    ft.Row(margin=10, height=20, controls=[
+                        ft.Divider(expand=True), 
+                        dogdog.basic_text('or', color=ft.Colors.GREY_500), 
+                        ft.Divider(expand=True)
+                    ]),
+                    dogdog.continue_button(
+                        value="Continue with Email", expand=False, 
+                        on_click=login_next, data={'key':'Email'}),
+                    ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
+                        ft.TextButton(dogdog.basic_text("회원가입", color=ft.Colors.GREY_500), 
+                            on_click=login_next, data={'key':'sign_up'}),
+                        ft.TextButton(dogdog.basic_text("아이디 / 비밀번호 찾기", color=ft.Colors.GREY_500), 
+                            on_click=login_next, data={'key':'ID/PW_Search'})
+                    ])
+        ]))
+        bottom = ft.Container(padding=0, margin=0)
+    # ---------------------------------------------------------------------------------------------------
+    elif content_page == "/login_email":
+        def login_email_on_change(e):
+            storage.set("login_email", e.control.value)
+        def login_password_on_change(e):
+            storage.set("login_password", e.control.value)
+        def email_login_next(e):
+            if storage.get('login_email') and storage.get('login_password'):
+                change_page_callback("/home")
+        email_input = dogdog.input_textfield(hint_text="example@gmail.com", input_type="email", on_change=login_email_on_change)
+        password_input = dogdog.input_textfield(hint_text="비밀번호", input_type="password", on_change=login_password_on_change)
+        top = ft.Row(height=200,
+            alignment=ft.MainAxisAlignment.CENTER, 
+            vertical_alignment=ft.CrossAxisAlignment.END,
+            controls=[ft.Image(src="dogdog_logo.png", width=300)])
+        login_content = ft.Container(
+            alignment=ft.Alignment.CENTER, expand=True,padding=ft.padding.only(top=10, bottom=20),
+            content=ft.Column(
+                scroll=ft.ScrollMode.HIDDEN,
+                alignment=ft.MainAxisAlignment.CENTER, 
+                expand=True,
+                controls=[
+                    ft.Container(height=10),
+                    dogdog.basic_text(value="이메일", weight="bold", color=ft.Colors.GREY_800),
+                    email_input,
+                    dogdog.basic_text(value="비밀번호", weight="bold", color=ft.Colors.GREY_800),
+                    password_input,
+        ]))
+        bottom = ft.Row(controls=[
+            dogdog.arrow_back(on_click=lambda e: change_page_callback("/login")),
+            dogdog.continue_button(value="Continue with Email", on_click=email_login_next)
+        ])
+    # ---------------------------------------------------------------------------------------------------
+    elif content_page == "/sign_up":
         top = ft.Row(controls=[dogdog.onboarding_top_bar(case=1)])
         content = domains.sign_up_view(
             page=page, controller=controller, check_email_callback=controller.check_email_duplicate
         )
         bottom = ft.Row(
-            controls=[dogdog.continue_button(on_click=controller.process_user_sign_up)]
+            controls=[
+                dogdog.arrow_back(on_click=lambda e: change_page_callback("/login")),
+                dogdog.continue_button(on_click=controller.process_user_sign_up)]
         )
 
     elif content_page == "/pet_info":
@@ -156,7 +236,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
                 spacing=10,
                 controls=content if isinstance(content, list) else [content] # type: ignore
             )
-        ),
+        ) if not "/login" in content_page else login_content,
         focus_field,
         bottom
     ]

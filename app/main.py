@@ -6,7 +6,7 @@ import asyncio
 import components as dogdog
 
 # 테스트 아이디로 테스트 설정
-IS_TEST_MODE = True
+IS_TEST_MODE = False
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
@@ -80,7 +80,7 @@ class Front_dogdog:
             self.page.run_task(self.dev_auto_login)
         else:
             self.is_onboarding_complete = False
-            target_route = "/home" if self.is_onboarding_complete else "/sign_up"
+            target_route = "/home" if self.is_onboarding_complete else "/login"
             if self.page.route == target_route:
                 self.routing_view(page_name=target_route)
             else:
@@ -319,6 +319,8 @@ class Front_dogdog:
 
         # 2. 라우트 성격 분류
         onboarding_routes = [
+            "/login",
+            "/login_email",
             "/sign_up",
             "/pet_info",
             "/pet_obesity",

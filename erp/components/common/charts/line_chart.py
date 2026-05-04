@@ -9,6 +9,7 @@ MAX_VOLUME_Y = 14000           # 우측 축 최대값: 1만 4천
 
 def build_sales_linechart():
     selected_metric = {"value": "1개월"}
+    page_ref = {"page": None, "mounted": False}
 
     chart_container = ft.Container(expand=True)
     metric_selector_container = ft.Container()
@@ -219,16 +220,61 @@ def build_sales_linechart():
     def refresh_chart():
         chart_container.content = build_combo_chart()  # ☑️ 수정: 직선 차트 대신 막대+직선 콤보 차트로 변경
 
+    def show_chart_loading():
+        chart_container.content = ft.Container(
+            expand=True,
+            height=CHART_HEIGHT,
+            alignment=ft.Alignment(0, 0),
+            content=ft.Text(
+                "차트 데이터를 불러오는 중입니다.",
+                color=cm.TEXT_SECONDARY,
+                size=14,
+                weight=ft.FontWeight.W_500,
+            ),
+        )
+
     def change_metric(metric: str, e: ft.ControlEvent):
+        page = page_ref["page"]
+        if page is None:
+            return
+
         selected_metric["value"] = metric
         refresh_metric_selector()
-        refresh_chart()
-        e.page.update()
+        show_chart_loading()
+        page.update()
+
+        def worker():
+            if not page_ref["mounted"]:
+                return
+            refresh_chart()
+            if page_ref["mounted"]:
+                page.update()
+
+        page.run_thread(worker)
 
     refresh_metric_selector()
-    refresh_chart()
+    show_chart_loading()
 
-    return ft.Container(
+    class SalesLineChartCard(ft.Container):
+        def did_mount(self):
+            page = self.page
+            page_ref["page"] = page
+            page_ref["mounted"] = True
+
+            def worker():
+                if not page_ref["mounted"]:
+                    return
+                refresh_chart()
+                if page_ref["mounted"]:
+                    page.update()
+
+            page.run_thread(worker)
+
+        def will_unmount(self):
+            page_ref["mounted"] = False
+            page_ref["page"] = None
+
+    return SalesLineChartCard(
         expand=True,
         height=380, # 🟥 수정: 좌측 게이지 2개와 균형을 맞추기 위해 전체 카드 높이를 상향
         bgcolor=cm.CARD_BG,

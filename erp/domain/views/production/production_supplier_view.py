@@ -435,6 +435,7 @@ def erp_production_supplier_view():
                 "이전",
                 on_click=lambda e: move_page(current_page - 1) if current_page > 1 else None,
                 width=60,
+                run_async=True,
             )
         )
 
@@ -448,7 +449,7 @@ def erp_production_supplier_view():
                     border=ft.Border.all(1, BUTTON_BORDER),
                     border_radius=6,
                     alignment=ft.Alignment(0, 0),
-                    on_click=None if is_current else (lambda e, p=page_no: move_page(p)),
+                    on_click=None if is_current else (lambda e, p=page_no: e.page.run_thread(lambda: move_page(p))),
                     content=ft.Text(
                         value=str(page_no),
                         size=13,
@@ -463,6 +464,7 @@ def erp_production_supplier_view():
                 "다음",
                 on_click=lambda e: move_page(current_page + 1) if current_page < total_pages else None,
                 width=60,
+                run_async=True,
             )
         )
 

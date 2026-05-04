@@ -670,7 +670,7 @@ def erp_stock_product_detail_view():
             border_radius=10,
             bgcolor=bgcolor,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            on_click=None if disabled or page_no is None else lambda e: e.page.run_thread(lambda: move_page(page_no, e.page)),
             content=ft.Text(
                 value=label,
                 size=16,
@@ -688,7 +688,7 @@ def erp_stock_product_detail_view():
             height=40,
             border_radius=10,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            on_click=None if disabled or page_no is None else lambda e: e.page.run_thread(lambda: move_page(page_no, e.page)),
             content=ft.Icon(
                 icon_name,
                 size=20,

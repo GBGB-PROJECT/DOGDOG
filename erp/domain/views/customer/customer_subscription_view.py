@@ -505,7 +505,7 @@ def erp_customer_subscription_view():
             border_radius=10,
             bgcolor="#2563EB" if selected else ft.Colors.TRANSPARENT,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            on_click=None if disabled or page_no is None else lambda e: e.page.run_thread(lambda: move_page(page_no, e.page)),
             content=ft.Text(
                 value=label,
                 size=16,

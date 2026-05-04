@@ -1,6 +1,7 @@
 import httpx
 
 BASE_URL = "http://127.0.0.1:8000"
+_CLIENT = httpx.Client(base_url=BASE_URL, timeout=5.0)
 
 # 1 ======= Backend API와 연결
 
@@ -15,7 +16,7 @@ class HomeViewMain:
 
     try:
       ## 1. Get 요청 전송
-      response = httpx.get(url, timeout=5.0)
+      response = _CLIENT.get("/erp/home/sale_dashboard")
 
       ## 2. 성공 시 (200 ok)
       if response.status_code == 200:
@@ -41,7 +42,7 @@ class HomeViewMain:
 
     try:
       # 1. 요청전송
-      response = httpx.get(url, timeout=5.0)
+      response = _CLIENT.get("/erp/home/inventory_dashboard")
 
       # 2. 성공 시
       if response.status_code == 200:
@@ -64,7 +65,7 @@ class HomeViewMain:
 
     try:
       ## 1. Get 요청 전송
-      response = httpx.get(url, timeout=5.0)
+      response = _CLIENT.get("/erp/home/chart_dashboard_sale", params={"period": period})
 
       ## 2. 성공 시 (200 ok)
       if response.status_code == 200:
@@ -90,7 +91,7 @@ class HomeViewMain:
 
     try:
       ## 1. Get 요청 전송
-      response = httpx.get(url, timeout=5.0)
+      response = _CLIENT.get("/erp/home/chart_dashboard_production")
 
       ## 2. 성공 시 (200 OK)
       if response.status_code == 200:

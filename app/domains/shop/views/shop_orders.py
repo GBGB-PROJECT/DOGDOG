@@ -155,7 +155,7 @@ def order_view(page: ft.Page, popup, page_name):
         asyncio.create_task(order_timesleep()) # type: ignore
         page.go("/shop/address")
 
-    #----------
+    #----------------------
     def pay_method(method):
         nonlocal selected_pay_method   
         selected_pay_method = method

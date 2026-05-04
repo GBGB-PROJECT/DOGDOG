@@ -10,6 +10,7 @@ from app.products.repository.productsList_repository import (
     VALID_SORTS
 )
 
+# 상품 상세 조회 ----------------------------------------------------------------
 def get_product_detail_service(db: Session, product_id: int):
     """
     상품 상세 조회 서비스
@@ -41,7 +42,7 @@ def get_product_detail_service(db: Session, product_id: int):
             "message": "상품 상세 정보가 존재하지 않습니다."
         }
     
-    product_name = f"{product_detail.product_name} {product.weight}g"
+    product_name = f"{product_detail.product_name} {product.weight}g X{product.quantity}"
 
     # 3. 최종 데이터 조합
     data = {

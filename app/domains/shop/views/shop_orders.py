@@ -2,6 +2,7 @@
 import flet as ft
 import components as dogdog
 import asyncio
+import re
 # -------------------------------------------------------------------------------------------------------
 def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
@@ -44,11 +45,82 @@ def order_view(page: ft.Page, popup, page_name):
             "address",
             "postal_code",
         ]
+        
+        # *** 주문자 정보 값 꺼내기
+        order_name = get_field_value(order_customer_name)
+        order_phone = get_field_value(order_customer_phone)
+
+        # *** 배송자 정보 값 꺼내기
+        recipient_name = payload["recipient_name"]
+        recipient_phone = payload["recipient_phone"]
+
+        name_pattern = r"^[가-힣a-zA-Z]{2,10}$"
+        phone_pattern = r"^010-\d{4}-\d{4}$"
+
+        # *** 이름 유효성 검사
+        def check_name(name):
+            if not re.match(name_pattern, name):
+                page.show_dialog(
+                    ft.SnackBar(
+                        content=ft.Text("이름은 2~10자로 입력해주세요."),
+                        open=True,
+                        behavior=ft.SnackBarBehavior.FLOATING,
+                    )
+                )
+                return
+
+        # *** 전화번호 유효성 검사
+        def check_phone(phone):
+            if not re.match(phone_pattern, phone):
+                page.show_dialog(
+                    ft.SnackBar(
+                        content=ft.Text("전화번호는 010-0000-0000 형식으로 입력해주세요."),
+                        open=True,
+                        behavior=ft.SnackBarBehavior.FLOATING,
+                    )
+                )
+                return
+            
+        check_name(order_name)
+        check_phone(order_phone)
+        check_name(recipient_name)
+        check_phone(recipient_phone)
+        
+
+        if not order_customer_name or not order_customer_phone:
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("주문자 정보를 모두 입력해주세요."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
 
         if any(not payload.get(field) for field in required_fields):
             page.show_dialog(
                 ft.SnackBar(
                     content=ft.Text("배송 정보를 모두 입력해주세요."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
+        
+        if not selected_pay_method:
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("결제수단을 등록해주세요."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
+        
+        if not agree_checkbox.value:
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("필수 동의 항목에 체크해주세요."),
                     open=True,
                     behavior=ft.SnackBarBehavior.FLOATING,
                 )
@@ -179,6 +251,7 @@ def order_view(page: ft.Page, popup, page_name):
         label="요청사항을 선택해주세요.",
         event=None,
         options=delivery_options)
+    agree_checkbox = ft.Checkbox(scale=0.9)
     # ---------------------------------------------------------------------------------------------------
     # Order Page View
     # ---------------------------------------------------------------------------------------------------
@@ -246,7 +319,7 @@ def order_view(page: ft.Page, popup, page_name):
         ft.Row(
             spacing=3,
             controls=[
-                ft.Checkbox(scale=0.9),
+                agree_checkbox,
                 ft.Text(
                     "주문하실 상품 및 결제, 주문정보를 확인했으며 이에 동의합니다. (필수)",
                     size=12, color=ft.Colors.GREY_600, max_lines=3,

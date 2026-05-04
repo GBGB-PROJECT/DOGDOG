@@ -63,10 +63,14 @@ data = [
 },
 '''
 
-async def get_shop_product_list(page, sort=None, keyword=None):
+async def get_shop_product_list(page, sort=None, keyword=None, limit=9, offset=0):
     api = ApiClient(page)
 
-    params = {}
+    params = {
+        "limit": limit,
+        "offset": offset,
+    }
+
     if sort:
         params["sort"] = sort
     if keyword:

@@ -23,8 +23,10 @@ class ProductSort(str, Enum):
 
 @router.get("")
 def get_products(
-    keyword: str | None = Query(default=None, description="검색 키워드"),
+    keyword: str | None = Query(default=None, description="검색어"),
     sort: ProductSort | None = Query(default=None, description="정렬 조건"),
+    limit: int = Query(default=9, ge=1, le=50),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
     """
@@ -37,7 +39,10 @@ def get_products(
             db=db,
             keyword=keyword,
             sort=sort,
+            limit=limit,
+            offset=offset,
         )
+
 
     except Exception as e:
         return JSONResponse(

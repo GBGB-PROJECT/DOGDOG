@@ -74,11 +74,12 @@ def get_product_detail_service(db: Session, product_id: int):
         "data": data
     }
 
-
 def read_product_list(
     db: Session,
     keyword: str | None = None,
     sort: str | None = None,
+    limit: int = 9,
+    offset: int = 0,
 ):
     """
     상품 목록 조회 서비스
@@ -100,6 +101,8 @@ def read_product_list(
         db=db,
         keyword=keyword,
         sort=sort,
+        limit=limit,
+        offset=offset,
     )
 
     data = [

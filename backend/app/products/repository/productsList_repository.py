@@ -22,9 +22,11 @@ def get_product_detail_list(db: Session, keyword: str | None = None):
     return products
 
 def get_product_list(
-        db: Session, 
+        db: Session,
         keyword: str | None = None,
         sort: str | None = None,
+        limit: int = 9,
+        offset: int = 0,
     ):
     query = (
         select(
@@ -96,6 +98,7 @@ def get_product_list(
             OpdProduct.quantity.asc(),
         )
 
+    query = query.offset(offset).limit(limit)
 
     result = db.execute(query)
     # products = result.scalars().all()

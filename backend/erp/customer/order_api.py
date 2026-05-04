@@ -19,6 +19,7 @@ router = APIRouter(
 SEARCH_TYPE_LABELS = {
     "order_number": "주문번호",
     "customer_id": "고객ID",
+    "recipient": "배송수령인",
     "phone": "전화번호",
     "address": "배송지",
     "product": "상품",  # 🔥 상품ID/브랜드/상품명 통합 검색
@@ -69,6 +70,7 @@ def get_customer_orders(
     search_type: Literal[
         "order_number",
         "customer_id",
+        "recipient",
         "phone",
         "address",
         "product",  # 🔥 상품ID/브랜드/상품명 통합 검색

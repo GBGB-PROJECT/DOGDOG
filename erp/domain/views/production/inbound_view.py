@@ -16,7 +16,7 @@ import flet as ft
 from api.erp_httpx_api import count_inbounds, fetch_inbounds
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
@@ -619,36 +619,10 @@ def erp_inbound_view():
         total_pages = pagination_state["total_pages"]
         current_page = pagination_state["current_page"]
 
-        if total_pages <= 1:
-            pagination_holder.content = None
-            return
-
-        page_controls = []
-        page_controls.append(build_page_button("<", current_page - 1, disabled=(current_page == 1)))
-
-        start_page = max(1, current_page - 2)
-        end_page = min(total_pages, current_page + 2)
-
-        for page_no in range(start_page, end_page + 1):
-            page_controls.append(
-                build_page_button(
-                    str(page_no),
-                    page_no,
-                    selected=(page_no == current_page),
-                )
-            )
-
-        page_controls.append(build_page_button(">", current_page + 1, disabled=(current_page == total_pages)))
-
-        pagination_holder.content = ft.Container(
-            padding=ft.Padding.only(top=14, bottom=6),
-            alignment=ft.Alignment(0, 0),
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
-                controls=page_controls,
-            ),
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no, e.page)),
         )
 
     def update_result_text():

@@ -13,13 +13,16 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "product_name": "상품명",
-    "product_id": "상품ID",  # 🔥 추가: 화면 컬럼과 검색조건 일치
-    "product_detail_id": "상품상세ID",  # 🔥 추가: 화면 컬럼과 검색조건 일치
+    "product_no": "상품번",
     "type": "타입",
     "brand": "브랜드",
+    "quantity": "수량(ea)",
+    "weight": "중량(g)",
+    "retail_price": "판매가(원)",
     "function": "기능",
     "main_protein": "주원료",
     "life": "생애주기",  # 🔥 추가: 생애주기 부분검색 조건
+    "active": "판매상태",
 }
 
 
@@ -55,11 +58,14 @@ def build_response_rows(items: list, page: int, size: int):
     rows = []
 
     for index, row in enumerate(items, start=start_no):
+        product_detail_id = row.get("product_detail_id", "")
+        product_id = row.get("product_id", "")
         rows.append(
             {
                 "no": index,
-                "product_detail_id": row.get("product_detail_id", ""),  # 🔥 수정: 상품상세ID 분리 반환
-                "product_id": row.get("product_id", ""),  # 🔥 수정: 상품ID 분리 반환
+                "product_no": f"{product_detail_id}-{product_id}" if product_detail_id and product_id else product_detail_id or product_id,
+                "product_detail_id": product_detail_id,
+                "product_id": product_id,
                 "type": row.get("type", ""),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
@@ -89,13 +95,18 @@ def build_response_rows(items: list, page: int, size: int):
 def get_product_detail_list(
     search_type: Literal[
         "product_name",
+        "product_no",
         "product_id",
         "product_detail_id",
         "type",
         "brand",
+        "quantity",
+        "weight",
+        "retail_price",
         "function",
         "main_protein",
         "life",  # 🔥 추가: 생애주기 검색조건
+        "active",
     ] = Query(
         default="product_name",
         description="검색 조건",

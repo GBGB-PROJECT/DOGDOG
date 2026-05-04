@@ -8,7 +8,7 @@ from components.common.modals.field_defs import SUPPLIER_FIELDS
 from api.erp_httpx_api import count_suppliers, fetch_suppliers, create_supplier
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
-from components.common.erp_pagination import calc_total_pages
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
 from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
 from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
 
@@ -421,58 +421,16 @@ def erp_production_supplier_view():
                 return
             run_search(target_page)
 
-        start_page = max(1, current_page - 2)
-        end_page = min(total_pages, start_page + 4)
-
-        # ☑️ 끝 페이지가 5개보다 적게 보이면 시작 페이지를 다시 보정
-        if end_page - start_page < 4:
-            start_page = max(1, end_page - 4)
-
-        page_buttons = []
-
-        page_buttons.append(
-            action_button(
-                "이전",
-                on_click=lambda e: move_page(current_page - 1) if current_page > 1 else None,
-                width=60,
-                run_async=True,
-            )
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no)),
+            width=38,
+            height=38,
+            border_radius=6,
         )
+        return
 
-        for page_no in range(start_page, end_page + 1):
-            is_current = page_no == current_page
-            page_buttons.append(
-                ft.Container(
-                    width=38,
-                    height=38,
-                    bgcolor="#111827" if is_current else BUTTON_BG,
-                    border=ft.Border.all(1, BUTTON_BORDER),
-                    border_radius=6,
-                    alignment=ft.Alignment(0, 0),
-                    on_click=None if is_current else (lambda e, p=page_no: e.page.run_thread(lambda: move_page(p))),
-                    content=ft.Text(
-                        value=str(page_no),
-                        size=13,
-                        color=ft.Colors.WHITE if is_current else BUTTON_TEXT,
-                        weight=ft.FontWeight.W_600,
-                    ),
-                )
-            )
-
-        page_buttons.append(
-            action_button(
-                "다음",
-                on_click=lambda e: move_page(current_page + 1) if current_page < total_pages else None,
-                width=60,
-                run_async=True,
-            )
-        )
-
-        pagination_holder.content = ft.Row(
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=8,
-            controls=page_buttons,
-        )
 
     # =========================================================
     # ☑️ SQLAlchemy ORM: 거래처 count/list 조회

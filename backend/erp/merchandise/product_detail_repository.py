@@ -10,7 +10,7 @@ from ..common.mutation_utils import (
     require_int,
     require_bool,
 )
-from sqlalchemy import String
+from sqlalchemy import String, or_
 
 
 # =========================================================
@@ -143,6 +143,16 @@ def _normalize_numeric_keyword(keyword: str):
     return (keyword or "").replace(",", "").replace("g", "").replace("G", "").strip()
 
 
+def _normalize_product_no_keyword(keyword: str):
+    return (
+        (keyword or "")
+        .replace(",", "")
+        .replace(" ", "")
+        .replace("_", "-")
+        .strip()
+    )
+
+
 def _apply_product_join_filter(query, search_type: str, keyword: str):
     clean = (keyword or "").strip()
 
@@ -151,6 +161,32 @@ def _apply_product_join_filter(query, search_type: str, keyword: str):
 
     if search_type == "product_name":
         return query.filter(OpdProductDetail.product_name.ilike(like_keyword(clean)))
+
+    if search_type == "product_no":
+        normalized = _normalize_product_no_keyword(clean)
+        if "-" in normalized:
+            detail_id, product_id = (normalized.split("-", 1) + [""])[:2]
+            if detail_id.isdigit() and product_id.isdigit():
+                return query.filter(
+                    OpdProductDetail.product_detail_id == int(detail_id),
+                    OpdProduct.product_id == int(product_id),
+                )
+
+        numeric = _normalize_numeric_keyword(clean)
+        if numeric.isdigit():
+            return query.filter(
+                or_(
+                    OpdProductDetail.product_detail_id == int(numeric),
+                    OpdProduct.product_id == int(numeric),
+                )
+            )
+
+        return query.filter(
+            or_(
+                OpdProductDetail.product_detail_id.cast(String).ilike(like_keyword(numeric)),
+                OpdProduct.product_id.cast(String).ilike(like_keyword(numeric)),
+            )
+        )
 
     if search_type == "product_id":
         numeric = _normalize_numeric_keyword(clean)
@@ -196,6 +232,14 @@ def _apply_product_join_filter(query, search_type: str, keyword: str):
         if numeric.isdigit():
             return query.filter(OpdProduct.quantity == int(numeric))
         return query.filter(OpdProduct.quantity.cast(String).ilike(like_keyword(numeric)))
+
+    if search_type == "active":
+        lowered = clean.lower()
+        if lowered in {"true", "1", "y", "yes", "판매중", "판매"}:
+            return query.filter(OpdProduct.active.is_(True))
+        if lowered in {"false", "0", "n", "no", "판매중지", "중지"}:
+            return query.filter(OpdProduct.active.is_(False))
+        return query.filter(OpdProduct.active.cast(String).ilike(like_keyword(clean)))
 
     return query
 

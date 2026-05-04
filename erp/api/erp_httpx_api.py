@@ -84,7 +84,7 @@ def _list_request(path: str, search_type="", keyword="", page=1, size=50, start_
 # ☑️ 고객 정보 조회
 # =========================================================
 
-def fetch_customers(search_type="customer_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+def fetch_customers(search_type="email", keyword="", limit=50, offset=0, start_date=None, end_date=None):
     page = (offset // limit) + 1
 
     result = _list_request(
@@ -100,7 +100,7 @@ def fetch_customers(search_type="customer_id", keyword="", limit=50, offset=0, s
     return result["items"]
 
 
-def count_customers(search_type="customer_id", keyword="", start_date=None, end_date=None):
+def count_customers(search_type="email", keyword="", start_date=None, end_date=None):
     result = _list_request(
         "/erp/customer/info",
         search_type=search_type,
@@ -188,7 +188,7 @@ def count_customer_subscriptions(search_type="subs_id", keyword="", start_date=N
 # ☑️ 사원 정보 조회
 # =========================================================
 
-def fetch_employees(search_type="employee_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+def fetch_employees(search_type="username", keyword="", limit=50, offset=0, start_date=None, end_date=None):
     page = (offset // limit) + 1
 
     result = _list_request(
@@ -204,7 +204,7 @@ def fetch_employees(search_type="employee_id", keyword="", limit=50, offset=0, s
     return result["items"]
 
 
-def count_employees(search_type="employee_id", keyword="", start_date=None, end_date=None):
+def count_employees(search_type="username", keyword="", start_date=None, end_date=None):
     result = _list_request(
         "/erp/hr",
         search_type=search_type,

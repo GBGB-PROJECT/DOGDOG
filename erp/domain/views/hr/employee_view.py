@@ -150,7 +150,6 @@ def erp_employee_view():
 
     col_expand = {
         "no": 3,
-        "employee_id": 5,
         "account_id": 7,
         "username": 7,
         "hire_date": 7,
@@ -168,7 +167,6 @@ def erp_employee_view():
 
     search_type_labels = {
         "username": "이름",
-        "employee_id": "사원ID",
         "account_id": "계정",
         "position_name": "직책",
         "phone": "전화번호",
@@ -366,7 +364,6 @@ def erp_employee_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("사원ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("계정", col_expand["account_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("이름", col_expand["username"], 0, ft.FontWeight.W_700),
                     build_table_cell("입사일", col_expand["hire_date"], 0, ft.FontWeight.W_700),
@@ -398,7 +395,6 @@ def erp_employee_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
                     build_table_cell(row.get("account_id", ""), col_expand["account_id"], 0),
                     build_table_cell(row.get("username", ""), col_expand["username"], 0),
                     build_table_cell(row.get("hire_date", ""), col_expand["hire_date"], 0),

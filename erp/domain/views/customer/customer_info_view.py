@@ -163,7 +163,7 @@ def erp_customer_info_view():
 
     selected_start = {"value": None}
     selected_end = {"value": None}
-    search_type_value = {"value": "customer_id"}
+    search_type_value = {"value": "email"}
 
     pagination_state = {
         "current_page": 1,
@@ -204,7 +204,6 @@ def erp_customer_info_view():
 
     col_expand = {
         "no": 3,
-        "customer_id": 6,
         "email": 10,
         "oauth_type": 6,
         "nickname": 7,
@@ -220,7 +219,6 @@ def erp_customer_info_view():
     row_padding_y = 14
 
     search_type_labels = {
-        "customer_id": "고객ID",
         "email": "이메일",
         "oauth_type": "OAuth유형",
         "nickname": "닉네임",
@@ -343,7 +341,7 @@ def erp_customer_info_view():
             selected_start["value"] is not None
             or selected_end["value"] is not None
             or (search_field.value or "").strip() != ""
-            or search_type_value["value"] != "customer_id"
+            or search_type_value["value"] != "email"
             or (pagination_state["keyword"] or "").strip() != ""
         )
         reset_button_holder.visible = has_filter
@@ -435,7 +433,6 @@ def erp_customer_info_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
-                    build_table_cell("고객ID", col_expand["customer_id"], 0, ft.FontWeight.W_700),
                     build_table_cell("이메일", col_expand["email"], 0, ft.FontWeight.W_700),
                     build_table_cell("OAuth유형", col_expand["oauth_type"], 0, ft.FontWeight.W_700),
                     build_table_cell("닉네임", col_expand["nickname"], 0, ft.FontWeight.W_700),
@@ -467,7 +464,6 @@ def erp_customer_info_view():
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     build_table_cell(row.get("no", ""), col_expand["no"], 0),
-                    build_table_cell(row.get("customer_id", ""), col_expand["customer_id"], 0),
                     build_table_cell(row.get("email", ""), col_expand["email"], 0),
                     build_table_cell(row.get("oauth_type", ""), col_expand["oauth_type"], 0),
                     build_table_cell(row.get("nickname", ""), col_expand["nickname"], 0),
@@ -592,7 +588,7 @@ def erp_customer_info_view():
     def update_result_text():
         start_text = format_date_text(selected_start["value"]) or "미선택"
         end_text = format_date_text(selected_end["value"]) or "미선택"
-        search_label = search_type_labels.get(search_type_value["value"], "고객ID")
+        search_label = search_type_labels.get(search_type_value["value"], "이메일")
         keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
 
         result_text.value = (
@@ -641,8 +637,8 @@ def erp_customer_info_view():
         selected_start["value"] = None
         selected_end["value"] = None
 
-        search_type_value["value"] = "customer_id"
-        search_type_text.value = search_type_labels["customer_id"]
+        search_type_value["value"] = "email"
+        search_type_text.value = search_type_labels["email"]
         search_field.value = ""
 
         pagination_state["keyword"] = ""

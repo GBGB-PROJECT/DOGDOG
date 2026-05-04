@@ -17,7 +17,6 @@ router = APIRouter(
 
 SEARCH_TYPE_LABELS = {
     "username": "이름",
-    "employee_id": "사원ID",
     "account_id": "계정",
     "position_name": "직책",
     "phone": "전화번호",
@@ -39,7 +38,6 @@ def get_employees(
     # 🔥 수정: Swagger에서 검색조건이 맨 위에 오도록 page/size보다 먼저 배치
     search_type: Literal[
         "username",
-        "employee_id",
         "account_id",
         "position_name",
         "phone",

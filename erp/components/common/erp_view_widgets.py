@@ -29,7 +29,7 @@ def build_text(
         weight=weight,
         text_align=text_align,
         max_lines=max_lines,
-        overflow=ft.TextOverflow.ELLIPSIS,
+        overflow=ft.TextOverflow.CLIP,
     )
 
 
@@ -52,7 +52,7 @@ def date_value_box(text, on_click=None, width=138, align_x=-1, center_text=False
             weight=ft.FontWeight.W_500,
             text_align=ft.TextAlign.CENTER if center_text else ft.TextAlign.LEFT,
             max_lines=1,
-            overflow=ft.TextOverflow.ELLIPSIS,
+            overflow=ft.TextOverflow.CLIP,
         ),
     )
 

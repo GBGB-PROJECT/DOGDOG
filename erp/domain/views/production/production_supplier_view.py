@@ -573,25 +573,35 @@ def erp_production_supplier_view():
         action_button("등록", on_click=open_register_modal, width=78),
     ]
 
+    # 🔥 수정: 긴 거래처명/전화번호/최종수정일이 ...으로 잘리지 않도록 가로 스크롤 적용
     table_section = ft.Container(
         expand=True,
         bgcolor=CARD_BG,
         border=ft.Border.all(1, TABLE_BORDER),
         border_radius=10,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        content=ft.Column(
+        content=ft.Row(
             expand=True,
-            spacing=0,
+            scroll=ft.ScrollMode.AUTO,
             controls=[
-                build_table_header(),
-                # 🔥 수정: 거래처 관리도 inbound_view.py처럼 데이터 행 영역만 스크롤
                 ft.Container(
-                    expand=True,
+                    width=1800,
                     content=ft.Column(
                         expand=True,
                         spacing=0,
-                        scroll=ft.ScrollMode.AUTO,
-                        controls=[table_rows_holder],
+                        controls=[
+                            build_table_header(),
+                            # 🔥 수정: 거래처 관리도 inbound_view.py처럼 데이터 행 영역만 스크롤
+                            ft.Container(
+                                expand=True,
+                                content=ft.Column(
+                                    expand=True,
+                                    spacing=0,
+                                    scroll=ft.ScrollMode.AUTO,
+                                    controls=[table_rows_holder],
+                                ),
+                            ),
+                        ],
                     ),
                 ),
             ],

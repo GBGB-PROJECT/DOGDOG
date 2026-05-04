@@ -799,6 +799,9 @@ def erp_purchase_order_view():
     reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78, run_async=True)
     update_reset_button_visibility()
 
+    # 🔥 수정: 긴 거래처명/최종수정일이 ...으로 잘리지 않도록 테이블 전체 가로폭 확보
+    table_total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1)) + (row_padding_x * 2)
+
     table_content = ft.Column(
         expand=True,
         spacing=0,
@@ -824,9 +827,10 @@ def erp_purchase_order_view():
         bgcolor=CARD_BG,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Row(
+            expand=True,
             scroll=ft.ScrollMode.AUTO,
             controls=[
-                ft.Container(content=table_content),
+                ft.Container(width=table_total_width, content=table_content),
             ],
         ),
     )

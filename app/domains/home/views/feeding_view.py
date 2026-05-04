@@ -29,6 +29,26 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
         storage.set("select_feeding_data", feeding_data.get("raw_data") if feeding_data else {})
         page.go("/feeding_edit")
 
+    def go_product_detail(e):
+        product_id = None
+
+        if feeding_data:
+            product_id = (
+                feeding_data.get("product_id")
+                or feeding_data.get("raw_data", {}).get("product_id")
+            )
+        if not product_id:
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("상품 정보를 찾을 수 없습니다."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
+        page.go(f"/shop/product/{product_id}")
+
+
     # [해결] 데이터가 비어있거나 필수 정보(상품명)가 없는 경우 Fallback UI 출력
     if not feeding_data or not feeding_data.get("product_name"):
         # 데이터가 없을 때의 UI
@@ -49,27 +69,46 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
     # 데이터가 있을 때의 UI (컨트롤러에서 가공한 데이터 사용)
     progress_value = feeding_data.get("progress_value", 0.0)
 
+    product_info = ft.Container(
+        expand=True,
+        ink=True,
+        border_radius=8,
+        on_click=go_product_detail,
+        content=ft.Row(
+            height=100,
+            expand=True,
+            controls=[
+                ft.Image(
+                    src=proxy_image_url(feeding_data.get("thumbnail")),
+                    fit=ft.BoxFit.CONTAIN,
+                    expand=2,
+                ),
+                ft.Column(
+                    expand=3,
+                    spacing=0,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        dogdog.basic_text(value=feeding_data.get("brand")),
+                        dogdog.basic_text(value=feeding_data.get("product_name"), weight="bold"),
+                    ],
+                ),
+            ],
+        ),
+    )
+
     product_detail = ft.Row(
         height=100,
         expand=True,
         controls=[
-            ft.Image(src=proxy_image_url(feeding_data.get("thumbnail")), fit=ft.BoxFit.CONTAIN, expand=2),
-            ft.Column(
-                expand=3,
-                spacing=0,
-                alignment=ft.MainAxisAlignment.CENTER,
-                controls=[
-                    dogdog.basic_text(value=feeding_data.get("brand")),
-                    dogdog.basic_text(value=feeding_data.get("product_name"), weight="bold"),
-                ],
-            ),
+            product_info,
             ft.Column(
                 controls=[
                     dogdog.flat_button(text="변경", scale=0.8, on_click=feeding_edit_event)
                 ]
             ),
-        ]
+        ],
     )
+
 
     detail = [
         product_detail,

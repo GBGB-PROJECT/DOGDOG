@@ -510,7 +510,7 @@ def erp_customer_order_view():
             border_radius=10,
             bgcolor="#2563EB" if selected else ft.Colors.TRANSPARENT,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            on_click=None if disabled or page_no is None else lambda e: e.page.run_thread(lambda: move_page(page_no, e.page)),
             content=ft.Text(
                 label,
                 size=16,
@@ -626,16 +626,15 @@ def erp_customer_order_view():
     refresh_picker_fields()
 
     # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
-    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78, run_async=True)
     update_reset_button_visibility()
 
     pagination_state["keyword"] = ""
     pagination_state["current_page"] = 1
-    reload_current_page()
 
     table_area = build_lookup_table_area(build_table_header(), table_rows_holder)
 
-    return build_lookup_page_layout(
+    page_layout = build_lookup_page_layout(
         page_title=page_title,
         result_text=result_text,
         table_area=table_area,
@@ -648,8 +647,14 @@ def erp_customer_order_view():
             end_icon_holder,
             search_type,
             search_field,
-            action_button("조회", on_click=on_search_click),
+            action_button("조회", on_click=on_search_click, run_async=True),
             reset_button_holder,
             # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
         ],
     )
+
+    class CustomerOrderPage(ft.Container):
+        def did_mount(self):
+            self.page.run_thread(lambda: (reload_current_page(), self.page.update()))
+
+    return CustomerOrderPage(expand=True, content=page_layout)

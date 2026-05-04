@@ -518,7 +518,7 @@ def erp_employee_view():
             border_radius=10,
             bgcolor=bgcolor,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            on_click=None if disabled or page_no is None else lambda e: e.page.run_thread(lambda: move_page(page_no, e.page)),
             content=ft.Text(
                 value=label,
                 size=16,
@@ -536,7 +536,7 @@ def erp_employee_view():
             height=40,
             border_radius=10,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            on_click=None if disabled or page_no is None else lambda e: e.page.run_thread(lambda: move_page(page_no, e.page)),
             content=ft.Icon(
                 icon_name,
                 size=20,
@@ -685,7 +685,7 @@ def erp_employee_view():
         update_reset_button_visibility()
         e.page.update()
 
-    search_field.on_submit = lambda e: on_search(e)
+    search_field.on_submit = lambda e: e.page.run_thread(lambda: on_search(e))
 
     def close_register_modal(e):
         dim_bg.visible = False
@@ -726,16 +726,11 @@ def erp_employee_view():
     refresh_picker_fields()
 
     # 🔥 추가: 처음에는 숨겨두고, 검색/날짜/검색조건 변경 시 표시
-    reset_button_holder.content = action_button("초기화", on_click=on_reset, width=78)
+    reset_button_holder.content = action_button("초기화", on_click=on_reset, width=78, run_async=True)
     update_reset_button_visibility()
 
-    try:
-        load_rows()
-    except Exception as exc:
-        result_text.value = f"DB 조회 실패: {exc}"
-
     action_controls = [
-        action_button("조회", on_click=on_search, width=78),
+        action_button("조회", on_click=on_search, width=78, run_async=True),
         reset_button_holder,
         # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
         action_button("등록", on_click=open_register_modal, width=78),
@@ -747,7 +742,7 @@ def erp_employee_view():
         border=ft.border.all(1, TABLE_BORDER),
     )
 
-    return build_lookup_page_layout(
+    page_layout = build_lookup_page_layout(
         page_title=page_title,
         result_text=result_text,
         table_area=table_area,
@@ -764,3 +759,16 @@ def erp_employee_view():
             *action_controls,
         ],
     )
+
+    class EmployeePage(ft.Container):
+        def did_mount(self):
+            def initial_load():
+                try:
+                    load_rows(self.page)
+                except Exception as exc:
+                    result_text.value = f"DB 조회 실패: {exc}"
+                self.page.update()
+
+            self.page.run_thread(initial_load)
+
+    return EmployeePage(expand=True, content=page_layout)

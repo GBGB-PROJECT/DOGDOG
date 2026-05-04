@@ -86,7 +86,7 @@ def calendar_icon_box(on_click=None):
     )
 
 
-def action_button(text, on_click=None, width=78, bgcolor=BUTTON_BG, color=BUTTON_TEXT):
+def action_button(text, on_click=None, width=78, bgcolor=BUTTON_BG, color=BUTTON_TEXT, run_async=False):
     # 🔥 ERP 조회 화면 공통 액션 버튼
     # - 클릭 즉시 버튼 자체를 먼저 갱신해서 API 호출 전에도 반응이 보이게 한다.
     button = ft.Container(
@@ -119,15 +119,28 @@ def action_button(text, on_click=None, width=78, bgcolor=BUTTON_BG, color=BUTTON
         except Exception:
             pass
 
-        try:
-            return on_click(e)
-        finally:
+        def finish_click():
             button.opacity = 1
             setattr(button, "_erp_clicking", False)
             try:
                 button.update()
             except Exception:
                 pass
+
+        def run_handler():
+            try:
+                on_click(e)
+            finally:
+                finish_click()
+
+        if run_async and getattr(e, "page", None) is not None:
+            e.page.run_thread(run_handler)
+            return
+
+        try:
+            return on_click(e)
+        finally:
+            finish_click()
 
     button.on_click = handle_click
     return button

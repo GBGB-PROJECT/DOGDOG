@@ -119,7 +119,7 @@ def calendar_icon_box(on_click=None):
 # 👊 공통 이동: 공통 버튼
 # =========================================================
 # ⭐ 조회 / 인쇄 / 다운로드 / 등록 버튼을 같은 스타일로 만들기 위한 함수
-def action_button(text, on_click=None, width=78):
+def action_button(text, on_click=None, width=78, run_async=False):
     button = ft.Container(
         width=width,
         height=38,
@@ -147,15 +147,28 @@ def action_button(text, on_click=None, width=78):
         except Exception:
             pass
 
-        try:
-            return on_click(e)
-        finally:
+        def finish_click():
             button.opacity = 1
             setattr(button, "_erp_clicking", False)
             try:
                 button.update()
             except Exception:
                 pass
+
+        def run_handler():
+            try:
+                on_click(e)
+            finally:
+                finish_click()
+
+        if run_async and getattr(e, "page", None) is not None:
+            e.page.run_thread(run_handler)
+            return
+
+        try:
+            return on_click(e)
+        finally:
+            finish_click()
 
     button.on_click = handle_click
     return button
@@ -631,7 +644,7 @@ def build_product_search_table_page(
         result_text.page.update()
 
     # ⭐ 검색창에서 엔터를 쳐도 조회되도록 연결
-    search_field.on_submit = lambda e: run_search()
+    search_field.on_submit = lambda e: e.page.run_thread(lambda: run_search())
 
 
     # =========================================================
@@ -705,7 +718,7 @@ def build_product_search_table_page(
 
     # ⭐ 조회 바 오른쪽 버튼들 묶음
     action_controls = [
-        action_button("조회", on_click=lambda e: run_search(), width=78),
+        action_button("조회", on_click=lambda e: run_search(), width=78, run_async=True),
         # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
     ]
 

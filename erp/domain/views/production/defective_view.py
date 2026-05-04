@@ -547,7 +547,7 @@ def erp_defective_view():
             border_radius=10,
             bgcolor="#2563EB" if selected else ft.Colors.TRANSPARENT,
             alignment=ft.Alignment(0, 0),
-            on_click=None if disabled or page_no is None else lambda e: move_page(page_no, e.page),
+            on_click=None if disabled or page_no is None else lambda e: e.page.run_thread(lambda: move_page(page_no, e.page)),
             content=ft.Text(
                 str(label),
                 size=16,
@@ -658,14 +658,12 @@ def erp_defective_view():
     refresh_picker_fields()
 
     # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
-    reset_button_holder.content = action_button("초기화", on_click=on_reset, width=78)
+    reset_button_holder.content = action_button("초기화", on_click=on_reset, width=78, run_async=True)
     update_reset_button_visibility()
-
-    load_page(1)
 
     table_area = build_lookup_table_area(build_table_header(), table_rows_holder)
 
-    return build_lookup_page_layout(
+    page_layout = build_lookup_page_layout(
         page_title=page_title,
         result_text=result_text,
         table_area=table_area,
@@ -678,7 +676,13 @@ def erp_defective_view():
             end_icon_holder,
             search_type,
             search_field,
-            action_button("조회", on_click=on_search),
+            action_button("조회", on_click=on_search, run_async=True),
             reset_button_holder,
         ],
     )
+
+    class DefectivePage(ft.Container):
+        def did_mount(self):
+            self.page.run_thread(lambda: load_page(1, self.page))
+
+    return DefectivePage(expand=True, content=page_layout)

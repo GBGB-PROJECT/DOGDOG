@@ -1,6 +1,6 @@
 import flet as ft
 
-from components.common.erp_busy_cursor import go_with_busy_cursor, with_busy_cursor
+from components.common.erp_busy_cursor import go_with_busy_cursor
 from components import common as cm
 from components.common.charts.twin_chart import build_production_twin_chart
 
@@ -633,7 +633,7 @@ def erp_production_view():
                 ft.IconButton(
                     icon=ft.Icons.CHEVRON_LEFT,
                     icon_size=20,
-                    on_click=with_busy_cursor(lambda e: move_dashboard_month(-1, e)),
+                    on_click=lambda e: e.page.run_thread(lambda: move_dashboard_month(-1, e)),
                 ),
                 build_text(
                     state["data"].get(
@@ -647,17 +647,15 @@ def erp_production_view():
                 ft.IconButton(
                     icon=ft.Icons.CHEVRON_RIGHT,
                     icon_size=20,
-                    on_click=with_busy_cursor(lambda e: move_dashboard_month(1, e)),
+                    on_click=lambda e: e.page.run_thread(lambda: move_dashboard_month(1, e)),
                 ),
             ],
         )
 
-    reload_dashboard()
-
     # ==============================
     # ☑️ 최종 화면
     # ==============================
-    return ft.Container(
+    page_layout = ft.Container(
         expand=True,
         bgcolor=ft.Colors.WHITE,  # 🔥 수정: 화면 배경 흰색 통일
         padding=20,
@@ -679,3 +677,9 @@ def erp_production_view():
             ],
         ),
     )
+
+    class ProductionPage(ft.Container):
+        def did_mount(self):
+            self.page.run_thread(lambda: reload_dashboard(self.page))
+
+    return ProductionPage(expand=True, content=page_layout)

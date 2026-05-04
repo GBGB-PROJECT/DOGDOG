@@ -72,7 +72,7 @@ def _parse_prefilter_date(value):
             return None
 
 
-def build_button(text, on_click=None, width=82):
+def build_button(text, on_click=None, width=82, run_async=False):
     # 🔥 수정: ElevatedButton은 내부 기본 padding 때문에 "초기화"가 세로로 줄바꿈되는 문제가 있음
     # - 다른 조회 화면 버튼들과 동일하게 Container + Text 방식으로 고정
     # - max_lines=1을 줘서 버튼 텍스트가 절대 두 줄로 내려가지 않게 처리
@@ -107,15 +107,28 @@ def build_button(text, on_click=None, width=82):
         except Exception:
             pass
 
-        try:
-            return on_click(e)
-        finally:
+        def finish_click():
             button.opacity = 1
             setattr(button, "_erp_clicking", False)
             try:
                 button.update()
             except Exception:
                 pass
+
+        def run_handler():
+            try:
+                on_click(e)
+            finally:
+                finish_click()
+
+        if run_async and getattr(e, "page", None) is not None:
+            e.page.run_thread(run_handler)
+            return
+
+        try:
+            return on_click(e)
+        finally:
+            finish_click()
 
     button.on_click = handle_click
     return button
@@ -614,14 +627,12 @@ def erp_stock_inout_view():
     refresh_picker_fields()
 
     # 🔥 추가: 처음에는 숨기고, 날짜/구분/검색 조건이 생기면 표시
-    reset_button_holder.content = build_button("초기화", on_reset_click, width=82)
+    reset_button_holder.content = build_button("초기화", on_reset_click, width=82, run_async=True)
     update_reset_button_visibility()
-
-    reload_current_page(1)
 
     table_area = build_lookup_table_area(build_table_header(), table_rows_holder)
 
-    return build_lookup_page_layout(
+    page_layout = build_lookup_page_layout(
         page_title=page_title,
         result_text=result_text,
         table_area=table_area,
@@ -635,7 +646,13 @@ def erp_stock_inout_view():
             inout_type_dropdown,
             search_type_dropdown,
             search_field,
-            build_button("조회", on_search_click),
+            build_button("조회", on_search_click, run_async=True),
             reset_button_holder,
         ],
     )
+
+    class StockInoutPage(ft.Container):
+        def did_mount(self):
+            self.page.run_thread(lambda: (reload_current_page(1), self.page.update()))
+
+    return StockInoutPage(expand=True, content=page_layout)

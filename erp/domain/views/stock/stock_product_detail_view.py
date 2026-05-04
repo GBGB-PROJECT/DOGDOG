@@ -867,18 +867,15 @@ def erp_stock_product_detail_view():
         update_reset_button_visibility()
         e.page.update()
 
-    search_field.on_submit = lambda e: (run_search(e.page), update_reset_button_visibility(), e.page.update())
+    search_field.on_submit = lambda e: e.page.run_thread(
+        lambda: (run_search(e.page), update_reset_button_visibility(), e.page.update())
+    )
 
     refresh_picker_fields()
 
     # 🔥 추가: 처음에는 숨김, 검색/날짜 조건이 생기면 표시
-    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78, run_async=True)
     update_reset_button_visibility()
-
-    try:
-        load_rows()
-    except Exception as exc:
-        result_text.value = f"DB 조회 실패: {exc}"
 
     table_total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1))
 
@@ -914,7 +911,7 @@ def erp_stock_product_detail_view():
         ),
     )
 
-    return build_lookup_page_layout(
+    page_layout = build_lookup_page_layout(
         page_title=page_title,
         result_text=result_text,
         table_area=table_area,
@@ -938,8 +935,22 @@ def erp_stock_product_detail_view():
                     e.page.update(),
                 ),
                 width=78,
+                run_async=True,
             ),
             reset_button_holder,
             # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
         ],
     )
+
+    class StockProductDetailPage(ft.Container):
+        def did_mount(self):
+            def initial_load():
+                try:
+                    load_rows(self.page)
+                except Exception as exc:
+                    result_text.value = f"DB 조회 실패: {exc}"
+                self.page.update()
+
+            self.page.run_thread(initial_load)
+
+    return StockProductDetailPage(expand=True, content=page_layout)

@@ -547,7 +547,7 @@ def erp_production_supplier_view():
         build_pagination()
         update_reset_button_visibility()
 
-    search_field.on_submit = lambda e: run_search(1)
+    search_field.on_submit = lambda e: e.page.run_thread(lambda: run_search(1))
 
 
     def close_register_modal(e):
@@ -583,7 +583,6 @@ def erp_production_supplier_view():
     dim_bg.on_click = close_register_modal
 
     refresh_picker_fields()
-    run_search(1)
 
     def on_reset_click(e):
         # 🔥 추가: 검색/날짜 조건을 전부 기본값으로 되돌리고 첫 화면 재조회
@@ -603,11 +602,11 @@ def erp_production_supplier_view():
         e.page.update()
 
     # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
-    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78)
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78, run_async=True)
     update_reset_button_visibility()
 
     action_controls = [
-        action_button("조회", on_click=lambda e: (run_search(1), update_reset_button_visibility(), e.page.update()), width=78),
+        action_button("조회", on_click=lambda e: (run_search(1), update_reset_button_visibility(), e.page.update()), width=78, run_async=True),
         reset_button_holder,
         # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
         action_button("등록", on_click=open_register_modal, width=78),
@@ -638,7 +637,7 @@ def erp_production_supplier_view():
         ),
     )
 
-    return build_lookup_page_layout(
+    page_layout = build_lookup_page_layout(
         page_title=page_title,
         result_text=result_text,
         table_area=table_section,
@@ -655,3 +654,9 @@ def erp_production_supplier_view():
             *action_controls,
         ],
     )
+
+    class ProductionSupplierPage(ft.Container):
+        def did_mount(self):
+            self.page.run_thread(lambda: (run_search(1), self.page.update()))
+
+    return ProductionSupplierPage(expand=True, content=page_layout)

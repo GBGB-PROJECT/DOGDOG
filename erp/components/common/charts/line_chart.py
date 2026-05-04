@@ -78,6 +78,9 @@ def build_sales_linechart():
         bottom_labels = []  # ☑️ 추가: 하단 라벨
         bar_row_controls = []  # ☑️ 수정: Stack 정렬 대신 동일 간격 Row 슬롯 방식으로 변경
 
+        empty_bottom_labels = [] # 차트의 하단 공간(36px)만 유지하기 위한 빈 라벨
+        label_row_controls = []  # 실제 글씨를 띄울 텍스트 전용 슬롯 리스트
+
         x_step = 2  # ☑️ 추가: 기존 선 그래프와 동일한 X축 간격 유지
         max_bar_height = 240  # ☑️ 추가: 막대 최대 높이
         chart_bottom_space = 36  # ☑️ 추가: 하단 라벨 공간 확보
@@ -98,16 +101,26 @@ def build_sales_linechart():
                         x=x_value, 
                         y=line_value, 
                         point=True,
-                        tooltip=tooltip_str,  # 2. tooltip 속성에 포맷팅된 문자열 주입
-                        
+                        tooltip=tooltip_str,  # 2. tooltip 속성에 포맷팅된 문자열 주입    
                     )
                 )
+            
+            empty_bottom_labels.append(
+                fch.ChartAxisLabel(value=x_value, label=ft.Text(""))
+            )
+
+            label_row_controls.append(
+                ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment(0, 1),
+                    content=ft.Text(label_text, size=12, color= cm.PIE_BLUE, weight=ft.FontWeight.W_500),
+                )
+            )
 
             bottom_labels.append(
                 fch.ChartAxisLabel(
                     value=x_value,
                     label=ft.Text(
-                        label_text,
                         size=12,
                         color=cm.PIE_BLUE,
                         weight=ft.FontWeight.W_500,
@@ -142,6 +155,16 @@ def build_sales_linechart():
             ),
         )
 
+        label_layer = ft.Container(
+            expand=True,
+            height=CHART_HEIGHT,
+            padding=ft.padding.only(left=axis_space, right=axis_space, bottom=8),
+            content=ft.Row(
+                expand=True,
+                spacing=0,
+                controls=ft.Row(expand=True, spacing=0, controls=label_row_controls),
+            )
+        )
         # 동적 축 자동 생성
         def format_rev(val):
             # 값이 크면 억, 작으면 만단위로 나눠줌
@@ -176,7 +199,7 @@ def build_sales_linechart():
             border=ft.border.all(0, ft.Colors.TRANSPARENT),
             left_axis=fch.ChartAxis(labels=left_axis_labels, label_size=axis_space),
             right_axis=fch.ChartAxis(labels=right_axis_labels, label_size=axis_space),
-            bottom_axis=fch.ChartAxis(labels=bottom_labels, label_size=36),
+            bottom_axis=fch.ChartAxis(labels=bottom_labels, label_size=32),
             horizontal_grid_lines=fch.ChartGridLines(interval=top_y_rev/4, color=cm.CHART_GRID_COLOR, width=1),
             vertical_grid_lines=fch.ChartGridLines(interval=x_step, color=ft.Colors.TRANSPARENT, width=0),
             data_series=[
@@ -194,6 +217,7 @@ def build_sales_linechart():
             controls=[
                 bar_layer,
                 line_layer,  
+                label_layer
             ],
         )
 
@@ -295,7 +319,8 @@ def build_sales_linechart():
                             controls=[
                                 ft.Text("매출 추이", size=18, weight=ft.FontWeight.W_700, color=cm.TEXT_PRIMARY),
                                 # 🟥 데이터 레이블 설명 추가 (좌측은 매출, 우측은 판매량 명시)
-                                ft.Text("■ 판매량 (우측 축)  ● 매출액 (좌측 축)", size=12, color=cm.TEXT_SECONDARY)
+                                ft.Text("■ 판매량", size=12, color=cm.BAR_COLOR),
+                                ft.Text("● 매출액", size=12, color=cm.CHART_LINE_AND_TEXT_COLOR)
                             ]
                         ),
                         metric_selector_container,

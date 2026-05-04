@@ -63,7 +63,11 @@ def build_modal(
         error_text.value = message
         error_text.visible = True
         confirm_panel.visible = False
-        page.update()
+        try:
+            error_text.update()
+            confirm_panel.update()
+        except Exception:
+            page.update()
 
     def clear_inline_error():
         error_text.value = ""
@@ -93,7 +97,7 @@ def build_modal(
     def close_confirm(e):
         pending_data["value"] = None
         confirm_panel.visible = False
-        page.update()
+        confirm_panel.update()
 
     def do_submit(e, saved_data):
         def worker():
@@ -102,12 +106,10 @@ def build_modal(
                     on_submit_success(saved_data)
             except Exception as exc:
                 show_inline_error(f"저장 실패: {exc}")
-                page.update()
                 return
 
             show_message(page, "저장이 완료되었습니다.")
             close_handler(e)
-            page.update()
 
         if getattr(e, "page", None) is not None:
             e.page.run_thread(worker)
@@ -118,7 +120,7 @@ def build_modal(
         saved_data = pending_data["value"]
         pending_data["value"] = None
         confirm_panel.visible = False
-        page.update()
+        confirm_panel.update()
         if saved_data is not None:
             do_submit(e, saved_data)
 
@@ -130,7 +132,7 @@ def build_modal(
         if confirm_message:
             pending_data["value"] = saved_data
             confirm_panel.visible = True
-            page.update()
+            confirm_panel.update()
             return
 
         do_submit(e, saved_data)

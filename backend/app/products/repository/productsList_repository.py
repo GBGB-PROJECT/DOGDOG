@@ -92,7 +92,8 @@ def get_product_list(
         # 기본 정렬: 등록순 느낌으로 product_id ASC
         query = query.order_by(
             OpdProductDetail.product_name.asc(),
-            OpdProduct.product_id.asc(),
+            OpdProduct.weight.asc(),
+            OpdProduct.quantity.asc(),
         )
 
 

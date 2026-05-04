@@ -147,7 +147,7 @@ async def home_tile(
         main_container_content.append(top_banner)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/mypage":
-        home_background , top_banner = dogdog.home_layout(page=page, text="마이페이지")
+        home_background , top_banner = dogdog.home_layout(page=page, text="My Page")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
         body_scroll_column.controls = domains.mypage_view.mypage_view(page)

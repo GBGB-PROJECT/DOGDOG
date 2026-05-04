@@ -230,13 +230,7 @@ def log_view(page: ft.Page, controller):
                     points=normal_points,
                     stroke_width=3,
                     color=CHART_LINE_COLOR,
-                    curved=True,
-                ),
-                fch.LineChartData(
-                    points=highlight_points,
-                    stroke_width=0,
                     point=True,
-                    color=TOP_VANILLA,
                 ),
             ],
             # [방어 로직] Y축 범위 강제 지정
@@ -263,6 +257,9 @@ def log_view(page: ft.Page, controller):
                 color=CHART_GRID_COLOR, 
                 width=1
             ),
+            tooltip=fch.LineChartTooltip(
+                bgcolor=TOP_VANILLA,
+            )
         )
 
     # ============================================================
@@ -323,7 +320,7 @@ def log_view(page: ft.Page, controller):
                                                 horizontal=10, vertical=5
                                             ),
                                             content=dogdog.Txt(
-                                                "Last 7 Days",
+                                                "지난 일주일 기록",
                                                 size=11,
                                                 color=TEXT_PRIMARY,
                                             ),

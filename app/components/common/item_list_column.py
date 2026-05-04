@@ -94,7 +94,7 @@ def dropdown_list(dropdown_menu, search_data, key):
             for row in rows:
                 if row[0] == key:
                     dropdown_menu.options.append(
-                        dogdog.dropdown_menu_option(key=row[0], text=f"{row[1]}g"),
+                        dogdog.dropdown_menu_option(key=row[0], text=f"{int(float(row[1]))}g"),
                     )               
         else:
             dropdown_menu.options.append(

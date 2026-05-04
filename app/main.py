@@ -6,7 +6,7 @@ import asyncio
 import components as dogdog
 
 # 테스트 아이디로 테스트 설정
-IS_TEST_MODE = True
+IS_TEST_MODE = False
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
@@ -370,6 +370,7 @@ class Front_dogdog:
                 self.page.views.clear()
                 layout.on_click = lambda _: self.page.go("/home")
                 self.page.session.store.set("is_onboarding_complete", True)
+                self.home_feeding_guide_popup = True  # 온보딩 완료 시 팝업 노출 활성화
 
         else:
             # --- 일반 서비스 뷰 생성 (Home Tile) ---

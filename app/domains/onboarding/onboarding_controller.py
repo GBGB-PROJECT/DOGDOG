@@ -60,7 +60,7 @@ class OnboardingController:
         if not password:
             return False, "비밀번호를 입력해주세요."
         if not re.fullmatch(self.regex_password, password):
-            return False, "8자 이상, 영문/숫자/특수문자를 포함해야 합니다."
+            return False, "비밀번호는 8자 이상, 영문/숫자/특수문자를 포함해야 합니다."
         return True, ""
 
     async def check_email_duplicate(self, e):

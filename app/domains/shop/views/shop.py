@@ -81,10 +81,10 @@ def shop_feeding_guide(page: ft.Page):
                             ft.Container(
                                 content=dogdog.basic_text(f"{data['daily_food_g']}g", weight="bold", size=42),
                                 padding=ft.padding.only(bottom=15),
-                                alignment=ft.Alignment(0, 0) # Flet 0.81.0: ft.alignment.center 대신 사용
+                                alignment=ft.Alignment(0, 0)
                             )
                         ],
-                        alignment=ft.Alignment(0, 0) # Flet 0.81.0: ft.alignment.center 대신 사용
+                        alignment=ft.Alignment(0, 0) 
                     ),
                     # 하단: 밥그릇 이미지 + 배차 정보
                     ft.Column(

@@ -57,9 +57,9 @@ def sign_up_view(page: ft.Page, controller, check_email_callback=None):
         input_type="email",
         suffix=email_suffix,
     )
-    name_input = dogdog.input_textfield(hint_text="닉네임", on_change=name_on_change)
+    name_input = dogdog.input_textfield(hint_text="닉네임(2-10자, 한글/영문/숫자)", on_change=name_on_change)
     password_input = dogdog.input_textfield(
-        hint_text="비밀번호",
+        hint_text="비밀번호(8자 이상,영문/숫자/특수문자 포함)",
         max_length=None,  # type: ignore
         on_change=password_on_change,
         input_type="password",

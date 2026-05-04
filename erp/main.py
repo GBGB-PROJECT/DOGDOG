@@ -50,7 +50,7 @@ def main(page: ft.Page):
         🔥 로그인 이동 안정화
         - 현재 프로젝트에서는 page.go()로 정상 라우팅이 검증되어 있다.
         - push_route()는 버전에 따라 on_route_change가 기대대로 돌지 않아
-          로그인 성공 후 화면이 멈춘 것처럼 보일 수 있으므로 여기서는 page.go()를 유지한다.
+        - 로그인 성공 후 화면이 멈춘 것처럼 보일 수 있으므로 여기서는 page.go()를 유지한다.
         """
         page.go(target_route)
 

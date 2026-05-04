@@ -97,8 +97,7 @@ def build_sales_linechart():
                         x=x_value, 
                         y=line_value, 
                         point=True,
-                        tooltip=tooltip_str,  # 2. tooltip 속성에 포맷팅된 문자열 주입
-                        
+                        tooltip=tooltip_str,  # 2. tooltip 속성에 포맷팅된 문자열 주입    
                     )
                 )
 
@@ -175,7 +174,7 @@ def build_sales_linechart():
             border=ft.border.all(0, ft.Colors.TRANSPARENT),
             left_axis=fch.ChartAxis(labels=left_axis_labels, label_size=axis_space),
             right_axis=fch.ChartAxis(labels=right_axis_labels, label_size=axis_space),
-            bottom_axis=fch.ChartAxis(labels=bottom_labels, label_size=36),
+            bottom_axis=fch.ChartAxis(labels=bottom_labels, label_size=32),
             horizontal_grid_lines=fch.ChartGridLines(interval=top_y_rev/4, color=cm.CHART_GRID_COLOR, width=1),
             vertical_grid_lines=fch.ChartGridLines(interval=x_step, color=ft.Colors.TRANSPARENT, width=0),
             data_series=[
@@ -249,7 +248,8 @@ def build_sales_linechart():
                             controls=[
                                 ft.Text("매출 추이", size=18, weight=ft.FontWeight.W_700, color=cm.TEXT_PRIMARY),
                                 # 🟥 데이터 레이블 설명 추가 (좌측은 매출, 우측은 판매량 명시)
-                                ft.Text("■ 판매량 (우측 축)  ● 매출액 (좌측 축)", size=12, color=cm.TEXT_SECONDARY)
+                                ft.Text("■ 판매량 (우측 축)", size=12, color=cm.BAR_COLOR),
+                                ft.Text("● 매출액 (좌측 축)", size=12, color=cm.CHART_LINE_AND_TEXT_COLOR)
                             ]
                         ),
                         metric_selector_container,

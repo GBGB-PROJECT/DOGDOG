@@ -107,7 +107,7 @@ def mypage_view(page: ft.Page, controller=None):
         return [
             dogdog.banner(
                 image_src="dogclay.png",
-                text="내 반려동물 정보",
+                text="내 반려동물 정보 보러가기",
                 selected=(selected_banner["index"] == 0),
                 on_click=select_banner(0),
             ),

@@ -143,7 +143,7 @@ async def home_tile(
         body_scroll_column.controls.append(domains.shop.product_guide(page=page))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/contents":
-        home_background , top_banner = dogdog.home_layout(page=page, text="Content")
+        home_background , top_banner = dogdog.home_layout(page=page, text="Contents")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
         body_scroll_column.controls.append(domains.dummy_view(page=page))

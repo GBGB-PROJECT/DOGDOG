@@ -234,6 +234,7 @@ def erp_purchase_order_view():
     row_spacing = 10
     row_padding_x = 14
     row_padding_y = 14
+    action_column_width = 100
 
     start_field_holder = ft.Container()
     start_icon_holder = ft.Container(width=38, height=38)
@@ -531,7 +532,7 @@ def erp_purchase_order_view():
                         for col in columns
                     ],
                     ft.Container(
-                        width=100,
+                        width=action_column_width,
                         alignment=ft.Alignment(0, 0),
                         content=build_text(
                             "상세",
@@ -577,7 +578,7 @@ def erp_purchase_order_view():
                         for col in columns
                     ],
                     ft.Container(
-                        width=100,
+                        width=action_column_width,
                         height=34,
                         alignment=ft.Alignment(0, 0),
                         border_radius=6,
@@ -800,7 +801,12 @@ def erp_purchase_order_view():
     update_reset_button_visibility()
 
     # 🔥 수정: 긴 거래처명/최종수정일이 ...으로 잘리지 않도록 테이블 전체 가로폭 확보
-    table_total_width = sum(col["width"] for col in columns) + (row_spacing * (len(columns) - 1)) + (row_padding_x * 2)
+    table_total_width = (
+        sum(col["width"] for col in columns)
+        + action_column_width
+        + (row_spacing * len(columns))
+        + (row_padding_x * 2)
+    )
 
     table_content = ft.Column(
         expand=True,

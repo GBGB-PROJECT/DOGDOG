@@ -38,7 +38,6 @@ def login_view(page: ft.Page, controller):
     content = ft.Container(
         alignment=ft.Alignment.CENTER,
         expand=True,
-        padding=ft.padding.only(top=10, bottom=20),
         content=ft.Column(
             scroll=ft.ScrollMode.HIDDEN,
             alignment=ft.MainAxisAlignment.CENTER,

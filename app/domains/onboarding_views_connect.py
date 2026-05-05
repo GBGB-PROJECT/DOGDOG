@@ -68,7 +68,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
             else:
                 show_error(text="기능 구현중입니다.")
                 return
-        top = ft.Row(height=200,
+        top = ft.Row(height=150, margin=ft.margin.only(top=40, bottom=-100),
             alignment=ft.MainAxisAlignment.CENTER, 
             vertical_alignment=ft.CrossAxisAlignment.END,
             controls=[ft.Image(src="dogdog_logo.png", width=300)])
@@ -78,7 +78,14 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         content_text_2 = dogdog.basic_text(color=ft.Colors.GREY_600,
             value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!")
         content_text_2.text_align = ft.TextAlign.CENTER
+        content_text_1 = dogdog.basic_text(
+            value="똑똑🚪✊ 우리집 강아지가 마지막 한알을 먹기 전\n문앞에 사료가 도착합니다 🔔", weight="bold")
+        content_text_1.text_align = ft.TextAlign.CENTER
+        content_text_2 = dogdog.basic_text(color=ft.Colors.GREY_600,
+            value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!")
+        content_text_2.text_align = ft.TextAlign.CENTER
         login_content = ft.Container(
+            alignment=ft.Alignment.CENTER, expand=True,
             alignment=ft.Alignment.CENTER, expand=True,
             content=ft.Column(
                 spacing=40,

@@ -32,6 +32,14 @@ def build_response_rows(items: list, page: int, size: int):
     rows = []
 
     for index, row in enumerate(items, start=start_no):
+        product_detail_id = row.get("product_detail_id", "")
+        product_id = row.get("product_id", "")
+        product_no = (
+            f"{product_detail_id}-{product_id}"
+            if product_detail_id and product_id
+            else product_detail_id or product_id or ""
+        )
+
         rows.append(
             {
                 "no": index,
@@ -44,6 +52,7 @@ def build_response_rows(items: list, page: int, size: int):
                 "address": row.get("address", ""),  # 🔥 추가: 배송지 응답 포함
                 "product_id": row.get("product_id", ""),
                 "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": product_no,
                 "product_brand": row.get("product_brand", ""),
                 "product_name": row.get("product_name", ""),
                 "product_weight": row.get("product_weight", ""),

@@ -3,10 +3,8 @@ import flet as ft
 import datetime
 
 from components import common as cm
-from components.common.modals.modal import build_modal
-from components.common.modals.field_defs import CUSTOMER_FIELDS
 # 🔥 httpx 방식 API 호출로 변경
-from api.erp_httpx_api import count_customers, fetch_customers, create_customer
+from api.erp_httpx_api import count_customers, fetch_customers
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages, build_pagination_bar
@@ -17,13 +15,6 @@ from components.common.erp_view_layout import build_lookup_page_layout, build_lo
 # =========================================================
 # ☑️ product_master_view 스타일 참고용 공통 색상
 # =========================================================
-
-
-
-
-SESSION_PREFIX = "customer"
-
-
 def _to_yn(value):
     # 🔥 수정: API에서 "Y" / "N" 문자열로 내려오는 경우까지 정확히 처리
     # - 기존 코드: "N" 문자열도 비어있지 않아 True로 판정되어 화면에서 전부 Y처럼 보였음
@@ -113,23 +104,6 @@ def _to_active_text(value):
         return "비활성"
 
     return "비활성"
-
-
-def customer_row_adapter(saved_data: dict, next_no: int):
-    return {
-        "no": str(next_no),
-        "customer_id": saved_data.get("customer_id", ""),
-        "email": saved_data.get("email", ""),
-        "oauth_type": saved_data.get("oauth_type", ""),
-        "nickname": saved_data.get("nickname", ""),
-        "phone": saved_data.get("phone", ""),
-        "is_subscribed": _to_yn(saved_data.get("is_subscribed")),
-        "subs_count": saved_data.get("subs_count", ""),
-        "active": _to_active_text(saved_data.get("active")),
-        "create_date": saved_data.get("create_date", ""),
-    }
-
-
 def customer_db_row_adapter(db_rows: list, page_no: int):
     rows = []
     start_no = ((page_no - 1) * PAGE_SIZE) + 1
@@ -154,7 +128,7 @@ def customer_db_row_adapter(db_rows: list, page_no: int):
     return rows
 
 
-# 🔥 수정: 기존 customer_view.py의 고객 목록/검색/등록 화면을 고객 정보 관리 전용 화면으로 분리
+# 🔥 수정: 기존 customer_view.py의 고객 목록/검색 화면을 고객 정보 관리 전용 화면으로 분리
 def erp_customer_info_view():
     # 🔥 수정: 고객관리 대분류가 아니라 고객 정보 관리 하위 화면 제목으로 변경
     page_title = "고객 정보 관리"
@@ -189,18 +163,6 @@ def erp_customer_info_view():
 
     # 🔥 추가: 검색/날짜 조건 사용 후에만 보이는 초기화 버튼 자리
     reset_button_holder = ft.Container(visible=False)
-
-    dim_bg = ft.Container(
-        visible=False,
-        expand=True,
-        bgcolor=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
-    )
-
-    popup_layer = ft.Container(
-        visible=False,
-        expand=True,
-        alignment=ft.Alignment(0, 0),
-    )
 
     col_expand = {
         "no": 3,
@@ -650,42 +612,6 @@ def erp_customer_info_view():
         update_reset_button_visibility()
         e.page.update()
 
-    def on_register_success(saved_data: dict):
-        created = create_customer(saved_data)
-        next_no = ((pagination_state["current_page"] - 1) * PAGE_SIZE) + len(rows_state) + 1
-        rows_state.append(customer_row_adapter(created, next_no))
-
-        pagination_state["keyword"] = ""
-        search_field.value = ""
-        pagination_state["current_page"] = 1
-        pagination_state["total_count"] = fetch_total_count(keyword="")
-        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
-
-        reload_current_page()
-
-    def close_popup(e=None):
-        dim_bg.visible = False
-        popup_layer.visible = False
-        popup_layer.content = None
-        if e and e.page:
-            e.page.update()
-
-    def open_register_modal(e):
-        modal = build_modal(
-            page=e.page,
-            register_title="고객 정보 등록",
-            edit_title="고객 정보 수정",
-            fields=CUSTOMER_FIELDS,
-            session_prefix=SESSION_PREFIX,
-            close_handler=close_popup,
-            on_submit_success=on_register_success,
-        )
-
-        dim_bg.visible = True
-        popup_layer.visible = True
-        popup_layer.content = modal
-        e.page.update()
-
     refresh_picker_fields()
 
     # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
@@ -705,7 +631,6 @@ def erp_customer_info_view():
         result_text=result_text,
         table_area=table_area,
         pagination_holder=pagination_holder,
-        overlay_controls=[dim_bg, popup_layer],
         filter_controls=[
             start_field_holder,
             start_icon_holder,
@@ -716,8 +641,6 @@ def erp_customer_info_view():
             search_field,
             action_button("조회", on_click=on_search_click, run_async=True),
             reset_button_holder,
-            # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
-            action_button("등록", on_click=open_register_modal),
         ],
     )
 

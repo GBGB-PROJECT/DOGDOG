@@ -2,10 +2,8 @@ import flet as ft
 import datetime
 
 from components import common as cm
-from components.common.modals.modal import build_modal
-from components.common.modals.field_defs import EMPLOYEE_FIELDS
 # 🔥 httpx 방식 API 호출로 변경
-from api.erp_httpx_api import count_employees, fetch_employees, create_employee
+from api.erp_httpx_api import count_employees, fetch_employees
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages, build_pagination_bar
@@ -16,12 +14,6 @@ from components.common.erp_view_layout import build_lookup_page_layout, build_lo
 # =========================================================
 # ☑️ product_master_view 스타일 참고용 공통 색상
 # =========================================================
-
-
-
-
-SESSION_PREFIX = "employee"
-
 
 # =========================================================
 # ☑️ 공통 텍스트
@@ -38,36 +30,6 @@ SESSION_PREFIX = "employee"
 # =========================================================
 # ☑️ 테이블 셀 공통
 # =========================================================
-# =========================================================
-# ☑️ 저장 데이터 -> 사원 테이블 row 변환
-# - EMPLOYEE_FIELDS 실제 key 기준
-# =========================================================
-def employee_row_adapter(saved_data: dict, next_no: int):
-    active_raw = (saved_data.get("active", "") or "").strip().lower()
-
-    if active_raw in ["true", "1", "y", "yes", "재직", "활성", "사용"]:
-        active_text = "재직"
-    else:
-        active_text = "비활성"
-
-    return {
-        "no": str(next_no),
-        "employee_id": saved_data.get("employee_id", ""),
-        "account_id": saved_data.get("account_id", ""),
-        "username": saved_data.get("username", ""),
-        "hire_date": saved_data.get("hire_date", ""),
-        "quit_date": saved_data.get("quit_date", ""),
-        "emp_position_id": saved_data.get("emp_position_id", ""),
-        "position_name": saved_data.get("position_name", saved_data.get("emp_position_id", "")),
-        "manager_id": saved_data.get("manager_id", ""),
-        "email": saved_data.get("email", ""),
-        "phone": saved_data.get("phone", ""),
-        "address": saved_data.get("address", ""),
-        "postal_code": saved_data.get("postal_code", ""),
-        "active": active_text,
-    }
-
-
 # =========================================================
 # ☑️ DB row -> 사원 테이블 row 변환
 # - EmployeeModel 결과 기준
@@ -135,18 +97,6 @@ def erp_employee_view():
 
     # 🔥 추가: defective_view.py와 동일하게 조건 사용 후에만 보이는 초기화 버튼 자리
     reset_button_holder = ft.Container(visible=False)
-
-    dim_bg = ft.Container(
-        visible=False,
-        expand=True,
-        bgcolor=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
-    )
-
-    popup_layer = ft.Container(
-        visible=False,
-        expand=True,
-        alignment=ft.Alignment(0, 0),
-    )
 
     col_expand = {
         "no": 3,
@@ -624,42 +574,6 @@ def erp_employee_view():
 
     search_field.on_submit = lambda e: e.page.run_thread(lambda: on_search(e))
 
-    def close_register_modal(e):
-        dim_bg.visible = False
-        popup_layer.visible = False
-        popup_layer.content = None
-        e.page.update()
-
-    def clear_register_session(page: ft.Page):
-        for field in EMPLOYEE_FIELDS:
-            page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
-
-    def handle_register_success(saved_data: dict):
-        create_employee(saved_data)
-        pagination_state["current_page"] = 1
-        pagination_state["keyword"] = ""
-        pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
-        reload_current_page()
-
-    def open_register_modal(e):
-        clear_register_session(e.page)
-
-        popup_layer.content = build_modal(
-            page=e.page,
-            register_title="사원 등록",
-            edit_title="사원 정보 수정",
-            fields=EMPLOYEE_FIELDS,
-            session_prefix=SESSION_PREFIX,
-            close_handler=close_register_modal,
-            on_submit_success=handle_register_success,
-        )
-        dim_bg.visible = True
-        popup_layer.visible = True
-        e.page.update()
-
-    dim_bg.on_click = close_register_modal
-
     refresh_picker_fields()
 
     # 🔥 추가: 처음에는 숨겨두고, 검색/날짜/검색조건 변경 시 표시
@@ -669,8 +583,6 @@ def erp_employee_view():
     action_controls = [
         action_button("조회", on_click=on_search, width=78, run_async=True),
         reset_button_holder,
-        # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
-        action_button("등록", on_click=open_register_modal, width=78),
     ]
 
     table_area = build_lookup_table_area(
@@ -684,7 +596,6 @@ def erp_employee_view():
         result_text=result_text,
         table_area=table_area,
         pagination_holder=pagination_holder,
-        overlay_controls=[dim_bg, popup_layer],
         filter_controls=[
             start_field_holder,
             start_icon_holder,

@@ -58,40 +58,6 @@ PRODUCT_DETAIL_FIELDS = [
 
 
 # =========================================================
-# ☑️ 고객 등록 필드
-# - Companion.customer 실제 컬럼 기준
-# =========================================================
-CUSTOMER_FIELDS = [
-    {"label": "고객ID", "key": "customer_id", "type": "int", "required": True, "max_length": 10, "min_value": 1},
-    {"label": "구독여부", "key": "is_subscribed", "type": "bool", "required": True, "max_length": 10},
-    {"label": "구독횟수", "key": "subs_count", "type": "int", "required": True, "max_length": 10, "min_value": 0},
-    {"label": "권한", "key": "permission", "type": "int", "required": True, "max_length": 10, "min_value": 0},
-    {"label": "상태", "key": "active", "type": "bool", "required": True, "max_length": 10},
-]
-
-
-# =========================================================
-# ☑️ 사원 등록 필드
-# - ERP.employee 실제 컬럼 기준
-# =========================================================
-EMPLOYEE_FIELDS = [
-    {"label": "사원ID", "key": "employee_id", "type": "int", "required": True, "max_length": 10, "min_value": 1},
-    {"label": "계정", "key": "account_id", "type": "text", "required": True, "max_length": 255},
-    {"label": "비밀번호", "key": "password", "type": "password", "required": True, "max_length": 255},
-    {"label": "이름", "key": "username", "type": "name", "required": True, "max_length": 10},
-    {"label": "입사일", "key": "hire_date", "type": "date", "required": True, "max_length": 10},
-    {"label": "퇴사일", "key": "quit_date", "type": "date", "required": False, "max_length": 10},
-    {"label": "직급ID", "key": "emp_position_id", "type": "int", "required": False, "max_length": 10, "min_value": 1},
-    {"label": "관리자ID", "key": "manager_id", "type": "int", "required": False, "max_length": 10, "min_value": 1},
-    {"label": "이메일", "key": "email", "type": "email", "required": True, "max_length": 255},
-    {"label": "전화번호", "key": "phone", "type": "phone", "required": True, "max_length": 13},
-    {"label": "주소", "key": "address", "type": "text", "required": True, "max_length": 255},
-    {"label": "우편번호", "key": "postal_code", "type": "postal", "required": True, "max_length": 5},
-    {"label": "재직여부", "key": "active", "type": "bool", "required": True, "max_length": 10},
-]
-
-
-# =========================================================
 # ☑️ 거래처 등록 필드
 # - ERP.supplier 실제 컬럼 기준
 # =========================================================

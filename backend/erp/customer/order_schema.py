@@ -15,6 +15,7 @@ class ErpCustomerOrderItem(BaseModel):
     address: Any = None
     product_id: Any = None
     product_detail_id: Any = None
+    product_no: Any = None
     product_brand: Any = None
     product_name: Any = None
     product_weight: Any = None

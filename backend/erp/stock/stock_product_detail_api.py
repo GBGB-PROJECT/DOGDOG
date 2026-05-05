@@ -75,6 +75,16 @@ def _format_date_only(value):
     return text
 
 
+def _build_product_no(product_detail_id, product_id):
+    product_detail_id = str(product_detail_id or "").strip()
+    product_id = str(product_id or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+
+    return product_detail_id or product_id
+
+
 def build_response_rows(items: list, page: int, size: int):
     start_no = ((page - 1) * size) + 1
     rows = []
@@ -85,6 +95,7 @@ def build_response_rows(items: list, page: int, size: int):
                 "no": index,
                 "product_id": row.get("product_id", ""),
                 "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": _build_product_no(row.get("product_detail_id", ""), row.get("product_id", "")),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "weight": row.get("weight", ""),

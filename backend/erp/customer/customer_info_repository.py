@@ -7,10 +7,6 @@ from ..common.query_utils import (
     like_keyword,
     normalize_bool_keyword,
 )
-from ..common.mutation_utils import (
-    require_int,
-    require_bool,
-)
 
 # =========================================================
 # ☑️ 고객관리 Repository
@@ -237,53 +233,5 @@ def fetch_customers(search_type="customer_id", keyword="", limit=50, offset=0, s
         )
 
         return [_row_to_dict(row) for row in rows]
-    finally:
-        db.close()
-
-
-# =========================================================
-# ☑️ 고객 등록
-# - 기존 등록 기능 최대한 유지
-# - 현재 등록 모달은 customer 테이블 필드만 받고 있으므로
-#   detail 테이블은 여기서 생성하지 않음
-# =========================================================
-def create_customer(data: dict):
-    db = SessionLocal()
-    try:
-        customer_id = require_int(data.get("customer_id"), "고객ID")
-
-        exists = (
-            db.query(CompanionCustomer)
-            .filter(CompanionCustomer.customer_id == customer_id)
-            .first()
-        )
-        if exists:
-            raise ValueError(f"이미 존재하는 고객ID입니다: {customer_id}")
-
-        customer = CompanionCustomer(
-            customer_id=customer_id,
-            is_subscribed=require_bool(data.get("is_subscribed"), "구독여부"),
-            subs_count=require_int(data.get("subs_count"), "구독횟수"),
-            permission=1,
-            active=require_bool(data.get("active"), "상태"),
-        )
-        db.add(customer)
-        db.commit()
-        db.refresh(customer)
-
-        return {
-            "customer_id": customer.customer_id,
-            "email": "",
-            "oauth_type": "",
-            "nickname": "",
-            "phone": "",
-            "is_subscribed": customer.is_subscribed,
-            "subs_count": customer.subs_count,
-            "active": customer.active,
-            "create_date": "",
-        }
-    except Exception:
-        db.rollback()
-        raise
     finally:
         db.close()

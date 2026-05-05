@@ -109,7 +109,7 @@ def _section_header(title: str, on_menu_click):
 def _build_expanded_sidebar(page: ft.Page, header_control, menu_controls):
     return ft.Container(
         width=BASE_SIDEBAR_WIDTH,
-        bgcolor=com.MAIN_COLOR,
+        bgcolor=com.EXPANDED_PANEL_BG,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
         content=ft.Column(
             spacing=0,

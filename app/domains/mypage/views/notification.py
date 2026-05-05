@@ -56,11 +56,13 @@ def noti_time_drop(content, event):
         label=None,
         event=lambda e:event(e, content),
         options=time_drop_list,
-        # expand=False,
-        # border=ft.InputBorder.NONE,
-        # border_color=ft.Colors.TRANSPARENT
+        expand=False,
+        border=ft.InputBorder.NONE,
+        border_color=ft.Colors.TRANSPARENT
     )
-    time_drop.width = 120
+    time_drop.width = 100
+    time_drop.text_align = ft.TextAlign.CENTER
+    time_drop.margin = ft.margin.only(right=-20)
     return time_drop
 
 class Noti:
@@ -133,53 +135,51 @@ class Noti:
         # -----------------------------------------------------------------------------------------------
         # Notification Container
         # -----------------------------------------------------------------------------------------------
-        self.noti_container = dogdog.content_container(
-            content_list=[
-                ft.Row(controls=[dogdog.basic_text(color=ft.Colors.GREY_600, size=12, spans=[
-                    ft.TextSpan("알림 간격\n", style=dogdog.TextStyle(size=16, color=ft.Colors.GREY_800)),
-                    ft.TextSpan("첫 알람 시작 시간에서 일정 시간이 지나면 알림을 보내드려요.")
-                ])]),
-                ft.Column(spacing=0, controls=[
-                    ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                        dogdog.basic_text("밥주기", weight="bold", color=ft.Colors.GREY_700),
-                        self.food_time,
-                        self.food_time_drop,
-                        ft.Switch(
-                            value=False if not self.storage.get('noti_food') else True,
-                            active_track_color="#FBDD30", 
-                            data={'noti':'food'}, on_change=self.switch_event)
-                    ]),
-                    dogdog.basic_text(
-                        f"{self.food_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
+        self.noti_container = dogdog.content_container(content_list=[
+            ft.Row(controls=[dogdog.basic_text(color=ft.Colors.GREY_600, size=12, spans=[
+                ft.TextSpan("알림 간격\n", style=dogdog.TextStyle(size=16, color=ft.Colors.GREY_800)),
+                ft.TextSpan("첫 알람 시작 시간에서 일정 시간이 지나면 알림을 보내드려요.")
+            ])]),
+            ft.Column(spacing=0, controls=[
+                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                    dogdog.basic_text("밥주기", weight="bold", color=ft.Colors.GREY_700),
+                    self.food_time,
+                    self.food_time_drop,
+                    ft.Switch(
+                        value=False if not self.storage.get('noti_food') else True,
+                        active_track_color="#FBDD30", 
+                        data={'noti':'food'}, on_change=self.switch_event)
                 ]),
-                ft.Column(spacing=0, controls=[
-                    ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                        dogdog.basic_text("물주기", weight="bold", color=ft.Colors.GREY_700),
-                        self.water_time,
-                        self.water_time_drop,
-                        ft.Switch(
-                            value=False if not self.storage.get('noti_water') else True,
-                            active_track_color="#FBDD30", 
-                            data={'noti':'water'}, on_change=self.switch_event)
-                    ]),
-                    dogdog.basic_text(
-                        f"{self.water_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
+                dogdog.basic_text(
+                    f"{self.food_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
+            ]),
+            ft.Column(spacing=0, controls=[
+                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                    dogdog.basic_text("물주기", weight="bold", color=ft.Colors.GREY_700),
+                    self.water_time,
+                    self.water_time_drop,
+                    ft.Switch(
+                        value=False if not self.storage.get('noti_water') else True,
+                        active_track_color="#FBDD30", 
+                        data={'noti':'water'}, on_change=self.switch_event)
                 ]),
-                ft.Column(spacing=0, controls=[
-                    ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                        dogdog.basic_text("약주기", weight="bold", color=ft.Colors.GREY_700),
-                        self.drug_time,
-                        self.drug_time_drop,
-                        ft.Switch(
-                            value=False if not self.storage.get('noti_drug') else True,
-                            active_track_color="#FBDD30", 
-                            data={'noti':'drug'}, on_change=self.switch_event)
-                    ]),
-                    dogdog.basic_text(
-                        f"{self.drug_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
+                dogdog.basic_text(
+                    f"{self.water_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
+            ]),
+            ft.Column(spacing=0, controls=[
+                ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+                    dogdog.basic_text("약주기", weight="bold", color=ft.Colors.GREY_700),
+                    self.drug_time,
+                    self.drug_time_drop,
+                    ft.Switch(
+                        value=False if not self.storage.get('noti_drug') else True,
+                        active_track_color="#FBDD30", 
+                        data={'noti':'drug'}, on_change=self.switch_event)
                 ]),
-            ]
-        )
+                dogdog.basic_text(
+                    f"{self.drug_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
+            ]),
+        ])
     # ---------------------------------------------------------------------------------------------------
     # Picker Open Event
     # ---------------------------------------------------------------------------------------------------
@@ -229,6 +229,8 @@ class Noti:
         noti_setting = self.storage.get(f'noti_{switch_type}')
         if noti_setting:
             # print(switch_type, noti_setting)
+            noti_type = None
+            select_time = None
             if switch_type == 'food':
                 noti_type = self.food_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.food_time_drop.value) # type: ignore
@@ -238,15 +240,20 @@ class Noti:
             elif switch_type == 'drug':
                 noti_type = self.drug_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.drug_time_drop.value) # type: ignore
-            noti_setting_time = datetime.datetime.strptime(noti_type, "%p %H:%M")
-            vs_time = []
-            for count in range(int(24/select_time)):
-                times = noti_setting_time + datetime.timedelta(hours=count*select_time)
-                vs_time.append(times.strftime("%d %H:%M"))
-            print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])')
-            print(' 설정 시간의 다음 알림 시간 및 이후 알림 시간을 계산하고 화면을 업데이트 하는 부분까지 완료')
-            print(f' 인앱 알림 팝업 제작 및 subs_interval 기능구현 필요\n{"===="*30}')
-
+            elif switch_type == 'subs3':
+                print(f' 🛎️ subs 3\n{'===='*30}')
+            elif switch_type == 'subs7':
+                print(f' 🛎️ subs 7\n{'===='*30}')
+            elif switch_type == 'left_food_count':
+                print(f' 🛎️ left_food_count\n{'===='*30}')
+            if noti_type and select_time:
+                noti_setting_time = datetime.datetime.strptime(noti_type, "%p %H:%M")
+                vs_time = []
+                for count in range(int(24/select_time)):
+                    times = noti_setting_time + datetime.timedelta(hours=count*select_time)
+                    vs_time.append(times.strftime("%d %H:%M"))
+                print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{'===='*30}')
+                
 def notification_setting(page: ft.Page):
 
     noti = Noti(page=page)
@@ -259,14 +266,20 @@ def notification_setting(page: ft.Page):
                     ft.TextSpan("3일 전\n", style=dogdog.TextStyle(color=ft.Colors.GREY_700)),
                     ft.TextSpan("구독 배송 3일 전 안내"),
                 ], color=ft.Colors.GREY_600, size=12),
-                ft.Switch(active_track_color="#FBDD30")
+                ft.Switch(
+                    value=False if not noti.storage.get('noti_subs3') else True,
+                    active_track_color="#FBDD30", 
+                    data={'noti':'subs3'}, on_change=noti.switch_event)
             ]),
             ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                 dogdog.basic_text(spans=[
                     ft.TextSpan("7일 전\n", style=dogdog.TextStyle(color=ft.Colors.GREY_700)),
                     ft.TextSpan("구독 배송 7일 전 안내"),
                 ], color=ft.Colors.GREY_600, size=12),
-                ft.Switch(active_track_color="#FBDD30")
+                ft.Switch(
+                    value=False if not noti.storage.get('noti_subs7') else True,
+                    active_track_color="#FBDD30", 
+                    data={'noti':'subs7'}, on_change=noti.switch_event)
             ])
     ])
     
@@ -281,7 +294,10 @@ def notification_setting(page: ft.Page):
         content_list=[
             ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                 feeding_food_interval_text,
-                ft.Switch(active_track_color="#FBDD30")
+                ft.Switch(
+                    value=False if not noti.storage.get('noti_left_food_count') else True,
+                    active_track_color="#FBDD30", 
+                    data={'noti':'left_food_count'}, on_change=noti.switch_event)
             ])
     ])
     

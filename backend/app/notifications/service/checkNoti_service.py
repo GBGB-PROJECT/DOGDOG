@@ -9,10 +9,6 @@ from app.notifications.repository.checkNoti_repository import (
 )
 from app.notifications.repository.notifications_repository import is_active_subscriber
 
-CATEGORY_FOOD = "left_feeding_day"
-CATEGORY_SUBS = "subs_delivery"
-
-
 def _days_until(target_date):
     if target_date is None:
         return None
@@ -45,11 +41,11 @@ def check_notifications(db: Session, customer_id: int):
     }
 
     # 1. 사료 소진 알림
-    food_setting = setting_map.get(CATEGORY_FOOD)
+    food_setting = setting_map.get("left_feeding_day")
 
     # 2. 구독 배송/결제 알림
-    subs_setting = setting_map.get(CATEGORY_SUBS)
-    print("구독자 알림설정! :", subs_setting)
+    subs_d_setting = setting_map.get("subs_delivery")
+    subs_p_setting = setting_map.get("subs_payment")
 
     # 구독자가 아닐 때 -------------------------------------------------------------
     if subscribe_user == False:
@@ -114,7 +110,7 @@ def check_notifications(db: Session, customer_id: int):
             # 오늘로부터 배송 예정일까지 남은 날
             delivery_days = _days_until(item.delivery_date)
 
-            if delivery_days in [3, 7] and _is_option_on(subs_setting, delivery_days):
+            if delivery_days in [3, 7] and _is_option_on(subs_d_setting, delivery_days):
                 notifications.append({
                     "category": "SUBSCRIPTION_DELIVERY",
                     "notification_type": "DELIVERY",
@@ -127,7 +123,7 @@ def check_notifications(db: Session, customer_id: int):
             # 오늘로부터 자동 결제 예정일까지 남은 날
             payment_days = _days_until(item.order_start_date)
 
-            if payment_days in [3, 7] and _is_option_on(subs_setting, payment_days):
+            if payment_days in [3, 7] and _is_option_on(subs_p_setting, payment_days):
                 notifications.append({
                     "category": "SUBSCRIPTION_DELIVERY",
                     "notification_type": "PAYMENT",

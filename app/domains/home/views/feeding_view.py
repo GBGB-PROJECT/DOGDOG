@@ -3,6 +3,7 @@ import components as dogdog
 from urllib.parse import quote
 from api_client import BASE_URL
 
+
 def proxy_image_url(url):
     if not url:
         return "test_product_4.jpg"
@@ -12,7 +13,10 @@ def proxy_image_url(url):
         return f"{BASE_URL}/images/proxy?url={quote(image_url, safe='')}"
     return image_url
 
-def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data: dict = None):
+
+def content_container_detail(
+    page: ft.Page, customer_food_id=None, feeding_data: dict = None
+):
     """
     급여 상세 컨테이너 뷰 컴포넌트 (순수 View)
     - 컨트롤러가 제공한 가공된 feeding_data를 사용하여 렌더링합니다.
@@ -25,17 +29,18 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
         if storage.contains_key("select_feeding_data"):
             storage.remove("select_feeding_data")
         storage.set("select_customer_food_id", customer_food_id)
-        storage.set("select_feeding_data", feeding_data.get("raw_data") if feeding_data else {})
+        storage.set(
+            "select_feeding_data", feeding_data.get("raw_data") if feeding_data else {}
+        )
         page.go("/feeding_edit")
 
     def go_product_detail(e):
         product_id = None
 
         if feeding_data:
-            product_id = (
-                feeding_data.get("product_id")
-                or feeding_data.get("raw_data", {}).get("product_id")
-            )
+            product_id = feeding_data.get("product_id") or feeding_data.get(
+                "raw_data", {}
+            ).get("product_id")
         if not product_id:
             page.show_dialog(
                 ft.SnackBar(
@@ -47,9 +52,12 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
             return
         page.go(f"/shop/product/{product_id}")
 
-
     # [해결] 데이터가 비어있거나 필수 정보(상품명)가 없는 경우 안내 UI 출력
-    if not feeding_data or not feeding_data.get("product_name") or feeding_data.get("product_name") == "등록된 사료 없음":
+    if (
+        not feeding_data
+        or not feeding_data.get("product_name")
+        or feeding_data.get("product_name") == "등록된 사료 없음"
+    ):
         return [
             ft.Row(
                 height=150,
@@ -61,16 +69,20 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         spacing=10,
                         controls=[
-                            ft.Icon(icon=ft.Icons.ERROR_OUTLINE_ROUNDED, color=ft.Colors.GREY_400, size=30),
+                            ft.Icon(
+                                icon=ft.Icons.ERROR_OUTLINE_ROUNDED,
+                                color=ft.Colors.GREY_400,
+                                size=30,
+                            ),
                             dogdog.basic_text(
                                 value="등록된 상품이 없습니다.",
                                 color=ft.Colors.GREY_600,
                                 size=14,
                             ),
-                        ]
+                        ],
                     )
                 ],
-                alignment=ft.MainAxisAlignment.CENTER
+                alignment=ft.MainAxisAlignment.CENTER,
             )
         ]
 
@@ -104,7 +116,9 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
                         dogdog.basic_text(value=feeding_data.get("brand")),
-                        dogdog.basic_text(value=feeding_data.get("product_name"), weight="bold"),
+                        dogdog.basic_text(
+                            value=feeding_data.get("product_name"), weight="bold"
+                        ),
                     ],
                 ),
             ],
@@ -118,12 +132,13 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
             product_info,
             ft.Column(
                 controls=[
-                    dogdog.flat_button(text="수정", scale=0.8, on_click=feeding_edit_event)
+                    dogdog.flat_button(
+                        text="수정", scale=0.8, on_click=feeding_edit_event
+                    )
                 ]
             ),
         ],
     )
-
 
     detail = [
         product_detail,
@@ -136,18 +151,22 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                     controls=[
                         dogdog.basic_text(
                             spans=[
-                                 ft.TextSpan(
-                                     text=f"{safe_display_int(feeding_data.get('left_intake'))}g",
-                                     style=dogdog.TextStyle(size=16, height=-1),
-                                 ),
-                                 ft.TextSpan(text=f" / {feeding_data.get('total_weight_kg', 0.0)}Kg"),
+                                ft.TextSpan(
+                                    text=f"{safe_display_int(feeding_data.get('left_intake'))}g",
+                                    style=dogdog.TextStyle(size=16, height=-1),
+                                ),
+                                ft.TextSpan(
+                                    text=f" / {feeding_data.get('total_weight_kg', 0.0)}Kg"
+                                ),
                             ],
                             color=ft.Colors.GREY_400,
                             weight="bold",
                             size=16,
                         ),
                         dogdog.flat_button(
-                            text=f"{safe_display_int(feeding_data.get('left_days'))} 일치 남음" if feeding_data.get('left_days') not in [None, "?", "None"] else "0 일치 남음",
+                            text=f"{safe_display_int(feeding_data.get('left_days'))} 일치 남음"
+                            if feeding_data.get("left_days") not in [None, "?", "None"]
+                            else "0 일치 남음",
                             scale=0.7,
                             disabled=True,
                         ),
@@ -163,7 +182,9 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
                 dogdog.basic_text(
                     spans=[
                         ft.TextSpan("예상 소진일 "),
-                        ft.TextSpan(feeding_data.get("expected_exdate_formatted", "????.??.??")),
+                        ft.TextSpan(
+                            feeding_data.get("expected_exdate_formatted", "????.??.??")
+                        ),
                     ],
                     size=12,
                     color=ft.Colors.GREY_600,
@@ -174,11 +195,15 @@ def content_container_detail(page: ft.Page, customer_food_id=None, feeding_data:
 
     return detail
 
-def feeding_tabs_view(page: ft.Page, on_refresh_callback=None, feeding_detail_data=None):
+
+def feeding_tabs_view(
+    page: ft.Page, on_refresh_callback=None, feeding_detail_data=None
+):
     """
     급여 탭 뷰 컴포넌트 (순수 View)
     - 컨트롤러가 제공한 feeding_detail_data를 넘겨받아 탭 화면을 구성합니다.
     """
+
     def feeding_view_case(page, set=False):
         if set and feeding_detail_data:
             # 병합/가공된 데이터를 UI 컴포넌트에 주입
@@ -226,8 +251,8 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None, feeding_detail_da
     feeding_content = [
         content_column(feeding_view_case(page=page, set=True)),  # 전체 탭
         content_column(feeding_view_case(page=page, set=True)),  # 사료 탭
-        content_column(feeding_view_case(page=page)),            # 간식 탭
-        content_column(feeding_view_case(page=page)),            # 영양제 탭
+        content_column(feeding_view_case(page=page)),  # 간식 탭
+        content_column(feeding_view_case(page=page)),  # 영양제 탭
     ]
 
     feeding_view = ft.Tabs(
@@ -252,7 +277,7 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None, feeding_detail_da
                         dogdog.flat_button(
                             text="상품 등록",
                             scale=0.8,
-                            #icon=ft.Icons.EDIT,
+                            # icon=ft.Icons.EDIT,
                             on_click=lambda _: page.run_task(handle_add_product),
                         ),
                     ],
@@ -269,8 +294,13 @@ def feeding_tabs_view(page: ft.Page, on_refresh_callback=None, feeding_detail_da
         print("👉 [로그] 뷰: [상품 등록] 버튼 클릭 이벤트 발생")
         # [QA 수정] 현재 급여 중인 상품이 있는지 확인 (데이터가 존재하면 경고창)
         if feeding_detail_data and feeding_detail_data.get("product_name"):
-            print("👉 [로그] 뷰: 기존 급여 상품 존재 확인 - 중복 등록 에러 다이얼로그 호출")
-            from domains.home.controller.feeding_add_edit_controller import FeedingAddEditController
+            print(
+                "👉 [로그] 뷰: 기존 급여 상품 존재 확인 - 중복 등록 에러 다이얼로그 호출"
+            )
+            from domains.home.controller.feeding_add_edit_controller import (
+                FeedingAddEditController,
+            )
+
             temp_ctrl = FeedingAddEditController(page)
             temp_ctrl.show_duplicate_error_dialog()
         else:

@@ -89,6 +89,15 @@ def mypage_view(page: ft.Page, controller=None):
         banner_area.controls = build_banners()
         page.update()
 
+    def show_not_implemented_snackbar(e):
+        snack = ft.SnackBar(
+            content=ft.Text("기능 구현중입니다."), 
+            behavior=ft.SnackBarBehavior.FLOATING,
+            open=True
+        )
+        page.overlay.append(snack)
+        page.update()
+
     def select_banner(index):
         def handler(e):
             change_selected_banner(index)
@@ -109,7 +118,7 @@ def mypage_view(page: ft.Page, controller=None):
                 image_src="dogclay.png",
                 text="내 반려동물 정보 보러가기",
                 selected=(selected_banner["index"] == 0),
-                on_click=select_banner(0),
+                on_click=show_not_implemented_snackbar,
             ),
             dogdog.banner(
                 text="급여 중인 상품 보러가기",
@@ -126,7 +135,8 @@ def mypage_view(page: ft.Page, controller=None):
                 white_long_box(
                     text,
                     left_icon=icon,
-                    show_border=False,  # 👉 추가: 메뉴 전부 테두리 제거
+                    show_border=False,
+                    on_click=show_not_implemented_snackbar,
                 )
             )
             controls.append(ft.Container(height=6))

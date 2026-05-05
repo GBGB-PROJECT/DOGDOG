@@ -195,6 +195,14 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
                     visible=visible
                 )
             )
+            def handle_save(e):
+                if call == "status_log":
+                    error_message_field.value = "현재 개발 중인 기능입니다."
+                    error_message_field.visible = True
+                    popup.bottom_sheet_popup.update()
+                else:
+                    page.run_task(s_control.save_event, call)
+
             # 3. 취소/저장 버튼
             bottom_sheet_contents.append(
                 ft.Row(
@@ -207,7 +215,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
                         ),
                         dogdog.flat_button(
                             "저장", scale=1, bgcolor="#FEF3B9",
-                            on_click=lambda _: page.run_task(s_control.save_event, call)
+                            on_click=handle_save
                         ),
                     ],
                 )

@@ -73,30 +73,30 @@ def check_notifications(db: Session, customer_id: int):
 
 
     # 구독자일 때 --------------------------------------------------------------------
-    if food_setting:
-        pet_ids = get_customer_pet_ids(db=db, customer_id=customer_id)
+    else:
+        if food_setting:
+            pet_ids = get_customer_pet_ids(db=db, customer_id=customer_id)
 
-        for pet_id in pet_ids:
-            pet_food_info = get_expected_exdate(db=db, pet_id=pet_id)
+            for pet_id in pet_ids:
+                pet_food_info = get_expected_exdate(db=db, pet_id=pet_id)
 
-            if pet_food_info is None:
-                continue
-            # 해당 반려견의 급여중인 사료가 있을 때
+                if pet_food_info is None:
+                    continue
+                # 해당 반려견의 급여중인 사료가 있을 때
 
-            left_exdate = _days_until(pet_food_info.expected_exdate)
+                left_exdate = _days_until(pet_food_info.expected_exdate)
 
-            if left_exdate in [3, 7] and _is_option_on(food_setting, left_exdate):
-                notifications.append({
-                    "category": "FOOD_DEPLETION",
-                    "notification_type": "FOOD_DEPLETION",
-                    "title": "사료 소진 알림",
-                    "message": f'🍚 "{pet_food_info.nickname}"의 급여 중인 사료가 {left_exdate}일치 남았습니다.',
-                    "days_before": left_exdate,
-                })
-                print(notifications[0]["message"])
+                if left_exdate in [3, 7] and _is_option_on(food_setting, left_exdate):
+                    notifications.append({
+                        "category": "FOOD_DEPLETION",
+                        "notification_type": "FOOD_DEPLETION",
+                        "title": "사료 소진 알림",
+                        "message": f'🍚 "{pet_food_info.nickname}"의 급여 중인 사료가 {left_exdate}일치 남았습니다.',
+                        "days_before": left_exdate,
+                    })
+                    # print(notifications[0]["message"])
 
 
-    if subs_setting:
         # 구독중인 사용자의 상품 준비시작일, 상품 출고일
         subs_items = get_active_subscription_items( 
             db=db,

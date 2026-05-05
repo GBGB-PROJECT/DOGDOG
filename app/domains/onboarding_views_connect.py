@@ -68,16 +68,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
             else:
                 show_error(text="기능 구현중입니다.")
                 return
-        top = ft.Row(height=150, margin=ft.margin.only(top=40, bottom=-100),
-            alignment=ft.MainAxisAlignment.CENTER, 
-            vertical_alignment=ft.CrossAxisAlignment.END,
-            controls=[ft.Image(src="dogdog_logo.png", width=300)])
-        content_text_1 = dogdog.basic_text(
-            value="똑똑🚪✊ 우리집 강아지가 마지막 한알을 먹기 전\n문앞에 사료가 도착합니다 🔔", weight="bold")
-        content_text_1.text_align = ft.TextAlign.CENTER
-        content_text_2 = dogdog.basic_text(color=ft.Colors.GREY_600,
-            value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!")
-        content_text_2.text_align = ft.TextAlign.CENTER
+        top = ft.Row()
         content_text_1 = dogdog.basic_text(
             value="똑똑🚪✊ 우리집 강아지가 마지막 한알을 먹기 전\n문앞에 사료가 도착합니다 🔔", weight="bold")
         content_text_1.text_align = ft.TextAlign.CENTER
@@ -85,12 +76,13 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
             value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!")
         content_text_2.text_align = ft.TextAlign.CENTER
         login_content = ft.Container(
-            alignment=ft.Alignment.CENTER, expand=True,
+            padding=ft.padding.only(top=page.height/10, bottom=page.height/10),
             alignment=ft.Alignment.CENTER, expand=True,
             content=ft.Column(
-                spacing=40,
-                alignment=ft.MainAxisAlignment.CENTER, 
+                scroll=ft.ScrollMode.HIDDEN,
+                spacing=20,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+                expand=True,
                 controls=[
                     # dogdog.continue_button(
                     #     value="Continue with Google", icon="Google", expand=False, 
@@ -106,10 +98,14 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
                     #     dogdog.basic_text('or', color=ft.Colors.GREY_500), 
                     #     ft.Divider(expand=True)
                     # ]),
+                    ft.Row(height=150,
+                        alignment=ft.MainAxisAlignment.CENTER, 
+                        vertical_alignment=ft.CrossAxisAlignment.END,
+                        controls=[ft.Image(src="dogdog_logo.png", width=300)]),
                     content_text_1,
                     content_text_2,
                     dogdog.continue_button(
-                        value="Continue with Email", expand=False, 
+                        value="이메일로 로그인하기", expand=False, 
                         on_click=login_next, data={'key':'Email'}),
                     ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
                         dogdog.basic_text("계정이 없으신가요?", color=ft.Colors.GREY_500),
@@ -124,10 +120,9 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         top = ft.Container() 
         
         # MVC 패턴 적용: 외부 View 함수 호출 (로고, 폼, 하단바를 각각 반환받음)
-        top_logo, login_content, bottom_bar = domains.login_view(page=page, controller=login_controller)
+        login_content, bottom_bar = domains.login_view(page=page, controller=login_controller)
         
         # 라우터 구조에 맞게 변수 할당
-        top = top_logo
         content = login_content
         bottom = bottom_bar
     # ---------------------------------------------------------------------------------------------------

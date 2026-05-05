@@ -15,16 +15,16 @@ from app.notifications.service.checkNoti_service import check_notifications
 router = APIRouter(prefix="/api/v2/notifications",tags=["notifications"])
 
 # 알림 체크 --------------------------------------------------------
-@router.get("/check/{customer_id}")
-def get_notification_check(
-    customer_id: int,
-    db: Session = Depends(get_db),
-):
-# @router.patch("/check")
-# def patch_notification_setting(
+# @router.get("/check/{customer_id}")
+# def get_notification_check(
+#     customer_id: int,
 #     db: Session = Depends(get_db),
-#     customer_id: int = Depends(get_current_user),
-# ):
+# ): 
+@router.patch("/check")
+def patch_notification_setting(
+    db: Session = Depends(get_db),
+    customer_id: int = Depends(get_current_user),
+):
     try:
         data = check_notifications(
             db=db,

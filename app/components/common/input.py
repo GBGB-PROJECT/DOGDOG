@@ -21,7 +21,7 @@ def input_textfield(value=None,
         max_length = 20
         password = True
     elif input_type == "email":
-        text_filter = ft.InputFilter(regex_string=r"[a-zA-Z0-9@._\-\+]*", replacement_string="")
+        text_filter = ft.InputFilter(regex_string=r"^[a-zA-Z0-9@._\-\+]*$", replacement_string="")
     text_field = ft.TextField(
         width=float('inf'),
         label=label,

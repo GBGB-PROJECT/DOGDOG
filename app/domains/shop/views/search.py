@@ -67,20 +67,20 @@ def search_products(page: ft.Page):
         "Tip: 성분으로 검색해보세요!",
         "Tip: 상품명으로 검색해보세요!",
         "Tip: 기능 키워드로 검색해보세요!",
-        "Tip: 타입으로 검색해보세요!",
-        "Tip: 연령대로 검색해보세요!",
+        "Tip: 건식, 습식 같은 타입으로 검색해보세요!",
+        "Tip: 퍼피, 어덜트, 시니어 같은 연령대로 검색해보세요!",
     ]
 
     import random
 
     search_field = ft.TextField(
-        hint_text=random.choice(hint_texts),
+        hint_text=page.session.store.get("shop_search_hint") or random.choice(hint_texts),
         border=ft.InputBorder.NONE,
         filled=True,
         bgcolor="#F1F2F5",
         # border_radius=36,
         height=58,
-        text_size=17,
+        text_size=15,
         content_padding=ft.padding.only(left=22, right=8, top=8),
     )
 
@@ -128,7 +128,6 @@ def search_products(page: ft.Page):
             scroll=ft.ScrollMode.AUTO,
             controls=[
                 ft.Row(
-                    # spacing=10,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         ft.Container(
@@ -148,7 +147,11 @@ def search_products(page: ft.Page):
                     ],
                 ),
                 product_list,
-                more_button,
+                ft.Container(
+                    alignment=ft.Alignment(0, 0),
+                    padding=ft.padding.only(top=6, bottom=34),
+                    content=more_button,
+                ),
             ],
         ),
     )

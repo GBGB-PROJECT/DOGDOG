@@ -351,7 +351,7 @@ class Noti:
                 for count in range(int(24/select_time)):
                     times = noti_setting_time + datetime.timedelta(hours=count*select_time)
                     vs_time.append(times.strftime("%d %H:%M"))
-                print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{'===='*30}')
+                print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{"===="*30}')
             
             popup_title = dogdog.basic_text(self.noti_title, size=16, weight="bold")
             popup_message = dogdog.basic_text(self.noti_message)

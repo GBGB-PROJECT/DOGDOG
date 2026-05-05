@@ -69,10 +69,25 @@ def home_layout(page, view=None, text=None, pet_list=None, back_event=None):
     if text == "알림" or text == "알림 설정":
         right_header = ft.Container(width=26)
     elif text == "개밥개밥푸드":
+        def go_shop_search(e):
+            import random
+
+            hint_texts = [
+                "Tip: 브랜드로 검색해보세요!",
+                "Tip: 성분으로 검색해보세요!",
+                "Tip: 상품명으로 검색해보세요!",
+                "Tip: 기능 키워드로 검색해보세요!",
+                "Tip: 건식, 습식 같은 타입으로 검색해보세요!",
+                "Tip: 퍼피, 어덜트, 시니어 같은 연령대로 검색해보세요!",
+            ]
+
+            page.session.store.set("shop_search_hint", random.choice(hint_texts))
+            page.go("/shop/search")
+
         right_header = ft.Row(spacing=3, alignment=ft.MainAxisAlignment.CENTER, controls=[
             ft.IconButton(
                 icon=ft.Icons.SEARCH, icon_color=ft.Colors.WHITE, icon_size=26, 
-                on_click=lambda _: page.go("/shop/search")
+                on_click=go_shop_search
             ),
             ft.IconButton(
                 icon=ft.Icons.NOTIFICATIONS_NONE, icon_color=ft.Colors.WHITE, icon_size=26, 

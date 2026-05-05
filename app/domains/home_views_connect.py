@@ -145,6 +145,8 @@ async def home_tile(
     elif content_page == "/contents":
         home_background , top_banner = dogdog.home_layout(page=page, text="Content")
         main_container_content.append(top_banner)
+        main_container_content.append(body_scroll_column)
+        body_scroll_column.controls.append(domains.dummy_view(page=page))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/mypage":
         home_background , top_banner = dogdog.home_layout(page=page, text="My Page")
@@ -247,35 +249,17 @@ async def home_tile(
                 page=page, popup=popup, content_page=content_page))
         # -----------------------------------------------------------------------------------------------
         elif shop_content_page == "/search":
-            body_scroll_column.controls.append(ft.Container(
-                padding=ft.Padding.only(left=20, right=20, top=20),
-                bgcolor="#ffffff",
-                content=ft.Column(
-                    controls=[dogdog.basic_text("상품 검색 더미 페이지")]
-                )
-            ))
+            body_scroll_column.controls.append(domains.dummy_view(page=page))
         # -----------------------------------------------------------------------------------------------
         elif shop_content_page == "/cart":
             main_container_content.append(
                 dogdog.shop_top(page=page, text="장바구니", content_page=content_page))
-            body_scroll_column.controls.append(ft.Container(
-                padding=ft.Padding.only(left=20, right=20, top=20),
-                bgcolor="#ffffff",
-                content=ft.Column(
-                    controls=[dogdog.basic_text("장바구니 더미 페이지")]
-                )
-            ))
+            body_scroll_column.controls.append(domains.dummy_view(page=page))
         # -----------------------------------------------------------------------------------------------
         elif shop_content_page == "/wishlist":
             main_container_content.append(
                 dogdog.shop_top(page=page, text="위시리스트", content_page=content_page))
-            body_scroll_column.controls.append(ft.Container(
-                padding=ft.Padding.only(left=20, right=20, top=20),
-                bgcolor="#ffffff",
-                content=ft.Column(
-                    controls=[dogdog.basic_text("위시리스트 더미 페이지")]
-                )
-            ))
+            body_scroll_column.controls.append(domains.dummy_view(page=page))
         # -----------------------------------------------------------------------------------------------
         elif shop_content_page == "/product_order":
             main_container_content.append(

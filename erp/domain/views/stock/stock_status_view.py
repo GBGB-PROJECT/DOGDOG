@@ -641,7 +641,17 @@ def erp_stock_status_view():
         )
 
         if page:
-            page.update()
+            for control in (
+                month_navigation_holder,
+                status_box_holder,
+                chart_holder,
+                top_stock_holder,
+            ):
+                try:
+                    control.update()
+                except Exception:
+                    page.update()
+                    break
 
     def move_dashboard_month(diff: int, e):
         new_year, new_month = _move_month(state["year"], state["month"], diff)

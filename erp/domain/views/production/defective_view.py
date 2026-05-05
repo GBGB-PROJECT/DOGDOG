@@ -11,7 +11,7 @@ import datetime
 import flet as ft
 
 # 🔥 httpx 방식 API 호출
-from api.erp_httpx_api import count_defectives, fetch_defectives
+from api.erp_httpx_api import count_defectives, fetch_defectives, fetch_defectives_page
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages, build_pagination_bar
@@ -34,11 +34,17 @@ ACTION_RED = "#DC2626"
 _PRODUCTION_DEFECTIVE_PREFILTER = {"value": None}
 
 
-def set_production_defective_prefilter(start_date=None, end_date=None, search_type="inbound_complete"):
+def set_production_defective_prefilter(
+    start_date=None,
+    end_date=None,
+    search_type="inbound_complete",
+    total_count=None,
+):
     _PRODUCTION_DEFECTIVE_PREFILTER["value"] = {
         "start_date": start_date,
         "end_date": end_date,
         "search_type": search_type or "inbound_complete",
+        "total_count": total_count,
     }
 
 
@@ -205,6 +211,7 @@ def erp_defective_view():
         "total_count": 0,
         "total_pages": 1,
         "keyword": "",
+        "prefilter_total_count": initial_prefilter.get("total_count"),
     }
 
     start_field_holder = ft.Container()
@@ -356,10 +363,12 @@ def erp_defective_view():
         search_type_text.value = search_type_labels[value]
         update_reset_button_visibility()
 
-        if page:
-            page.update()
-        else:
+        try:
             search_type_text.update()
+            reset_button_holder.update()
+        except Exception:
+            if page:
+                page.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -521,6 +530,28 @@ def erp_defective_view():
             date_filter_type=date_filter_type_value["value"],
         )
 
+    def fetch_defective_page(page_no=1, keyword="", include_total=True):
+        start_date, end_date = get_selected_date_range()
+        offset = (page_no - 1) * PAGE_SIZE
+
+        result = fetch_defectives_page(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            page=page_no,
+            size=PAGE_SIZE,
+            start_date=start_date,
+            end_date=end_date,
+            offset=offset,
+            limit=PAGE_SIZE,
+            date_filter_type=date_filter_type_value["value"],
+            include_total=include_total,
+        )
+
+        return {
+            "rows": defective_db_row_adapter(result["items"], page_no),
+            "pagination": result["pagination"],
+        }
+
     def refresh_result_text():
         keyword = pagination_state.get("keyword", "")
         start_date, end_date = get_selected_date_range()
@@ -550,7 +581,7 @@ def erp_defective_view():
 
         pagination_state["current_page"] = page_no
         load_page(page_no)
-        page.update()
+        update_lookup_area(page)
 
     def build_page_button(label, page_no=None, selected=False, disabled=False):
         return ft.Container(
@@ -581,17 +612,43 @@ def erp_defective_view():
     def load_page(page_no=1, page=None):
         try:
             keyword = pagination_state.get("keyword", "")
-            total_count = fetch_total_count(keyword)
-            total_pages = calc_total_pages(total_count, PAGE_SIZE)
+            requested_page = page_no
+            prefilter_total_count = pagination_state.get("prefilter_total_count")
+            include_total = prefilter_total_count is None
+            page_result = fetch_defective_page(page_no, keyword, include_total=include_total)
+            pagination = page_result["pagination"]
+            total_count = (
+                int(prefilter_total_count)
+                if prefilter_total_count is not None
+                else pagination.get("total_count", 0)
+            )
+            total_pages = (
+                calc_total_pages(total_count, PAGE_SIZE)
+                if prefilter_total_count is not None
+                else pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
+            )
 
             if page_no > total_pages:
                 page_no = total_pages
             if page_no < 1:
                 page_no = 1
 
-            db_rows = fetch_page_rows(page_no, keyword)
+            if page_no != requested_page:
+                page_result = fetch_defective_page(page_no, keyword, include_total=include_total)
+                pagination = page_result["pagination"]
+                total_count = (
+                    int(prefilter_total_count)
+                    if prefilter_total_count is not None
+                    else pagination.get("total_count", 0)
+                )
+                total_pages = (
+                    calc_total_pages(total_count, PAGE_SIZE)
+                    if prefilter_total_count is not None
+                    else pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
+                )
+
             rows_state.clear()
-            rows_state.extend(defective_db_row_adapter(db_rows, page_no))
+            rows_state.extend(page_result["rows"])
 
             pagination_state["current_page"] = page_no
             pagination_state["total_count"] = total_count
@@ -619,13 +676,33 @@ def erp_defective_view():
             pagination_holder.content = None
 
         if page:
-            page.update()
+            update_lookup_area(page)
+
+    def update_lookup_area(page: ft.Page | None = None):
+        for control in (
+            table_rows_holder,
+            pagination_holder,
+            result_text,
+            reset_button_holder,
+        ):
+            try:
+                control.update()
+            except Exception:
+                if page:
+                    page.update()
+                break
 
     def on_search(e):
         pagination_state["keyword"] = (search_field.value or "").strip()
-        load_page(1, e.page)
+        pagination_state["prefilter_total_count"] = None
+        result_text.value = "조회 중입니다."
+        try:
+            result_text.update()
+        except Exception:
+            pass
+        load_page(1)
         update_reset_button_visibility()
-        e.page.update()
+        update_lookup_area(e.page)
 
     def on_reset(e):
         # 🔥 수정: 고객 3총사와 동일하게 모든 조건을 기본값으로 복구
@@ -636,10 +713,28 @@ def erp_defective_view():
         search_type_text.value = search_type_labels["inbound_id"]
         pagination_state["keyword"] = ""
         pagination_state["current_page"] = 1
+        pagination_state["prefilter_total_count"] = None
         refresh_picker_fields()
-        load_page(1, e.page)
+        result_text.value = "초기화 후 조회 중입니다."
+        try:
+            result_text.update()
+        except Exception:
+            pass
+        load_page(1)
         update_reset_button_visibility()
-        e.page.update()
+        for control in (
+            start_field_holder,
+            start_icon_holder,
+            end_field_holder,
+            end_icon_holder,
+            search_type_text,
+            search_field,
+        ):
+            try:
+                control.update()
+            except Exception:
+                pass
+        update_lookup_area(e.page)
 
     refresh_picker_fields()
 

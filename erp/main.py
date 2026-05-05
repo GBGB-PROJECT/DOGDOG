@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 import webbrowser
 import flet as ft
+from datetime import datetime
+from components.common.task_controls import task_controls , views_controls
 
 # =========================================================
 # ☑️ 팀 공통 backend/db 패키지 import 경로 설정
@@ -56,6 +58,7 @@ def main(page: ft.Page):
 
     # router 기준의 단일 랜더 함수(router 변경 시 화면 조립)
     def render_route(route: str | None):
+        print('전환 시작 >> ', datetime.now())
         normalized_route = cm.normalize_route(route)
 
         # / or 빈 경로 => 로그인 화면 간주
@@ -111,6 +114,9 @@ def main(page: ft.Page):
 
         # 🔥 route 렌더링이 끝나면 화면 이동용 progress cursor 복구
         set_busy_cursor(page, False)
+        task_controls()
+        views_controls(page)
+        print('전환 종료 >> ', datetime.now())
 
     # 로그인 성공
     def on_login_success():

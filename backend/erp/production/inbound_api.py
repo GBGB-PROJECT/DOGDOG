@@ -169,22 +169,26 @@ def get_inbound_list(
         description="날짜 범위를 적용할 기준 컬럼. 화면 DatePicker 기준: inbound_complete=입고완료일, expiration_date=유통기한.",
         examples=["inbound_complete"],
     ),
+    include_total: bool = Query(default=True),
 ):
     try:
         clean_search_type = (search_type or "inbound_id").strip()
         clean_keyword = (keyword or "").strip()
         clean_date_filter_type = (date_filter_type or "inbound_start").strip()
 
-        total_count = count_inbounds(
-            search_type=clean_search_type,
-            keyword=clean_keyword,
-            start_date=start_date,
-            end_date=end_date,
+        total_count = 0
+        total_pages = 1
+        if include_total:
+            total_count = count_inbounds(
+                search_type=clean_search_type,
+                keyword=clean_keyword,
+                start_date=start_date,
+                end_date=end_date,
             # 🔥 검색조건과 날짜 기준 분리
-            date_filter_type=clean_date_filter_type,
-        )
+                date_filter_type=clean_date_filter_type,
+            )
 
-        total_pages = max(1, ceil(total_count / size))
+            total_pages = max(1, ceil(total_count / size))
         offset = (page - 1) * size
 
         items = fetch_inbounds(
@@ -200,7 +204,7 @@ def get_inbound_list(
 
         result_items = build_response_rows(items, page, size)
 
-        if total_count == 0:
+        if include_total and total_count == 0:
             return {
                 "success": True,
                 "message": "일치하는 정보가 없습니다.",

@@ -150,7 +150,9 @@ async def home_tile(
         home_background , top_banner = dogdog.home_layout(page=page, text="My Page")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
-        body_scroll_column.controls = domains.mypage_view.mypage_view(page)
+        from domains.mypage.controller.mypage_controller import MypageController
+        mypage_ctrl = MypageController(page)
+        body_scroll_column.controls = domains.mypage_view.mypage_view(page, controller=mypage_ctrl)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/history":
         # [해결] 3단 동적 헤더 타이틀 설정

@@ -148,6 +148,7 @@ def mypage_view(page: ft.Page, controller=None):
             text_color=ft.Colors.GREY_300,
             show_left_icon=False,
             show_chevron=False,
-            show_border=False, # 👉 추가: 로그아웃은 테두리 제거
+            show_border=False,
+            on_click=lambda e: page.run_task(controller.process_logout) if controller else None,
         ),
     ]

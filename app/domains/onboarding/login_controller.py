@@ -40,9 +40,21 @@ class LoginController:
         }
 
         try:
-            # 2. httpx.AsyncClient를 사용하여 비동기 JSON 통신
+            # 2. httpx.AsyncClient를 사용하여 비동기 통신 (사전 검증 + 본 로그인)
             async with httpx.AsyncClient(timeout=10.0) as client:
-                print(f"🚀 [LoginController] API 호출 시작: {endpoint}")
+                # 4단계: 가입 여부 사전 검증 API 호출
+                check_endpoint = f"http://localhost:8000/api/v1/auth/check-email?email={email}"
+                check_res = await client.get(check_endpoint)
+                
+                if check_res.status_code == 200:
+                    is_duplicate = check_res.json().get("is_duplicate", False)
+                    # is_duplicate가 False(사용 가능)이면, 가입된 적이 없다는 뜻이므로 로그인 차단
+                    if not is_duplicate:
+                        self._show_snack_bar("가입되지 않은 이메일입니다.")
+                        return
+                
+                # 사전 검증을 통과한 경우에만 실제 로그인 API 호출
+                print(f"🚀 [LoginController] 본 로그인 API 호출 시작: {endpoint}")
                 response = await client.post(
                     url=endpoint,
                     json=payload, # application/json 형식 보장

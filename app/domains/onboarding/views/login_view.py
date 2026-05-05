@@ -21,6 +21,8 @@ def login_view(page: ft.Page, controller):
         input_type="email",
         on_change=on_email_change
     )
+    email_input.value = "test042806@test.com"
+    email_input.max_length = 50
     
     password_input = dogdog.input_textfield(
         hint_text="비밀번호",
@@ -30,6 +32,7 @@ def login_view(page: ft.Page, controller):
     # [핵심 디테일] 비밀번호 가리기 및 눈 모양 아이콘 추가
     password_input.password = True
     password_input.can_reveal_password = True
+    password_input.value = "A12345678!"
 
     # 중앙 콘텐츠 구성
     content = ft.Container(
@@ -69,7 +72,7 @@ def login_view(page: ft.Page, controller):
         controls=[
             dogdog.arrow_back(on_click=lambda e: page.go("/login")),
             dogdog.continue_button(
-                value="Continue with Email",
+                value="로그인",
                 on_click=on_login_click
             )
         ]

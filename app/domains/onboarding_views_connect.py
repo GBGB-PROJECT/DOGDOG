@@ -81,6 +81,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         login_content = ft.Container(
             alignment=ft.Alignment.CENTER, expand=True,
             content=ft.Column(
+                spacing=40,
                 alignment=ft.MainAxisAlignment.CENTER, 
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
                 controls=[
@@ -101,13 +102,12 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
                     content_text_1,
                     content_text_2,
                     dogdog.continue_button(
-                        value="이메일로 로그인하기", expand=False, 
+                        value="Continue with Email", expand=False, 
                         on_click=login_next, data={'key':'Email'}),
                     ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                        ft.TextButton(dogdog.basic_text("회원가입", color=ft.Colors.GREY_500), 
+                        dogdog.basic_text("계정이 없으신가요?", color=ft.Colors.GREY_500),
+                        ft.TextButton(dogdog.basic_text("회원가입", weight="bold"), 
                             on_click=login_next, data={'key':'sign_up'}),
-                        ft.TextButton(dogdog.basic_text("아이디 / 비밀번호 찾기", color=ft.Colors.GREY_500), 
-                            on_click=login_next, data={'key':'ID/PW_Search'})
                     ])
         ]))
         bottom = ft.Container(padding=0, margin=0)

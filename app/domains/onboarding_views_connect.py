@@ -91,7 +91,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
                         ft.Divider(expand=True)
                     ]),
                     dogdog.continue_button(
-                        value="Continue with Email", expand=False, 
+                        value="이메일로 로그인하기", expand=False, 
                         on_click=login_next, data={'key':'Email'}),
                     ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
                         ft.TextButton(dogdog.basic_text("회원가입", color=ft.Colors.GREY_500), 
@@ -110,7 +110,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         def email_login_next(e):
             if storage.get('login_email') and storage.get('login_password'):
                 change_page_callback("/home")
-        email_input = dogdog.input_textfield(hint_text="example@gmail.com", input_type="email", on_change=login_email_on_change)
+        email_input = dogdog.input_textfield(hint_text="example@dogdog.com", input_type="email", on_change=login_email_on_change)
         password_input = dogdog.input_textfield(hint_text="비밀번호", input_type="password", on_change=login_password_on_change)
         top = ft.Row(height=200,
             alignment=ft.MainAxisAlignment.CENTER, 

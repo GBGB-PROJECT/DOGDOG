@@ -49,7 +49,9 @@ class OnboardingController:
         [공통 상태 관리] Dumb View에서 발생하는 입력 변경 이벤트를 처리하여 세션 스토리지에 저장합니다.
         """
         if value is None or str(value).strip() == "":
-            self.storage.remove(key)
+            # [방어 코드] 키가 존재할 때만 삭제를 시도하여 KeyError를 방지합니다.
+            if self.storage.contains_key(key):
+                self.storage.remove(key)
         else:
             self.storage.set(key, value)
 
@@ -160,7 +162,7 @@ class OnboardingController:
                 }
             )
 
-            self.show_error(text="기본 정보 저장 완료")
+            #self.show_error(text="기본 정보 저장 완료")
             if self.focus_field:
                 await self.focus_field.focus()
 
@@ -391,6 +393,19 @@ class OnboardingController:
                 )
 
                 if success:
+                    # [신규 추가] 온보딩 완료 직후 권장 급여량 계산 API 강제 호출
+                    # 기준 데이터(guide)가 있어야 대시보드 및 밥주기 기능이 정상 작동함
+                    try:
+                        print(f"🚀 [Onboarding] 초기 권장 급여량 생성 시도 (Pet ID: {new_pet_id})")
+                        res_calc = await api_client.post(f"/calc_feeding/{new_pet_id}/guide")
+                        if res_calc.status_code in [200, 201]:
+                            print("✅ [Onboarding] 초기 권장 급여량 생성 성공!")
+                        else:
+                            print(f"⚠️ [Onboarding] 계산 API 호출 실패 (상태 코드: {res_calc.status_code})")
+                    except Exception as calc_ex:
+                        print(f"❌ [Onboarding] 계산 API 호출 중 예외 발생: {calc_ex}")
+
+                    # 모든 초기 세팅 완료 후 성공 화면으로 이동
                     self.page.go("/sign_up_success")
                 else:
                     self.show_error(text="세션 동기화 중 오류가 발생했습니다.")

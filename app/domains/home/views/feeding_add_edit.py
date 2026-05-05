@@ -116,6 +116,7 @@ def feeding_add_edit(page: ft.Page, view: str):
         storage.set("food_weight", int(initial_left))
         
         # 2. 사료 용량 드롭다운 채우기
+        target_dropdown = food_select_ctrl.product_weight_list
         raw_total = feeding_data.get("total_weight") or feeding_data.get("product_weight")
         if raw_total:
             clean_weight_str = str(int(float(raw_total)))

@@ -132,13 +132,11 @@ def create_feeding_recommendation(
             pet_id=pet_id,
             base_intake=int(round(base_intake)),
             guide_intake=int(round(guide_intake)),
-            daily_total_kcal=int(round(daily_total_kcal)),
         )
         db.add(recommendation)
     else:
         recommendation.base_intake = int(round(base_intake))
         recommendation.guide_intake = int(round(guide_intake))
-        recommendation.daily_total_kcal = int(round(daily_total_kcal))
         recommendation.guide_date = date.today()
 
     db.add(recommendation)

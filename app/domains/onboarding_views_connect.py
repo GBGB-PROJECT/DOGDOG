@@ -53,7 +53,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
     
     pet_info_controller = PetInfoController(page=page, popup=popup)
     pet_food_controller = PetFoodController(page=page, popup=popup)
-    login_controller = LoginController(page=page)
+    login_controller = LoginController(page=page, change_page_callback=change_page_callback)
 
     # ---------------------------------------------------------------------------------------------------
     # On Boarding Tile Routeing

@@ -74,7 +74,7 @@ class Front_dogdog:
             print("[DEV] Starting auto login relay...")
             print(">> 로그인을 시도합니다...")
             # Step A: Login
-            payload = {"email": "test050205@test.com", "password": "A12345678!"}
+            payload = {"email": "test043003@test.com", "password": "A12345678!"} #1051
             res_login = await api_client.post("/auth/login", data=payload)
             if res_login.status_code != 200:
                 raise Exception(f"Login failed: {res_login.text}")
@@ -383,7 +383,7 @@ class Front_dogdog:
             )
             not_bottom_appbar = [
                 # page_name
-                "/shop/product",
+                # "/shop/product",
                 "/shop/order",
                 "/shop/subs_start",
                 "/shop/subs_order",
@@ -394,6 +394,13 @@ class Front_dogdog:
                     appbar_status, page_name
                 )
         self.page.views.append(new_view)
+        
+        notification_check_deferred = False
+
+        async def run_notification_check_once():
+            from domains.mypage.controller.subs_notification_api import NotificationController
+            await NotificationController(self.page).check_on_app_load()
+
         # [해결] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (TypeError 해결 및 API 연동)
         if page_name == "/home" and self.home_feeding_guide_popup:
             try:
@@ -425,8 +432,19 @@ class Front_dogdog:
                 except Exception as api_err:
                     print(f"[DEBUG] 권장량 API 파싱 에러 (기본값 0 사용): {api_err}")
 
+                async def after_feeding_popup_closed():
+                    await run_notification_check_once()
+
+                self.page.on_feeding_guide_closed = after_feeding_popup_closed
+                
                 # 3. 팝업 호출 (문자열로 변환하여 전달)
+                async def after_feeding_popup_closed():
+                    await run_notification_check_once()
+
+                self.page.on_feeding_guide_closed = after_feeding_popup_closed
+
                 self.popup.show_feeding_guide_open(pet_name, str(guide_intake))
+                notification_check_deferred = True
 
             except Exception as e:
                 print(f"[ERROR] 팝업 연동 중 치명적 오류: {e}")
@@ -436,6 +454,8 @@ class Front_dogdog:
         dogdog.views_controls(self.page)
         self.page.update()  # 최종 뷰 추가 후 갱신
 
+        if page_name == "/home" and not notification_check_deferred:
+            await run_notification_check_once()
 
 # -------------------------------------------------------------------------------------------------------
 async def main(page: ft.Page):

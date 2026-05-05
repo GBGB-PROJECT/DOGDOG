@@ -66,12 +66,20 @@ def noti_time_drop(content, event):
     return time_drop
 
 class Noti:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, settings=None):
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
         self.storage = page.session.store
+
+        self.notification_settings = {
+            item.get("category"): item
+            for item in (settings or [])
+        }
+
+        self.storage.set("notification_settings", self.notification_settings)
+
         base_time = 8
         interval_time = 4
         self.default_time = (
@@ -180,6 +188,18 @@ class Noti:
                     f"{self.drug_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
             ]),
         ])
+
+
+    def get_db_noti_value(self, category: str, days: int, default=False):
+        setting = self.notification_settings.get(category) or {}
+
+        if days == 3:
+            return bool(setting.get("noti_before_3days", default))
+
+        if days == 7:
+            return bool(setting.get("noti_before_7days", default))
+
+        return default
     # ---------------------------------------------------------------------------------------------------
     # Picker Open Event
     # ---------------------------------------------------------------------------------------------------
@@ -200,9 +220,57 @@ class Noti:
     # ---------------------------------------------------------------------------------------------------
     # Notification Switch Event
     # ---------------------------------------------------------------------------------------------------
-    def switch_event(self, e):
-        switch_type = e.control.data.get('noti')
-        self.storage.set(f'noti_{switch_type}', e.data)
+    # def switch_event(self, e):
+    #     switch_type = e.control.data.get('noti')
+    #     self.storage.set(f'noti_{switch_type}', e.data)
+    #     self.test_timer(switch_type)
+    async def switch_event(self, e):
+        from domains.mypage.controller.subs_notification_api import NotificationController
+
+        switch_type = e.control.data.get("noti")
+        checked = e.control.value
+
+        self.storage.set(f"noti_{switch_type}", checked)
+
+        category_map = {
+            "subs3": ("subs_delivery", "noti_option1"),
+            "subs7": ("subs_delivery", "noti_option2"),
+            "left_food_count": ("left_feeding_day", "both"),
+        }
+
+        if switch_type not in category_map:
+            self.test_timer(switch_type)
+            return
+
+        category, option = category_map[switch_type]
+
+        current_settings = self.storage.get("notification_settings") or {}
+        current = current_settings.get(category, {
+            "noti_before_3days": False,
+            "noti_before_7days": False,
+        })
+
+        option1 = current.get("noti_before_3days", False)
+        option2 = current.get("noti_before_7days", False)
+
+        if option == "noti_option1":
+            option1 = checked
+        elif option == "noti_option2":
+            option2 = checked
+        elif option == "both":
+            option1 = checked
+            option2 = checked
+
+        result = await NotificationController(self.page).update_setting(
+            category=category,
+            noti_option1=option1,
+            noti_option2=option2,
+        )
+
+        if result:
+            current_settings[category] = result
+            self.storage.set("notification_settings", current_settings)
+
         self.test_timer(switch_type)
     # ---------------------------------------------------------------------------------------------------
     # Interval Dropdown Event
@@ -254,9 +322,9 @@ class Noti:
                     vs_time.append(times.strftime("%d %H:%M"))
                 print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{"===="*30}')
                 
-def notification_setting(page: ft.Page):
+def notification_setting(page: ft.Page, settings=None):
 
-    noti = Noti(page=page)
+    noti = Noti(page=page, settings=settings)
 
     subs_interval = dogdog.content_container(
         content_list=[
@@ -267,9 +335,11 @@ def notification_setting(page: ft.Page):
                     ft.TextSpan("구독 배송 3일 전 안내"),
                 ], color=ft.Colors.GREY_600, size=12),
                 ft.Switch(
-                    value=False if not noti.storage.get('noti_subs3') else True,
-                    active_track_color="#FBDD30", 
-                    data={'noti':'subs3'}, on_change=noti.switch_event)
+                    value=noti.get_db_noti_value("subs_delivery", 3),
+                    active_track_color="#FBDD30",
+                    data={'noti':'subs3'},
+                    on_change=noti.switch_event,
+                )
             ]),
             ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                 dogdog.basic_text(spans=[
@@ -277,9 +347,11 @@ def notification_setting(page: ft.Page):
                     ft.TextSpan("구독 배송 7일 전 안내"),
                 ], color=ft.Colors.GREY_600, size=12),
                 ft.Switch(
-                    value=False if not noti.storage.get('noti_subs7') else True,
-                    active_track_color="#FBDD30", 
-                    data={'noti':'subs7'}, on_change=noti.switch_event)
+                    value=noti.get_db_noti_value("subs_delivery", 7),
+                    active_track_color="#FBDD30",
+                    data={'noti':'subs7'},
+                    on_change=noti.switch_event,
+                )
             ])
     ])
     
@@ -295,9 +367,11 @@ def notification_setting(page: ft.Page):
             ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                 feeding_food_interval_text,
                 ft.Switch(
-                    value=False if not noti.storage.get('noti_left_food_count') else True,
-                    active_track_color="#FBDD30", 
-                    data={'noti':'left_food_count'}, on_change=noti.switch_event)
+                    value=noti.get_db_noti_value("left_feeding_day", 3),
+                    active_track_color="#FBDD30",
+                    data={'noti':'left_food_count'},
+                    on_change=noti.switch_event,
+                )
             ])
     ])
     

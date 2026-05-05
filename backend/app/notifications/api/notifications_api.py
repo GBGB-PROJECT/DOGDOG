@@ -20,8 +20,8 @@ router = APIRouter(prefix="/api/v1/notifications",tags=["notifications"])
 #     customer_id: int,
 #     db: Session = Depends(get_db),
 # ): 
-@router.patch("/check")
-def patch_notification_setting(
+@router.get("/check")
+def get_notification_check(
     db: Session = Depends(get_db),
     customer_id: int = Depends(get_current_user),
 ):
@@ -103,18 +103,18 @@ def get_notification_settings(
         )
     
 # 수정 -------------------------------------------------------------
-@router.patch("/settings/{customer_id}")
-def patch_notification_setting(
-    customer_id: int,
-    body: NotificationSettingUpdateRequest,
-    db: Session = Depends(get_db),
-):
-# @router.patch("/settings")
+# @router.patch("/settings/{customer_id}")
 # def patch_notification_setting(
+#     customer_id: int,
 #     body: NotificationSettingUpdateRequest,
 #     db: Session = Depends(get_db),
-#     customer_id: int = Depends(get_current_user),
 # ):
+@router.patch("/settings")
+def patch_notification_setting(
+    body: NotificationSettingUpdateRequest,
+    db: Session = Depends(get_db),
+    customer_id: int = Depends(get_current_user),
+):
     """
     로그인한 사용자의 알림 설정을 수정한다.
     Swagger 테스트용으로 customer_id를 path parameter로 받는다.

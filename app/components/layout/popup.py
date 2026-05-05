@@ -171,4 +171,10 @@ class Popup:
 
     def show_feeding_guide_close(self, e, feeding_guide_popup):
         feeding_guide_popup.open = False
+
+        callback = getattr(self.page, "on_feeding_guide_closed", None)
+        if callback:
+            self.page.on_feeding_guide_closed = None
+            self.page.run_task(callback)
+            
         self.page.update()

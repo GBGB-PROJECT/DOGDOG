@@ -233,7 +233,13 @@ async def home_tile(
         home_background , top_banner = dogdog.home_layout(page=page, text="알림 설정")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
-        body_scroll_column.controls.append(domains.notification.notification_setting(page))
+
+        from domains.mypage.controller.subs_notification_api import NotificationController
+
+        settings = await NotificationController(page).get_settings()
+        body_scroll_column.controls.append(
+            domains.notification.notification_setting(page, settings=settings)
+        )
     # ---------------------------------------------------------------------------------------------------
     elif "/shop/" in content_page:
         shop_content_page = content_page.replace("/shop","")

@@ -45,7 +45,7 @@ def banner(
                     src=image_src,
                     width=50,
                     height=50,
-                    fit=ft.BoxFit.COVER,
+                    fit=ft.BoxFit.CONTAIN,
                 ),
             ) if image_src else ft.Container(width=50, height=50)
         ),

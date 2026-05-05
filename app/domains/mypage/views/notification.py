@@ -339,7 +339,7 @@ def notification_setting(page: ft.Page, settings=None, is_subscribed=False):
                     disabled=not noti.is_subscribed,
                     active_track_color="#FBDD30" if noti.is_subscribed else "#EEEEEE",
                     inactive_track_color="#E5E5E5",
-                    thumb_color="#FFFFFF" if noti.is_subscribed else "#D0D0D0",
+                    thumb_color=None if noti.is_subscribed else "#D0D0D0",
                     data={'noti':'subs3'},
                     on_change=noti.switch_event,
                 )
@@ -354,7 +354,7 @@ def notification_setting(page: ft.Page, settings=None, is_subscribed=False):
                     disabled=not noti.is_subscribed,
                     active_track_color="#FBDD30" if noti.is_subscribed else "#EEEEEE",
                     inactive_track_color="#E5E5E5",
-                    thumb_color="#FFFFFF" if noti.is_subscribed else "#D0D0D0",
+                    thumb_color=None if noti.is_subscribed else "#D0D0D0",
                     data={'noti':'subs7'},
                     on_change=noti.switch_event,
                 )

@@ -251,7 +251,6 @@ async def home_tile(
                 is_subscribed=is_subscribed,
             )
         )
-
     # ---------------------------------------------------------------------------------------------------
     elif "/shop/" in content_page:
         shop_content_page = content_page.replace("/shop","")

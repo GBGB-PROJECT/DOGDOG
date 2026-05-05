@@ -650,22 +650,32 @@ def erp_product_detail_view():
             page.session.store.set(f"{SESSION_PREFIX}_{field['key']}", "")
 
     def handle_register_success(saved_data: dict):
-        result_text.value = "저장 후 목록을 다시 조회하는 중입니다."
-        update_lookup_controls()
         create_product_detail(saved_data)
-        pagination_state["current_page"] = 1
-        pagination_state["keyword"] = ""
-        pagination_state["total_count"] = fetch_total_count("")
-        pagination_state["total_pages"] = calc_total_pages(pagination_state["total_count"], PAGE_SIZE)
-        reload_current_page()
+        page_ref = pagination_state.get("page_ref")
+        if page_ref is not None:
+            start_lookup(
+                page_ref,
+                keyword="",
+                page_no=1,
+                search_type=pagination_state.get("search_type") or search_type_value["value"],
+                recalc_count=True,
+                loading_message="저장 후 목록을 다시 조회하는 중입니다.",
+            )
 
     def handle_edit_success(saved_data: dict):
         if not edit_state["product_id"]:
             raise ValueError("수정할 상품ID를 찾을 수 없습니다.")
-        result_text.value = "수정 후 목록을 다시 조회하는 중입니다."
-        update_lookup_controls()
         update_product_detail(edit_state["product_id"], saved_data)
-        reload_current_page()
+        page_ref = pagination_state.get("page_ref")
+        if page_ref is not None:
+            start_lookup(
+                page_ref,
+                keyword=pagination_state["keyword"],
+                page_no=pagination_state["current_page"],
+                search_type=pagination_state["search_type"],
+                recalc_count=False,
+                loading_message="수정 후 목록을 다시 조회하는 중입니다.",
+            )
 
     def active_for_form(value):
         text = str(value or "").strip().lower()
@@ -685,6 +695,7 @@ def erp_product_detail_view():
 
     def open_register_modal(e):
         edit_state["product_id"] = None
+        pagination_state["page_ref"] = e.page
 
         popup_layer.content = build_modal(
             page=e.page,
@@ -708,6 +719,7 @@ def erp_product_detail_view():
         if not product_id:
             return
         edit_state["product_id"] = product_id
+        pagination_state["page_ref"] = e.page
 
         popup_layer.content = build_modal(
             page=e.page,

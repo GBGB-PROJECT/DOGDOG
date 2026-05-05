@@ -78,7 +78,10 @@ class GridController:
                 )
                 self.page.snack_bar.open = True
                 
-                # 성공 콜백 실행 (홈 화면 새로고침)
+                # [수정 3] 성공 콜백 실행 및 홈 화면 갱신 예약
+                self.storage.set('needs_refresh', True)
+                self.page.pubsub.send_all('update_dashboard')
+                
                 if on_refresh_callback:
                     await on_refresh_callback()
                 

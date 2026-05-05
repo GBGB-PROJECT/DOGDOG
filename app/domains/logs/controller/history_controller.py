@@ -238,6 +238,11 @@ class HistoryController:
                 self.page.snack_bar = ft.SnackBar(content=ft.Text("기록이 삭제되었습니다."))
                 self.selected_log_data = None
                 self.selected_ui_container = None
+                
+                # [수정 3] 기록 삭제 성공 시 홈 화면 갱신 예약
+                self.page.session.store.set('needs_refresh', True)
+                self.page.pubsub.send_all('update_dashboard')
+
                 if self.on_refresh_callback:
                     await self.on_refresh_callback()
             else:

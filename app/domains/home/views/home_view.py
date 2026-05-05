@@ -16,6 +16,11 @@ def open_now_history_popup(page: ft.Page, popup, history_logs: list):
         now_log_bottom_sheet.open = False
         if page.session.store.get("select_log_date"):
             page.session.store.remove("select_log_date")
+        
+        # [Step 3] 이동 직전 오버레이 강제 청소 (잔상 방지)
+        page.overlay.clear()
+        page.update()
+        
         page.go("/history")
 
     now_log_bottom_sheet_contents.clear()

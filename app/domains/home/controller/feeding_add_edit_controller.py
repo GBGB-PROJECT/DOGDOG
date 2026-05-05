@@ -36,7 +36,7 @@ class FeedingAddEditController:
         
         # [신규 추가] 세션 데이터 완벽 제거 (None 강제 할당)
         self.storage.set("pet_food_detail", None)
-        self.storage.set("dashboard_data", None)
+        self.storage.set("dashboard_data", None) # 홈 진입 시 강제 fetch를 위한 플래그 초기화
 
         # 대시보드 인벤토리 및 사료 정보 즉시 초기화
         customer_detail = self.storage.get("customer_detail") or {}
@@ -46,9 +46,12 @@ class FeedingAddEditController:
             self.storage.set("customer_detail", customer_detail)
         
         # [보정] 사료 정보 변경 시 모든 팝업, 다이얼로그, 오버레이 강제 초기화 (Zero-Base)
-        self.page.dialog = None
-        self.page.banner = None
+        self.page.dialog = None  # 활성화된 다이얼로그 객체 파괴
+        self.page.banner = None  # 배너 제거
         self.page.overlay.clear() # 오버레이에 쌓인 모든 유령 UI 제거
+        
+        # [Step 1] 홈 화면에 새로고침 신호 저장 (store.set 사용)
+        self.storage.set('needs_refresh', True)
         
         # UI 상태 동기화를 위해 페이지 업데이트
         self.page.update()
@@ -92,7 +95,12 @@ class FeedingAddEditController:
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
                 
-                # [신규 통합] 무조건 목록으로 복귀
+                # [핵심 지침 1] 네비게이션 전 강제 대기 (DB 동기화 확보)
+                import asyncio
+                await asyncio.sleep(0.2)
+                
+                # [수정 1] 사료 등록 성공 시 목록(/feeding)으로 이동
+                # 목록을 거쳐 홈(/home)으로 가더라도 needs_refresh 플래그에 의해 대시보드가 갱신됨
                 self.page.go("/feeding")
 
                 return True, "사료가 성공적으로 등록되었습니다."
@@ -139,7 +147,11 @@ class FeedingAddEditController:
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
                 
-                # [신규 통합] 무조건 목록으로 복귀
+                # [핵심 지침 1] 네비게이션 전 강제 대기 (DB 동기화 확보)
+                import asyncio
+                await asyncio.sleep(0.2)
+                
+                # [수정 1] 사료 수정 성공 시 목록(/feeding)으로 이동
                 self.page.go("/feeding")
                 
                 return True, "사료 정보가 수정되었습니다."
@@ -203,11 +215,21 @@ class FeedingAddEditController:
                 # [QA 수정] 1. 세션 캐시 강제 무효화
                 self._clear_feeding_session()
 
-                # [QA 수정] 4. 전역 알림(PubSub) 신호 발송
+                # [해결 과제 1] 삭제 로직 내 강제 신호 발송
+                self.storage.set('needs_refresh', True)
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
 
-                # 리스트 화면으로 복귀
+                # [해결 과제 3] 팝업 잔상 물리적 소거
+                self.page.overlay.clear()
+                self.page.dialog = None
+                self.page.update()
+
+                # [핵심 지침 1] 네비게이션 전 강제 대기 (DB 동기화 확보)
+                import asyncio
+                await asyncio.sleep(0.2)
+                
+                # [수정 1] 사료 삭제 성공 시 목록(/feeding)으로 이동
                 self.page.go("/feeding")
 
                 # [QA 수정] 3. 비동기 콜백 예약 (await 제거 - Flet 0.81.0 준수)

@@ -250,7 +250,11 @@ class Front_dogdog:
     # ---------------------------------------------------------------------------------------------------
     async def on_route_change(self, e):
         route = e.route
-        # self.page.overlay.clear()
+        
+        # [수정 1] 라우팅 게이트키퍼: 모든 페이지 이동 시 팝업 잔상 강제 소거
+        self.page.overlay.clear()
+        self.page.dialog = None
+        self.page.update()
         if (
             len(self.page.views) > 1
             and self.page.views[-2].route == route

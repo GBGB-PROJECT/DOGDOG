@@ -16,6 +16,12 @@ async def home_tile(
     on_refresh_callback=None,
 ):
     # ---------------------------------------------------------------------------------------------------
+    # [지침 1] home_tile 진입부 '강제 청소' (유령 팝업 원천 차단)
+    # ---------------------------------------------------------------------------------------------------
+    page.overlay.clear()
+    page.dialog = None
+    page.update()
+
     # ---------------------------------------------------------------------------------------------------
     # Controller Init & PubSub
     # ---------------------------------------------------------------------------------------------------
@@ -33,22 +39,33 @@ async def home_tile(
     # ---------------------------------------------------------------------------------------------------
     def appbar_on_change(e, on_change_page): change_page_callback(on_change_page) # type: ignore
     # ---------------------------------------------------------------------------------------------------
-    # Home Tile Routeing
-    # ---------------------------------------------------------------------------------------------------
     if content_page == "/home":
-        # [보정] 세션에 데이터가 없으면(None) 서버에서 최신 데이터 강제 재로드 및 UI 재구성 (재건축)
-        if page.session.store.get("pet_food_detail") is None or page.session.store.get("dashboard_data") is None:
+        # [수정 1] 들여쓰기 교정 및 라우트 진입 시 강제 청소
+        page.overlay.clear()
+        page.dialog = None
+        page.update()
+
+        needs_refresh = page.session.store.get('needs_refresh')
+        if needs_refresh:
             pet_id = page.session.store.get("current_pet_id")
             if pet_id:
-                print(f"👉 [보정] 홈 진입: 세션 상태 불일치 감지. UI 재건축 시작.")
-                await controller.fetch_dashboard_data(pet_id)
-                page.session.store.set("dashboard_data", True) 
+                print(f"👉 [Home] 삭제/수정 신호 감지. Zero-Base 철저 재건축 시작.")
                 
-                # [Zero-Base] 기존 위젯을 완전히 비워 잔상을 제거
+                # [해결 과제 2] 기존 객체 완전 삭제 (청소)
                 body_column.controls.clear()
                 body_scroll_column.controls.clear()
-                main_container_content.clear() # 컨테이너 자체도 청소 가능성 대비
-                page.update()
+                main_container_content.clear()
+                
+                # 데이터 강제 재요청
+                await controller.fetch_dashboard_data(pet_id)
+                
+                # 세션 정합성 재검증
+                customer_detail = page.session.store.get("customer_detail")
+                if not customer_detail or "dashboard_sync" not in customer_detail:
+                    await controller.fetch_dashboard_data(pet_id)
+
+                page.session.store.set('needs_refresh', False)
+                # 아래에서 새로 생성되는 위젯이 최신 데이터를 참조하게 됨
 
         home_background , top_banner = dogdog.home_layout(page=page, view="home")
         main_container_content.append(top_banner)

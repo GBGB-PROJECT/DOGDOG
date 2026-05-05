@@ -15,9 +15,22 @@ class LoginController:
     async def process_email_login(self, email: str, password: str):
         """이메일 로그인 처리 (httpx 직접 통신 버전)"""
         
-        # 1. 방어적 프로그래밍: 빈 값 검증
+        import re
+        
+        # 1단계: 빈 값 검증
         if not email or not password:
             self._show_snack_bar("이메일과 비밀번호를 모두 입력해 주세요.")
+            return
+
+        # 2단계: 길이 검증
+        if len(email) > 50:
+            self._show_snack_bar("이메일은 50자를 초과할 수 없습니다.")
+            return
+
+        # 3단계: 형식 검증 (정규 표현식)
+        email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if not re.match(email_regex, email):
+            self._show_snack_bar("올바른 이메일 형식이 아닙니다.")
             return
 
         endpoint = "http://localhost:8000/api/v1/auth/login"

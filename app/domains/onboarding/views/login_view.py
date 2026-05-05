@@ -43,7 +43,7 @@ def login_view(page: ft.Page, controller):
             scroll=ft.ScrollMode.HIDDEN,
             expand=True,
             controls=[
-                ft.Row(height=150, margin=ft.margin.only(bottom=page.height/40),
+                ft.Row(height=150, margin=ft.margin.only(bottom=40),
                     alignment=ft.MainAxisAlignment.CENTER, 
                     vertical_alignment=ft.CrossAxisAlignment.END,
                     controls=[ft.Image(src="dogdog_logo.png", width=300)]),

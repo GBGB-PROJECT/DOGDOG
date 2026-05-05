@@ -96,25 +96,27 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
                 expand=True,
                 controls=[
                     # dogdog.continue_button(
-                    #     value="Continue with Google", icon="Google", expand=False,
+                    #     value="Continue with Google", icon="Google", expand=False, 
                     #     on_click=login_next, data={'key':'Google'}),
                     # dogdog.continue_button(
-                    #     value="Continue with Naver", icon="Naver", expand=False,
+                    #     value="Continue with Naver", icon="Naver", expand=False,  
                     #     on_click=login_next, data={'key':'Naver'}),
                     # dogdog.continue_button(
-                    #     value="Continue with Kakao", icon="Kakao", expand=False,
+                    #     value="Continue with Kakao", icon="Kakao", expand=False, 
                     #     on_click=login_next, data={'key':'Kakao'}),
                     # ft.Row(margin=10, height=20, controls=[
-                    #     ft.Divider(expand=True),
-                    #     dogdog.basic_text('or', color=ft.Colors.GREY_500),
+                    #     ft.Divider(expand=True), 
+                    #     dogdog.basic_text('or', color=ft.Colors.GREY_500), 
                     #     ft.Divider(expand=True)
                     # ]),
                     ft.Row(height=150,
                         alignment=ft.MainAxisAlignment.CENTER, 
                         vertical_alignment=ft.CrossAxisAlignment.END,
                         controls=[ft.Image(src="dogdog_logo.png", width=300)]),
+                    ft.Container(padding=0, margin=0),
                     content_text_1,
                     content_text_2,
+                    ft.Container(padding=0, margin=0),
                     dogdog.continue_button(
                         value="이메일로 로그인하기", expand=False, 
                         on_click=login_next, data={'key':'Email'}),

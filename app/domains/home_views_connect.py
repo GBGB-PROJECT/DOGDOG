@@ -263,14 +263,16 @@ async def home_tile(
             body_scroll_column.controls.append(domains.shop_product_detail.shop_product_detail(
                 page=page, popup=popup, content_page=content_page))
         # -----------------------------------------------------------------------------------------------
+        # elif shop_content_page == "/search":
+        #     body_scroll_column.controls.append(ft.Container(
+        #         padding=ft.Padding.only(left=20, right=20, top=20),
+        #         bgcolor="#ffffff",
+        #         content=ft.Column(
+        #             controls=[dogdog.basic_text("상품 검색 더미 페이지")]
+        #         )
+        #     ))
         elif shop_content_page == "/search":
-            body_scroll_column.controls.append(ft.Container(
-                padding=ft.Padding.only(left=20, right=20, top=20),
-                bgcolor="#ffffff",
-                content=ft.Column(
-                    controls=[dogdog.basic_text("상품 검색 더미 페이지")]
-                )
-            ))
+            body_scroll_column.controls.append(domains.search.search_products(page=page))
         # -----------------------------------------------------------------------------------------------
         elif shop_content_page == "/cart":
             main_container_content.append(

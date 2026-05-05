@@ -40,6 +40,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
     from .onboarding.onboarding_controller import OnboardingController
     from .onboarding.pet_info_controller import PetInfoController
     from .onboarding.pet_food_controller import PetFoodController
+    from .onboarding.login_controller import LoginController
 
     # 뷰와 로직을 연결하는 컨트롤러 인스턴스 생성
     controller = OnboardingController(
@@ -52,6 +53,7 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
     
     pet_info_controller = PetInfoController(page=page, popup=popup)
     pet_food_controller = PetFoodController(page=page, popup=popup)
+    login_controller = LoginController(page=page)
 
     # ---------------------------------------------------------------------------------------------------
     # On Boarding Tile Routeing
@@ -103,36 +105,17 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         bottom = ft.Container(padding=0, margin=0)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/login_email":
-        def login_email_on_change(e):
-            storage.set("login_email", e.control.value)
-        def login_password_on_change(e):
-            storage.set("login_password", e.control.value)
-        def email_login_next(e):
-            if storage.get('login_email') and storage.get('login_password'):
-                change_page_callback("/home")
-        email_input = dogdog.input_textfield(hint_text="example@dogdog.com", input_type="email", on_change=login_email_on_change)
-        password_input = dogdog.input_textfield(hint_text="비밀번호", input_type="password", on_change=login_password_on_change)
-        top = ft.Row(height=200,
-            alignment=ft.MainAxisAlignment.CENTER, 
-            vertical_alignment=ft.CrossAxisAlignment.END,
-            controls=[ft.Image(src="dogdog_logo.png", width=300)])
-        login_content = ft.Container(
-            alignment=ft.Alignment.CENTER, expand=True,padding=ft.padding.only(top=10, bottom=20),
-            content=ft.Column(
-                scroll=ft.ScrollMode.HIDDEN,
-                alignment=ft.MainAxisAlignment.CENTER, 
-                expand=True,
-                controls=[
-                    ft.Container(height=10),
-                    dogdog.basic_text(value="이메일", weight="bold", color=ft.Colors.GREY_800),
-                    email_input,
-                    dogdog.basic_text(value="비밀번호", weight="bold", color=ft.Colors.GREY_800),
-                    password_input,
-        ]))
-        bottom = ft.Row(controls=[
-            dogdog.arrow_back(on_click=lambda e: change_page_callback("/login")),
-            dogdog.continue_button(value="Continue with Email", on_click=email_login_next)
-        ])
+        # [방어 코드] 로그인 화면에서는 온보딩 전용 헤더(onboarding_top_bar)를 노출하지 않도록 빈 컨테이너로 덮어씌움
+        top = ft.Container() 
+        
+        # MVC 패턴 적용: 외부 View 함수 호출 (로고, 폼, 하단바를 각각 반환받음)
+        top_logo, login_content, bottom_bar = domains.login_view(page=page, controller=login_controller)
+        
+        # 라우터 구조에 맞게 변수 할당
+        top = top_logo
+        content = login_content
+        bottom = bottom_bar
+    # ---------------------------------------------------------------------------------------------------
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/sign_up":
         top = ft.Row(controls=[dogdog.onboarding_top_bar(case=1)])

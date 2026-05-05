@@ -19,7 +19,7 @@ def notification_dummy(page: ft.Page):
                     dummy_ment
                 ]),
                 ft.Row(alignment=ft.MainAxisAlignment.END, controls=[
-                    dogdog.basic_text(f"25.{i if i >= 10 else f"0{i}"}.20")
+                    dogdog.basic_text(f"25.{i if i >= 10 else f'0{i}'}.20")
                 ])
             ]
         ) for i in range(12 , 8, -1)
@@ -56,9 +56,9 @@ def noti_time_drop(content, event):
         label=None,
         event=lambda e:event(e, content),
         options=time_drop_list,
-        expand=False,
-        border=ft.InputBorder.NONE,
-        border_color=ft.Colors.TRANSPARENT
+        # expand=False,
+        # border=ft.InputBorder.NONE,
+        # border_color=ft.Colors.TRANSPARENT
     )
     time_drop.width = 120
     return time_drop
@@ -245,7 +245,7 @@ class Noti:
                 vs_time.append(times.strftime("%d %H:%M"))
             print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])')
             print(' 설정 시간의 다음 알림 시간 및 이후 알림 시간을 계산하고 화면을 업데이트 하는 부분까지 완료')
-            print(f' 인앱 알림 팝업 제작 및 subs_interval 기능구현 필요\n{'===='*30}')
+            print(f' 인앱 알림 팝업 제작 및 subs_interval 기능구현 필요\n{"===="*30}')
 
 def notification_setting(page: ft.Page):
 

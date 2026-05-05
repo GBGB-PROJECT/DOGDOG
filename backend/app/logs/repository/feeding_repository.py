@@ -30,7 +30,15 @@ class FeedingRepository:
         return exists is not None
 
     def get_inventory(self, pet_id: int):  # 급여 중 사료 잔여량 조회
-        """사료 잔량 및 재고 정보를 조회합니다. (비관적 락 적용)"""
+        """사료 잔량 및 재고 정보를 조회합니다. (일반 조회용)"""
+        return (
+            self.db.query(CompanionCustomerFood)
+            .filter_by(pet_id=pet_id)
+            .first()
+        )
+
+    def get_inventory_for_update(self, pet_id: int):
+        """사료 재고 수정을 위해 비관적 락(with_for_update)을 적용하여 조회합니다."""
         return (
             self.db.query(CompanionCustomerFood)
             .filter_by(pet_id=pet_id)

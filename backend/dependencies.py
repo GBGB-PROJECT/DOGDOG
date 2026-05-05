@@ -33,7 +33,7 @@ def get_product_by_id(db: Session, product_id: int):
     return result.scalar_one_or_none()
 
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Path
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
 from app.config import JWT_SECRET_KEY, JWT_ALGORITHM
@@ -85,3 +85,17 @@ def get_current_user(
         raise credentials_exception
 
     return user.customer_id
+
+
+async def verify_pet_owner(
+    pet_id: int = Path(..., description="반려견 고유 ID"),
+    customer_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> int:
+    """로그인한 유저가 해당 pet_id의 소유주인지 검증하는 의존성 주입 함수"""
+    if not check_pet_owner(db, pet_id, customer_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="해당 반려동물에 대한 접근 권한이 없습니다.",
+        )
+    return pet_id

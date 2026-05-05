@@ -50,8 +50,8 @@ class FeedingService:
     def _update_inventory_logic(
         self, pet_id: int, amount_diff: int, count_diff: int = 0
     ):
-        """재고 보정 로직 (누적량, 횟수, 잔여량)"""
-        inventory = self.repo.get_inventory(pet_id)
+        """재고 보정 로직 (누적량, 횟수, 잔여량) - 비관적 락 적용"""
+        inventory = self.repo.get_inventory_for_update(pet_id)
         if not inventory:
             return None
 

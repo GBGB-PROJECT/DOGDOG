@@ -66,13 +66,13 @@ def noti_time_drop(content, event):
     return time_drop
 
 class Noti:
-    def __init__(self, page: ft.Page, settings=None):
+    def __init__(self, page: ft.Page, settings=None, is_subscribed=False):
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
         self.storage = page.session.store
-
+        self.is_subscribed = is_subscribed
         self.notification_settings = {
             item.get("category"): item
             for item in (settings or [])
@@ -200,6 +200,7 @@ class Noti:
             return bool(setting.get("noti_before_7days", default))
 
         return default
+
     # ---------------------------------------------------------------------------------------------------
     # Picker Open Event
     # ---------------------------------------------------------------------------------------------------
@@ -322,9 +323,8 @@ class Noti:
                     vs_time.append(times.strftime("%d %H:%M"))
                 print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{"===="*30}')
                 
-def notification_setting(page: ft.Page, settings=None):
-
-    noti = Noti(page=page, settings=settings)
+def notification_setting(page: ft.Page, settings=None, is_subscribed=False):
+    noti = Noti(page=page, settings=settings, is_subscribed=is_subscribed)
 
     subs_interval = dogdog.content_container(
         content_list=[
@@ -335,8 +335,11 @@ def notification_setting(page: ft.Page, settings=None):
                     ft.TextSpan("구독 배송 3일 전 안내"),
                 ], color=ft.Colors.GREY_600, size=12),
                 ft.Switch(
-                    value=noti.get_db_noti_value("subs_delivery", 3),
-                    active_track_color="#FBDD30",
+                    value=noti.get_db_noti_value("subs_delivery", 3) if noti.is_subscribed else False,
+                    disabled=not noti.is_subscribed,
+                    active_track_color="#FBDD30" if noti.is_subscribed else "#EEEEEE",
+                    inactive_track_color="#E5E5E5",
+                    thumb_color="#FFFFFF" if noti.is_subscribed else "#D0D0D0",
                     data={'noti':'subs3'},
                     on_change=noti.switch_event,
                 )
@@ -347,8 +350,11 @@ def notification_setting(page: ft.Page, settings=None):
                     ft.TextSpan("구독 배송 7일 전 안내"),
                 ], color=ft.Colors.GREY_600, size=12),
                 ft.Switch(
-                    value=noti.get_db_noti_value("subs_delivery", 7),
-                    active_track_color="#FBDD30",
+                    value=noti.get_db_noti_value("subs_delivery", 7) if noti.is_subscribed else False,
+                    disabled=not noti.is_subscribed,
+                    active_track_color="#FBDD30" if noti.is_subscribed else "#EEEEEE",
+                    inactive_track_color="#E5E5E5",
+                    thumb_color="#FFFFFF" if noti.is_subscribed else "#D0D0D0",
                     data={'noti':'subs7'},
                     on_change=noti.switch_event,
                 )

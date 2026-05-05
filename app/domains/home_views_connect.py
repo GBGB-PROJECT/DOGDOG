@@ -235,11 +235,23 @@ async def home_tile(
         main_container_content.append(body_scroll_column)
 
         from domains.mypage.controller.subs_notification_api import NotificationController
+        from domains.shop.controller.shop_subscription_api import get_subscription_status
 
         settings = await NotificationController(page).get_settings()
-        body_scroll_column.controls.append(
-            domains.notification.notification_setting(page, settings=settings)
+
+        subscription_status = await get_subscription_status(page)
+        is_subscribed = bool(
+            subscription_status and subscription_status.get("is_subscribed")
         )
+
+        body_scroll_column.controls.append(
+            domains.notification.notification_setting(
+                page,
+                settings=settings,
+                is_subscribed=is_subscribed,
+            )
+        )
+
     # ---------------------------------------------------------------------------------------------------
     elif "/shop/" in content_page:
         shop_content_page = content_page.replace("/shop","")

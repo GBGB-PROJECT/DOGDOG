@@ -1,5 +1,6 @@
 import flet as ft
 from components import layout as ly
+from components.layout.sidebar import BASE_SIDEBAR_WIDTH
 
 from components.common import content_move as hcm
 from components.common.erp_busy_cursor import register_busy_cursor_host
@@ -25,7 +26,10 @@ class ErpFrame(ft.Container):
             self.main_page.go(target_route)
 
         self._on_menu_click = on_menu_click
-        self.sidebar_area = ft.Container()
+        self.sidebar_area = ft.Container(
+            width=BASE_SIDEBAR_WIDTH,
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        )
         self.content_area = ft.Container(
             expand=True,
             content=self._get_cached_view(self.current_route),

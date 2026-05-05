@@ -246,7 +246,8 @@ async def home_tile(
 
         body_scroll_column.controls.append(
             domains.notification.notification_setting(
-                page,
+                page=page,
+                popup=popup,
                 settings=settings,
                 is_subscribed=is_subscribed,
             )

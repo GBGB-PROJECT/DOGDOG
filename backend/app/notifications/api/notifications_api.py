@@ -12,7 +12,7 @@ from app.notifications.service.notifications_service import modify_notification_
 from app.notifications.service.checkNoti_service import check_notifications
 
 
-router = APIRouter(prefix="/api/v2/notifications",tags=["notifications"])
+router = APIRouter(prefix="/api/v1/notifications",tags=["notifications"])
 
 # 알림 체크 --------------------------------------------------------
 # @router.get("/check/{customer_id}")

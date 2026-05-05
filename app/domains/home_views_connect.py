@@ -49,9 +49,9 @@ async def home_tile(
         if needs_refresh:
             pet_id = page.session.store.get("current_pet_id")
             if pet_id:
-                print(f"👉 [Home] 삭제/수정 신호 감지. Zero-Base 철저 재건축 시작.")
+                print(f"👉 [Home] 대시보드 갱신 예약 감지. Zero-Base 재건축 시작.")
                 
-                # [해결 과제 2] 기존 객체 완전 삭제 (청소)
+                # [수정 2] 기존 객체 완전 삭제 및 재건축 (문지기 로직)
                 body_column.controls.clear()
                 body_scroll_column.controls.clear()
                 main_container_content.clear()
@@ -65,7 +65,7 @@ async def home_tile(
                     await controller.fetch_dashboard_data(pet_id)
 
                 page.session.store.set('needs_refresh', False)
-                # 아래에서 새로 생성되는 위젯이 최신 데이터를 참조하게 됨
+                # 이제 아래 로직에서 최신 데이터를 주입받은 새 위젯들이 append 됨
 
         home_background , top_banner = dogdog.home_layout(page=page, view="home")
         main_container_content.append(top_banner)

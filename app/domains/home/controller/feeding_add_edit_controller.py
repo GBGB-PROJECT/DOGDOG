@@ -88,19 +88,19 @@ class FeedingAddEditController:
             res = await self.api_client.post(f"/pets/{pet_id}/pet_food", data=payload)
 
             if res.status_code in [200, 201]:
-                # [QA 수정] 1. 세션 캐시 강제 무효화 및 상태 업데이트
-                self._clear_feeding_session()
-
-                # [QA 수정] 4. 전역 알림(PubSub) 신호 추가 발송
+                # [수정 1] 네비게이션 전 대시보드 갱신 예약 및 목록 이동
+                self.storage.set('needs_refresh', True)
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
+                
+                self.page.overlay.clear()
+                self.page.dialog = None
                 
                 # [핵심 지침 1] 네비게이션 전 강제 대기 (DB 동기화 확보)
                 import asyncio
                 await asyncio.sleep(0.2)
                 
-                # [수정 1] 사료 등록 성공 시 목록(/feeding)으로 이동
-                # 목록을 거쳐 홈(/home)으로 가더라도 needs_refresh 플래그에 의해 대시보드가 갱신됨
+                # 목록 화면으로 복귀 (유연한 네비게이션)
                 self.page.go("/feeding")
 
                 return True, "사료가 성공적으로 등록되었습니다."
@@ -140,18 +140,19 @@ class FeedingAddEditController:
                 f"/pets/{pet_id}/pet_food", data=payload
             )
             if res.status_code == 200:
-                # [QA 수정] 1. 세션 캐시 강제 무효화 및 상태 업데이트
-                self._clear_feeding_session()
-
-                # 수정 시에도 리스트 갱신 신호 발송
+                # [수정 1] 네비게이션 전 대시보드 갱신 예약 및 목록 이동
+                self.storage.set('needs_refresh', True)
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
                 
+                self.page.overlay.clear()
+                self.page.dialog = None
+
                 # [핵심 지침 1] 네비게이션 전 강제 대기 (DB 동기화 확보)
                 import asyncio
                 await asyncio.sleep(0.2)
                 
-                # [수정 1] 사료 수정 성공 시 목록(/feeding)으로 이동
+                # [신규 통합] 무조건 목록으로 복귀
                 self.page.go("/feeding")
                 
                 return True, "사료 정보가 수정되었습니다."
@@ -229,13 +230,33 @@ class FeedingAddEditController:
                 import asyncio
                 await asyncio.sleep(0.2)
                 
-                # [수정 1] 사료 삭제 성공 시 목록(/feeding)으로 이동
+                # 리스트 화면으로 복귀
                 self.page.go("/feeding")
 
                 # [QA 수정] 3. 비동기 콜백 예약 (await 제거 - Flet 0.81.0 준수)
                 if on_success_callback:
                     self.page.run_task(on_success_callback)
             else:
+                needs_refresh = self.page.session.store.get('needs_refresh')
+                if needs_refresh:
+                    pet_id = self.page.session.store.get("current_pet_id")
+                    if pet_id:
+                        print(f"👉 [Home] 대시보드 갱신 예약 감지. Zero-Base 재건축 시작.")
+                        
+                        # [수정 2] 기존 객체 완전 삭제 및 재건축 (문지기 로직)
+                        self.page.body_column.controls.clear()
+                        self.page.body_scroll_column.controls.clear()
+                        self.page.main_container_content.clear()
+                        
+                        # 데이터 강제 재요청
+                        await self.controller.fetch_dashboard_data(pet_id)
+                        
+                        # 세션 정합성 재검증
+                        customer_detail = self.page.session.store.get("customer_detail")
+                        if not customer_detail or "dashboard_sync" not in customer_detail:
+                            await self.controller.fetch_dashboard_data(pet_id)
+
+                        self.page.session.store.set('needs_refresh', False)
                 self.page.snack_bar = ft.SnackBar(
                     ft.Text(msg), bgcolor=ft.Colors.RED_400
                 )

@@ -3,11 +3,15 @@ import re
 import flet as ft
 import domains
 import components as dogdog
+
+
 # -------------------------------------------------------------------------------------------------------
 class Api_push_Data:
     data = {}
+
+
 # -------------------------------------------------------------------------------------------------------
-def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callback):
+def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callback):
     # ---------------------------------------------------------------------------------------------------
     # Default Value
     # ---------------------------------------------------------------------------------------------------
@@ -50,82 +54,112 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         focus_field=focus_field,
         popup=popup,
     )
-    
+
     pet_info_controller = PetInfoController(page=page, popup=popup)
     pet_food_controller = PetFoodController(page=page, popup=popup)
-    login_controller = LoginController(page=page, change_page_callback=change_page_callback)
+    login_controller = LoginController(
+        page=page, change_page_callback=change_page_callback
+    )
 
     # ---------------------------------------------------------------------------------------------------
     # On Boarding Tile Routeing
     # ---------------------------------------------------------------------------------------------------
     if content_page == "/login":
+
         def login_next(e):
-            key = e.control.data.get('key')
-            if key == 'Email':
+            key = e.control.data.get("key")
+            if key == "Email":
                 change_page_callback("/login_email")
-            elif key == 'sign_up':
+            elif key == "sign_up":
                 change_page_callback("/sign_up")
             else:
                 show_error(text="기능 구현중입니다.")
                 return
-        top = ft.Row(height=150, margin=ft.margin.only(top=40, bottom=-100),
-            alignment=ft.MainAxisAlignment.CENTER, 
+
+        top = ft.Row(
+            height=150,
+            margin=ft.margin.only(top=40, bottom=-100),
+            alignment=ft.MainAxisAlignment.CENTER,
             vertical_alignment=ft.CrossAxisAlignment.END,
-            controls=[ft.Image(src="dogdog_logo.png", width=300)])
+            controls=[ft.Image(src="dogdog_logo.png", width=300)],
+        )
         content_text_1 = dogdog.basic_text(
-            value="똑똑🚪✊ 우리집 강아지가 마지막 한알을 먹기 전\n문앞에 사료가 도착합니다 🔔", weight="bold")
+            value="똑똑🚪✊ 우리집 강아지가 마지막 한알을 먹기 전\n문앞에 사료가 도착합니다 🔔",
+            weight="bold",
+        )
         content_text_1.text_align = ft.TextAlign.CENTER
-        content_text_2 = dogdog.basic_text(color=ft.Colors.GREY_600,
-            value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!")
+        content_text_2 = dogdog.basic_text(
+            color=ft.Colors.GREY_600,
+            value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!",
+        )
         content_text_2.text_align = ft.TextAlign.CENTER
         content_text_1 = dogdog.basic_text(
-            value="똑똑🚪✊ 우리집 강아지가 마지막 한알을 먹기 전\n문앞에 사료가 도착합니다 🔔", weight="bold")
+            value="똑똑🚪✊ 우리집 강아지가 마지막 한알을 먹기 전\n문앞에 사료가 도착합니다 🔔",
+            weight="bold",
+        )
         content_text_1.text_align = ft.TextAlign.CENTER
-        content_text_2 = dogdog.basic_text(color=ft.Colors.GREY_600,
-            value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!")
+        content_text_2 = dogdog.basic_text(
+            color=ft.Colors.GREY_600,
+            value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!",
+        )
         content_text_2.text_align = ft.TextAlign.CENTER
         login_content = ft.Container(
-            alignment=ft.Alignment.CENTER, expand=True,
-            alignment=ft.Alignment.CENTER, expand=True,
+            alignment=ft.Alignment.CENTER,
+            expand=True,
             content=ft.Column(
                 spacing=40,
-                alignment=ft.MainAxisAlignment.CENTER, 
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     # dogdog.continue_button(
-                    #     value="Continue with Google", icon="Google", expand=False, 
+                    #     value="Continue with Google", icon="Google", expand=False,
                     #     on_click=login_next, data={'key':'Google'}),
                     # dogdog.continue_button(
-                    #     value="Continue with Naver", icon="Naver", expand=False,  
+                    #     value="Continue with Naver", icon="Naver", expand=False,
                     #     on_click=login_next, data={'key':'Naver'}),
                     # dogdog.continue_button(
-                    #     value="Continue with Kakao", icon="Kakao", expand=False, 
+                    #     value="Continue with Kakao", icon="Kakao", expand=False,
                     #     on_click=login_next, data={'key':'Kakao'}),
                     # ft.Row(margin=10, height=20, controls=[
-                    #     ft.Divider(expand=True), 
-                    #     dogdog.basic_text('or', color=ft.Colors.GREY_500), 
+                    #     ft.Divider(expand=True),
+                    #     dogdog.basic_text('or', color=ft.Colors.GREY_500),
                     #     ft.Divider(expand=True)
                     # ]),
                     content_text_1,
                     content_text_2,
                     dogdog.continue_button(
-                        value="Continue with Email", expand=False, 
-                        on_click=login_next, data={'key':'Email'}),
-                    ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[
-                        dogdog.basic_text("계정이 없으신가요?", color=ft.Colors.GREY_500),
-                        ft.TextButton(dogdog.basic_text("회원가입", weight="bold"), 
-                            on_click=login_next, data={'key':'sign_up'}),
-                    ])
-        ]))
+                        value="Continue with Email",
+                        expand=False,
+                        on_click=login_next,
+                        data={"key": "Email"},
+                    ),
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        controls=[
+                            dogdog.basic_text(
+                                "계정이 없으신가요?", color=ft.Colors.GREY_500
+                            ),
+                            ft.TextButton(
+                                dogdog.basic_text("회원가입", weight="bold"),
+                                on_click=login_next,
+                                data={"key": "sign_up"},
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        )
         bottom = ft.Container(padding=0, margin=0)
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/login_email":
         # [방어 코드] 로그인 화면에서는 온보딩 전용 헤더(onboarding_top_bar)를 노출하지 않도록 빈 컨테이너로 덮어씌움
-        top = ft.Container() 
-        
+        top = ft.Container()
+
         # MVC 패턴 적용: 외부 View 함수 호출 (로고, 폼, 하단바를 각각 반환받음)
-        top_logo, login_content, bottom_bar = domains.login_view(page=page, controller=login_controller)
-        
+        top_logo, login_content, bottom_bar = domains.login_view(
+            page=page, controller=login_controller
+        )
+
         # 라우터 구조에 맞게 변수 할당
         top = top_logo
         content = login_content
@@ -135,16 +169,21 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
     elif content_page == "/sign_up":
         top = ft.Row(controls=[dogdog.onboarding_top_bar(case=1)])
         content = domains.sign_up_view(
-            page=page, controller=controller, check_email_callback=controller.check_email_duplicate
+            page=page,
+            controller=controller,
+            check_email_callback=controller.check_email_duplicate,
         )
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(on_click=lambda e: change_page_callback("/login")),
-                dogdog.continue_button(on_click=controller.process_user_sign_up)]
+                dogdog.continue_button(on_click=controller.process_user_sign_up),
+            ]
         )
 
     elif content_page == "/pet_info":
-        content = domains.pet_info_view(page=page, popup=popup, controller=pet_info_controller)
+        content = domains.pet_info_view(
+            page=page, popup=popup, controller=pet_info_controller
+        )
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(on_click=lambda e: change_page_callback("/sign_up")),
@@ -184,7 +223,9 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
         )
 
     elif content_page == "/pet_food":
-        content = domains.pet_food_view(page=page, popup=popup, controller=pet_food_controller)
+        content = domains.pet_food_view(
+            page=page, popup=popup, controller=pet_food_controller
+        )
         bottom = ft.Row(
             controls=[
                 dogdog.arrow_back(
@@ -232,10 +273,12 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
                 scroll=ft.ScrollMode.HIDDEN,
                 expand=True,
                 spacing=10,
-                controls=content if isinstance(content, list) else [content] # type: ignore
-            )
-        ) if not "/login" in content_page else login_content,
+                controls=content if isinstance(content, list) else [content],  # type: ignore
+            ),
+        )
+        if not "/login" in content_page
+        else login_content,
         focus_field,
-        bottom
+        bottom,
     ]
     return basic_content, focus_field

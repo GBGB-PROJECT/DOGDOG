@@ -452,3 +452,74 @@ def notification_setting(page: ft.Page, popup, settings=None, is_subscribed=Fals
             controls=content_column # type: ignore
         )
     )
+
+# ----------------------------------------------------------------------------------
+async def show_notification_popup(page: ft.Page, popup, notification: dict):
+    popup.notification_controls.clear()
+
+    title = notification.get("title") or "똑똑"
+    message = notification.get("message") or ""
+    noti_time = "지금"
+
+    popup_top = ft.Row(
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        controls=[
+            ft.Container(
+                padding=0,
+                margin=0,
+                content=ft.Row(
+                    spacing=5,
+                    controls=[
+                        ft.Image("icon.png", width=24),
+                        dogdog.basic_text(
+                            "똑똑",
+                            color=ft.Colors.GREY_400,
+                            weight="bold",
+                        ),
+                    ],
+                ),
+            ),
+            dogdog.basic_text(
+                noti_time,
+                color=ft.Colors.GREY_400,
+                weight="bold",
+            ),
+        ],
+    )
+
+    popup.notification_controls.append(popup_top)
+    popup.notification_controls.append(
+        dogdog.basic_text(title, size=16, weight="bold")
+    )
+    popup.notification_controls.append(
+        dogdog.basic_text(message)
+    )
+
+    if popup.notification_popup not in page.overlay:
+        page.overlay.append(popup.notification_popup)
+
+    popup.notification_popup.open = True
+    page.update()
+
+    await notification_popup_delay(page, popup)
+
+async def notification_popup_delay(page: ft.Page, popup):
+    try:
+        popup.notification_popup.content.offset = ft.Offset(0, -1)
+        popup.notification_popup.update()
+
+        await asyncio.sleep(0.5)
+
+        popup.notification_popup.content.offset = ft.Offset(0, 0)
+        popup.notification_popup.update()
+
+        await asyncio.sleep(5)
+
+        popup.notification_popup.content.offset = ft.Offset(0, -1)
+        popup.notification_popup.update()
+
+        popup.notification_popup.open = False
+        page.update()
+
+    except Exception as e:
+        print(f"[NOTIFICATION POPUP] failed: {e}")

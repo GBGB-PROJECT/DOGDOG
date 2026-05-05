@@ -399,7 +399,13 @@ class Front_dogdog:
 
         async def run_notification_check_once():
             from domains.mypage.controller.subs_notification_api import NotificationController
-            await NotificationController(self.page).check_on_app_load()
+            from domains.mypage.views.notification import show_notification_popup
+
+            notifications = await NotificationController(self.page).check_on_app_load()
+
+            for notification in notifications:
+                await show_notification_popup(self.page, self.popup, notification)
+
 
         # [해결] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (TypeError 해결 및 API 연동)
         if page_name == "/home" and self.home_feeding_guide_popup:

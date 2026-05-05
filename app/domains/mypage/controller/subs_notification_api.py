@@ -43,18 +43,10 @@ class NotificationController:
 
             self.storage.set("notifications", notifications)
 
-            message = "\n".join([n.get("message", "") for n in notifications])
-            snack_bar = ft.SnackBar(
-                content=ft.Text(message),
-                behavior=ft.SnackBarBehavior.FLOATING,
-            )
-            self.page.overlay.append(snack_bar)
-            snack_bar.open = True
-
             # if hasattr(self.page, "client_storage"):
             #     await self.page.client_storage.set_async(storage_key, today)
 
-            self.page.update()
+            return notifications
 
         except Exception as e:
             print(f"[NOTIFICATION] on-load check failed: {e}")

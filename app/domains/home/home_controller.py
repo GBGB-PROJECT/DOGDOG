@@ -94,10 +94,10 @@ class HomeController:
 
                 # 4. 실시간 UI 반영을 위한 페이지 갱신
                 self.page.update()
-                for i, view in enumerate(self.page.views):
-                    if view.route == "/home":
-                        self.page.views.remove(view)
-                        print("home_view 제거 완료 (임시 해결 방안)")
+                # for i, view in enumerate(self.page.views):
+                #     if view.route == "/home":
+                #         self.page.views.remove(view)
+                #         print("home_view 제거 완료 (임시 해결 방안)") #사이드이펙트
 
                 print(f"[HomeController] 대시보드 및 제품 정보 동기화 완료 (Overwritten): {pet_id}")
                 return dash_data

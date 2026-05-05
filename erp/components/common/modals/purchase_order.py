@@ -1233,16 +1233,6 @@ class PurchaseOrderDialog:
                                 ),
                                 on_click=self.export_to_excel,
                             ),
-                            ft.ElevatedButton(
-                                "저장",
-                                height=42,
-                                style=ft.ButtonStyle(
-                                    bgcolor="#2563EB",
-                                    color=ft.Colors.WHITE,
-                                    shape=ft.RoundedRectangleBorder(radius=8),
-                                ),
-                                on_click=self.save_data,
-                            ),
                         ],
                     ),
                 ],

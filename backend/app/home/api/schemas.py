@@ -23,7 +23,8 @@ class FoodInventoryResponse(BaseModel):
     """사료 재고 현황"""
     left_percent: float = 0
     left_intake: float = 0
-    total_weight: float = 0
+    product_total_weight: float = 0  # 상품 고유 무게
+    customer_food_total_weight: float = 0  # 유저가 수정한 현재 사료 무게
     left_food_count: float = 0
     expected_exdate: Optional[str] = None
 

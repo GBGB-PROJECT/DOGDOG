@@ -36,6 +36,20 @@ async def home_tile(
     # Home Tile Routeing
     # ---------------------------------------------------------------------------------------------------
     if content_page == "/home":
+        # [보정] 세션에 데이터가 없으면(None) 서버에서 최신 데이터 강제 재로드 및 UI 재구성 (재건축)
+        if page.session.store.get("pet_food_detail") is None or page.session.store.get("dashboard_data") is None:
+            pet_id = page.session.store.get("current_pet_id")
+            if pet_id:
+                print(f"👉 [보정] 홈 진입: 세션 상태 불일치 감지. UI 재건축 시작.")
+                await controller.fetch_dashboard_data(pet_id)
+                page.session.store.set("dashboard_data", True) 
+                
+                # [Zero-Base] 기존 위젯을 완전히 비워 잔상을 제거
+                body_column.controls.clear()
+                body_scroll_column.controls.clear()
+                main_container_content.clear() # 컨테이너 자체도 청소 가능성 대비
+                page.update()
+
         home_background , top_banner = dogdog.home_layout(page=page, view="home")
         main_container_content.append(top_banner)
         main_container_content.append(body_column)
@@ -85,23 +99,26 @@ async def home_tile(
             if msg == "update_dashboard" and content_page == "/home":
                 pet_id = page.session.store.get("current_pet_id")
                 if pet_id:
-                    # 최신 데이터 API 패치
+                    # 전체 대시보드 데이터 다시 패치 (가장 중요)
                     await controller.fetch_dashboard_data(pet_id)
                     
-                    # 1. 상단 '오늘의 기록' 컴포넌트 교체
-                    if len(body_column.controls) > 0:
-                        body_column.controls[0] = domains.home_view.now_history(
+                    # 1. 상단 '오늘의 기록' 컴포넌트 전체 교체
+                    body_column.controls.clear()
+                    body_column.controls.append(
+                        domains.home_view.now_history(
                             page=page, 
                             popup=popup, 
                             stats_data=controller.get_today_record_stats(),
                             history_logs=controller.get_formatted_history(count=3),
                             on_click=on_timeline_click
                         )
-                        body_column.update()
+                    )
+                    body_column.update()
                         
-                    # 2. 하단 '사료 잔여량' 컴포넌트 교체 (index 0)
-                    if len(body_scroll_column.controls) > 0:
-                        body_scroll_column.controls[0] = dogdog.content_container(
+                    # 2. 하단 '사료 잔여량' 및 메뉴 전체 교체
+                    body_scroll_column.controls.clear()
+                    body_scroll_column.controls.append(
+                        dogdog.content_container(
                             content_list=domains.home_view.feeding_food_count(
                                 page=page, 
                                 content_page=content_page,
@@ -109,9 +126,13 @@ async def home_tile(
                             ),
                             on_click=lambda e: appbar_on_change(e, "/feeding"),
                         )
-                        body_scroll_column.update()
+                    )
+                    body_scroll_column.controls.append(
+                        domains.grid_view.status_update_menu(page=page, popup=popup)
+                    )
+                    body_scroll_column.update()
 
-        # 기존 구독된 함수가 있다면 제거하여 중복 실행 방지
+        # [보정] 기존 구독된 함수가 있다면 제거하여 중복 실행 방지
         page.pubsub.unsubscribe_all()
         page.pubsub.subscribe(lambda msg: page.run_task(refresh_dashboard_task, msg))
     # ---------------------------------------------------------------------------------------------------
@@ -207,13 +228,31 @@ async def home_tile(
     elif content_page == "/feeding":
         home_background , top_banner = dogdog.home_layout(page=page, text="급여 중인 상품")
         main_container_content.append(top_banner)
-        main_container_content.append(
-            domains.feeding_view.feeding_tabs_view(
+        
+        # [수정] 데이터 갱신 시 전체 교체를 위해 래퍼 컨테이너 생성
+        feeding_container = ft.Container(
+            expand=True,
+            content=domains.feeding_view.feeding_tabs_view(
                 page=page,
                 on_refresh_callback=on_refresh_callback,
                 feeding_detail_data=await controller.get_feeding_detail_data()
             )
         )
+        main_container_content.append(feeding_container)
+
+        # [신규 추가] PubSub: 급여 목록 동기화 이벤트 구독 및 컴포넌트 부분 업데이트
+        async def refresh_feeding_list_task(msg):
+            if msg == "refresh_feeding_list" and content_page == "/feeding":
+                feeding_container.content = domains.feeding_view.feeding_tabs_view(
+                    page=page,
+                    on_refresh_callback=on_refresh_callback,
+                    feeding_detail_data=await controller.get_feeding_detail_data()
+                )
+                feeding_container.update()
+
+        # [보정] 기존 구독된 함수가 있다면 제거하여 중복 실행 방지
+        page.pubsub.unsubscribe_all()
+        page.pubsub.subscribe(lambda msg: page.run_task(refresh_feeding_list_task, msg))
     # ---------------------------------------------------------------------------------------------------
     elif content_page == "/feeding_edit":
         home_background , top_banner = dogdog.home_layout(page=page, text="급여 상품 정보 변경")

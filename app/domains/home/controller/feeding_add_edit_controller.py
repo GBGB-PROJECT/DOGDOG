@@ -23,7 +23,6 @@ class FeedingAddEditController:
         유령 데이터(과거 세션 캐시)를 방지하고 최신 서버 데이터를 가져오게 합니다.
         """
         keys_to_clear = [
-            "pet_food_detail", 
             "select_feeding_data", 
             "select_customer_food_id",
             "food_text", 
@@ -35,12 +34,21 @@ class FeedingAddEditController:
             if self.storage.contains_key(key):
                 self.storage.remove(key)
         
+        # [신규 추가] 세션 데이터 완벽 제거 (None 강제 할당)
+        self.storage.set("pet_food_detail", None)
+        self.storage.set("dashboard_data", None)
+
         # 대시보드 인벤토리 및 사료 정보 즉시 초기화
         customer_detail = self.storage.get("customer_detail") or {}
         if "dashboard_sync" in customer_detail:
             customer_detail["dashboard_sync"]["food_inventory"] = {}
             customer_detail["dashboard_sync"]["current_food_info"] = None
             self.storage.set("customer_detail", customer_detail)
+        
+        # [보정] 사료 정보 변경 시 모든 팝업, 다이얼로그, 오버레이 강제 초기화 (Zero-Base)
+        self.page.dialog = None
+        self.page.banner = None
+        self.page.overlay.clear() # 오버레이에 쌓인 모든 유령 UI 제거
         
         # UI 상태 동기화를 위해 페이지 업데이트
         self.page.update()
@@ -83,6 +91,9 @@ class FeedingAddEditController:
                 # [QA 수정] 4. 전역 알림(PubSub) 신호 추가 발송
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
+                
+                # [신규 통합] 무조건 목록으로 복귀
+                self.page.go("/feeding")
 
                 return True, "사료가 성공적으로 등록되었습니다."
             else:
@@ -127,6 +138,10 @@ class FeedingAddEditController:
                 # 수정 시에도 리스트 갱신 신호 발송
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
+                
+                # [신규 통합] 무조건 목록으로 복귀
+                self.page.go("/feeding")
+                
                 return True, "사료 정보가 수정되었습니다."
             else:
                 detail = res.json().get("detail", "알 수 없는 오류")

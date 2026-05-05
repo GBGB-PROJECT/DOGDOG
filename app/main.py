@@ -56,11 +56,11 @@ class Front_dogdog:
 
         if IS_TEST_MODE:
             self.is_onboarding_complete = False
-            page.go("/splash") # 스플래시로 먼저 진입
+            page.go("/splash")  # 스플래시로 먼저 진입
             self.page.run_task(self.dev_auto_login)
         else:
             self.is_onboarding_complete = False
-            page.go("/splash") # 일반 모드에서도 스플래시 우선
+            page.go("/splash")  # 일반 모드에서도 스플래시 우선
 
     # ---------------------------------------------------------------------------------------------------
     # Dev Auto Login Relay
@@ -271,6 +271,18 @@ class Front_dogdog:
     # View Routing Event
     # ---------------------------------------------------------------------------------------------------
     async def routing_view(self, page_name):
+        # [치명적 버그 수정] 페이지 이동 시 모든 팝업, 다이얼로그, 오버레이 강제 초기화 (잔상 제거)
+        self.page.dialog = None
+        self.page.banner = None
+
+        # 팝업 바텀시트 등 오버레이 요소들 안전하게 닫고 비우기
+        for control in self.page.overlay[:]:
+            if hasattr(control, "open"):
+                control.open = False
+        self.page.overlay.clear()
+
+        self.page.update()  # UI 상태 즉시 반영
+
         if not "address" in page_name:
             dogdog.task_controls(30)
         # 1. 하단 앱바 설정
@@ -399,21 +411,27 @@ class Front_dogdog:
             try:
                 # [신규 추가] 급여 중인 사료 정보가 없으면 팝업 노출 차단
                 pet_food_detail = self.storage.get("pet_food_detail")
-                
+
                 # 사료 데이터가 비어있거나, 딕셔너리가 아니거나, 내용이 없으면 건너뜀
-                if not pet_food_detail or not isinstance(pet_food_detail, dict) or not pet_food_detail.get("pet_food_id"):
-                    print("[DEBUG] 등록된 사료 정보가 없어 권장 급여량 팝업을 차단합니다.")
+                if (
+                    not pet_food_detail
+                    or not isinstance(pet_food_detail, dict)
+                    or not pet_food_detail.get("pet_food_id")
+                ):
+                    print(
+                        "[DEBUG] 등록된 사료 정보가 없어 권장 급여량 팝업을 차단합니다."
+                    )
                 else:
                     from api_client import ApiClient
-    
+
                     api_client = ApiClient(self.page)
-    
+
                     # 1. 세션에서 정보 획득
                     pet_id = self.storage.get("current_pet_id")
                     pet_list = self.storage.get("pet_list") or {}
                     pet_info = pet_list.get(pet_id) or pet_list.get(str(pet_id)) or {}
                     pet_name = pet_info.get("nickname", "반려견")
-    
+
                     # 2. 권장 급여량 API 호출 및 안전한 파싱
                     guide_intake = 0
                 try:

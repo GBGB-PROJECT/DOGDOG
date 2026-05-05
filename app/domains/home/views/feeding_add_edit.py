@@ -215,20 +215,7 @@ def feeding_add_edit(page: ft.Page, view: str):
 
         if success:
             show_toast(msg)
-            # [Issue 1 해결] 성공 시 낡은 세션 완벽 청소 (임시 데이터 및 상세 데이터)
-            keys_to_clear = ["food_text", "product_id", "food_weight", "select_feeding_data"]
-            for key in keys_to_clear:
-                if storage.contains_key(key):
-                    storage.remove(key)
-            
-            # [Issue 1 해결] 라우팅 최적화
-            if view == "edit":
-                page.go("/feeding") # 수정은 목록으로
-            else:
-                page.go("/home")    # 등록은 홈으로 (대시보드 갱신 유도)
-
-            # 전역 갱신 신호 발송
-            page.pubsub.send_all("update_dashboard")
+            # 컨트롤러 내에서 세션 초기화, PubSub 알림, 라우팅(/feeding)을 모두 처리하도록 이관됨
         else:
             show_toast(msg)
 
@@ -239,12 +226,7 @@ def feeding_add_edit(page: ft.Page, view: str):
             success, msg = await controller.delete_feeding_product()
             if success:
                 show_toast(msg)
-                # [Issue 1 해결] 삭제 성공 시 세션 비우기
-                if storage.contains_key("select_feeding_data"):
-                    storage.remove("select_feeding_data")
-                    
-                page.go("/feeding")
-                page.pubsub.send_all("update_dashboard")
+                # 컨트롤러 내부(show_delete_confirm_dialog)에서 세션 비우기, 라우팅, PubSub 갱신을 모두 처리함
             else:
                 show_toast(msg)
         

@@ -241,18 +241,18 @@ class Noti:
                 noti_type = self.drug_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.drug_time_drop.value) # type: ignore
             elif switch_type == 'subs3':
-                print(f' 🛎️ subs 3\n{'===='*30}')
+                print(f" 🛎️ subs 3\n{'===='*30}")
             elif switch_type == 'subs7':
-                print(f' 🛎️ subs 7\n{'===='*30}')
+                print(f" 🛎️ subs 7\n{'===='*30}")
             elif switch_type == 'left_food_count':
-                print(f' 🛎️ left_food_count\n{'===='*30}')
+                print(f" 🛎️ left_food_count\n{'===='*30}")
             if noti_type and select_time:
                 noti_setting_time = datetime.datetime.strptime(noti_type, "%p %H:%M")
                 vs_time = []
                 for count in range(int(24/select_time)):
                     times = noti_setting_time + datetime.timedelta(hours=count*select_time)
                     vs_time.append(times.strftime("%d %H:%M"))
-                print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{'===='*30}')
+                print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{"===="*30}')
                 
 def notification_setting(page: ft.Page):
 

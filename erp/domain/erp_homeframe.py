@@ -9,6 +9,7 @@ from components.common.erp_busy_cursor import register_busy_cursor_host
 class ErpFrame(ft.Container):
     _NO_CACHE_ROUTES = {
         "/production/order",
+        "/stock/product/detail",
     }
 
     def __init__(self, page: ft.Page, current_route: str):
@@ -85,8 +86,6 @@ class ErpFrame(ft.Container):
         previous_menu = self.selected_menu
         self.current_route = normalized_route
         self.selected_menu = resolved_menu or "홈"
-        self.content_area.content = self._get_cached_view(self.current_route)
-
         sidebar_changed = previous_menu != self.selected_menu
         if sidebar_changed:
             self.sidebar_area.content = ly.build_erp_sidebar(
@@ -94,10 +93,12 @@ class ErpFrame(ft.Container):
                 selected_menu=self.selected_menu,
                 on_menu_click=self._on_menu_click,
             )
+            if update:
+                self.sidebar_area.update()
+
+        self.content_area.content = self._get_cached_view(self.current_route)
 
         if update:
             self.content_area.update()
-            if sidebar_changed:
-                self.sidebar_area.update()
 
         return True

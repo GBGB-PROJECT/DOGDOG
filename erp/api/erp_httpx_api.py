@@ -1,6 +1,8 @@
 # erp/api/erp_httpx_api.py
 
 import time
+from collections import OrderedDict
+from threading import RLock
 
 import httpx
 
@@ -13,8 +15,10 @@ _CLIENT = httpx.Client(
     base_url=BASE_URL,
     timeout=10.0,
 )
-_GET_CACHE = {}
+_GET_CACHE = OrderedDict()
 _GET_CACHE_TTL_SECONDS = 6.0
+_GET_CACHE_MAX_SIZE = 256
+_GET_CACHE_LOCK = RLock()
 
 
 def _cache_key(path: str, params: dict | None = None):
@@ -34,17 +38,24 @@ def _get(path: str, params: dict | None = None):
     """
     url = f"{BASE_URL}{path}"
     key = _cache_key(path, params)
-    cached = _GET_CACHE.get(key)
     now = time.monotonic()
-    if cached and now - cached["time"] <= _GET_CACHE_TTL_SECONDS:
-        return cached["data"]
+    with _GET_CACHE_LOCK:
+        cached = _GET_CACHE.get(key)
+        if cached and now - cached["time"] <= _GET_CACHE_TTL_SECONDS:
+            cached["time"] = now
+            _GET_CACHE.move_to_end(key)
+            return cached["data"]
 
     try:
         response = _CLIENT.get(path, params=params)
         response.raise_for_status()
         result = response.json()
         data = result.get("data", {})
-        _GET_CACHE[key] = {"time": now, "data": data}
+        with _GET_CACHE_LOCK:
+            _GET_CACHE[key] = {"time": now, "data": data}
+            _GET_CACHE.move_to_end(key)
+            while len(_GET_CACHE) > _GET_CACHE_MAX_SIZE:
+                _GET_CACHE.popitem(last=False)
         return data
 
     except httpx.HTTPStatusError as e:
@@ -81,7 +92,8 @@ def _mutate(method: str, path: str, payload: dict | None = None):
         response = _CLIENT.request(method, path, json=payload or {})
         result = response.json()
         response.raise_for_status()
-        _GET_CACHE.clear()
+        with _GET_CACHE_LOCK:
+            _GET_CACHE.clear()
         return result.get("data", {})
     except httpx.HTTPStatusError as e:
         try:
@@ -147,6 +159,20 @@ def fetch_customers(search_type="email", keyword="", limit=50, offset=0, start_d
     return result["items"]
 
 
+def fetch_customers_page(search_type="email", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+    page = (offset // limit) + 1
+
+    return _list_request(
+        "/erp/customer/info",
+        search_type=search_type,
+        keyword=keyword,
+        page=page,
+        size=limit,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
 def count_customers(search_type="email", keyword="", start_date=None, end_date=None):
     result = _list_request(
         "/erp/customer/info",
@@ -183,6 +209,20 @@ def fetch_customer_orders(search_type="order_number", keyword="", limit=50, offs
     return result["items"]
 
 
+def fetch_customer_orders_page(search_type="order_number", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+    page = (offset // limit) + 1
+
+    return _list_request(
+        "/erp/customer/order",
+        search_type=search_type,
+        keyword=keyword,
+        page=page,
+        size=limit,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
 def count_customer_orders(search_type="order_number", keyword="", start_date=None, end_date=None):
     result = _list_request(
         "/erp/customer/order",
@@ -215,6 +255,20 @@ def fetch_customer_subscriptions(search_type="subs_id", keyword="", limit=50, of
     )
 
     return result["items"]
+
+
+def fetch_customer_subscriptions_page(search_type="subs_id", keyword="", limit=50, offset=0, start_date=None, end_date=None):
+    page = (offset // limit) + 1
+
+    return _list_request(
+        "/erp/customer/subscription",
+        search_type=search_type,
+        keyword=keyword,
+        page=page,
+        size=limit,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 def count_customer_subscriptions(search_type="subs_id", keyword="", start_date=None, end_date=None):

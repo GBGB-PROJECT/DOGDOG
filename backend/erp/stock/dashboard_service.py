@@ -216,7 +216,10 @@ def _build_month_range(year: int, month: int):
 # 🔥 재고 현황 대시보드 전체 조회
 # =========================================================
 def fetch_stock_dashboard(year=None, month=None):
-    base_year, base_month = fetch_stock_dashboard_base_year_month()
+    if year and month:
+        base_year, base_month = int(year), int(month)
+    else:
+        base_year, base_month = fetch_stock_dashboard_base_year_month()
 
     target_year = int(year or base_year)
     target_month = int(month or base_month)

@@ -78,22 +78,30 @@ def _sidebar_brand_header(page: ft.Page):
 
 # ☑️ 추가: 확장 패널 헤더
 def _section_header(title: str, on_menu_click):
+    def handle_back_click(e):
+        on_menu_click("홈")
+
+    back_icon = ft.IconButton(
+        icon=ft.Icons.ARROW_BACK_IOS_NEW,
+        icon_color=com.EXPANDED_TEXT_COLOR,
+        icon_size=18,
+        style=ft.ButtonStyle(
+            padding=6,
+            overlay_color={
+                ft.ControlState.HOVERED: "#D8DEE9",
+                ft.ControlState.PRESSED: "#CBD5E1",
+            },
+        ),
+        on_click=handle_back_click,
+    )
+
     return ft.Container(
         padding=ft.padding.only(left=12, right=12, bottom=18),
         content=ft.Row(
             spacing=8,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                ft.IconButton(
-                    icon=ft.Icons.ARROW_BACK_IOS_NEW,
-                    icon_color=com.EXPANDED_TEXT_COLOR,
-                    icon_size=18,
-                    style=ft.ButtonStyle(
-                        padding=0,
-                        overlay_color=ft.Colors.TRANSPARENT,
-                    ),
-                    on_click=lambda e: on_menu_click("홈"),
-                ),
+                back_icon,
                 ft.Text(
                     value=title,
                     size=22,

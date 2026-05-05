@@ -1159,7 +1159,6 @@ class PurchaseOrderDialog:
     # =====================================================
     def close_dialog(self, e=None):
         self.page.pop_dialog()
-        self.page.update()
 
     # =====================================================
     # ☑️ 전체 콘텐츠
@@ -1298,7 +1297,6 @@ class PurchaseOrderDialog:
     # =====================================================
     def open(self, e=None):
         self.page.show_dialog(self.dialog)
-        self.page.update()
 
 
 # =========================================================

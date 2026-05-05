@@ -7,6 +7,11 @@ from erp.domain.controller.home.erp_home_controller import HomeViewMain
 
 
 HOME_PAGE_BG = "#F5F7FA"
+_HOME_DATA_CACHE = {
+    "sale": None,
+    "inventory": None,
+    "production": None,
+}
 
 
 def _default_sale_data():
@@ -182,9 +187,14 @@ def _build_home_content(sale_data, inventory_data, production_data):
 
 def erp_home_view():
     page_ref = {"page": None, "mounted": False}
+    has_cached_data = (
+        _HOME_DATA_CACHE["sale"] is not None
+        and _HOME_DATA_CACHE["inventory"] is not None
+        and _HOME_DATA_CACHE["production"] is not None
+    )
     content_holder = ft.Container(
         expand=True,
-        alignment=ft.Alignment(0, 0),
+        alignment=None if has_cached_data else ft.Alignment(0, 0),
         content=ft.Text(
             "홈 데이터를 불러오는 중입니다.",
             size=16,
@@ -192,6 +202,13 @@ def erp_home_view():
             color=cm.TEXT_SECONDARY,
         ),
     )
+
+    if has_cached_data:
+        content_holder.content = _build_home_content(
+            _HOME_DATA_CACHE["sale"],
+            _HOME_DATA_CACHE["inventory"],
+            _HOME_DATA_CACHE["production"],
+        )
 
     class HomePage(ft.Container):
         def did_mount(self):
@@ -202,6 +219,11 @@ def erp_home_view():
                 sale_data, inventory_data, production_data = _load_home_data()
                 if not page_ref["mounted"]:
                     return
+                _HOME_DATA_CACHE.update(
+                    sale=sale_data,
+                    inventory=inventory_data,
+                    production=production_data,
+                )
                 content_holder.alignment = None
                 content_holder.content = _build_home_content(
                     sale_data,

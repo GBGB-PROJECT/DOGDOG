@@ -3,7 +3,7 @@ import datetime
 import flet as ft
 
 # 🔥 httpx 방식 API 호출로 변경
-from api.erp_httpx_api import count_customer_subscriptions, fetch_customer_subscriptions
+from api.erp_httpx_api import count_customer_subscriptions, fetch_customer_subscriptions, fetch_customer_subscriptions_page
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages, build_pagination_bar
@@ -491,6 +491,24 @@ def erp_customer_subscription_view():
 
         return customer_subscription_db_row_adapter(db_rows, page_no)
 
+    def fetch_customer_subscription_page(keyword="", page_no=1):
+        offset = (page_no - 1) * PAGE_SIZE
+        start_date, end_date = get_selected_date_range()
+
+        result = fetch_customer_subscriptions_page(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        return {
+            "rows": customer_subscription_db_row_adapter(result["items"], page_no),
+            "pagination": result["pagination"],
+        }
+
     def move_page(page_no: int, page: ft.Page):
         if page_no < 1 or page_no > pagination_state["total_pages"]:
             return
@@ -545,14 +563,20 @@ def erp_customer_subscription_view():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]
 
-        total_count = fetch_total_count(keyword=keyword)
-        total_pages = calc_total_pages(total_count, PAGE_SIZE)
+        page_result = fetch_customer_subscription_page(keyword=keyword, page_no=current_page)
+        pagination = page_result["pagination"]
+        total_count = pagination.get("total_count", 0)
+        total_pages = pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
 
         if current_page > total_pages:
             current_page = total_pages
             pagination_state["current_page"] = current_page
+            page_result = fetch_customer_subscription_page(keyword=keyword, page_no=current_page)
+            pagination = page_result["pagination"]
+            total_count = pagination.get("total_count", 0)
+            total_pages = pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
 
-        rows = fetch_customer_subscription_rows(keyword=keyword, page_no=current_page)
+        rows = page_result["rows"]
 
         rows_state.clear()
         rows_state.extend(rows)

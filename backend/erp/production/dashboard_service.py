@@ -5,6 +5,7 @@
 # =========================================================
 
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
 
 from .dashboard_repository import (
     count_defective_rows,
@@ -212,42 +213,54 @@ def _build_month_range(year: int, month: int):
 # 🔥 생산관리 메인 대시보드 전체 조회
 # =========================================================
 def fetch_production_dashboard(year=None, month=None):
-    base_year, base_month = fetch_dashboard_base_year_month()
+    if year and month:
+        base_year, base_month = int(year), int(month)
+    else:
+        base_year, base_month = fetch_dashboard_base_year_month()
 
     target_year = int(year or base_year)
     target_month = int(month or base_month)
 
-    production_rows = fetch_recent_production_rows(
-        limit=5,
-        year=target_year,
-        month=target_month,
-    )
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        production_rows_future = executor.submit(
+            fetch_recent_production_rows,
+            limit=5,
+            year=target_year,
+            month=target_month,
+        )
+        defective_rows_future = executor.submit(
+            fetch_recent_defective_rows,
+            limit=5,
+            year=target_year,
+            month=target_month,
+        )
+        monthly_rows_future = executor.submit(
+            fetch_monthly_production_chart,
+            year=target_year,
+        )
+        purchase_card_rows_future = executor.submit(
+            fetch_recent_purchase_cards,
+            limit=5,
+            year=target_year,
+            month=target_month,
+        )
+        production_count_future = executor.submit(
+            count_production_rows,
+            year=target_year,
+            month=target_month,
+        )
+        defective_count_future = executor.submit(
+            count_defective_rows,
+            year=target_year,
+            month=target_month,
+        )
 
-    defective_rows = fetch_recent_defective_rows(
-        limit=5,
-        year=target_year,
-        month=target_month,
-    )
-
-    monthly_rows = fetch_monthly_production_chart(
-        year=target_year,
-    )
-
-    purchase_card_rows = fetch_recent_purchase_cards(
-        limit=5,
-        year=target_year,
-        month=target_month,
-    )
-
-    production_count = count_production_rows(
-        year=target_year,
-        month=target_month,
-    )
-
-    defective_count = count_defective_rows(
-        year=target_year,
-        month=target_month,
-    )
+        production_rows = production_rows_future.result()
+        defective_rows = defective_rows_future.result()
+        monthly_rows = monthly_rows_future.result()
+        purchase_card_rows = purchase_card_rows_future.result()
+        production_count = production_count_future.result()
+        defective_count = defective_count_future.result()
 
     month_start, month_end = _build_month_range(target_year, target_month)
 

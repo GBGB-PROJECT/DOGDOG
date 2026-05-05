@@ -47,6 +47,11 @@ _STOCK_DASHBOARD_MONTH_STATE = {
     "year": None,
     "month": None,
 }
+_STOCK_DASHBOARD_DATA_CACHE = {
+    "year": None,
+    "month": None,
+    "data": None,
+}
 
 
 def set_stock_dashboard_month_state(year=None, month=None):
@@ -115,21 +120,15 @@ def erp_stock_status_view():
 
     saved_year, saved_month = get_stock_dashboard_month_state()
 
-    try:
-        if saved_year and saved_month:
-            initial_data = fetch_stock_dashboard(
-                year=saved_year,
-                month=saved_month,
-            )
-        else:
-            # 🔥 수정: 화면 최초 진입 시에는 데이터가 많은 2026년 5월을 기본 조회
-            initial_data = fetch_stock_dashboard(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_MONTH)
-    except Exception as exc:
-        print(f"재고 현황 대시보드 조회 실패: {exc}")
-        initial_data = _empty_dashboard_data(
-            saved_year or DEFAULT_DASHBOARD_YEAR,
-            saved_month or DEFAULT_DASHBOARD_MONTH,
-        )
+    target_year = saved_year or DEFAULT_DASHBOARD_YEAR
+    target_month = saved_month or DEFAULT_DASHBOARD_MONTH
+    cached_data = (
+        _STOCK_DASHBOARD_DATA_CACHE.get("data")
+        if _STOCK_DASHBOARD_DATA_CACHE.get("year") == target_year
+        and _STOCK_DASHBOARD_DATA_CACHE.get("month") == target_month
+        else None
+    )
+    initial_data = cached_data or _empty_dashboard_data(target_year, target_month)
 
     state = {
         "year": int(initial_data.get("current_year") or saved_year or DEFAULT_DASHBOARD_YEAR),
@@ -587,19 +586,25 @@ def erp_stock_status_view():
             ),
         )
 
-    def reload_dashboard(page=None):
-        try:
-            dashboard_data = fetch_stock_dashboard(
-                year=state["year"],
-                month=state["month"],
-            )
-        except Exception as exc:
-            print(f"재고 현황 대시보드 월 이동 조회 실패: {exc}")
-            dashboard_data = _empty_dashboard_data(state["year"], state["month"])
+    def reload_dashboard(page=None, dashboard_data=None):
+        if dashboard_data is None:
+            try:
+                dashboard_data = fetch_stock_dashboard(
+                    year=state["year"],
+                    month=state["month"],
+                )
+            except Exception as exc:
+                print(f"재고 현황 대시보드 월 이동 조회 실패: {exc}")
+                dashboard_data = _empty_dashboard_data(state["year"], state["month"])
 
         state["data"] = dashboard_data
         state["year"] = int(dashboard_data.get("current_year") or state["year"])
         state["month"] = int(dashboard_data.get("current_month") or state["month"])
+        _STOCK_DASHBOARD_DATA_CACHE.update(
+            year=state["year"],
+            month=state["month"],
+            data=dashboard_data,
+        )
 
         set_stock_dashboard_month_state(state["year"], state["month"])
 
@@ -699,6 +704,8 @@ def erp_stock_status_view():
             ],
         ),
     )
+
+    reload_dashboard(dashboard_data=state["data"])
 
     class StockStatusPage(ft.Container):
         def did_mount(self):

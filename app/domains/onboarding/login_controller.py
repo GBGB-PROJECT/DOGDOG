@@ -134,6 +134,9 @@ class LoginController:
                                     print("✅ [LoginController] 대시보드 데이터 사전 동기화 완료!")
 
                                     # 3. 사료 상세 정보 조회 및 세션 저장
+                                    # [해결 3] 로그인 시 이전 유저의 구 데이터(데이터 고스트) 강제 초기화
+                                    self.storage.set("pet_food_detail", {})
+                                    
                                     try:
                                         res_food = await client.get(
                                             f"http://localhost:8000/api/v1/pets/{pet_id}/pet_food",
@@ -152,6 +155,8 @@ class LoginController:
 
                                     # 모든 데이터 동기화가 끝난 후
                                     self.storage.set("is_onboarding_complete", True)
+                                    # [해결 1] 기존 유저 로그인 시 홈 화면 급여량 팝업 트리거 활성화 (세션 기반 통합)
+                                    self.storage.set("trigger_feeding_guide_popup", True)
 
                                 else:
                                     print("⚠️ [LoginController] 등록된 반려동물이 없습니다.")

@@ -5,6 +5,8 @@ from domains.onboarding.views.splash import splash_view
 import time
 import asyncio
 import components as dogdog
+from api_client import ApiClient
+from domains.home.home_controller import HomeController
 
 # 테스트 아이디로 테스트 설정
 IS_TEST_MODE = False
@@ -67,8 +69,6 @@ class Front_dogdog:
     # ---------------------------------------------------------------------------------------------------
     async def dev_auto_login(self, *args):
         try:
-            from api_client import ApiClient
-
             api_client = ApiClient(self.page)
 
             print("[DEV] Starting auto login relay...")
@@ -196,8 +196,6 @@ class Front_dogdog:
     async def refresh_home_data(self):
         """대시보드 데이터를 다시 fetch하고 화면을 갱신합니다."""
         try:
-            from api_client import ApiClient
-
             api_client = ApiClient(self.page)
 
             pet_id = (
@@ -410,58 +408,95 @@ class Front_dogdog:
                     appbar_status, page_name
                 )
         self.page.views.append(new_view)
-        # [해결] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (TypeError 해결 및 API 연동)
-        if page_name == "/home" and self.home_feeding_guide_popup:
+        # [ISSUE] 온보딩 후 첫 사료 등록 시 데이터 동기화 지연 및 팝업 차단 이슈 해결 (2026-05-05)
+        # [TODO] 팝업 연동 및 부분 업데이트 로직 고도화 필요
+        
+        # [해결 2] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (세션 플래그 기반 트리거)
+        trigger_popup = self.storage.get("trigger_feeding_guide_popup")
+        
+        # [DEBUG] 팝업 플래그 상태 추적
+        if page_name == "/home":
+            print(f"[DEBUG] 팝업 플래그 상태 - Instance: {self.home_feeding_guide_popup}, Session: {trigger_popup}")
+
+        if page_name == "/home" and (self.home_feeding_guide_popup or trigger_popup):
+            # [해결 3] 변수 참조 에러(P0 이슈) 원천 차단 - 상단 초기화
+            api_client = ApiClient(self.page)
+            pet_name = "우리 아이"
+            pet_id = self.storage.get("current_pet_id")
+
             try:
-                # [신규 추가] 급여 중인 사료 정보가 없으면 팝업 노출 차단
+                home_ctrl = HomeController(self.page)
+
+                # [해결 1] 팝업 차단 로직 조건 완화 - 최신 데이터 강제 패치 선행
+                if pet_id:
+                    print("[DEBUG] 팝업 트리거 감지. 최신 사료 정보를 강제 패치합니다.")
+                    await home_ctrl.fetch_dashboard_data(pet_id)
+
+                # 패치 직후 세션에서 사료 정보 재확인
                 pet_food_detail = self.storage.get("pet_food_detail")
 
-                # 사료 데이터가 비어있거나, 딕셔너리가 아니거나, 내용이 없으면 건너뜀
-                if (
-                    not pet_food_detail
-                    or not isinstance(pet_food_detail, dict)
-                    or not pet_food_detail.get("pet_food_id")
-                ):
-                    print(
-                        "[DEBUG] 등록된 사료 정보가 없어 권장 급여량 팝업을 차단합니다."
-                    )
+                # [해결 1 & 2] 팝업 체크 조건 대폭 완화 (Key 불일치 방어 및 강제 트리거)
+                # 데이터가 딕셔너리 형태고 비어있지 않거나, 방금 사료를 등록한 상태(trigger_popup)라면 진행
+                is_valid_data = isinstance(pet_food_detail, dict) and len(pet_food_detail) > 0
+                
+                # [해결 2] 기존 유저 로그인 시 데이터 동기화 보장 로직
+                # 팝업이 뜨지 않는 문제를 막기 위해 패치 결과를 한 번 더 확인
+                if not is_valid_data and pet_id:
+                    print("[DEBUG] 사료 정보 미흡. 강제 재패치를 시도합니다.")
+                    await home_ctrl.fetch_dashboard_data(pet_id)
+                    pet_food_detail = self.storage.get("pet_food_detail")
+                    is_valid_data = isinstance(pet_food_detail, dict) and len(pet_food_detail) > 0
+
+                # [해결 2 & 4] 팝업 노출 전 데이터 엄격 검증 (Data Integrity)
+                # 사료 정보의 pet_id와 현재 로그인된 pet_id가 일치하는지 확인
+                food_pet_id = pet_food_detail.get("pet_id")
+                print(f"[DEBUG] 데이터 무결성 체크 - 현재 펫 ID: {pet_id}, 사료 데이터 펫 ID: {food_pet_id}")
+
+                # [해결 1: Strict Check] 팝업 차단 조건 먼저 확인 (return 제거 및 if-else 구조화)
+                if not is_valid_data or str(food_pet_id) != str(pet_id):
+                    print(f"[DEBUG] 팝업 조건 미충족 (데이터 없음 또는 ID 불일치). 팝업을 보류합니다. (Valid: {is_valid_data}, ID Match: {str(food_pet_id) == str(pet_id)})")
+                    # 사료 정보가 없어 팝업을 못 띄운 경우, 다음 홈 진입 시 재시도하도록 플래그 유지
+                    self.home_feeding_guide_popup = True 
                 else:
-                    from api_client import ApiClient
-
-                    api_client = ApiClient(self.page)
-
-                    # 1. 세션에서 정보 획득
-                    pet_id = self.storage.get("current_pet_id")
+                    # [해결 2: Data Integrity] 모든 조건 충족 시에만 팝업 실행
+                    print("[DEBUG] 데이터 정상 확인. 팝업을 띄웁니다.")
+                    
+                    # 1. 반려견 이름 안전하게 획득 (타입 불일치 방어)
                     pet_list = self.storage.get("pet_list") or {}
-                    pet_info = pet_list.get(pet_id) or pet_list.get(str(pet_id)) or {}
+                    pet_info = (
+                        pet_list.get(pet_id)
+                        or pet_list.get(str(pet_id))
+                        or pet_list.get(int(pet_id) if str(pet_id).isdigit() else None)
+                        or {}
+                    )
                     pet_name = pet_info.get("nickname", "반려견")
 
                     # 2. 권장 급여량 API 호출 및 안전한 파싱
                     guide_intake = 0
-                try:
-                    res_guide = await api_client.get(f"/calc_feeding/{pet_id}/guide")
-                    if res_guide.status_code == 200:
-                        # [DEBUG] 원본 데이터 확인용 로그 추가
-                        raw_data = res_guide.json()
-                        print(f"[DEBUG] Guide API 응답: {raw_data}")
+                    try:
+                        res_guide = await api_client.get(f"/calc_feeding/{pet_id}/guide")
+                        if res_guide.status_code == 200:
+                            raw_data = res_guide.json()
+                            resp_data = raw_data.get("data", {})
+                            val = resp_data.get("adjusted_daily_food_g", 0)
+                            guide_intake = int(float(val))
+                    except Exception as api_err:
+                        print(f"[DEBUG] 권장량 API 파싱 에러 (기본값 0 사용): {api_err}")
 
-                        # 백엔드 실제 Key(adjusted_daily_food_g)를 사용하여 데이터 추출
-                        resp_data = raw_data.get("data", {})
-                        val = resp_data.get("adjusted_daily_food_g", 0)
-
-                        # 소수점 대비 정수 변환 (예: 168.0 -> 168)
-                        guide_intake = int(float(val))
-                except Exception as api_err:
-                    print(f"[DEBUG] 권장량 API 파싱 에러 (기본값 0 사용): {api_err}")
-
-                # 3. 팝업 호출 (문자열로 변환하여 전달)
-                self.popup.show_feeding_guide_open(pet_name, str(guide_intake))
+                    # 3. 팝업 호출 (문자열로 변환하여 전달)
+                    # [해결 4] 디버깅 로그 추가 (최종 데이터 검증)
+                    print(f"🚀 [DEBUG] 팝업 최종 호출 데이터 - Name: {pet_name}, Intake: {guide_intake}g (Pet ID: {pet_id})")
+                    self.popup.show_feeding_guide_open(pet_name, str(guide_intake))
+                    
+                    # 팝업이 성공적으로 호출된 경우에만 플래그 해제
+                    self.home_feeding_guide_popup = False
+                    self.storage.set("trigger_feeding_guide_popup", False)
 
             except Exception as e:
                 print(f"[ERROR] 팝업 연동 중 치명적 오류: {e}")
             finally:
-                # 4. 재노출 방지 (세션 유지 동안 1회)
-                self.home_feeding_guide_popup = False
+                # 4. 재노출 방지 (성공 시에만 위에서 처리하므로 여기서는 중복 방지용 로그만 남김)
+                print(f"[DEBUG] 팝업 연동 시퀀스 종료 (Flag: {self.home_feeding_guide_popup})")
         dogdog.views_controls(self.page)
         self.page.update()  # 최종 뷰 추가 후 갱신
 

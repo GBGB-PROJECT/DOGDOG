@@ -46,6 +46,8 @@ class MypageController:
             "customer_detail",
             "pet_food_detail",
             "is_onboarding_complete",
+            "trigger_feeding_guide_popup",
+            "home_feeding_guide_popup",
         ]
 
         for k in keys_to_remove:
@@ -69,6 +71,19 @@ class MypageController:
                 pass
 
         print("✅ [MypageController] 로컬 세션 초기화 완료")
+        
+        # [해결 1] 로그아웃 시 세션 스토리지 완전 초기화 (데이터 고스트 방지)
+        try:
+            self.page.session.store.clear()
+            print("✅ [MypageController] 세션 스토어 전체 삭제 완료")
+            
+            # [추가] 앱 인스턴스 변수 초기화 (main.py의 DogDog 클래스 인스턴스에 접근)
+            # 팝업 플래그를 기본값(True)으로 리셋하여 다음 유저에게 기회 제공
+            if hasattr(self.page, "app_instance"):
+                self.page.app_instance.home_feeding_guide_popup = True
+                print("✅ [MypageController] 앱 인스턴스 팝업 플래그 리셋 완료")
+        except Exception as e:
+            print(f"⚠️ [MypageController] 세션 스토어 삭제 중 오류: {e}")
 
         # 3. 안내 스낵바 노출 및 라우팅
         snack_bar = ft.SnackBar(

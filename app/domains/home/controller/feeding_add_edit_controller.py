@@ -88,11 +88,15 @@ class FeedingAddEditController:
             res = await self.api_client.post(f"/pets/{pet_id}/pet_food", data=payload)
 
             if res.status_code in [200, 201]:
-                # [ISSUE] 부분 업데이트 시 UI 레이스 컨디션 및 하얀 화면 발생 (2026-05-05)
-                # [TODO] 향후 PubSub 기반의 부분 업데이트 로직으로 고도화 필요. 현재는 안정성을 위해 홈 직행 리셋 방식 사용.
+                # [ISSUE] 부분 업데이트 이슈로 인한 홈 화면 리셋 임시 조치 (2026-05-05)
+                # [TODO] 팝업 연동 및 부분 업데이트 로직 고도화 필요
                 
                 # [수정 1] 네비게이션 전 대시보드 갱신 예약 및 홈 직행
                 self.storage.set('needs_refresh', True)
+                
+                # [해결 2] 팝업 실행 시퀀스 조정 (홈 진입 시 트리거되도록 플래그 설정)
+                self.storage.set("trigger_feeding_guide_popup", True)
+                
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
                 
@@ -103,10 +107,7 @@ class FeedingAddEditController:
                 import asyncio
                 await asyncio.sleep(0.2)
                 
-                # [기존] 목록 화면으로 복귀 (유연한 네비게이션)
-                # self.page.go("/feeding")
-                
-                # [수정] 홈 화면으로 즉시 이동하여 강제 리셋 유도
+                # [수정] 홈 화면으로 즉시 이동하여 강제 리셋 및 팝업 유도
                 self.page.go("/home")
 
                 return True, "사료가 성공적으로 등록되었습니다."

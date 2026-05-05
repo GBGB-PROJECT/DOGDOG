@@ -35,6 +35,15 @@ def shop_feeding_guide(page: ft.Page):
         # ShopController를 통해 가공된 데이터 로드
         data = await ShopController.get_feeding_data(page, pet_id)
         
+        # [해결 1] 사료 미등록 상태 판별 로직
+        # pet_food_detail이 없거나, 딕셔너리가 비어있거나, product_id가 없는 경우를 미등록으로 간주
+        pet_food_detail = storage.get("pet_food_detail")
+        is_food_exist = (
+            isinstance(pet_food_detail, dict) 
+            and len(pet_food_detail) > 0 
+            and (pet_food_detail.get("product_id") or pet_food_detail.get("pet_food_id"))
+        )
+        
         if data:
             # UI 바인딩 및 교체
             main_container.content = ft.Column(
@@ -53,7 +62,9 @@ def shop_feeding_guide(page: ft.Page):
                         ]
                     ),
                     # 제품 정보 (열량)
+                    # [해결 2] 사료 미등록 시 열량 텍스트 숨김 (visible=False)
                     ft.Row(
+                        visible=is_food_exist,
                         margin=ft.margin.only(bottom=10, top=10), 
                         alignment=ft.MainAxisAlignment.END, 
                         controls=[
@@ -62,12 +73,6 @@ def shop_feeding_guide(page: ft.Page):
                                 spacing=0, 
                                 controls=[
                                     ft.Row([
-                                        # ft.Container(
-                                        #     scale=0.8,
-                                        #     width=20, height=20, border_radius=20, 
-                                        #     bgcolor=ft.Colors.GREY_300,
-                                        #     content=ft.Icon(icon=ft.Icons.QUESTION_MARK, color=ft.Colors.WHITE, size=14)
-                                        # ),
                                         dogdog.basic_text(f"제품의 열량 {data['kcal_per_kg']}kcal/kg", weight="bold", size=11, color=ft.Colors.GREY_600)
                                     ], spacing=5)
                                 ]
@@ -75,11 +80,15 @@ def shop_feeding_guide(page: ft.Page):
                         ]
                     ),
                     # 중앙: 말풍선 이미지 + 권장량 텍스트
+                    # [해결 2] 사료 미등록 시 ??g 표시
                     ft.Stack(
                         controls=[
                             ft.Image(src="speech_bubble.png", height=120, color="#FEF3B9"),
                             ft.Container(
-                                content=dogdog.basic_text(f"{data['daily_food_g']}g", weight="bold", size=42),
+                                content=dogdog.basic_text(
+                                    value=f"{data['daily_food_g']}g" if is_food_exist else "??g", 
+                                    weight="bold", size=42
+                                ),
                                 padding=ft.padding.only(bottom=15),
                                 alignment=ft.Alignment(0, 0)
                             )
@@ -92,12 +101,17 @@ def shop_feeding_guide(page: ft.Page):
                         spacing=5,
                         controls=[
                             ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=10)),
-                            dogdog.basic_text(data["schedule"], weight="bold", size=15, color=ft.Colors.GREY_700),
+                            # [해결 2] 사료 미등록 시 "상품을 등록해주세요" 멘트 표시
+                            dogdog.basic_text(
+                                value=data["schedule"] if is_food_exist else "급여 중인 상품을 등록해주세요", 
+                                weight="bold", size=15, color=ft.Colors.GREY_700
+                            ),
                             # 통계: 하루 총 칼로리
+                            # [해결 2] 사료 미등록 시 칼로리 정보 숨김
                             ft.Row(
+                                visible=is_food_exist,
                                 alignment=ft.MainAxisAlignment.CENTER,
                                 controls=[
-                                    #ft.Icon(ft.Icons.BOLT, color=ft.Colors.AMBER, size=18),
                                     dogdog.basic_text(f"총 {data['total_kcal']}kcal", weight="bold", size=15, color=ft.Colors.GREY_600),
                                 ]
                             )

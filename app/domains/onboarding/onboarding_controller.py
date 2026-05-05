@@ -30,9 +30,9 @@ class OnboardingController:
         self.focus_field = focus_field
         self.popup = popup
 
-        # 이메일 검증용 정규식
+        # 이메일 검증용 정규식 (TLD 길이 제한 포함, 도메인 제한시 일부 예외 상황 있을 수 있어 길이제한으로 한함)
         self.regex_email = re.compile(
-            pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._]+[@][a-zA-Z][A-Za-z.]+[.]\w{2,}"
+            pattern=r"^[a-zA-Z0-9._+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}$"
         )
 
         # 비밀번호 검증용 정규식 (최소 8자, 영문, 숫자, 특수문자 포함)
@@ -49,7 +49,9 @@ class OnboardingController:
         [공통 상태 관리] Dumb View에서 발생하는 입력 변경 이벤트를 처리하여 세션 스토리지에 저장합니다.
         """
         if value is None or str(value).strip() == "":
-            self.storage.remove(key)
+            # [방어 코드] 키가 존재할 때만 삭제를 시도하여 KeyError를 방지합니다.
+            if self.storage.contains_key(key):
+                self.storage.remove(key)
         else:
             self.storage.set(key, value)
 
@@ -63,6 +65,16 @@ class OnboardingController:
             return False, "비밀번호는 8자 이상, 영문/숫자/특수문자를 포함해야 합니다."
         return True, ""
 
+    def validate_email(self, email: str) -> tuple[bool, str]:
+        """
+        이메일 유효성 검사 (TLD 2-6자 제한 적용)
+        """
+        if not email:
+            return False, "이메일을 입력해주세요."
+        if not re.fullmatch(self.regex_email, email):
+            return False, "올바른 이메일 형식이 아닙니다. (예: dog@dog.com)"
+        return True, ""
+
     async def check_email_duplicate(self, e):
         """이메일 중복 확인 로직"""
         email = self.storage.get("user_email")
@@ -71,8 +83,9 @@ class OnboardingController:
             e.control.update()
             return
 
-        if not re.fullmatch(pattern=self.regex_email, string=email):
-            self.show_error(text="유효한 이메일 형식이 아닙니다.")
+        is_valid, error_msg = self.validate_email(email)
+        if not is_valid:
+            self.show_error(text=error_msg)
             e.control.disabled = False
             e.control.update()
             return
@@ -149,7 +162,7 @@ class OnboardingController:
                 }
             )
 
-            self.show_error(text="기본 정보 저장 완료")
+            #self.show_error(text="기본 정보 저장 완료")
             if self.focus_field:
                 await self.focus_field.focus()
 
@@ -298,7 +311,7 @@ class OnboardingController:
                 return
 
         if not p_id:
-            self.show_error(text="사료 제품을 선택해 주세요.")
+            self.show_error(text="사료 상품을 선택해 주세요.")
             return
 
         if f_weight is None or str(f_weight).strip() == "":
@@ -380,6 +393,19 @@ class OnboardingController:
                 )
 
                 if success:
+                    # [신규 추가] 온보딩 완료 직후 권장 급여량 계산 API 강제 호출
+                    # 기준 데이터(guide)가 있어야 대시보드 및 밥주기 기능이 정상 작동함
+                    try:
+                        print(f"🚀 [Onboarding] 초기 권장 급여량 생성 시도 (Pet ID: {new_pet_id})")
+                        res_calc = await api_client.post(f"/calc_feeding/{new_pet_id}/guide")
+                        if res_calc.status_code in [200, 201]:
+                            print("✅ [Onboarding] 초기 권장 급여량 생성 성공!")
+                        else:
+                            print(f"⚠️ [Onboarding] 계산 API 호출 실패 (상태 코드: {res_calc.status_code})")
+                    except Exception as calc_ex:
+                        print(f"❌ [Onboarding] 계산 API 호출 중 예외 발생: {calc_ex}")
+
+                    # 모든 초기 세팅 완료 후 성공 화면으로 이동
                     self.page.go("/sign_up_success")
                 else:
                     self.show_error(text="세션 동기화 중 오류가 발생했습니다.")
@@ -393,12 +419,13 @@ class OnboardingController:
         except Exception as ex:
             if self.popup:
                 await self.popup.show_api_insert_close(e)
-            
+
             # 파이썬 에러의 실제 원인(Traceback)을 터미널에 출력
             import traceback
+
             print("❌ [Onboarding FATAL ERROR] ==================================")
             traceback.print_exc()
             print("=============================================================")
-            
+
             # 사용자에게는 간략한 에러 원인만 노출
             self.show_error(text=f"처리 중 오류 발생: {str(ex)}")

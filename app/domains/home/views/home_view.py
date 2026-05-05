@@ -148,7 +148,11 @@ def feeding_food_count(page: ft.Page, content_page: str, inventory_stats: dict):
                     size=16,
                 ),
                 dogdog.flat_button(
-                    f"{int(inventory_stats.get('left_days', 0)):,} 일치 남음",
+                    (
+                        f"{int(float(inventory_stats.get('left_days', 0))):,} 일치 남음"
+                        if str(inventory_stats.get('left_days')).replace('.', '').isdigit()
+                        else f"{inventory_stats.get('left_days', '0')} 일치 남음"
+                    ),
                     scale=0.7,
                     disabled=True,
                 ),

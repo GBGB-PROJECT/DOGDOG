@@ -1,20 +1,27 @@
 import flet as ft
 import components as dogdog
 
-def continue_button(value="Continue", bgcolor="#FEF3B9", text_color=ft.Colors.BLACK, on_click=None):
+def continue_button(value="Continue", bgcolor="#FEF3B9", text_color=ft.Colors.BLACK, on_click=None, icon=None, expand=9, data=None):
+    text = dogdog.basic_text(value=value, weight="bold", color=text_color, expand=4)
+    text.text_align = ft.TextAlign.CENTER
+    if icon:
+        container_content = ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND, controls=[
+            ft.Image(src=f"oauth_icon/{icon}_icon.png", width=20, height=20, expand=1),
+            text,
+            ft.Container(width=20, height=20, expand=1)
+        ])
+    else:
+        container_content = text
     return ft.Container(
-        expand=9,
+        data=data,
+        expand=expand,
         height=50,
         ink=True,
         on_click=on_click,
         bgcolor=bgcolor,
         border_radius=10,
         alignment=ft.Alignment.CENTER,
-        content=dogdog.basic_text(
-            value=value,
-            weight="bold",
-            color=text_color
-        )
+        content=container_content
     )
 
 def arrow_back(on_click=None):
@@ -46,18 +53,13 @@ def home_bottom_appbar(appbar_status, page_name):
             button_color = ft.Colors.BLACK
         else: button_color = ft.Colors.GREY_400
         if type(icon) == type("str"):
-            if icon == "skeleton.png":
-                bone_img = "shop.png" if page_name.startswith("/shop") else "skeleton.png"
-            else:
-                bone_img = icon
-        
             return ft.Container(
                 width=80,
                 height=80,
                 shape=ft.BoxShape.CIRCLE,
                 offset=ft.Offset(0, -0.3),
                 on_click=on_click,
-                image=ft.DecorationImage(src=bone_img, fit=ft.BoxFit.COVER),
+                image=ft.DecorationImage(src=icon, fit=ft.BoxFit.COVER),
             )
         return ft.Container(
             padding=0,

@@ -1,7 +1,7 @@
 """홈 대시보드 API 응답 스키마 (Pydantic V2)"""
 
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 class PetInfoResponse(BaseModel):
@@ -41,6 +41,7 @@ class DashboardDataResponse(BaseModel):
     feeding_stats: FeedingStatsResponse
     food_inventory: FoodInventoryResponse
     activity_stats: ActivityStatsResponse
+    current_food_info: Optional[Dict[str, Any]] = None
 
 
 class DashboardResponse(BaseModel):

@@ -5,12 +5,8 @@ cd /d "%~dp0"
 set PYTHONPATH=%~dp0
 
 echo ---------------------------------------------------
-echo 🚀 Flet Hot Reload
-echo [Web Mode] http://localhost:34636
+echo 🚀 Fast API Load
 echo ---------------------------------------------------
-
-start http://localhost:34636
-set FLET_NO_BROWSER=1
 
 "C:\Lustiora\DOGDOG\.venv\Scripts\python.exe" -m watchfiles "C:\Lustiora\DOGDOG\.venv\Scripts\python.exe main.py"
 

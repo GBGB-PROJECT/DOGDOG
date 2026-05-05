@@ -16,7 +16,7 @@ class PetFoodController:
         # UI 컴포넌트 초기화 (레거시 뷰 호환성 및 코드 재사용을 위해 컨트롤러에서 관리)
         import components as dogdog
         self.food_picker_field = dogdog.picker_field(
-            text="현재 급여 중인 사료를 선택해주세요.",
+            text="현재 급여 중인 상품을 선택해주세요.",
             on_click=self.open_food_bottom_sheet_ui,
             icon=ft.Icons.KEYBOARD_ARROW_DOWN_ROUNDED,
         )
@@ -200,7 +200,7 @@ class PetFoodController:
 
                 product_weight_list.options = [
                     dogdog.dropdown_menu_option(
-                        key=str(w.get("product_id")), 
+                        key=str(w.get("product_id")), # [QA 수정] 실제 특정 옵션 ID를 key로 사용
                         text=f"{int(float(w.get('weight')))}g"
                     )
                     for w in weights_data if w.get("active")
@@ -208,6 +208,8 @@ class PetFoodController:
                 
                 food_picker_field.content.controls[0].value = product_name
                 self.storage.set("food_text", product_name)
+                # [QA 수정] 사료 고유 ID(product_detail_id)를 세션에 정확히 저장
+                self.storage.set("product_id", int(product_detail_id))
                 product_weight_list.visible = True
                 product_weight_list.value = None
                 self.page.update()
@@ -218,19 +220,23 @@ class PetFoodController:
             print(f"[UI Error] 사료 상세 조회 처리 실패: {e}")
 
     def food_product_weight_set(self, e, product_weight_list):
-        selected_product_id = e.control.value
-        if not selected_product_id:
+        selected_weight_key = e.control.value
+        if not selected_weight_key:
             return
 
-        self.storage.set("product_id", int(selected_product_id))
-        selected_option = next((opt for opt in product_weight_list.options if opt.key == selected_product_id), None)
-        
-        if selected_option:
-            try:
-                weight_val = selected_option.text.replace("g", "")
-                self.storage.set("product_weight", int(float(weight_val)))
-            except (ValueError, TypeError):
-                pass
+        # [QA 수정] 용량 드롭다운에서 선택된 '진짜 상품 고유 ID'와 '중량'을 각각 저장
+        try:
+            selected_id = int(selected_weight_key)
+            self.storage.set("product_id", selected_id)
+            
+            # 선택된 텍스트에서 숫자만 추출하여 weight 저장 (예: "1600g" -> 1600)
+            selected_option = next((opt for opt in e.control.options if opt.key == selected_weight_key), None)
+            if selected_option:
+                weight_val = int(selected_option.text.replace("g", ""))
+                self.storage.set("food_weight", weight_val)
+                self.storage.set("product_weight", weight_val)
+        except (ValueError, TypeError):
+            pass
         self.page.update()
 
     def update_field(self, key: str, value):

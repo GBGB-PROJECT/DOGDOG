@@ -122,6 +122,7 @@ def create_feeding_recommendation(
     pet_id: int,
     base_intake: float,
     guide_intake: float,
+    daily_total_kcal: float,
     commit: bool = True,
 ):
     recommendation = db.get(CompanionFeedingGuide, pet_id)

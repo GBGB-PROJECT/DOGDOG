@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 
 from db.models import CompanionFeedingGuide, CompanionPet, CompanionPetProductFeeding
@@ -8,6 +8,8 @@ def get_guide_intake(db: Session, pet_id: int):
     query = (
         select(CompanionFeedingGuide)
         .where(CompanionFeedingGuide.pet_id == pet_id)
+        .order_by(desc(CompanionFeedingGuide.guide_date))
+        .limit(1)
     )
 
     result = db.execute(query).scalar_one_or_none()

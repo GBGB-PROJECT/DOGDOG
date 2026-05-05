@@ -17,8 +17,7 @@ def input_textfield(
         max_length = 13
     elif input_type == "password":
         text_filter = ft.InputFilter(
-            regex_string=r"^[a-zA-Z0-9.~\!\@\#\$\%\^\&\*\_\-\=\+]*$", replacement_string=""
-        )
+            regex_string=r"^[a-zA-Z0-9.~\!\@\#\$\%\^\&\*\_\-\=\+]*$", replacement_string="")
         max_length = 20
         password = True
     elif input_type == "email":

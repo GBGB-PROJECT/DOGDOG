@@ -15,7 +15,18 @@ def sign_up_view(page: ft.Page, controller, check_email_callback=None):
     # Default Value
     # -----------------------------------------------------------------------------------------------
     def email_on_change(e):
-        controller.update_field("user_email", e.control.value)
+        value = e.control.value
+        controller.update_field("user_email", value)
+        
+        if value:
+            is_valid, error_msg = controller.validate_email(value)
+            if not is_valid:
+                email_input.error_text = error_msg
+            else:
+                email_input.error_text = None
+        else:
+            email_input.error_text = None
+        email_input.update()
 
     def name_on_change(e):
         controller.update_field("user_name", e.control.value)
@@ -40,18 +51,16 @@ def sign_up_view(page: ft.Page, controller, check_email_callback=None):
         email_suffix = ft.Container(
             width=75,
             height=30,
+            alignment=ft.Alignment.CENTER,
             # ft.Colors.BLACK 대신 헥스 코드나 기본 색상을 사용하여 버전 충돌 원천 차단
-            content=ft.Text(
-                value="중복확인", size=11, weight="bold", color="#222222"
-            ),
+            content=dogdog.basic_text("중복확인", weight="bold", size=12),
             bgcolor="#EEEEEE",  # 예쁜 연그레이 색상 헥스코드
             border_radius=10,
-            alignment=ft.Alignment(0, 0),  # 정중앙 정렬의 가장 안전한 클래스 문법
             on_click=check_email_callback,
         )
 
     email_input = dogdog.input_textfield(
-        hint_text="example@gmail.com",
+        hint_text="example@dogdog.com",
         max_length=None,  # type: ignore
         on_change=email_on_change,
         input_type="email",
@@ -79,7 +88,6 @@ def sign_up_view(page: ft.Page, controller, check_email_callback=None):
         dogdog.basic_text(value="프로필을 완성하세요.", weight="bold", size=24),
         dogdog.basic_text(value="이메일", weight="bold"),
         email_input,
-        ft.Container(height=10),
         dogdog.basic_text(value="닉네임", weight="bold"),
         name_input,
         dogdog.basic_text(value="비밀번호", weight="bold"),

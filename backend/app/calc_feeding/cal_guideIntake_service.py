@@ -196,6 +196,7 @@ def create_feeding_recommendation_service(db: Session, pet_id: int, commit: bool
         pet_id=pet_id,
         base_intake=base_daily_food_g,
         guide_intake=adjusted_daily_food_g,
+        daily_total_kcal=recommend_kcal,
         commit=commit,
     )
 
@@ -262,4 +263,25 @@ def get_one_time_feeding_amount_service(db: Session, pet_id: int):
         "guide_intake": guide.guide_intake,
         "feeding_count": feeding_count,
         "one_time_intake": one_time_intake
+    }
+
+def get_feeding_guide_summary_service(db: Session, pet_id: int):
+    """
+    대시보드 등 타 도메인에서 참조하기 위한 권장 급여 요약 정보를 반환합니다.
+    사료 정보와 독립적인 목표 칼로리(daily_total_kcal)를 포함합니다.
+    """
+    guide = get_guide_intake(db, pet_id)
+    if not guide:
+        return None
+        
+    one_gram_calories = get_one_gram_calories(db, pet_id)
+    daily_total_kcal = 0
+    if one_gram_calories:
+        daily_total_kcal = float(guide.guide_intake) * float(one_gram_calories)
+        
+    return {
+        "pet_id": pet_id,
+        "guide_intake": guide.guide_intake,
+        "daily_total_kcal": daily_total_kcal,
+        "guide_date": guide.guide_date
     }

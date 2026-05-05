@@ -112,7 +112,7 @@ def mypage_view(page: ft.Page, controller=None):
                 on_click=select_banner(0),
             ),
             dogdog.banner(
-                text="급여 중인 제품 보러가기",
+                text="급여 중인 상품 보러가기",
                 selected=(selected_banner["index"] == 1),
                 on_click=select_and_open_food_remain,
             ),
@@ -148,6 +148,7 @@ def mypage_view(page: ft.Page, controller=None):
             text_color=ft.Colors.GREY_300,
             show_left_icon=False,
             show_chevron=False,
-            show_border=False, # 👉 추가: 로그아웃은 테두리 제거
+            show_border=False,
+            on_click=lambda e: page.run_task(controller.process_logout) if controller else None,
         ),
     ]

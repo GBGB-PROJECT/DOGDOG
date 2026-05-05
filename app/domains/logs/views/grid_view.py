@@ -176,19 +176,30 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
     error_message_field = ft.Text(value="", color=ft.Colors.RED_400, size=12, visible=False)
     s_control.error_field = error_message_field # 컨트롤러와 연결
 
-    # 공통 하단 컨트롤
-    def add_bottom_controls(is_customer_detail):
+    # 공통 하단 컨트롤 (날짜/시간 및 취소/저장 버튼)
+    def add_bottom_controls(is_customer_detail, visible=True):
         if is_customer_detail:
+            # 1. 날짜/시간 표시줄
             bottom_sheet_contents.append(
-                ft.Row(spacing=30, alignment=ft.MainAxisAlignment.CENTER, controls=[data_button, time_button])
+                ft.Row(
+                    spacing=30, alignment=ft.MainAxisAlignment.CENTER, 
+                    controls=[data_button, time_button],
+                    visible=visible
+                )
             )
-            # 에러 필드를 버튼 바로 위에 배치
+            # 2. 에러 필드
             bottom_sheet_contents.append(
-                ft.Row(alignment=ft.MainAxisAlignment.CENTER, controls=[error_message_field])
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER, 
+                    controls=[error_message_field],
+                    visible=visible
+                )
             )
+            # 3. 취소/저장 버튼
             bottom_sheet_contents.append(
                 ft.Row(
                     alignment=ft.MainAxisAlignment.CENTER,
+                    visible=visible,
                     controls=[
                         dogdog.flat_button(
                             "취소", scale=1,
@@ -203,6 +214,7 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
             )
 
     is_customer_detail = True
+    has_food = True # 기본값 (feeding 외 카테고리는 항상 True)
 
     def get_real_val(*keys):
         if not edit_mode or not log_data: return ""
@@ -215,92 +227,106 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
     if call == "feeding":
         add_title("밥주기")
         data = await s_control.fetch_feeding_init_data()
+        has_food = data.get("has_food", False)
         
-        if data["has_food"]:
-            # [UI 복구] 추천 급여량 가이드 (말풍선, 강아지 밥그릇 포함)
-            feeding_guide = ft.Column(
-                alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0,
-                controls=[
-                    ft.Row(
-                        margin=ft.margin.only(bottom=10),
-                        controls=[dogdog.basic_text(f"오늘 {data['pet_name']}에게 딱 알맞는 1회 급여량은 ...", size=16, weight="bold", color=ft.Colors.GREY_600)],
-                    ),
-                    ft.Column(
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=-90,
-                        controls=[
-                            ft.Image(src="speech_bubble.png", height=100, color="#FEF3B9"),
-                            dogdog.basic_text(f"{data['recommended_amount']}g", weight="bold", size=40),
-                        ],
-                    ),
-                    ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20)),
-                ],
-            )
-            
-            food_options = [dogdog.dropdown_menu_option(key=item["key"], text=item["text"]) for item in data["food_options_data"]]
-            food_dropdown = dogdog.dropdown_menu(
-                label="사료를 선택해주세요.",
-                options=food_options,
-                event=lambda e: s_control.change_customer_food_id(e.control.value),
-            )
-            
-            # 수정 모드 프리필
-            if edit_mode and log_data:
-                food_id = log_data.get("pet_food_id")
-                food_dropdown.value = str(food_id) if food_id else data["initial_value"]
-                
-                # [문제 4 해결] amount가 0이거나 None일 때의 처리 개선
-                amount_val = log_data.get("amount")
-                initial_weight = str(int(amount_val)) if amount_val is not None else ""
-                initial_memo = log_data.get("memo", "")
-            else:
-                food_dropdown.value = data["initial_value"]
-                initial_weight = str(int(data["recommended_amount"]))
-                initial_memo = ""
+        # [UI] 사료가 있을 때 노출되는 영역
+        feeding_guide = ft.Column(
+            visible=has_food,
+            alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0,
+            controls=[
+                ft.Row(
+                    margin=ft.margin.only(bottom=10),
+                    controls=[dogdog.basic_text(f"오늘 {data['pet_name']}에게 딱 알맞는 1회 급여량은 ...", size=16, weight="bold", color=ft.Colors.GREY_600)],
+                ),
+                ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=-90,
+                    controls=[
+                        ft.Image(src="speech_bubble.png", height=100, color="#FEF3B9"),
+                        dogdog.basic_text(f"{data['recommended_amount']}g", weight="bold", size=40),
+                    ],
+                ),
+                ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=20)),
+            ],
+        )
+        
+        food_options = [dogdog.dropdown_menu_option(key=item["key"], text=item["text"]) for item in data.get("food_options_data", [])]
+        food_dropdown = dogdog.dropdown_menu(
+            label="사료를 선택해주세요.",
+            options=food_options,
+            event=lambda e: s_control.change_customer_food_id(e.control.value),
+        )
+        # [해결] 커스텀 컴포넌트 대신 Row/Container에 visible 속성 부여
+        food_dropdown_wrap = ft.Row(controls=[food_dropdown], visible=has_food)
+        
+        # 수정 모드 프리필
+        if edit_mode and log_data:
+            food_id = log_data.get("pet_food_id")
+            food_dropdown.value = str(food_id) if food_id else data.get("initial_value")
+            amount_val = log_data.get("amount")
+            initial_weight = str(int(amount_val)) if amount_val is not None else ""
+            initial_memo = log_data.get("memo", "")
+        else:
+            food_dropdown.value = data.get("initial_value")
+            initial_weight = str(int(data.get("recommended_amount", 0)))
+            initial_memo = ""
 
-            feeding_weight = dogdog.input_textfield(
-                hint_text="급여량(g)을 입력하세요.", input_type="int", suffix="g",
-                on_change=lambda e: s_control.change_weight(call, e.control.value),
-            )
-            feeding_weight.value = initial_weight
+        feeding_weight = dogdog.input_textfield(
+            hint_text="급여량(g)을 입력하세요.", input_type="int", suffix="g",
+            on_change=lambda e: s_control.change_weight(call, e.control.value),
+        )
+        feeding_weight.value = initial_weight
+        # [해결] 래핑 컨테이너로 가시성 제어
+        feeding_weight_wrap = ft.Container(content=feeding_weight, visible=has_food)
 
-            feeding_memo = dogdog.input_textfield(
-                hint_text="메모 (선택)", text_filter=None, max_length=None,
-                on_change=lambda e: s_control.change_memo(call, e.control.value),
-            )
-            feeding_memo.value = initial_memo
-            
-            # [버그 2 해결] 초기값을 Storage에 강제 세팅
-            # on_change가 발생하지 않아도 저장 시 올바른 값이 전달되도록 보장
+        feeding_memo = dogdog.input_textfield(
+            hint_text="메모 (선택)", text_filter=None, max_length=None,
+            on_change=lambda e: s_control.change_memo(call, e.control.value),
+        )
+        feeding_memo.value = initial_memo
+        # [해결] 래핑 컨테이너로 가시성 제어
+        feeding_memo_wrap = ft.Container(content=feeding_memo, visible=has_food)
+        
+        if has_food:
             s_control.change_customer_food_id(food_dropdown.value)
             s_control.change_weight(call, initial_weight if initial_weight else "0")
             s_control.change_memo(call, initial_memo)
 
-            # 모든 컴포넌트가 정의된 후 if 블록 안에서 extend 실행 (가이드 UI가 맨 앞에 오도록 배치)
-            bottom_sheet_contents.extend([feeding_guide, ft.Row(controls=[food_dropdown]), feeding_weight, feeding_memo])
-        else:
-            # 기존 "등록된 제품이 없습니다" 로직 유지
-            not_customer_detail = ft.Row(
-                height=100, alignment=ft.MainAxisAlignment.CENTER,
-                controls=[dogdog.basic_text("등록된 제품이 없습니다.", size=16, weight="bold", color=ft.Colors.GREY_600)],
-            )
-            def go_to_add(e):
-                popup.bottom_sheet_popup.open = False
-                page.update()
-                page.go("/feeding_add")
+        # [UI] 사료가 없을 때 노출되는 Empty State 영역
+        not_customer_detail = ft.Column(
+            visible=not has_food,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                ft.Container(height=20),
+                ft.Row(
+                    height=80, alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[dogdog.basic_text("등록된 상품이 없습니다.", size=16, weight="bold", color=ft.Colors.GREY_600)],
+                ),
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=20,
+                    controls=[
+                        dogdog.flat_button(
+                            "나중에 등록할게요", 
+                            on_click=lambda _: setattr(popup.bottom_sheet_popup, 'open', False)
+                        ),
+                        dogdog.flat_button(
+                            "등록하러가기", 
+                            bgcolor="#FEF3B9", 
+                            on_click=lambda _: page.go("/feeding")
+                        ),
+                    ]
+                ),
+                ft.Container(height=20),
+            ]
+        )
 
-            setting = ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                controls=[
-                    ft.Column(
-                        spacing=20, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        controls=[
-                            dogdog.flat_button("등록하러가기", bgcolor="#FEF3B9", on_click=go_to_add),
-                            dogdog.flat_button("나중에 등록할께요", on_click=lambda _: setattr(popup.bottom_sheet_popup, 'open', False)),
-                        ]
-                    )
-                ],
-            )
-            bottom_sheet_contents.extend([not_customer_detail, setting])
+        bottom_sheet_contents.extend([
+            feeding_guide, 
+            food_dropdown_wrap, 
+            feeding_weight_wrap, 
+            feeding_memo_wrap,
+            not_customer_detail
+        ])
 
     elif call == "watering":
         add_title("물주기")
@@ -422,8 +448,8 @@ async def bottom_sheet(e, page: ft.Page, popup, call, on_refresh_callback=None, 
         status_log_field.value = initial_memo
         bottom_sheet_contents.extend([status_log_field])
 
-    # 하단 버튼 조립
-    add_bottom_controls(is_customer_detail)
+    # 하단 버튼 조립 (has_food 상태에 따라 노출 제어)
+    add_bottom_controls(is_customer_detail, visible=has_food)
 
     # 오버레이 제어 및 팝업 열기
     if popup.bottom_sheet_popup not in page.overlay:

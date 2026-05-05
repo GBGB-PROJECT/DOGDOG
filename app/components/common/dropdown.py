@@ -19,7 +19,7 @@ def dropdown_menu(
         bgcolor=ft.Colors.WHITE,
         on_select=event,
         options=options,
-        value=options[0].key,
+        value=options[0].key if options else None,
     )
 
 def dropdown_menu_option(text:str, icon=None, icon_color=None, key=None):

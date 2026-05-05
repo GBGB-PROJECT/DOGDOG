@@ -36,13 +36,17 @@ def login_view(page: ft.Page, controller):
 
     # 중앙 콘텐츠 구성
     content = ft.Container(
+        padding=ft.padding.only(top=page.height/10, bottom=page.height/10),
         alignment=ft.Alignment.CENTER,
         expand=True,
         content=ft.Column(
             scroll=ft.ScrollMode.HIDDEN,
-            alignment=ft.MainAxisAlignment.CENTER,
             expand=True,
             controls=[
+                ft.Row(height=150, margin=ft.margin.only(bottom=page.height/40),
+                    alignment=ft.MainAxisAlignment.CENTER, 
+                    vertical_alignment=ft.CrossAxisAlignment.END,
+                    controls=[ft.Image(src="dogdog_logo.png", width=300)]),
                 ft.Container(height=10),
                 dogdog.basic_text(value="이메일", weight="bold", color=ft.Colors.GREY_800),
                 email_input,
@@ -51,14 +55,6 @@ def login_view(page: ft.Page, controller):
                 password_input,
             ]
         )
-    )
-
-    # 상단 로고 구성 (on_boarding_tile에서 top 변수로 사용될 부분)
-    top_logo = ft.Row(
-        height=200,
-        alignment=ft.MainAxisAlignment.CENTER,
-        vertical_alignment=ft.CrossAxisAlignment.END,
-        controls=[ft.Image(src="dogdog_logo.png", width=300)]
     )
 
     # 하단 버튼 구성 (on_boarding_tile에서 bottom 변수로 사용될 부분)
@@ -78,4 +74,4 @@ def login_view(page: ft.Page, controller):
         ]
     )
 
-    return top_logo, content, bottom_bar
+    return content, bottom_bar

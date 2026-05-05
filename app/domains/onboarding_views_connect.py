@@ -72,26 +72,34 @@ def on_boarding_tile(page: ft.Page, popup, content_page:str, change_page_callbac
             alignment=ft.MainAxisAlignment.CENTER, 
             vertical_alignment=ft.CrossAxisAlignment.END,
             controls=[ft.Image(src="dogdog_logo.png", width=300)])
+        content_text_1 = dogdog.basic_text(
+            value="똑똑🚪✊ 우리집 강아지가 마지막 한알을 먹기 전\n문앞에 사료가 도착합니다 🔔", weight="bold")
+        content_text_1.text_align = ft.TextAlign.CENTER
+        content_text_2 = dogdog.basic_text(color=ft.Colors.GREY_600,
+            value="반려견 맞춤형 설정에 따라 똑똑AI가 계산한\n권장 급여량을 확인하고\n간편하게 식사량을 기록하세요!")
+        content_text_2.text_align = ft.TextAlign.CENTER
         login_content = ft.Container(
-            alignment=ft.Alignment.CENTER, expand=True, padding=ft.padding.only(top=10, bottom=20),
+            alignment=ft.Alignment.CENTER, expand=True,
             content=ft.Column(
                 alignment=ft.MainAxisAlignment.CENTER, 
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
                 controls=[
-                    dogdog.continue_button(
-                        value="Continue with Google", icon="Google", expand=False, 
-                        on_click=login_next, data={'key':'Google'}),
-                    dogdog.continue_button(
-                        value="Continue with Naver", icon="Naver", expand=False,  
-                        on_click=login_next, data={'key':'Naver'}),
-                    dogdog.continue_button(
-                        value="Continue with Kakao", icon="Kakao", expand=False, 
-                        on_click=login_next, data={'key':'Kakao'}),
-                    ft.Row(margin=10, height=20, controls=[
-                        ft.Divider(expand=True), 
-                        dogdog.basic_text('or', color=ft.Colors.GREY_500), 
-                        ft.Divider(expand=True)
-                    ]),
+                    # dogdog.continue_button(
+                    #     value="Continue with Google", icon="Google", expand=False, 
+                    #     on_click=login_next, data={'key':'Google'}),
+                    # dogdog.continue_button(
+                    #     value="Continue with Naver", icon="Naver", expand=False,  
+                    #     on_click=login_next, data={'key':'Naver'}),
+                    # dogdog.continue_button(
+                    #     value="Continue with Kakao", icon="Kakao", expand=False, 
+                    #     on_click=login_next, data={'key':'Kakao'}),
+                    # ft.Row(margin=10, height=20, controls=[
+                    #     ft.Divider(expand=True), 
+                    #     dogdog.basic_text('or', color=ft.Colors.GREY_500), 
+                    #     ft.Divider(expand=True)
+                    # ]),
+                    content_text_1,
+                    content_text_2,
                     dogdog.continue_button(
                         value="이메일로 로그인하기", expand=False, 
                         on_click=login_next, data={'key':'Email'}),

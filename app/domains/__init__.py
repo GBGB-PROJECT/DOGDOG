@@ -21,3 +21,5 @@ from .mypage.views import mypage_view , notification
 from .shop.views import shop, shop_orders , shop_product_detail , subs_start , success_layout
 
 from .address import AddressSearcher , address_view
+
+from .developer_dummy_page import dummy_view

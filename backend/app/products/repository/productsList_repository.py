@@ -22,9 +22,11 @@ def get_product_detail_list(db: Session, keyword: str | None = None):
     return products
 
 def get_product_list(
-        db: Session, 
+        db: Session,
         keyword: str | None = None,
         sort: str | None = None,
+        limit: int = 9,
+        offset: int = 0,
     ):
     query = (
         select(
@@ -92,9 +94,11 @@ def get_product_list(
         # 기본 정렬: 등록순 느낌으로 product_id ASC
         query = query.order_by(
             OpdProductDetail.product_name.asc(),
-            OpdProduct.product_id.asc(),
+            OpdProduct.weight.asc(),
+            OpdProduct.quantity.asc(),
         )
 
+    query = query.offset(offset).limit(limit)
 
     result = db.execute(query)
     # products = result.scalars().all()

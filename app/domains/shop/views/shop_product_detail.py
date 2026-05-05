@@ -25,6 +25,7 @@ class Default_data:
         self.p_name =""
         self.p_price = 0
         self.pdi_images = []
+        self.p_explain = ""
 
         self.default_bottom_sheet = popup.bottom_sheet_popup
         self.default_bottom_sheet_content = popup.bottom_sheet_controls
@@ -49,6 +50,7 @@ class Default_data:
         self.p_name = product.get("product_name") or ""
         self.p_price = int(product.get("retail_price") or 0)
         self.pdi_images = product.get("pdi_images") or []
+        self.p_explain = f"{product.get('type')}/ {product.get('function')}" or ""
 
         self.is_detail_page = True
         self.page.update()
@@ -71,7 +73,7 @@ class Default_data:
         bt_product_name.expand = True
         bt_product_name.overflow = ft.TextOverflow.ELLIPSIS
         bt_product_explanation = dogdog.basic_text(
-            "상품 설명", size=12, color=ft.Colors.GREY_600)
+            self.p_explain, size=12, color=ft.Colors.GREY_600)
         bt_product_explanation.max_lines = 2
         bt_product_explanation.expand = True
         bt_product_explanation.overflow = ft.TextOverflow.ELLIPSIS
@@ -234,6 +236,11 @@ def shop_product_detail(page: ft.Page, popup, content_page):
         product_name.overflow = ft.TextOverflow.ELLIPSIS
         product_name.text_align = ft.TextAlign.CENTER
         product_name.width = dd.header_width * 1.4
+
+        product_explain = dogdog.basic_text(
+            dd.p_explain, 
+            size=12, 
+            color=ft.Colors.GREY_600)
         product_price = dogdog.basic_text(spans=[
             ft.TextSpan(f"{dd.p_price:,}원\n"),
             ft.TextSpan(f"똑똑 배송 적용가: {int(dd.p_price*0.9):,}원",
@@ -260,6 +267,8 @@ def shop_product_detail(page: ft.Page, popup, content_page):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
                         product_name,
+                        product_explain,
+                        ft.Text(""),
                         product_price
         ])])
         wishlist = dogdog.flat_over_button(bgcolor="#FBDD30", # type: ignore

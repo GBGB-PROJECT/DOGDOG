@@ -61,10 +61,53 @@ class ShopController:
         product_guide.update()
 
     @staticmethod
-    async def load_products(page, product_list, product_image_size, sort=None):
-        products = await get_shop_product_list(page, sort=sort)
+    async def load_products(
+        page,
+        product_list,
+        product_image_size,
+        product_state,
+        more_button,
+        sort=None,
+        reset=True,
+    ):
+        if product_state["is_loading"]:
+            return
 
-        if not products:
+        product_state["is_loading"] = True
+        more_button.visible = False
+
+        if reset:
+            product_state["items"] = {}
+            product_state["offset"] = 0
+            product_state["sort"] = sort
+            product_state["has_more"] = True
+
+            product_list.content = ft.Column(
+                controls=[
+                    ft.Container(
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.ProgressRing()
+                    )
+                ]
+            )
+            product_list.update()
+            more_button.update()
+
+        products = await get_shop_product_list(
+            page,
+            sort=product_state["sort"],
+            limit=product_state["limit"],
+            offset=product_state["offset"],
+        )
+
+        if products:
+            product_state["items"].update(products)
+            product_state["offset"] += len(products)
+            product_state["has_more"] = len(products) == product_state["limit"]
+        else:
+            product_state["has_more"] = False
+
+        if not product_state["items"]:
             product_list.content = ft.Column(
                 controls=[
                     dogdog.basic_text(
@@ -75,16 +118,20 @@ class ShopController:
                 ]
             )
         else:
-            print("상품 리스트 출력")
             product_list.content = ft.Column(
                 controls=dogdog.products(
                     page,
-                    products,
+                    product_state["items"],
                     product_image_size
                 )
             )
 
+        product_state["is_loading"] = False
+        more_button.visible = product_state["has_more"]
+
         product_list.update()
+        more_button.update()
+
 
     @staticmethod
     def product_guide_page(product_guide, key):

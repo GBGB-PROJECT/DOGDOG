@@ -2,6 +2,7 @@
 import flet as ft
 import components as dogdog
 import asyncio
+import re
 # -------------------------------------------------------------------------------------------------------
 def order_view(page: ft.Page, popup, page_name):
     # ---------------------------------------------------------------------------------------------------
@@ -44,11 +45,91 @@ def order_view(page: ft.Page, popup, page_name):
             "address",
             "postal_code",
         ]
+        
+        # *** 주문자 정보 값 꺼내기
+        order_name = get_field_value(order_customer_name)
+        order_phone = get_field_value(order_customer_phone)
+
+        # *** 배송자 정보 값 꺼내기
+        recipient_name = payload["recipient_name"]
+        recipient_phone = payload["recipient_phone"]
+
+        name_pattern = r"^[가-힣a-zA-Z]{2,10}$"
+        phone_pattern = r"^010-\d{4}-\d{4}$"
+
+        # *** 이름 유효성 검사
+        def check_name(name):
+            if not re.match(name_pattern, name):
+                page.show_dialog(
+                    ft.SnackBar(
+                        content=ft.Text("이름은 2~10자로 입력해주세요."),
+                        open=True,
+                        behavior=ft.SnackBarBehavior.FLOATING,
+                    )
+                )
+                return False
+            return True
+
+        # *** 전화번호 유효성 검사
+        def check_phone(phone):
+            if not re.match(phone_pattern, phone):
+                page.show_dialog(
+                    ft.SnackBar(
+                        content=ft.Text("전화번호는 010-0000-0000 형식으로 입력해주세요."),
+                        open=True,
+                        behavior=ft.SnackBarBehavior.FLOATING,
+                    )
+                )
+                return False
+            return True
+            
+
+        if not order_name or not order_phone:
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("주문자 정보를 모두 입력해주세요."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
 
         if any(not payload.get(field) for field in required_fields):
             page.show_dialog(
                 ft.SnackBar(
                     content=ft.Text("배송 정보를 모두 입력해주세요."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
+        
+        if not check_name(order_name):
+            return
+
+        if not check_phone(order_phone):
+            return
+
+        if not check_name(recipient_name):
+            return
+
+        if not check_phone(recipient_phone):
+            return
+        
+        if not selected_pay_method:
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("결제수단을 등록해주세요."),
+                    open=True,
+                    behavior=ft.SnackBarBehavior.FLOATING,
+                )
+            )
+            return
+        
+        if not agree_checkbox.value:
+            page.show_dialog(
+                ft.SnackBar(
+                    content=ft.Text("필수 동의 항목에 체크해주세요."),
                     open=True,
                     behavior=ft.SnackBarBehavior.FLOATING,
                 )
@@ -155,11 +236,27 @@ def order_view(page: ft.Page, popup, page_name):
         asyncio.create_task(order_timesleep()) # type: ignore
         page.go("/shop/address")
 
-    #----------
+    #----------------------
     def pay_method(method):
-        nonlocal selected_pay_method   
+        nonlocal selected_pay_method
         selected_pay_method = method
+
+        selected_bg = ft.Colors.GREY_500
+        selected_text = ft.Colors.WHITE
+        default_bg = ft.Colors.GREY_100
+        default_text = ft.Colors.GREY_600
+
+        card_button.bgcolor = selected_bg if method == "card" else default_bg
+        card_button.content.color = selected_text if method == "card" else default_text
+
+        easy_pay_button.bgcolor = selected_bg if method == "easy_pay" else default_bg
+        easy_pay_button.content.color = selected_text if method == "easy_pay" else default_text
+
+        card_button.update()
+        easy_pay_button.update()
+
         print("선택:", selected_pay_method)
+
     # ---------------------------------------------------------------------------------------------------
     delivery_customer_name = dogdog.input_textfield(
         hint_text="최대 10자로 작성해주세요", cancel_event=True)
@@ -179,6 +276,19 @@ def order_view(page: ft.Page, popup, page_name):
         label="요청사항을 선택해주세요.",
         event=None,
         options=delivery_options)
+    agree_checkbox = ft.Checkbox(scale=0.9)
+    card_button = dogdog.flat_button(
+        "카드",
+        expand=True,
+        on_click=lambda _: pay_method("card"),
+    )
+
+    easy_pay_button = dogdog.flat_button(
+        "간편결제",
+        expand=True,
+        on_click=lambda _: pay_method("easy_pay"),
+    )
+
     # ---------------------------------------------------------------------------------------------------
     # Order Page View
     # ---------------------------------------------------------------------------------------------------
@@ -232,8 +342,8 @@ def order_view(page: ft.Page, popup, page_name):
         dogdog.basic_text(
             "자동 결제 등록" if "/subs_product_order" in page_name else "결제 방법", size=16, weight="bold"),
         dogdog.order_row(spacing=8, content=[
-            dogdog.flat_button("카드", expand=True, on_click=lambda _: pay_method("card")),
-            dogdog.flat_button("간편결제", expand=True, on_click=lambda _: pay_method("easy_pay")),
+            card_button,
+            easy_pay_button,
         ]),
         dogdog.order_row(
             spacing=8,
@@ -246,7 +356,7 @@ def order_view(page: ft.Page, popup, page_name):
         ft.Row(
             spacing=3,
             controls=[
-                ft.Checkbox(scale=0.9),
+                agree_checkbox,
                 ft.Text(
                     "주문하실 상품 및 결제, 주문정보를 확인했으며 이에 동의합니다. (필수)",
                     size=12, color=ft.Colors.GREY_600, max_lines=3,

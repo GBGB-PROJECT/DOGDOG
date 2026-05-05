@@ -11,8 +11,8 @@ ALLOWED_IMAGE_HOSTS = {
     "photo3.enuri.info",
     "thumbnail.coupangcdn.com",
     "llis-pipeline.lotteon.com",
+    "harimpetfood.cafe24.com"
 }
-
 
 @router.get("/proxy")
 async def proxy_image(url: str = Query(...)):

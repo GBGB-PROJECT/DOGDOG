@@ -10,16 +10,16 @@ from app.notifications.repository.notifications_repository import (
 # 조회 ----------------------------------------------------
 
 # ["subs_delivery", "subs_payment", "food_exdate"]
-# CATEGORY_NAME_MAP = {
-#     "subs_delivery": "구독 배송",
-#     "subs_payment": "구독 결제",
-#     "food_exdate": "사료 소진일",
-# }
-
 CATEGORY_NAME_MAP = {
     "subs_delivery": "구독 배송",
+    "subs_payment": "구독 결제",
     "left_feeding_day": "사료 소진일",
 }
+
+# CATEGORY_NAME_MAP = {
+#     "subs_delivery": "구독 배송",
+#     "left_feeding_day": "사료 소진일",
+# }
 
 
 def read_notification_settings(db: Session, customer_id: int):

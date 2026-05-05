@@ -151,7 +151,18 @@ def home_layout(page, view=None, text=None, pet_list=None, back_event=None):
         left_header = ft.IconButton(
             icon=ft.Icons.ARROW_BACK_IOS_NEW, icon_color=ft.Colors.GREY_500, icon_size=26, 
             on_click=back_event if back_event else handle_back
-        ) if text != "개밥개밥푸드" else dogdog.basic_text(value=text, weight="bold", size=16, color=ft.Colors.WHITE)
+        ) if text != "개밥개밥푸드" else ft.Container(
+                                                ink=True,
+                                                border_radius=8,
+                                                padding=ft.padding.symmetric(horizontal=4, vertical=6),
+                                                on_click=lambda _: page.go("/shop"),
+                                                content=dogdog.basic_text(
+                                                    value=text,
+                                                    weight="bold",
+                                                    size=16,
+                                                    color=ft.Colors.WHITE,
+                                                ),
+                                            )
         center_header = dogdog.basic_text(value=text, weight="bold", size=16) # type: ignore
     # ---------------------------------------------------------------------------------------------------
     # Page Top Banner

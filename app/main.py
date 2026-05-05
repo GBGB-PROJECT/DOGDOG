@@ -7,7 +7,7 @@ import asyncio
 import components as dogdog
 
 # 테스트 아이디로 테스트 설정
-IS_TEST_MODE = False
+IS_TEST_MODE = True
 test_page = ""
 # -------------------------------------------------------------------------------------------------------
 # Mobile Platform
@@ -74,7 +74,7 @@ class Front_dogdog:
             print("[DEV] Starting auto login relay...")
             print(">> 로그인을 시도합니다...")
             # Step A: Login
-            payload = {"email": "test042806@test.com", "password": "A12345678!"}
+            payload = {"email": "test050205@test.com", "password": "A12345678!"}
             res_login = await api_client.post("/auth/login", data=payload)
             if res_login.status_code != 200:
                 raise Exception(f"Login failed: {res_login.text}")

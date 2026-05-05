@@ -79,6 +79,38 @@ class Popup:
             ),
         )
 
+        self.notification_controls = []
+        self.notification_popup = ft.AlertDialog(
+            alignment=ft.Alignment(0, -1),
+            expand=True,
+            inset_padding=0,
+            content_padding=0,
+            action_button_padding=0,
+            actions_padding=0,
+            bgcolor=ft.Colors.TRANSPARENT,
+            barrier_color=ft.Colors.TRANSPARENT,
+            scrollable=True,
+            content=ft.Container(
+                margin=ft.margin.only(top=5, left=5, right=5),
+                offset=ft.Offset(0,-1),
+                animate_offset=ft.Animation(
+                    duration=600,
+                    curve=ft.AnimationCurve.DECELERATE,
+                ),
+                width=3000,
+                padding=20,
+                bgcolor=ft.Colors.GREY_50,
+                border=ft.Border.all(2, color=ft.Colors.GREY_300),
+                border_radius=10,
+                content=ft.Column(
+                    tight=True,
+                    expand=True,
+                    spacing=10,
+                    controls=self.notification_controls
+                )
+            )
+        )
+
         # Bottom Sheet Setting (popup)
         # self.your_bottom_sheet = self.popup.bottom_sheet_popup
         # self.your_bottom_sheet_contents = self.popup.bottom_sheet_controls

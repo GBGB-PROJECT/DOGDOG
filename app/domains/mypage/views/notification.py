@@ -1,6 +1,7 @@
 import flet as ft
 import components as dogdog
 import datetime
+import asyncio
 
 def notification_dummy(page: ft.Page):
     storage = page.session.store
@@ -66,11 +67,12 @@ def noti_time_drop(content, event):
     return time_drop
 
 class Noti:
-    def __init__(self, page: ft.Page, settings=None, is_subscribed=False):
+    def __init__(self, page: ft.Page, popup, settings=None, is_subscribed=False):
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
+        self.popup = popup
         self.storage = page.session.store
         self.is_subscribed = is_subscribed
         self.notification_settings = {
@@ -188,8 +190,12 @@ class Noti:
                     f"{self.drug_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
             ]),
         ])
-
-
+        # -----------------------------------------------------------------------------------------------
+        # Notification Popup
+        # -----------------------------------------------------------------------------------------------
+        self.notification_popup = self.popup.notification_popup
+        self.notification_controls = self.popup.notification_controls
+    
     def get_db_noti_value(self, category: str, days: int, default=False):
         setting = self.notification_settings.get(category) or {}
 
@@ -200,7 +206,6 @@ class Noti:
             return bool(setting.get("noti_before_7days", default))
 
         return default
-
     # ---------------------------------------------------------------------------------------------------
     # Picker Open Event
     # ---------------------------------------------------------------------------------------------------
@@ -209,7 +214,7 @@ class Noti:
             select_time = e.control.value.strftime(format='%p %H:%M').replace('PM','오후').replace('AM','오전')
             picker.content.controls[1].value = select_time
             self.storage.set(f'{button_type}_time', select_time)
-            self.test_timer(button_type)
+            self.Notification(button_type)
         
         button_type = e.control.data.get('button')
         self.time_picker.on_change = (
@@ -221,10 +226,6 @@ class Noti:
     # ---------------------------------------------------------------------------------------------------
     # Notification Switch Event
     # ---------------------------------------------------------------------------------------------------
-    # def switch_event(self, e):
-    #     switch_type = e.control.data.get('noti')
-    #     self.storage.set(f'noti_{switch_type}', e.data)
-    #     self.test_timer(switch_type)
     async def switch_event(self, e):
         from domains.mypage.controller.subs_notification_api import NotificationController
 
@@ -240,7 +241,7 @@ class Noti:
         }
 
         if switch_type not in category_map:
-            self.test_timer(switch_type)
+            self.Notification(switch_type)
             return
 
         category, option = category_map[switch_type]
@@ -272,7 +273,7 @@ class Noti:
             current_settings[category] = result
             self.storage.set("notification_settings", current_settings)
 
-        self.test_timer(switch_type)
+        self.Notification(switch_type)
     # ---------------------------------------------------------------------------------------------------
     # Interval Dropdown Event
     # ---------------------------------------------------------------------------------------------------
@@ -290,11 +291,31 @@ class Noti:
             self.drug_interval = e.data
             interval_guide[3].controls[1].value = f"{self.drug_interval}시간 알림 간격"
             self.storage.set('drug_interval', self.drug_interval)
-        self.test_timer(content)
+        self.Notification(content)
     # ---------------------------------------------------------------------------------------------------
     # Notification Test Timer
     # ---------------------------------------------------------------------------------------------------
-    def test_timer(self, switch_type):
+    def Notification(self, switch_type):
+        # -----------------------------------------------------------------------------------------------
+        # Notification Popup Content
+        # -----------------------------------------------------------------------------------------------
+        self.notification_controls.clear()
+        self.noti_time = "지금"
+        popup_top = ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
+            ft.Container(padding=0, margin=0, content=ft.Row(spacing=5, controls=[
+                ft.Image("icon.png", width=24), dogdog.basic_text("똑똑", color=ft.Colors.GREY_400, weight="bold")
+            ])), 
+            dogdog.basic_text(self.noti_time, color=ft.Colors.GREY_400, weight="bold")
+        ])
+        self.notification_controls.append(popup_top)
+        if self.notification_popup not in self.page.overlay:
+            self.page.overlay.append(self.notification_popup)
+        else:
+            self.page.overlay.clear()
+            self.page.overlay.append(self.notification_popup)
+        # -----------------------------------------------------------------------------------------------
+        # Notification Setting
+        # -----------------------------------------------------------------------------------------------
         noti_setting = self.storage.get(f'noti_{switch_type}')
         if noti_setting:
             # print(switch_type, noti_setting)
@@ -303,28 +324,65 @@ class Noti:
             if switch_type == 'food':
                 noti_type = self.food_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.food_time_drop.value) # type: ignore
+                self.noti_title = "밥주기"
+                self.noti_message = f"🦴 {'pet_name'}, 밥 줄 시간입니다."
             elif switch_type == 'water':
                 noti_type = self.water_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.water_time_drop.value) # type: ignore
+                self.noti_title = "물주기"
+                self.noti_message = f"💧 {'pet_name'}, 물 줄 시간입니다."
             elif switch_type == 'drug':
                 noti_type = self.drug_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.drug_time_drop.value) # type: ignore
+                self.noti_title = "약주기"
+                self.noti_message = f"💊 {'pet_name'}, 약 줄 시간입니다."
             elif switch_type == 'subs3':
-                print(f" 🛎️ subs 3\n{'===='*30}")
+                self.noti_title = "똑똑배송"
+                self.noti_message = "📦 3일 뒤 “가장 맛있는 시간 30일, 닭고기 2.5kg”이 배송됩니다."
             elif switch_type == 'subs7':
-                print(f" 🛎️ subs 7\n{'===='*30}")
+                self.noti_title = "똑똑배송"
+                self.noti_message = "📦 7일 뒤 “가장 맛있는 시간 30일, 닭고기 2.5kg”이 배송됩니다."
             elif switch_type == 'left_food_count':
-                print(f" 🛎️ left_food_count\n{'===='*30}")
+                self.noti_title = "소진일 알림"
+                self.noti_message = "🍚 급여중인 사료가 7일치 남았습니다. 지금 바로 사료를 구매하세요."
             if noti_type and select_time:
                 noti_setting_time = datetime.datetime.strptime(noti_type, "%p %H:%M")
                 vs_time = []
                 for count in range(int(24/select_time)):
                     times = noti_setting_time + datetime.timedelta(hours=count*select_time)
                     vs_time.append(times.strftime("%d %H:%M"))
-                print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{"===="*30}')
-                
-def notification_setting(page: ft.Page, settings=None, is_subscribed=False):
-    noti = Noti(page=page, settings=settings, is_subscribed=is_subscribed)
+                print(f' 🛎️ Setting {switch_type} Guide Time (First Alarm ⏲️[{vs_time[1].split()[1]}])\n{'===='*30}')
+            
+            popup_title = dogdog.basic_text(self.noti_title, size=16, weight="bold")
+            popup_message = dogdog.basic_text(self.noti_message)
+            
+            self.notification_controls.append(popup_title)
+            self.notification_controls.append(popup_message)
+            self.notification_popup.open = True
+            for task in asyncio.all_tasks():
+                if "noti_popup_delay" in str(task.get_coro()):
+                    task.cancel()
+            asyncio.create_task(self.noti_popup_delay())
+    # ---------------------------------------------------------------------------------------------------
+    # Notification Popup Delay Task
+    # ---------------------------------------------------------------------------------------------------
+    async def noti_popup_delay(self):
+        try:
+            self.notification_popup.content.offset = ft.Offset(0,-1)
+            self.notification_popup.update()
+            await asyncio.sleep(0.5)
+            self.notification_popup.content.offset = ft.Offset(0,0)
+            self.notification_popup.update()
+            await asyncio.sleep(5)
+            self.notification_popup.content.offset = ft.Offset(0,-1)
+            self.notification_popup.update()
+            self.notification_popup.open = False
+            self.page.update()
+        except: pass
+
+def notification_setting(page: ft.Page, popup, settings=None, is_subscribed=False):
+
+    noti = Noti(page=page, popup=popup, settings=settings, is_subscribed=is_subscribed)
 
     subs_interval = dogdog.content_container(
         content_list=[

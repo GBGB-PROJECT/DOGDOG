@@ -45,6 +45,8 @@ async def home_tile(
         page.dialog = None
         page.update()
 
+        # [ISSUE] 부분 업데이트 시 UI 레이스 컨디션 및 하얀 화면 발생 (2026-05-05)
+        # [TODO] 향후 PubSub 기반의 부분 업데이트 로직으로 고도화 필요. 현재는 안정성을 위해 홈 직행 리셋 방식 사용.
         needs_refresh = page.session.store.get('needs_refresh')
         if needs_refresh:
             pet_id = page.session.store.get("current_pet_id")

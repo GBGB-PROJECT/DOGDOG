@@ -6,6 +6,10 @@ from components.common.erp_busy_cursor import register_busy_cursor_host
 
 
 class ErpFrame(ft.Container):
+    _NO_CACHE_ROUTES = {
+        "/production/order",
+    }
+
     def __init__(self, page: ft.Page, current_route: str):
         super().__init__()
         self.main_page = page
@@ -56,6 +60,9 @@ class ErpFrame(ft.Container):
 
     def _get_cached_view(self, route: str):
         normalized_route = hcm.normalize_route(route)
+        if normalized_route in self._NO_CACHE_ROUTES:
+            return hcm.get_view_by_route(normalized_route)
+
         if normalized_route not in self._view_cache:
             self._view_cache[normalized_route] = hcm.get_view_by_route(normalized_route)
         return self._view_cache[normalized_route]

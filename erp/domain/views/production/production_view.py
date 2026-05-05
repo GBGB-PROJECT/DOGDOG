@@ -162,7 +162,7 @@ def erp_production_view():
         set_purchase_order_prefilter(
             start_date=data.get("month_start"),
             end_date=data.get("month_end"),
-            date_type="contract_date",
+            date_type="inbound_scheduled_date",
         )
 
         go_with_busy_cursor(e.page, "/production/order")

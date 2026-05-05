@@ -576,20 +576,6 @@ def fetch_purchase_order_items(purchase_order_id):
 
 
 
-# =========================================================
-# ☑️ 등록 기능은 현재 사용하지 않음
-# =========================================================
-
-def create_customer(*args, **kwargs):
-    print("🔥 create_customer는 현재 조회 전용 화면에서 사용하지 않습니다.")
-    return None
-
-
-def create_employee(*args, **kwargs):
-    print("🔥 create_employee는 현재 조회 전용 화면에서 사용하지 않습니다.")
-    return None
-
-
 def create_product_detail(*args, **kwargs):
     payload = args[0] if args else kwargs
     return _mutate("POST", "/erp/merchandise/details", payload)

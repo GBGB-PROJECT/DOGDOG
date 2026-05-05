@@ -141,7 +141,6 @@ def _apply_filter(query, search_type: str, keyword: str):
     if search_type == "inbound_id":
         return query.filter(cast(ErpStock.inbound_id, String).like(like_keyword(clean)))
 
-    # 🔥 입고 상태 검색
     if search_type == "inbound_status":
         return query.filter(cast(ErpInboundStatus.status, String).ilike(like_keyword(clean)))
 

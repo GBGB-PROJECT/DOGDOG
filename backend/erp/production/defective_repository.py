@@ -106,7 +106,7 @@ def _base_query(db):
             ErpSupplier.supplier_name.label("supplier_name"),
             ErpInboundStatus.status.label("inbound_status"),
             ErpPurchaseOrderItem.product_id.label("product_id"),
-            OpdProduct.product_detail_id.label("product_detail_id"),  # 🔥 추가: 화면 상품번(product_detail_id-product_id) 구성용
+            OpdProduct.product_detail_id.label("product_detail_id"),
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
             OpdProduct.weight.label("weight"),

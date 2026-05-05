@@ -88,8 +88,8 @@ def build_response_rows(items: list, page: int, size: int):
                 "supplier_name": row.get("supplier_name", ""),
                 "inbound_status": row.get("inbound_status", ""),  # 🔥 상태명 문자
                 "product_id": row.get("product_id", ""),
-                "product_detail_id": row.get("product_detail_id", ""),  # 🔥 추가: 상품번 구성용
-                "product_no": _build_product_no(row.get("product_detail_id", ""), row.get("product_id", "")),  # 🔥 추가: 상품 상세 정보 관리와 동일한 상품번
+                "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": _build_product_no(row.get("product_detail_id", ""), row.get("product_id", "")),
                 "brand": row.get("brand", ""),
                 "product_name": row.get("product_name", ""),
                 "weight": row.get("weight", ""),

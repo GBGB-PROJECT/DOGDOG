@@ -1,7 +1,6 @@
 from .employee_repository import (
     count_employees,
     fetch_employees,
-    create_employee,
 )
 
 
@@ -12,5 +11,4 @@ from .employee_repository import (
 __all__ = [
     "count_employees",
     "fetch_employees",
-    "create_employee",
 ]

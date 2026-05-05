@@ -12,8 +12,12 @@ class ErpProductionDefectiveItem(BaseModel):
     supplier_name: str = ""
     inbound_status: str = ""
     product_id: Any = None
+    product_detail_id: Any = None
+    product_no: Any = None
     brand: str = ""
     product_name: str = ""
+    weight: Any = None
+    weight_text: str = ""
     defective: Any = None
     purchase_price: Any = None
     defective_amount: Any = None

@@ -8,8 +8,8 @@ from .customer_info_service import count_customers, fetch_customers
 from .customer_info_schema import ErpCustomerInfoListResponse
 
 router = APIRouter(
-    prefix="/erp/customer/info",  # 🔥 수정: 고객 정보 관리 전용 API 경로로 변경
-    tags=["customer"],  # 🔥 수정: Swagger에서 고객 정보 관리 API로 분리 표시
+    prefix="/erp/customer/info",
+    tags=["customer"],
 )
 
 SEARCH_TYPE_LABELS = {

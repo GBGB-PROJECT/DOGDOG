@@ -42,14 +42,18 @@ def build_stock_pie_chart_box(feed_data: dict):
     # 오늘 날짜 동적 생성
     today_str = datetime.date.today().strftime("%Y/%m/%d")
 
-    # 동적으로 넣기 위한 색상 팔레트
+    # 동적으로 넣기 위한 색상 팔레트 10개
     color_categories = [
-        "#00C49F",  # 청록색 (Teal)
-        "#FF9F40",  # 주황색 (Orange)
-        "#0088FE",  # 파란색 (Blue)
-        "#FFBB28",  # 노란색 (Yellow)
-        "#FF8042",  # 다홍색 (Coral)
-        "#8884d8",  # 보라색 (Purple)
+    "#00C49F",  
+    "#FF9F40", 
+    "#0088FE", 
+    "#FFBB28", 
+    "#FF8042", 
+    "#8884d8", 
+    "#82ca9d", 
+    "#ffc658", 
+    "#8dd1e1",  
+    "#ff6699"   
     ]
 
     # 빈 데이터를 받을 경우 빈 차트가 나오는 것을 방지

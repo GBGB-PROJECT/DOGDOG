@@ -1,4 +1,4 @@
-import flet as ft
+﻿import flet as ft
 
 from components.common.erp_busy_cursor import go_with_busy_cursor
 from components import common as cm
@@ -119,7 +119,7 @@ def _empty_dashboard_data(year=DEFAULT_DASHBOARD_YEAR, month=DEFAULT_DASHBOARD_M
 # 🔥 생산관리 화면 본체
 # ==============================
 def erp_production_view():
-    page_title = "생산관리"
+    page_title = "생산현황"
 
     saved_year, saved_month = get_production_dashboard_month_state()
 

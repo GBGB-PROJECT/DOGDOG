@@ -64,8 +64,9 @@ def login_view(page: ft.Page, controller):
 
     # 하단 버튼 구성 (on_boarding_tile에서 bottom 변수로 사용될 부분)
     def on_login_click(e):
-        email = storage.get("login_email")
-        password = storage.get("login_password")
+        # UI 필드의 현재 값을 실시간으로 직접 읽어옵니다.
+        email = email_input.value
+        password = password_input.value
         page.run_task(controller.process_email_login, email, password)
 
     bottom_bar = ft.Row(

@@ -17,6 +17,8 @@ class LoginController:
         
         import re
         
+        print(f"DEBUG: email='{email}', pw='{password}'")
+        
         # 1단계: 빈 값 검증
         if not email or not password:
             self._show_snack_bar("이메일과 비밀번호를 모두 입력해 주세요.")

@@ -397,18 +397,25 @@ class Front_dogdog:
         # [해결] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (TypeError 해결 및 API 연동)
         if page_name == "/home" and self.home_feeding_guide_popup:
             try:
-                from api_client import ApiClient
-
-                api_client = ApiClient(self.page)
-
-                # 1. 세션에서 정보 획득
-                pet_id = self.storage.get("current_pet_id")
-                pet_list = self.storage.get("pet_list") or {}
-                pet_info = pet_list.get(pet_id) or pet_list.get(str(pet_id)) or {}
-                pet_name = pet_info.get("nickname", "반려견")
-
-                # 2. 권장 급여량 API 호출 및 안전한 파싱
-                guide_intake = 0
+                # [신규 추가] 급여 중인 사료 정보가 없으면 팝업 노출 차단
+                pet_food_detail = self.storage.get("pet_food_detail")
+                
+                # 사료 데이터가 비어있거나, 딕셔너리가 아니거나, 내용이 없으면 건너뜀
+                if not pet_food_detail or not isinstance(pet_food_detail, dict) or not pet_food_detail.get("pet_food_id"):
+                    print("[DEBUG] 등록된 사료 정보가 없어 권장 급여량 팝업을 차단합니다.")
+                else:
+                    from api_client import ApiClient
+    
+                    api_client = ApiClient(self.page)
+    
+                    # 1. 세션에서 정보 획득
+                    pet_id = self.storage.get("current_pet_id")
+                    pet_list = self.storage.get("pet_list") or {}
+                    pet_info = pet_list.get(pet_id) or pet_list.get(str(pet_id)) or {}
+                    pet_name = pet_info.get("nickname", "반려견")
+    
+                    # 2. 권장 급여량 API 호출 및 안전한 파싱
+                    guide_intake = 0
                 try:
                     res_guide = await api_client.get(f"/calc_feeding/{pet_id}/guide")
                     if res_guide.status_code == 200:

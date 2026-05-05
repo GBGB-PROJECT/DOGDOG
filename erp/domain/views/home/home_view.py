@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import flet as ft
 
 from components import common as cm
@@ -35,27 +37,30 @@ def _default_inventory_data():
 
 
 def _load_home_data():
-    try:
-        sale_data = HomeViewMain.sale_dashboard()
-        if not sale_data:
-            raise Exception("sale data empty")
-    except Exception as exc:
-        print(f"홈 매출 데이터 조회 실패: {exc}")
-        sale_data = _default_sale_data()
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {
+            "sale": executor.submit(HomeViewMain.sale_dashboard),
+            "inventory": executor.submit(HomeViewMain.inventory_dashboard),
+            "production": executor.submit(HomeViewMain.prduct_defect_chart),
+        }
 
-    try:
-        inventory_data = HomeViewMain.inventory_dashboard()
-        if not inventory_data:
-            raise Exception("inventory data empty")
-    except Exception as exc:
-        print(f"홈 재고 데이터 조회 실패: {exc}")
-        inventory_data = _default_inventory_data()
+        try:
+            sale_data = futures["sale"].result() or _default_sale_data()
+        except Exception as exc:
+            print(f"홈 매출 데이터 조회 실패: {exc}")
+            sale_data = _default_sale_data()
 
-    try:
-        production_data = HomeViewMain.prduct_defect_chart() or {}
-    except Exception as exc:
-        print(f"홈 생산 차트 조회 실패: {exc}")
-        production_data = {}
+        try:
+            inventory_data = futures["inventory"].result() or _default_inventory_data()
+        except Exception as exc:
+            print(f"홈 재고 데이터 조회 실패: {exc}")
+            inventory_data = _default_inventory_data()
+
+        try:
+            production_data = futures["production"].result() or {}
+        except Exception as exc:
+            print(f"홈 생산 차트 조회 실패: {exc}")
+            production_data = {}
 
     return sale_data, inventory_data, production_data
 

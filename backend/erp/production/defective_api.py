@@ -169,21 +169,25 @@ def get_defective_list(
         description="조회 종료일. date_filter_type 기준 컬럼으로 기간을 필터링합니다.",
         examples=["2026-04-30"],
     ),
+    include_total: bool = Query(default=True),
 ):
     try:
         clean_search_type = (search_type or "inbound_id").strip()
         clean_date_filter_type = (date_filter_type or "inbound_complete").strip()
         clean_keyword = (keyword or "").strip()
 
-        total_count = count_defectives(
-            search_type=clean_search_type,
-            keyword=clean_keyword,
-            start_date=start_date,
-            end_date=end_date,
-            date_filter_type=clean_date_filter_type,
-        )
+        total_count = 0
+        total_pages = 1
+        if include_total:
+            total_count = count_defectives(
+                search_type=clean_search_type,
+                keyword=clean_keyword,
+                start_date=start_date,
+                end_date=end_date,
+                date_filter_type=clean_date_filter_type,
+            )
 
-        total_pages = max(1, ceil(total_count / size))
+            total_pages = max(1, ceil(total_count / size))
         offset = (page - 1) * size
 
         items = fetch_defectives(
@@ -198,7 +202,7 @@ def get_defective_list(
 
         result_items = build_response_rows(items, page, size)
 
-        if total_count == 0:
+        if include_total and total_count == 0:
             return {
                 "success": True,
                 "message": "일치하는 정보가 없습니다.",

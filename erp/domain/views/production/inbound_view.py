@@ -13,7 +13,7 @@ import datetime
 import flet as ft
 
 # 🔥 httpx 방식 API 호출로 변경
-from api.erp_httpx_api import count_inbounds, fetch_inbounds
+from api.erp_httpx_api import count_inbounds, fetch_inbounds, fetch_inbounds_page
 from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
 from components.common.erp_view_style import *
 from components.common.erp_pagination import calc_total_pages, build_pagination_bar
@@ -41,11 +41,13 @@ def set_production_inbound_prefilter(
     end_date=None,
     search_type="inbound_complete",
     date_filter_type="inbound_complete",
+    total_count=None,
 ):
     _PRODUCTION_INBOUND_PREFILTER["value"] = {
         "start_date": start_date,
         "end_date": end_date,
         "search_type": search_type or "inbound_complete",
+        "total_count": total_count,
         # 🔥 검색조건과 날짜 기준을 분리
         # - 생산관리 68건 > 으로 들어온 경우 검색조건을 거래처명/상품명으로 바꿔도
         #   날짜 범위는 계속 입고완료일 기준으로 유지해야 함
@@ -225,6 +227,7 @@ def erp_inbound_view():
         "total_count": 0,
         "total_pages": 1,
         "keyword": "",
+        "prefilter_total_count": initial_prefilter.get("total_count"),
     }
 
     start_field_holder = ft.Container()
@@ -392,10 +395,12 @@ def erp_inbound_view():
         search_type_text.value = search_type_labels[value]
         update_reset_button_visibility()
 
-        if page:
-            page.update()
-        else:
+        try:
             search_type_text.update()
+            reset_button_holder.update()
+        except Exception:
+            if page:
+                page.update()
 
     # 🔥 추가: 날짜조건 드롭다운 전용 변경 함수
     def set_date_filter_type(value: str, page: ft.Page | None = None):
@@ -403,10 +408,12 @@ def erp_inbound_view():
         date_type_text.value = date_type_labels[value]
         update_reset_button_visibility()
 
-        if page:
-            page.update()
-        else:
+        try:
             date_type_text.update()
+            reset_button_holder.update()
+        except Exception:
+            if page:
+                page.update()
 
     def build_search_menu_item(label: str, value: str):
         return ft.PopupMenuItem(
@@ -604,13 +611,33 @@ def erp_inbound_view():
 
         return inbound_db_row_adapter(db_rows, page_no)
 
+    def fetch_inbound_page(keyword="", page_no=1, include_total=True):
+        offset = (page_no - 1) * PAGE_SIZE
+        start_date, end_date = get_selected_date_range()
+
+        result = fetch_inbounds_page(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+            start_date=start_date,
+            end_date=end_date,
+            date_filter_type=date_filter_type_value["value"],
+            include_total=include_total,
+        )
+
+        return {
+            "rows": inbound_db_row_adapter(result["items"], page_no),
+            "pagination": result["pagination"],
+        }
+
     def move_page(page_no: int, page: ft.Page):
         if page_no < 1 or page_no > pagination_state["total_pages"]:
             return
 
         pagination_state["current_page"] = page_no
         reload_current_page()
-        page.update()
+        update_lookup_area(page)
 
     def build_page_button(label, page_no=None, selected=False, disabled=False):
         return ft.Container(
@@ -658,15 +685,47 @@ def erp_inbound_view():
     def reload_current_page():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]
+        prefilter_total_count = pagination_state.get("prefilter_total_count")
+        include_total = prefilter_total_count is None
 
-        total_count = fetch_total_count(keyword=keyword)
-        total_pages = calc_total_pages(total_count, PAGE_SIZE)
+        page_result = fetch_inbound_page(
+            keyword=keyword,
+            page_no=current_page,
+            include_total=include_total,
+        )
+        pagination = page_result["pagination"]
+        total_count = (
+            int(prefilter_total_count)
+            if prefilter_total_count is not None
+            else pagination.get("total_count", 0)
+        )
+        total_pages = (
+            calc_total_pages(total_count, PAGE_SIZE)
+            if prefilter_total_count is not None
+            else pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
+        )
 
         if current_page > total_pages:
             current_page = total_pages
             pagination_state["current_page"] = current_page
+            page_result = fetch_inbound_page(
+                keyword=keyword,
+                page_no=current_page,
+                include_total=include_total,
+            )
+            pagination = page_result["pagination"]
+            total_count = (
+                int(prefilter_total_count)
+                if prefilter_total_count is not None
+                else pagination.get("total_count", 0)
+            )
+            total_pages = (
+                calc_total_pages(total_count, PAGE_SIZE)
+                if prefilter_total_count is not None
+                else pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
+            )
 
-        rows = fetch_inbound_rows(keyword=keyword, page_no=current_page)
+        rows = page_result["rows"]
 
         rows_state.clear()
         rows_state.extend(rows)
@@ -678,12 +737,32 @@ def erp_inbound_view():
         refresh_pagination()
         update_result_text()
 
+    def update_lookup_area(page: ft.Page | None = None):
+        for control in (
+            table_rows_holder,
+            pagination_holder,
+            result_text,
+            reset_button_holder,
+        ):
+            try:
+                control.update()
+            except Exception:
+                if page:
+                    page.update()
+                break
+
     def on_search_click(e):
         pagination_state["keyword"] = (search_field.value or "").strip()
         pagination_state["current_page"] = 1
+        pagination_state["prefilter_total_count"] = None
+        result_text.value = "조회 중입니다."
+        try:
+            result_text.update()
+        except Exception:
+            pass
         reload_current_page()
         update_reset_button_visibility()
-        e.page.update()
+        update_lookup_area(e.page)
 
     def on_reset_click(e):
         # 🔥 추가: 검색/날짜 조건을 전부 기본값으로 되돌리고 첫 화면 재조회
@@ -698,11 +777,30 @@ def erp_inbound_view():
 
         pagination_state["keyword"] = ""
         pagination_state["current_page"] = 1
+        pagination_state["prefilter_total_count"] = None
 
         refresh_picker_fields()
+        result_text.value = "초기화 후 조회 중입니다."
+        try:
+            result_text.update()
+        except Exception:
+            pass
         reload_current_page()
         update_reset_button_visibility()
-        e.page.update()
+        for control in (
+            start_field_holder,
+            start_icon_holder,
+            end_field_holder,
+            end_icon_holder,
+            search_type_text,
+            date_type_text,
+            search_field,
+        ):
+            try:
+                control.update()
+            except Exception:
+                pass
+        update_lookup_area(e.page)
 
     refresh_picker_fields()
 
@@ -737,6 +835,6 @@ def erp_inbound_view():
 
     class InboundPage(ft.Container):
         def did_mount(self):
-            self.page.run_thread(lambda: (reload_current_page(), self.page.update()))
+            self.page.run_thread(lambda: (reload_current_page(), update_lookup_area(self.page)))
 
     return InboundPage(expand=True, content=page_layout)

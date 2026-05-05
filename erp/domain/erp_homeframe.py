@@ -9,6 +9,8 @@ from components.common.erp_busy_cursor import register_busy_cursor_host
 
 class ErpFrame(ft.Container):
     _NO_CACHE_ROUTES = {
+        "/production/inbound",
+        "/production/defective",
         "/production/order",
         "/stock/product/detail",
     }

@@ -174,6 +174,14 @@ def erp_production_view():
             start_date=data.get("month_start"),
             end_date=data.get("month_end"),
             search_type="inbound_complete",
+            total_count=next(
+                (
+                    box.get("count")
+                    for box in data.get("status_box_data", [])
+                    if box.get("title") == "생산 입고"
+                ),
+                None,
+            ),
         )
 
         go_with_busy_cursor(e.page, "/production/inbound")
@@ -189,6 +197,14 @@ def erp_production_view():
             start_date=data.get("month_start"),
             end_date=data.get("month_end"),
             search_type="inbound_complete",
+            total_count=next(
+                (
+                    box.get("count")
+                    for box in data.get("status_box_data", [])
+                    if box.get("title") == "불량 내역"
+                ),
+                None,
+            ),
         )
 
         go_with_busy_cursor(e.page, "/production/defective")
@@ -615,7 +631,18 @@ def erp_production_view():
         )
 
         if page:
-            page.update()
+            for control in (
+                month_navigation_holder,
+                status_box_holder,
+                chart_holder,
+                purchase_month_text_holder,
+                recent_purchase_holder,
+            ):
+                try:
+                    control.update()
+                except Exception:
+                    page.update()
+                    break
 
     def move_dashboard_month(diff: int, e):
         new_year, new_month = _move_month(state["year"], state["month"], diff)

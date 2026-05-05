@@ -8,6 +8,7 @@ from components.common.modals.purchase_order import PurchaseOrderDialog
 from api.erp_httpx_api import (
     count_purchase_orders,
     fetch_purchase_orders,
+    fetch_purchase_orders_page,
     fetch_purchase_order_detail,
     fetch_purchase_order_items,
 )
@@ -645,6 +646,25 @@ def erp_purchase_order_view():
 
         return purchase_order_db_row_adapter(db_rows, page_no)
 
+    def fetch_purchase_order_page(keyword="", page_no=1):
+        offset = (page_no - 1) * PAGE_SIZE
+        start_date, end_date = get_selected_date_range()
+
+        result = fetch_purchase_orders_page(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+            start_date=start_date,
+            end_date=end_date,
+            date_type=date_type_value["value"],
+        )
+
+        return {
+            "rows": purchase_order_db_row_adapter(result["items"], page_no),
+            "pagination": result["pagination"],
+        }
+
     def move_page(page_no: int, page: ft.Page):
         if page_no < 1:
             return
@@ -728,14 +748,20 @@ def erp_purchase_order_view():
         keyword = pagination_state["keyword"]
         current_page = pagination_state["current_page"]
 
-        total_count = fetch_total_count(keyword=keyword)
-        total_pages = calc_total_pages(total_count, PAGE_SIZE)
+        page_result = fetch_purchase_order_page(keyword=keyword, page_no=current_page)
+        pagination = page_result["pagination"]
+        total_count = pagination.get("total_count", 0)
+        total_pages = pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
 
         if current_page > total_pages:
             current_page = total_pages
             pagination_state["current_page"] = current_page
+            page_result = fetch_purchase_order_page(keyword=keyword, page_no=current_page)
+            pagination = page_result["pagination"]
+            total_count = pagination.get("total_count", 0)
+            total_pages = pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
 
-        fetched_rows = fetch_purchase_order_rows(keyword, current_page)
+        fetched_rows = page_result["rows"]
 
         rows_state.clear()
         rows_state.extend(fetched_rows)

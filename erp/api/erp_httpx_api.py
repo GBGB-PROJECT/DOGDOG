@@ -14,9 +14,10 @@ BASE_URL = "http://127.0.0.1:8000"
 _CLIENT = httpx.Client(
     base_url=BASE_URL,
     timeout=10.0,
+    limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
 )
 _GET_CACHE = OrderedDict()
-_GET_CACHE_TTL_SECONDS = 6.0
+_GET_CACHE_TTL_SECONDS = 20.0
 _GET_CACHE_MAX_SIZE = 256
 _GET_CACHE_LOCK = RLock()
 
@@ -51,8 +52,9 @@ def _get(path: str, params: dict | None = None):
         response.raise_for_status()
         result = response.json()
         data = result.get("data", {})
+        fetched_at = time.monotonic()
         with _GET_CACHE_LOCK:
-            _GET_CACHE[key] = {"time": now, "data": data}
+            _GET_CACHE[key] = {"time": fetched_at, "data": data}
             _GET_CACHE.move_to_end(key)
             while len(_GET_CACHE) > _GET_CACHE_MAX_SIZE:
                 _GET_CACHE.popitem(last=False)
@@ -383,6 +385,31 @@ def fetch_inbounds(
     return result["items"]
 
 
+def fetch_inbounds_page(
+    search_type="inbound_id",
+    keyword="",
+    limit=50,
+    offset=0,
+    start_date=None,
+    end_date=None,
+    date_filter_type="inbound_start",
+    include_total=True,
+):
+    page = (offset // limit) + 1
+
+    return _list_request(
+        "/erp/production/inbound",
+        search_type=search_type,
+        keyword=keyword,
+        page=page,
+        size=limit,
+        start_date=start_date,
+        end_date=end_date,
+        date_filter_type=date_filter_type,
+        include_total=include_total,
+    )
+
+
 def count_inbounds(
     search_type="inbound_id",
     keyword="",
@@ -598,6 +625,29 @@ def fetch_purchase_orders(
     return result["items"]
 
 
+def fetch_purchase_orders_page(
+    search_type="purchase_order_id",
+    keyword="",
+    limit=50,
+    offset=0,
+    start_date=None,
+    end_date=None,
+    date_type="contract_date",
+):
+    page = (offset // limit) + 1
+
+    return _list_request(
+        "/erp/production/purchase-order",
+        search_type=search_type,
+        keyword=keyword,
+        page=page,
+        size=limit,
+        start_date=start_date,
+        end_date=end_date,
+        date_type=date_type,
+    )
+
+
 def count_purchase_orders(
     search_type="purchase_order_id",
     keyword="",
@@ -680,6 +730,37 @@ def fetch_defectives(
     )
 
     return result["items"]
+
+
+def fetch_defectives_page(
+    search_type="inbound_id",
+    keyword="",
+    page=1,
+    size=50,
+    start_date=None,
+    end_date=None,
+    offset=None,
+    limit=None,
+    date_filter_type="inbound_complete",
+    include_total=True,
+):
+    if limit:
+        size = limit
+
+    if offset is not None and limit:
+        page = (offset // limit) + 1
+
+    return _list_request(
+        "/erp/production/defective",
+        search_type=search_type,
+        keyword=keyword,
+        page=page,
+        size=size,
+        start_date=start_date,
+        end_date=end_date,
+        date_filter_type=date_filter_type,
+        include_total=include_total,
+    )
 
 
 def count_defectives(

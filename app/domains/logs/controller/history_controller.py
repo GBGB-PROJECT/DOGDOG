@@ -1,6 +1,9 @@
+import datetime
 import flet as ft
 from api_client import ApiClient
-import datetime
+from components.common.jun_snackbar_utils import JunSnackBarUtils
+from components.common.messages import SUCCESS_MESSAGES, ERROR_MESSAGES
+from domains.logs.controller.grid_controller import GridController
 
 class HistoryController:
     """
@@ -192,9 +195,7 @@ class HistoryController:
 
     def history_delete(self, e):
         if not self.selected_log_data:
-            self.page.snack_bar = ft.SnackBar(content=ft.Text("삭제할 기록을 선택해주세요."))
-            self.page.snack_bar.open = True
-            self.page.update()
+            JunSnackBarUtils.show_warning(self.page, "삭제할 기록을 선택해주세요.")
             return
 
         import components as dogdog
@@ -235,7 +236,7 @@ class HistoryController:
         try:
             res = await self.api_client.delete(endpoint)
             if res.status_code in [200, 204]:
-                self.page.snack_bar = ft.SnackBar(content=ft.Text("기록이 삭제되었습니다."))
+                JunSnackBarUtils.show_success(self.page, SUCCESS_MESSAGES["HISTORY_DELETE_COMPLETE"])
                 self.selected_log_data = None
                 self.selected_ui_container = None
                 
@@ -246,19 +247,16 @@ class HistoryController:
                 if self.on_refresh_callback:
                     await self.on_refresh_callback()
             else:
-                self.page.snack_bar = ft.SnackBar(content=ft.Text(f"삭제에 실패했습니다. (코드: {res.status_code})"))
+                JunSnackBarUtils.show_error(self.page, f"{ERROR_MESSAGES['HISTORY_DELETE_FAILED']} (코드: {res.status_code})")
         except Exception as err:
-            print(f"Delete Error: {err}")
-            self.page.snack_bar = ft.SnackBar(content=ft.Text("서버 오류가 발생했습니다."))
+            print(f"[ERROR] Delete Error: {err}")
+            JunSnackBarUtils.show_error(self.page, ERROR_MESSAGES["NETWORK_ERROR"])
         
-        self.page.snack_bar.open = True
         self.page.update()
 
     def history_edit(self, e):
         if not self.selected_log_data:
-            self.page.snack_bar = ft.SnackBar(content=ft.Text("수정할 기록을 선택해주세요."))
-            self.page.snack_bar.open = True
-            self.page.update()
+            JunSnackBarUtils.show_warning(self.page, "수정할 기록을 선택해주세요.")
             return
 
         from domains.logs.views import grid_view

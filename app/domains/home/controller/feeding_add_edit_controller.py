@@ -23,20 +23,22 @@ class FeedingAddEditController:
         유령 데이터(과거 세션 캐시)를 방지하고 최신 서버 데이터를 가져오게 합니다.
         """
         keys_to_clear = [
-            "select_feeding_data", 
+            "select_feeding_data",
             "select_customer_food_id",
-            "food_text", 
-            "product_id", 
+            "food_text",
+            "product_id",
             "food_weight",
-            "feeding_start"
+            "feeding_start",
         ]
         for key in keys_to_clear:
             if self.storage.contains_key(key):
                 self.storage.remove(key)
-        
+
         # [신규 추가] 세션 데이터 완벽 제거 (None 강제 할당)
         self.storage.set("pet_food_detail", None)
-        self.storage.set("dashboard_data", None) # 홈 진입 시 강제 fetch를 위한 플래그 초기화
+        self.storage.set(
+            "dashboard_data", None
+        )  # 홈 진입 시 강제 fetch를 위한 플래그 초기화
 
         # 대시보드 인벤토리 및 사료 정보 즉시 초기화
         customer_detail = self.storage.get("customer_detail") or {}
@@ -44,15 +46,15 @@ class FeedingAddEditController:
             customer_detail["dashboard_sync"]["food_inventory"] = {}
             customer_detail["dashboard_sync"]["current_food_info"] = None
             self.storage.set("customer_detail", customer_detail)
-        
+
         # [보정] 사료 정보 변경 시 모든 팝업, 다이얼로그, 오버레이 강제 초기화 (Zero-Base)
         self.page.dialog = None  # 활성화된 다이얼로그 객체 파괴
         self.page.banner = None  # 배너 제거
-        self.page.overlay.clear() # 오버레이에 쌓인 모든 유령 UI 제거
-        
+        self.page.overlay.clear()  # 오버레이에 쌓인 모든 유령 UI 제거
+
         # [Step 1] 홈 화면에 새로고침 신호 저장 (store.set 사용)
-        self.storage.set('needs_refresh', True)
-        
+        self.storage.set("needs_refresh", True)
+
         # UI 상태 동기화를 위해 페이지 업데이트
         self.page.update()
 
@@ -78,11 +80,13 @@ class FeedingAddEditController:
         payload = {
             "product_id": int(product_id),
             "total_weight": int(total_weight),
-            "effective_date": datetime.now().strftime("%Y-%m-%d")
+            "effective_date": datetime.now().strftime("%Y-%m-%d"),
         }
 
         try:
-            print(f"👉 [로그] 컨트롤러: 사료 등록 API 호출 (POST /pets/{pet_id}/pet_food)")
+            print(
+                f"👉 [로그] 컨트롤러: 사료 등록 API 호출 (POST /pets/{pet_id}/pet_food)"
+            )
             print(f"👉 [로그] 페이로드: {payload}")
 
             res = await self.api_client.post(f"/pets/{pet_id}/pet_food", data=payload)
@@ -90,27 +94,28 @@ class FeedingAddEditController:
             if res.status_code in [200, 201]:
                 # [ISSUE] 부분 업데이트 이슈로 인한 홈 화면 리셋 임시 조치 (2026-05-05)
                 # [TODO] 팝업 연동 및 부분 업데이트 로직 고도화 필요
-                
+
                 # [수정 1] 네비게이션 전 대시보드 갱신 예약 및 홈 직행
-                self.storage.set('needs_refresh', True)
-                
+                self.storage.set("needs_refresh", True)
+
                 # [해결 2] 팝업 실행 시퀀스 조정 (홈 진입 시 트리거되도록 플래그 설정)
                 self.storage.set("trigger_feeding_guide_popup", True)
-                
+
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
-                
+
                 self.page.overlay.clear()
                 self.page.dialog = None
-                
+
                 # [핵심 지침 1] 네비게이션 전 강제 대기 (DB 동기화 확보)
                 import asyncio
+
                 await asyncio.sleep(0.2)
-                
+
                 # [수정] 홈 화면으로 즉시 이동하여 강제 리셋 및 팝업 유도
                 self.page.go("/home")
 
-                return True, "사료가 성공적으로 등록되었습니다."
+                return True, "✅ 급여 사료가 등록되었습니다."
             else:
                 # 상세 에러 로그 기록 (res.text)
                 detail = res.json().get("detail", "알 수 없는 오류")
@@ -136,39 +141,40 @@ class FeedingAddEditController:
         payload = {
             "product_id": int(product_id),
             "total_weight": int(f_weight),
-            "effective_date": f_date
+            "effective_date": f_date,
         }
 
         try:
-            print(f"👉 [로그] 컨트롤러: 사료 수정 API 호출 (PATCH /pets/{pet_id}/pet_food)")
+            print(
+                f"👉 [로그] 컨트롤러: 사료 수정 API 호출 (PATCH /pets/{pet_id}/pet_food)"
+            )
             print(f"👉 [로그] 페이로드: {payload}")
 
-            res = await self.api_client.patch(
-                f"/pets/{pet_id}/pet_food", data=payload
-            )
+            res = await self.api_client.patch(f"/pets/{pet_id}/pet_food", data=payload)
             if res.status_code == 200:
                 # [ISSUE] 부분 업데이트 시 UI 레이스 컨디션 및 하얀 화면 발생 (2026-05-05)
                 # [TODO] 향후 PubSub 기반의 부분 업데이트 로직으로 고도화 필요. 현재는 안정성을 위해 홈 직행 리셋 방식 사용.
 
                 # [수정 1] 네비게이션 전 대시보드 갱신 예약 및 홈 직행
-                self.storage.set('needs_refresh', True)
+                self.storage.set("needs_refresh", True)
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
-                
+
                 self.page.overlay.clear()
                 self.page.dialog = None
 
                 # [핵심 지침 1] 네비게이션 전 강제 대기 (DB 동기화 확보)
                 import asyncio
+
                 await asyncio.sleep(0.2)
-                
+
                 # [기존] 목록 화면으로 복귀
                 # self.page.go("/feeding")
-                
+
                 # [수정] 홈 화면으로 즉시 이동
                 self.page.go("/home")
-                
-                return True, "사료 정보가 수정되었습니다."
+
+                return True, "✅ 사료 정보가 수정되었습니다."
             else:
                 detail = res.json().get("detail", "알 수 없는 오류")
                 print(f"❌ [로그] 컨트롤러: 수정 실패 ({res.status_code}) - {res.text}")
@@ -194,10 +200,12 @@ class FeedingAddEditController:
             # [QA 수정] 2. 404 응답을 성공으로 간주 (Idempotency 보장)
             if res.status_code in [200, 404]:
                 if res.status_code == 404:
-                    print(f"⚠️ [로그] 컨트롤러: 삭제 대상이 이미 존재하지 않음 (404) - {res.text}")
+                    print(
+                        f"⚠️ [로그] 컨트롤러: 삭제 대상이 이미 존재하지 않음 (404) - {res.text}"
+                    )
                 else:
                     print("👉 [로그] 컨트롤러: 삭제 성공 (200)")
-                return True, "삭제되었습니다."
+                return True, "✅ 사료 정보가 삭제되었습니다."
             else:
                 detail = res.json().get("detail", "알 수 없는 오류")
                 print(f"❌ [로그] 컨트롤러: 삭제 실패 ({res.status_code}) - {res.text}")
@@ -233,7 +241,7 @@ class FeedingAddEditController:
                 # [TODO] 향후 PubSub 기반의 부분 업데이트 로직으로 고도화 필요. 현재는 안정성을 위해 홈 직행 리셋 방식 사용.
 
                 # [해결 과제 1] 삭제 로직 내 강제 신호 발송
-                self.storage.set('needs_refresh', True)
+                self.storage.set("needs_refresh", True)
                 self.page.pubsub.send_all("update_dashboard")
                 self.page.pubsub.send_all("refresh_feeding_list")
 
@@ -244,11 +252,12 @@ class FeedingAddEditController:
 
                 # [핵심 지침 1] 네비게이션 전 강제 대기 (DB 동기화 확보)
                 import asyncio
+
                 await asyncio.sleep(0.2)
-                
+
                 # [기존] 리스트 화면으로 복귀
                 # self.page.go("/feeding")
-                
+
                 # [수정] 홈 화면으로 즉시 이동
                 self.page.go("/home")
 
@@ -256,26 +265,31 @@ class FeedingAddEditController:
                 if on_success_callback:
                     self.page.run_task(on_success_callback)
             else:
-                needs_refresh = self.page.session.store.get('needs_refresh')
+                needs_refresh = self.page.session.store.get("needs_refresh")
                 if needs_refresh:
                     pet_id = self.page.session.store.get("current_pet_id")
                     if pet_id:
-                        print(f"👉 [Home] 대시보드 갱신 예약 감지. Zero-Base 재건축 시작.")
-                        
+                        print(
+                            f"👉 [Home] 대시보드 갱신 예약 감지. Zero-Base 재건축 시작."
+                        )
+
                         # [수정 2] 기존 객체 완전 삭제 및 재건축 (문지기 로직)
                         self.page.body_column.controls.clear()
                         self.page.body_scroll_column.controls.clear()
                         self.page.main_container_content.clear()
-                        
+
                         # 데이터 강제 재요청
                         await self.controller.fetch_dashboard_data(pet_id)
-                        
+
                         # 세션 정합성 재검증
                         customer_detail = self.page.session.store.get("customer_detail")
-                        if not customer_detail or "dashboard_sync" not in customer_detail:
+                        if (
+                            not customer_detail
+                            or "dashboard_sync" not in customer_detail
+                        ):
                             await self.controller.fetch_dashboard_data(pet_id)
 
-                        self.page.session.store.set('needs_refresh', False)
+                        self.page.session.store.set("needs_refresh", False)
                 self.page.snack_bar = ft.SnackBar(
                     ft.Text(msg), bgcolor=ft.Colors.RED_400
                 )
@@ -307,13 +321,16 @@ class FeedingAddEditController:
         """
         중복 등록 방지 알림창을 띄웁니다.
         """
+
         def on_close(e):
             dialog.open = False
             self.page.update()
 
         dialog = ft.AlertDialog(
             title=ft.Text("알림", weight="bold"),
-            content=ft.Text("급여 중인 상품이 있는 경우 신규 상품 등록이 불가합니다.\n삭제 또는 수정하여 진행해주세요."),
+            content=ft.Text(
+                "급여 중인 상품이 있는 경우 신규 상품 등록이 불가합니다.\n삭제 또는 수정하여 진행해주세요."
+            ),
             actions=[
                 ft.TextButton("확인", on_click=on_close),
             ],

@@ -65,7 +65,7 @@ def register_pet_food(
 
         return {
             "success": True,
-            "message": "급여 사료가 등록되었습니다.",
+            "message": "✅ 급여 사료가 등록되었습니다.",
             "data": jsonable_encoder(result),  # 🔥 500 에러 방지용 안전 직렬화
         }
 

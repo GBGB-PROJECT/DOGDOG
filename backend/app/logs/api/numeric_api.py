@@ -40,7 +40,7 @@ def register_numeric_log(
             )
             return {
                 "status": "success",
-                "message": "체중 및 BCS 기록이 등록되었습니다.",
+                "message": "✅ 체중 및 BCS 기록이 등록되었습니다.",
                 "data": [NumericLogResponse.from_orm_model(l).model_dump() for l in logs]
             }
 

@@ -68,7 +68,7 @@ def register_feeding(
 
         return {
             "status": "success",
-            "message": "급여 기록이 성공적으로 등록되었습니다.",
+            "message": "✅ 급여 기록이 등록되었습니다.",
             "data": {
                 "pet_food_id": log.pet_food_id,
                 "pet_id": log.pet_id,

@@ -1,6 +1,8 @@
-import flet as ft
 import datetime
+from api_client import ApiClient
 from domains.logs.controller.grid_controller import GridController
+from components.common.jun_snackbar_utils import JunSnackBarUtils
+from components.common.messages import SUCCESS_MESSAGES, ERROR_MESSAGES
 
 
 class StatusController:
@@ -208,11 +210,7 @@ class StatusController:
                     self.page.update()
                 else:
                     # 필드가 없을 경우를 대비한 안전 장치 (스낵바)
-                    self.page.snack_bar = ft.SnackBar(
-                        content=dogdog.basic_text("미래의 시간은 기록할 수 없습니다.")
-                    )
-                    self.page.snack_bar.open = True
-                    self.page.update()
+                    JunSnackBarUtils.show_warning(self.page, "미래의 시간은 기록할 수 없습니다.")
                 return  # 저장 로직 중단
 
         except Exception as e:
@@ -231,13 +229,7 @@ class StatusController:
 
                 # 필수 값 검증: 사료 ID 또는 급여량 누락 시 안내
                 if not food_id or not amount:
-                    self.page.snack_bar = ft.SnackBar(
-                        content=dogdog.basic_text(
-                            "사료 정보 또는 급여량을 입력해주세요."
-                        )
-                    )
-                    self.page.snack_bar.open = True
-                    self.page.update()
+                    JunSnackBarUtils.show_warning(self.page, "사료 정보 또는 급여량을 입력해주세요.")
                     return
 
                 if self.edit_mode and self.log_data:
@@ -260,25 +252,15 @@ class StatusController:
                         f"/logs/feeding/{log_id}", data=payload
                     )
                     if res.status_code in [200, 201]:
-                        self.page.snack_bar = ft.SnackBar(
-                            content=dogdog.basic_text(
-                                "급여 기록이 수정되었습니다.", color=ft.Colors.WHITE
-                            ),
-                            bgcolor=ft.Colors.GREEN_400,
-                        )
-                        self.page.snack_bar.open = True
+                        JunSnackBarUtils.show_success(self.page, SUCCESS_MESSAGES["STATUS_UPDATE_COMPLETE"])
                         await self._post_save_process()
                     else:
                         # 서버 에러 메시지를 사용자에게 노출
                         try:
-                            error_msg = res.json().get("detail", "수정에 실패했습니다.")
+                            error_msg = res.json().get("detail", ERROR_MESSAGES["STATUS_UPDATE_FAILED"])
                         except Exception:
                             error_msg = f"HTTP {res.status_code}"
-                        self.page.snack_bar = ft.SnackBar(
-                            content=dogdog.basic_text(f"오류: {error_msg}")
-                        )
-                        self.page.snack_bar.open = True
-                        self.page.update()
+                        JunSnackBarUtils.show_error(self.page, error_msg)
                         return
                 else:
                     # [신규] 기존의 grid_ctrl.save_feeding_api 활용 (안정적인 기존 로직)
@@ -362,31 +344,17 @@ class StatusController:
                 )
 
             if res.status_code in [200, 201]:
-                msg = (
-                    "기록이 수정되었습니다."
-                    if self.edit_mode
-                    else "기록이 저장되었습니다."
-                )
-                self.page.snack_bar = ft.SnackBar(
-                    content=dogdog.basic_text(msg, color=ft.Colors.WHITE),
-                    bgcolor=ft.Colors.GREEN_400,
-                )
-                self.page.snack_bar.open = True
+                JunSnackBarUtils.show_success(self.page, SUCCESS_MESSAGES["STATUS_UPDATE_COMPLETE"])
                 await self._post_save_process()
             else:
-                error_msg = res.json().get("detail", "작업에 실패했습니다.")
-                self.page.snack_bar = ft.SnackBar(
-                    content=dogdog.basic_text(f"오류: {error_msg}")
-                )
-                self.page.snack_bar.open = True
-                self.page.update()
+                try:
+                    error_msg = res.json().get("detail", ERROR_MESSAGES["STATUS_UPDATE_FAILED"])
+                except:
+                    error_msg = ERROR_MESSAGES["STATUS_UPDATE_FAILED"]
+                JunSnackBarUtils.show_error(self.page, f"오류: {error_msg}")
         except Exception as e:
             print(f"[ERROR] API 전송 중 오류 발생: {e}")
-            self.page.snack_bar = ft.SnackBar(
-                content=dogdog.basic_text("서버 통신 중 오류가 발생했습니다.")
-            )
-            self.page.snack_bar.open = True
-            self.page.update()
+            JunSnackBarUtils.show_error(self.page, ERROR_MESSAGES["NETWORK_ERROR"])
 
     async def _post_save_process(self):
         """저장 성공 후 공통 처리 로직"""

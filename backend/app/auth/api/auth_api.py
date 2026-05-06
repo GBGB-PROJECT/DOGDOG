@@ -36,7 +36,7 @@ def email_signup(request: EmailSignupRequest, db: Session = Depends(get_db)):
         detail = result["customer"]
         return SignupResponse(
             status="success",
-            message="사용자 정보가 등록되었습니다.",
+            message="✅ 사용자 정보가 등록되었습니다.",
             data={
                 "customer_id": detail.customer_id,
                 "email": detail.email,

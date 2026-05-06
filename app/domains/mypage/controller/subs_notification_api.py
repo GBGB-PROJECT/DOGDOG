@@ -9,12 +9,13 @@ class NotificationController:
         self.storage = page.session.store
         self.api = ApiClient(page)
 
+    # 알림 체크 --------------------------------------------------------------------------
     async def check_on_app_load(self):
         if self.storage.get("notification_load_checked"):
-            return
+            return []
 
         if not self.storage.get("access_token"):
-            return
+            return []
 
         self.storage.set("notification_load_checked", True)
 
@@ -33,13 +34,13 @@ class NotificationController:
             res = await self.api.get("/notifications/check")
 
             if res.status_code != 200:
-                return
+                return []
 
             payload = res.json()
             notifications = payload.get("data") or []
 
             if not notifications:
-                return
+                return []
 
             self.storage.set("notifications", notifications)
 

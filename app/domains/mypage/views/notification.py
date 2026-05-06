@@ -158,7 +158,9 @@ class Noti:
                     ft.Switch(
                         value=False if not self.storage.get('noti_food') else True,
                         active_track_color="#FBDD30", 
-                        data={'noti':'food'}, on_change=self.switch_event)
+                        data={'noti':'food'}, 
+                        # on_change=self.switch_event
+                        )
                 ]),
                 dogdog.basic_text(
                     f"{self.food_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
@@ -171,7 +173,9 @@ class Noti:
                     ft.Switch(
                         value=False if not self.storage.get('noti_water') else True,
                         active_track_color="#FBDD30", 
-                        data={'noti':'water'}, on_change=self.switch_event)
+                        data={'noti':'water'}, 
+                        # on_change=self.switch_event
+                        )
                 ]),
                 dogdog.basic_text(
                     f"{self.water_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
@@ -184,7 +188,9 @@ class Noti:
                     ft.Switch(
                         value=False if not self.storage.get('noti_drug') else True,
                         active_track_color="#FBDD30", 
-                        data={'noti':'drug'}, on_change=self.switch_event)
+                        data={'noti':'drug'}, 
+                        # on_change=self.switch_event
+                        )
                 ]),
                 dogdog.basic_text(
                     f"{self.drug_interval}시간 알림 간격", size=12, color=ft.Colors.GREY_600)
@@ -268,7 +274,7 @@ class Noti:
             noti_option1=option1,
             noti_option2=option2,
         )
-
+        
         if result:
             current_settings[category] = result
             self.storage.set("notification_settings", current_settings)
@@ -317,6 +323,7 @@ class Noti:
         # Notification Setting
         # -----------------------------------------------------------------------------------------------
         noti_setting = self.storage.get(f'noti_{switch_type}')
+        pet_name = self.storage.get('customer_pet_name')
         if noti_setting:
             # print(switch_type, noti_setting)
             noti_type = None
@@ -325,17 +332,17 @@ class Noti:
                 noti_type = self.food_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.food_time_drop.value) # type: ignore
                 self.noti_title = "밥주기"
-                self.noti_message = f"🦴 {'pet_name'}, 밥 줄 시간입니다."
+                self.noti_message = f"🦴 {pet_name}, 밥 줄 시간입니다!"
             elif switch_type == 'water':
                 noti_type = self.water_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.water_time_drop.value) # type: ignore
                 self.noti_title = "물주기"
-                self.noti_message = f"💧 {'pet_name'}, 물 줄 시간입니다."
+                self.noti_message = f"💧 {pet_name}, 물 줄 시간입니다!"
             elif switch_type == 'drug':
                 noti_type = self.drug_time.content.controls[1].value.replace('오후','PM').replace('오전','AM') # type: ignore
                 select_time = int(self.drug_time_drop.value) # type: ignore
                 self.noti_title = "약주기"
-                self.noti_message = f"💊 {'pet_name'}, 약 줄 시간입니다."
+                self.noti_message = f"💊 {pet_name}, 약 줄 시간입니다!"
             elif switch_type == 'subs3':
                 self.noti_title = "똑똑배송"
                 self.noti_message = "📦 3일 뒤 “가장 맛있는 시간 30일, 닭고기 2.5kg”이 배송됩니다."

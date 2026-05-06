@@ -1,7 +1,7 @@
 from math import ceil
 from typing import Literal
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from .product_detail_service import (
     count_product_join_rows,
@@ -9,7 +9,12 @@ from .product_detail_service import (
     create_product_detail,
     update_product_detail,
 )
-from .product_detail_schema import ErpMerchandiseDetailListResponse
+from .product_detail_schema import (
+    ErpMerchandiseDetailListResponse,
+    ErpMerchandiseDetailMutationResponse,
+    ErpMerchandiseProductDetailCreateRequest,
+    ErpMerchandiseProductDetailUpdateRequest,
+)
 
 router = APIRouter(
     prefix="/erp/merchandise",
@@ -213,10 +218,10 @@ def get_product_detail_list(
         )
 
 
-@router.post("/details")
-def post_product_detail(payload: dict = Body(...)):
+@router.post("/details", response_model=ErpMerchandiseDetailMutationResponse)
+def post_product_detail(payload: ErpMerchandiseProductDetailCreateRequest):
     try:
-        item = create_product_detail(payload)
+        item = create_product_detail(payload.model_dump())
         return {"success": True, "message": "Product detail created.", "data": {"item": item}}
     except ValueError as exc:
         raise HTTPException(
@@ -230,10 +235,10 @@ def post_product_detail(payload: dict = Body(...)):
         )
 
 
-@router.patch("/details/{product_id}")
-def patch_product_detail(product_id: int, payload: dict = Body(...)):
+@router.put("/details/{product_id}", response_model=ErpMerchandiseDetailMutationResponse)
+def put_product_detail(product_id: int, payload: ErpMerchandiseProductDetailUpdateRequest):
     try:
-        item = update_product_detail(product_id, payload)
+        item = update_product_detail(product_id, payload.model_dump())
         return {"success": True, "message": "Product detail updated.", "data": {"item": item}}
     except ValueError as exc:
         raise HTTPException(

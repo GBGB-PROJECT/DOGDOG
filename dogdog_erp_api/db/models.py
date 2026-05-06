@@ -108,26 +108,34 @@ class CompanionCustomerFood(Base):
         index=True,
     )
     total_weight = Column(SmallInteger, nullable=False)
-    feeding_start = Column(Date, nullable=False)
+    feeding_start = Column(Date)
     total_intake = Column(SmallInteger, server_default=text("0"))
     food_count = Column(SmallInteger, server_default=text("0"))
-    left_food_count = Column(
-        Computed(
-            "case when total_intake > 0 and food_count > 0 and feeding_start is not null "
-            "then (total_weight / (total_intake / food_count::numeric)) - food_count else null end",
-            persisted=True,
-        )
-    )
-    left_intake = Column(
-        Computed(
-            "case when total_intake > 0 and food_count > 0 and total_weight is not null "
-            "then total_weight - total_intake else null end",
-            persisted=True,
-        )
-    )
+    left_food_count = Column(SmallInteger, server_default=text("0"))
+    left_intake = Column(SmallInteger, server_default=text("0"))
     last_update = Column(DateTime, nullable=False, server_default=text("now()"))
+    expected_exdate = Column(Date)
 
     pet = relationship("CompanionPet", back_populates="customer_food")
+
+
+class CompanionCustomerNotiSettings(Base):
+    __tablename__ = "customer_noti_settings"
+    __table_args__ = {"schema": "Companion"}
+
+    customer_noti_settings_id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(
+        Integer,
+        ForeignKey("Companion.customer.customer_id"),
+        nullable=False,
+        index=True,
+    )
+    category = Column(String(18), nullable=False)
+    noti_option1 = Column(Boolean, nullable=False, server_default=text("false"))
+    noti_option2 = Column(Boolean, nullable=False, server_default=text("false"))
+    last_update = Column(DateTime, nullable=False, server_default=text("now()"))
+
+    customer = relationship("CompanionCustomer")
 
 
 class CompanionButler(Base):
@@ -235,7 +243,9 @@ class CompanionPetLogNumeric(Base):
     __tablename__ = "pet_log_numeric"
     __table_args__ = {"schema": "Companion"}
 
-    pet_log_numeric_id = Column(Integer, primary_key=True, autoincrement=True, server_default=FetchedValue())
+    pet_log_numeric_id = Column(
+        Integer, primary_key=True, autoincrement=True, server_default=FetchedValue()
+    )
     pet_id = Column(
         Integer, ForeignKey("Companion.pet.pet_id"), nullable=False, index=True
     )
@@ -337,6 +347,7 @@ class CompanionPetFood(Base):
     feeding_date = Column(
         Date, primary_key=True, nullable=False, server_default=text("current_date")
     )
+    feeding_time = Column(Time, nullable=True)
     last_update = Column(DateTime, nullable=False, server_default=text("now()"))
 
     pet = relationship("CompanionPet", back_populates="pet_food_logs")
@@ -812,13 +823,11 @@ class OpdSubs(Base):
     __tablename__ = "subs"
     __table_args__ = {"schema": "OPD"}
 
-    subs_id = Column(Integer, primary_key=True)
+    subs_id = Column(Integer, primary_key=True, autoincrement=True)
     customer_id = Column(
         Integer, ForeignKey("OPD.customer.customer_id"), nullable=False, index=True
     )
-    subs_plan_id = Column(
-        Integer, ForeignKey("OPD.subs_plan.subs_plan_id"), nullable=False, index=True
-    )
+    subs_plan_id = Column(Integer, ForeignKey("OPD.subs_plan.subs_plan_id"), index=True)
     subs_date = Column(
         DateTime, primary_key=True, nullable=False, server_default=text("now()")
     )

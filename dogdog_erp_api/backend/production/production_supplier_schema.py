@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Any
 from pydantic import BaseModel, ConfigDict
 
@@ -46,3 +47,26 @@ class ErpProductionSupplierListResponse(BaseModel):
     success: bool
     message: str
     data: ErpProductionSupplierData
+
+
+
+class ErpProductionSupplierUpsertRequest(BaseModel):
+    supplier_name: str
+    brn: str
+    is_contact_status: bool
+    designated_payment_date: int
+    scheduled_payment_date: date
+    employee_id: int
+    memo: str | None = None
+    sup_manager: str
+    phone: str
+
+
+class ErpProductionSupplierMutationData(BaseModel):
+    item: dict[str, Any]
+
+
+class ErpProductionSupplierMutationResponse(BaseModel):
+    success: bool
+    message: str
+    data: ErpProductionSupplierMutationData

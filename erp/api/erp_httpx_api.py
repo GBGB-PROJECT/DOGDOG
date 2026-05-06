@@ -686,7 +686,7 @@ def create_product_detail(*args, **kwargs):
 
 
 def update_product_detail(product_id, payload):
-    return _mutate("PATCH", f"/erp/merchandise/details/{product_id}", payload)
+    return _mutate("PUT", f"/erp/merchandise/details/{product_id}", payload)
 
 
 def create_supplier(*args, **kwargs):
@@ -695,7 +695,7 @@ def create_supplier(*args, **kwargs):
 
 
 def update_supplier(supplier_id, payload):
-    return _mutate("PATCH", f"/erp/production/supplier/{supplier_id}", payload)
+    return _mutate("PUT", f"/erp/production/supplier/{supplier_id}", payload)
 
 # =========================================================
 

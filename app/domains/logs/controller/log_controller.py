@@ -11,6 +11,7 @@ class LogController:
     """
     def __init__(self, page: ft.Page):
         self.page = page
+        self.storage = page.session.store  # [추가] missing된 storage 속성 정의
         today = datetime.date.today()
 
         # 1. [DEBUG] 현재 세션에 저장된 모든 키 출력
@@ -61,6 +62,7 @@ class LogController:
         self.refresh_calendar()
         self.refresh_metric_selector()
         self.refresh_banner()
+        self.refresh_chart()  # [추가] 초기 차트 영역 바인딩 강제 (기록 없음 상태라도 렌더링)
         # [해결] 초기 로딩 시 서버에서 차트 데이터 가져오기
         self.page.run_task(self.fetch_chart_data)
 

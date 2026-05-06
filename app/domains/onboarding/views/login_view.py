@@ -1,6 +1,7 @@
 import flet as ft
 import components as dogdog
 
+
 def login_view(page: ft.Page, controller):
     """
     [View] login_view
@@ -20,16 +21,16 @@ def login_view(page: ft.Page, controller):
         hint_text="example@dogdog.com",
         input_type="email",
         on_change=on_email_change,
-        value="test043003@test.com"
+        value="test043003@test.com",
     )
-    email_input.value = "test042806@test.com"
+    email_input.value = "gaebobgaebob@dogdog.com"
     email_input.max_length = 50
-    
+
     password_input = dogdog.input_textfield(
         hint_text="비밀번호",
         input_type="password",
         on_change=on_password_change,
-        value="A12345678!"
+        value="A12345678!",
     )
     # [핵심 디테일] 비밀번호 가리기 및 눈 모양 아이콘 추가
     password_input.password = True
@@ -38,25 +39,32 @@ def login_view(page: ft.Page, controller):
 
     # 중앙 콘텐츠 구성
     content = ft.Container(
-        padding=ft.padding.only(top=page.height/10, bottom=page.height/10),
+        padding=ft.padding.only(top=page.height / 10, bottom=page.height / 10),
         alignment=ft.Alignment.CENTER,
         expand=True,
         content=ft.Column(
             scroll=ft.ScrollMode.HIDDEN,
             expand=True,
             controls=[
-                ft.Row(height=150, margin=ft.margin.only(bottom=40),
-                    alignment=ft.MainAxisAlignment.CENTER, 
+                ft.Row(
+                    height=150,
+                    margin=ft.margin.only(bottom=40),
+                    alignment=ft.MainAxisAlignment.CENTER,
                     vertical_alignment=ft.CrossAxisAlignment.END,
-                    controls=[ft.Image(src="dogdog_logo.png", width=300)]),
+                    controls=[ft.Image(src="dogdog_logo.png", width=300)],
+                ),
                 ft.Container(height=10),
-                dogdog.basic_text(value="이메일", weight="bold", color=ft.Colors.GREY_800),
+                dogdog.basic_text(
+                    value="이메일", weight="bold", color=ft.Colors.GREY_800
+                ),
                 email_input,
                 ft.Container(height=10),
-                dogdog.basic_text(value="비밀번호", weight="bold", color=ft.Colors.GREY_800),
+                dogdog.basic_text(
+                    value="비밀번호", weight="bold", color=ft.Colors.GREY_800
+                ),
                 password_input,
-            ]
-        )
+            ],
+        ),
     )
 
     # 하단 버튼 구성 (on_boarding_tile에서 bottom 변수로 사용될 부분)
@@ -69,10 +77,7 @@ def login_view(page: ft.Page, controller):
     bottom_bar = ft.Row(
         controls=[
             dogdog.arrow_back(on_click=lambda e: page.go("/login")),
-            dogdog.continue_button(
-                value="로그인",
-                on_click=on_login_click
-            )
+            dogdog.continue_button(value="로그인", on_click=on_login_click),
         ]
     )
 

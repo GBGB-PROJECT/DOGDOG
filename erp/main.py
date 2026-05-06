@@ -27,19 +27,19 @@ from components.common.erp_busy_cursor import set_busy_cursor
 
 def main(page: ft.Page):
     page.title = "개밥개밥푸드 ERP"
-    page.window_width = 1600
-    page.window_height = 800
+    # page.width = 1600
+    # page.height = 800
     page.padding = 0
     page.bgcolor = ft.Colors.WHITE
     page.theme = ft.Theme(
-            page_transitions=ft.PageTransitionsTheme(
-                android="None",  # type: ignore
-                ios="None",  # type: ignore
-                macos="None",  # type: ignore
-                linux="None",  # type: ignore
-                windows="None",  # type: ignore
-            ),
-        )
+        page_transitions=ft.PageTransitionsTheme(
+            android="None",  # type: ignore
+            ios="None",  # type: ignore
+            macos="None",  # type: ignore
+            linux="None",  # type: ignore
+            windows="None",  # type: ignore
+        ),
+    )
 
     # 🔥 화면 전환 속도 개선
     # - 건형님이 바꾼 ft.View 라우팅 구조는 유지한다.
@@ -70,7 +70,7 @@ def main(page: ft.Page):
             login_view = ErpLoginView(page, on_login_success=on_login_success)
             # ft.View 객체로 감싸서 views 배열에 추가
             page.views.clear()
-            page.views.append(ft.View(route=normalized_route, controls=[login_view]))
+            page.views.append(ft.View(route=normalized_route, controls=[login_view], padding=0))
             page.update()
         else:
             # 정의되지 않은 route => Home으로 보정
@@ -93,6 +93,7 @@ def main(page: ft.Page):
                 frame = ErpFrame(page, current_route=normalized_route)
                 erp_frame_holder["frame"] = frame
                 erp_view_holder["view"] = ft.View(
+                    padding=0,
                     route=normalized_route,
                     controls=[frame],
                 )
@@ -105,6 +106,7 @@ def main(page: ft.Page):
             else:
                 frame.set_route(normalized_route)
                 erp_view_holder["view"] = ft.View(
+                    padding=0,
                     route=normalized_route,
                     controls=[frame],
                 )

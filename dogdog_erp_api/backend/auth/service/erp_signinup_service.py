@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from erp.auth.repository.erp_signinup_repository import EmployeeRepository
+from backend.erp.auth.repository.erp_signinup_repository import EmployeeRepository
 
 class AuthService:
     def __init__(self, db: Session):

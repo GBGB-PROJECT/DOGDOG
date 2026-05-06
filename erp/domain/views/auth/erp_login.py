@@ -64,10 +64,10 @@ class ErpLoginView(ft.Container):
         emp_pos = actual_data.get("emp_position_id")   
 
         # 세션 저장하기(확인 완료)
-        self.page.session.store.set("emp_id", emp_id)
-        self.page.session.store.set("emp_name", emp_name)
-        self.page.session.store.set("emp_email", emp_email)
-        self.page.session.store.set("emp_pos", emp_pos)
+        self.main_page.session.store.set("emp_id", emp_id)
+        self.main_page.session.store.set("emp_name", emp_name)
+        self.main_page.session.store.set("emp_email", emp_email)
+        self.main_page.session.store.set("emp_pos", emp_pos)
 
         ## 터미널 확인용
         print(f"✅ 로그인 성공: {emp_name}({emp_pos}) | ID: {emp_id}")
@@ -80,11 +80,7 @@ class ErpLoginView(ft.Container):
           )
         self.main_page.update()
         return
-
-      except Exception as err:
-        # 예상치 못한 시스템 로직 에러 처리
-        print(f"🔥 [시스템 에러]: {err}")
-
+      
       # 2. 터미널에서 데이터 확인용 출력
       login_data = json.dumps({"id": uid, "email": u_email, "password": u_pw})
       print(f"--- [데이터 확인] ---")
@@ -132,6 +128,7 @@ class ErpLoginView(ft.Container):
     )
 
 def main(page: ft.Page):
+  page.padding=0
   page.title = "ERP 로그인 테스트"
     # 클래스를 생성하고 페이지에 추가합니다.
   def dummy_success_action():

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from erp.home.repository.erp_home_repository import DashboardRepo
+from backend.erp.home.repository.erp_home_repository import DashboardRepo
 import datetime
 
 class DashboardService:

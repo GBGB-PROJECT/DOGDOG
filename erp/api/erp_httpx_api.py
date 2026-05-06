@@ -7,7 +7,7 @@ from threading import RLock
 import httpx
 
 # 🔥 FastAPI 서버 주소
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "https://dogerp.nas6418.ddns.net"
 
 # 🔥 화면 전환 속도 개선
 # - 요청마다 새 연결을 만들지 않고 공통 httpx.Client를 재사용한다.

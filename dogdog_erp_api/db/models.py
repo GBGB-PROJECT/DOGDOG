@@ -16,9 +16,8 @@ from sqlalchemy import (
     FetchedValue,
     text,
 )
-from sqlalchemy.orm import declarative_base, relationship, foreign
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.dialects.postgresql import UUID, INET
-from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
 

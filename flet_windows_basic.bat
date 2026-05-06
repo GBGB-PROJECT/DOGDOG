@@ -11,6 +11,6 @@ echo ---------------------------------------------------
 start http://localhost:34636
 set FLET_NO_BROWSER=1
 
-"venv\Scripts\python.exe" -m watchfiles "venv\Scripts\python.exe erp/main.py"
+".venv\Scripts\python.exe" -m watchfiles ".venv\Scripts\python.exe erp/main.py" erp
 
 pause

@@ -1,6 +1,6 @@
 import datetime
 from sqlalchemy.orm import Session
-from erp.home.repository.erp_home_inventory_repository import InvenDashboardRepo
+from backend.erp.home.repository.erp_home_inventory_repository import InvenDashboardRepo
 
 class InvenDashboardService:
     def __init__(self, db: Session):

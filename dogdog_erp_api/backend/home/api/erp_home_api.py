@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.db import get_db 
-from erp.home.service.erp_home_service import DashboardService
+from backend.erp.home.service.erp_home_service import DashboardService
 
 router = APIRouter(prefix="/erp/home", tags=['home_view'])
 

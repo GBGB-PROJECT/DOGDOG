@@ -1,7 +1,7 @@
 from datetime import date
 from sqlalchemy.orm import Session
 # 실제 프로젝트 경로에 맞게 Repo 임포트
-from erp.home.repository.erp_home_chart_repository import DashboardRepo
+from backend.erp.home.repository.erp_home_chart_repository import DashboardRepo
 
 class DashboardService:
     """개밥개밥 ERP 대시보드를 위한 서비스 로직을 처리합니다."""

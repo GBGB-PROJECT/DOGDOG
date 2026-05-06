@@ -1,7 +1,7 @@
 import re # 정규표현식(패턴 찾기용 도구)
 import httpx
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "https://dogerp.nas6418.ddns.net"
 
 class AuthController:
     

@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from db.db import SessionLocal
-from erp.auth.service.erp_signinup_service import AuthService
+from backend.erp.auth.service.erp_signinup_service import AuthService
 
 router = APIRouter(prefix="/erp/employee", tags=["employee_login"])
 

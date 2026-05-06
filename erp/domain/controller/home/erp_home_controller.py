@@ -3,7 +3,7 @@ import time
 import httpx
 
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "https://dogerp.nas6418.ddns.net"
 _CLIENT = httpx.Client(base_url=BASE_URL, timeout=5.0)
 _GET_CACHE = {}
 _GET_CACHE_TTL_SECONDS = 10.0

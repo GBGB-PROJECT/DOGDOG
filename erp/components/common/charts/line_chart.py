@@ -206,10 +206,13 @@ def build_sales_linechart():
                 fch.LineChartData(
                     points=line_points,
                     stroke_width=3,
-                    color=cm.CHART_LINE_AND_TEXT_COLOR,
+                    color=cm.MAIN_COLOR,
                     point=True,
                 ),
             ],
+            tooltip=fch.LineChartTooltip(
+                bgcolor=ft.Colors.WHITE,
+            )
         )
 
         return ft.Stack(  # ☑️ 추가: 막대 그래프 뒤 + 직선 그래프 앞
@@ -320,7 +323,7 @@ def build_sales_linechart():
                                 ft.Text("매출 추이", size=18, weight=ft.FontWeight.W_700, color=cm.TEXT_PRIMARY),
                                 # 🟥 데이터 레이블 설명 추가 (좌측은 매출, 우측은 판매량 명시)
                                 ft.Text("■ 판매량", size=12, color=cm.BAR_COLOR),
-                                ft.Text("● 매출액", size=12, color=cm.CHART_LINE_AND_TEXT_COLOR)
+                                ft.Text("● 매출액", size=12, color=cm.MAIN_COLOR)
                             ]
                         ),
                         metric_selector_container,

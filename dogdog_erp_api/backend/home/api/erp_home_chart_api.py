@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 # 실제 프로젝트 경로에 맞게 임포트 수정
 from db.db import get_db  # DB 세션을 가져오는 함수 
-from erp.home.service.erp_home_chart_service import DashboardService
+from backend.erp.home.service.erp_home_chart_service import DashboardService
 
 # 라우터 설정
 router = APIRouter(

@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.db import get_db
-from erp.home.service.erp_home_inventory_service import InvenDashboardService
+from backend.erp.home.service.erp_home_inventory_service import InvenDashboardService
 
 # [수정] API() -> APIRouter() 로 변경하고, 주소(prefix)를 설정합니다.
 router = APIRouter(prefix="/erp/home", tags=['home_view'])

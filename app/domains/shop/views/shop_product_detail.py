@@ -268,7 +268,7 @@ def shop_product_detail(page: ft.Page, popup, content_page):
                     controls=[
                         product_name,
                         product_explain,
-                        ft.Text(""),
+                        ft.Text("", size=1),
                         product_price
         ])])
         wishlist = dogdog.flat_over_button(bgcolor="#FBDD30", # type: ignore

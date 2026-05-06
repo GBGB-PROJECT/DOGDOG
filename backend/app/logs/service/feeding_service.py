@@ -1,5 +1,6 @@
-from datetime import date, timedelta
-from db.models import CompanionPetFood
+from datetime import date, datetime, timedelta
+from sqlalchemy import and_
+from db.models import CompanionPetFood, CompanionPet, OpdSubs, OpdDelivery, CompanionButler
 
 
 class FeedingService:
@@ -57,7 +58,7 @@ class FeedingService:
 
         inventory.total_intake += amount_diff
         inventory.food_count += count_diff
-        
+
         # 백엔드 직접 계산: 잔여량 차감 (0 이하 방지)
         current_left = inventory.left_intake or 0
         inventory.left_intake = max(current_left - amount_diff, 0)
@@ -80,7 +81,7 @@ class FeedingService:
                 raise ValueError(
                     f"사료 급여 시작일({inventory.feeding_start}) 이전 날짜로는 기록을 추가하거나 수정할 수 없습니다."
                 )
-            
+
             # 잔여량보다 급여량이 많은지 검증
             if inventory.left_intake is not None and inventory.left_intake < amount:
                 raise ValueError(
@@ -105,11 +106,19 @@ class FeedingService:
 
         # 3. 남은 일수 및 소진 예정일 계산
         inventory.left_food_count = int(inventory.left_intake // guide_intake)
-        inventory.expected_exdate = date.today() + timedelta(days=inventory.left_food_count)
+        inventory.expected_exdate = date.today() + timedelta(
+            days=inventory.left_food_count
+        )
 
     # 급여 기록 등록
     def register_feeding(
-        self, customer_id: int, pet_id: int, amount: int, feeding_date=None, feeding_time=None, memo=None
+        self,
+        customer_id: int,
+        pet_id: int,
+        amount: int,
+        feeding_date=None,
+        feeding_time=None,
+        memo=None,
     ):
         """[등록] 새로운 급여 기록을 등록하고 사료 재고 및 예상 소진일을 업데이트합니다."""
         if amount <= 0:
@@ -167,11 +176,9 @@ class FeedingService:
             "total_calories": total_calories,
         }
 
-    def update_feeding(
-        self, customer_id: int, pet_food_id: int, new_data: dict
-    ):
+    def update_feeding(self, customer_id: int, pet_food_id: int, new_data: dict):
         """[수정] 특정 급여 기록을 수정하고 재고 및 파티션을 관리합니다.
-        
+
         더 이상 외부에서 old_date를 받지 않고 DB에서 조회한 원본 log의 날짜를 사용합니다.
         """
         log = self.repo.get_log_by_id(pet_food_id)
@@ -235,18 +242,16 @@ class FeedingService:
                 self._validate_feeding_input(log.pet_id, 0, new_date)
 
             # PK 변경을 위한 D&I 처리
-            new_log_data = {
-                "pet_id": log.pet_id,
-                "customer_id": log.customer_id,
-                "amount": log.amount,
-                "calories": log.calories,
-                "memo": log.memo,
-                "feeding_date": new_date,
-                "feeding_time": log.feeding_time,
-                "food_type": log.food_type,
-            }
-            self.repo.delete_log(log)
-            new_log = CompanionPetFood(**new_log_data)
+            new_log = CompanionPetFood(
+                pet_id=log.pet_id,
+                customer_id=log.customer_id,
+                amount=log.amount,
+                calories=log.calories,
+                memo=log.memo,
+                feeding_date=new_date,
+                feeding_time=log.feeding_time,
+                food_type=log.food_type,
+            )
             self.repo.add_log(new_log)
             log = new_log
 
@@ -257,9 +262,7 @@ class FeedingService:
         return log, inven
 
     # 급여기록 삭제 및 소모 잔여량 복구
-    def delete_feeding(
-        self, customer_id: int, pet_food_id: int
-    ):
+    def delete_feeding(self, customer_id: int, pet_food_id: int):
         """[삭제] 급여 기록을 삭제하고 소모된 재고를 복구합니다.
 
         날짜 기반 재고 보정 로직:
@@ -289,4 +292,86 @@ class FeedingService:
         self.repo.commit()
 
         return True, inven
+
+    def trigger_auto_delivery_process(self, pet_id: int, expected_exdate: date):
+        """
+        소진일(expected_exdate) 업데이트 직후 자동 주문 생성 로직을 실행합니다.
+        독립적인 DB 세션을 생성하여 백그라운드 환경에서도 안전하게 실행됩니다.
+        """
+        if not expected_exdate:
+            return
+
+        from db.db import SessionLocal
+
+        with SessionLocal() as db:
+            try:
+                # 1. 구독자 검증 및 구독 정보 조회
+                subs_info = (
+                    db.query(OpdSubs)
+                    .join(
+                        CompanionButler,
+                        CompanionButler.customer_id == OpdSubs.customer_id,
+                    )
+                    .filter(
+                        and_(
+                            CompanionButler.pet_id == pet_id,
+                            CompanionButler.active == True,
+                            OpdSubs.is_subs_status == True,
+                            OpdSubs.is_auto_delivery == True,
+                        )
+                    )
+                    .first()
+                )
+
+                if not subs_info:
+                    return
+
+                # 2. 타임 체크
+                today = date.today()
+                days_left = (expected_exdate - today).days
+
+                if days_left > 9:
+                    return
+
+                # 3. 멱등성 보장
+                target_date = expected_exdate - timedelta(days=2)
+                order_start_date = datetime.combine(target_date, datetime.min.time())
+
+                existing_order = (
+                    db.query(OpdDelivery)
+                    .filter(
+                        and_(
+                            OpdDelivery.subs_id == subs_info.subs_id,
+                            OpdDelivery.order_start_date
+                            >= (order_start_date - timedelta(days=3)),
+                            OpdDelivery.order_start_date
+                            <= (order_start_date + timedelta(days=3)),
+                        )
+                    )
+                    .first()
+                )
+
+                if existing_order:
+                    return
+
+                # 4. 배송 테이블 Insert
+                new_delivery = OpdDelivery(
+                    subs_id=subs_info.subs_id,
+                    delivery_status_id=101,
+                    order_start_date=order_start_date,
+                    insert_delivery_date=datetime.now(),
+                    last_update=datetime.now(),
+                )
+
+                db.add(new_delivery)
+                db.commit()  # 독립 세션이므로 직접 커밋
+
+                print(
+                    f"[AutoDelivery] Success: Created new delivery order for Pet {pet_id}"
+                )
+
+            except Exception as e:
+                db.rollback()
+                print(f"[AutoDelivery] Critical Error: {str(e)}")
+                # 백그라운드 작업이므로 raise 대신 로그 기록 후 종료
 

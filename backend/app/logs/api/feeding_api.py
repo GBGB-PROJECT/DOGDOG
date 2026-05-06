@@ -1,6 +1,6 @@
 from datetime import date, time
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 import logging
@@ -36,6 +36,7 @@ router = APIRouter(prefix="/api/v1/logs/feeding", tags=["Feeding Logs"])
 @router.post("", status_code=status.HTTP_201_CREATED)
 def register_feeding(
     request: FeedingCreate,
+    background_tasks: BackgroundTasks,
     customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -65,6 +66,10 @@ def register_feeding(
             feeding_time=request.feeding_time,
             memo=request.memo,
         )
+
+        # [AutoDelivery] 백그라운드 태스크 등록
+        if inven and inven.expected_exdate:
+            background_tasks.add_task(service.trigger_auto_delivery_process, request.pet_id, inven.expected_exdate)
 
         return {
             "status": "success",
@@ -129,6 +134,7 @@ def get_feeding_logs(
 def update_feeding(
     pet_food_id: int,
     request: FeedingUpdate,
+    background_tasks: BackgroundTasks,
     customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -144,6 +150,11 @@ def update_feeding(
             if hasattr(request, "model_dump")  # pydantic 버젼 이슈 해결
             else request.dict(exclude_unset=True),  # 세팅된 데이터만 넘김
         )
+
+        # [AutoDelivery] 백그라운드 태스크 등록
+        if inven and inven.expected_exdate:
+            background_tasks.add_task(service.trigger_auto_delivery_process, updated_log.pet_id, inven.expected_exdate)
+
         return {
             "status": "success",
             "message": "급여 기록이 수정되었습니다.",

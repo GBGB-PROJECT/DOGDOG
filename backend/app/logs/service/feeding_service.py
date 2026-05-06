@@ -1,5 +1,6 @@
-from datetime import date, timedelta
-from db.models import CompanionPetFood
+from datetime import date, datetime, timedelta
+from sqlalchemy import and_
+from db.models import CompanionPetFood, CompanionPet, OpdSubs, OpdDelivery, CompanionButler
 
 
 class FeedingService:
@@ -57,7 +58,7 @@ class FeedingService:
 
         inventory.total_intake += amount_diff
         inventory.food_count += count_diff
-        
+
         # 백엔드 직접 계산: 잔여량 차감 (0 이하 방지)
         current_left = inventory.left_intake or 0
         inventory.left_intake = max(current_left - amount_diff, 0)
@@ -80,7 +81,7 @@ class FeedingService:
                 raise ValueError(
                     f"사료 급여 시작일({inventory.feeding_start}) 이전 날짜로는 기록을 추가하거나 수정할 수 없습니다."
                 )
-            
+
             # 잔여량보다 급여량이 많은지 검증
             if inventory.left_intake is not None and inventory.left_intake < amount:
                 raise ValueError(
@@ -105,11 +106,19 @@ class FeedingService:
 
         # 3. 남은 일수 및 소진 예정일 계산
         inventory.left_food_count = int(inventory.left_intake // guide_intake)
-        inventory.expected_exdate = date.today() + timedelta(days=inventory.left_food_count)
+        inventory.expected_exdate = date.today() + timedelta(
+            days=inventory.left_food_count
+        )
 
     # 급여 기록 등록
     def register_feeding(
-        self, customer_id: int, pet_id: int, amount: int, feeding_date=None, feeding_time=None, memo=None
+        self,
+        customer_id: int,
+        pet_id: int,
+        amount: int,
+        feeding_date=None,
+        feeding_time=None,
+        memo=None,
     ):
         """[등록] 새로운 급여 기록을 등록하고 사료 재고 및 예상 소진일을 업데이트합니다."""
         if amount <= 0:
@@ -147,6 +156,15 @@ class FeedingService:
             food_type=f_type,
         )
         self.repo.add_log(log)
+
+        # [AutoDelivery] 자동 주문 트리거 호출 (commit 전)
+        if inven and inven.expected_exdate:
+            import asyncio
+
+            # 비동기 환경이므로 동기 메서드 내에서 호출 시 주의 필요하나,
+            # 현재 FastAPI/uvicorn 환경이므로 await로 호출 (Service가 비동기인 경우 기준)
+            self.trigger_auto_delivery_process(pet_id, inven.expected_exdate)
+
         self.repo.commit()
 
         return log, inven
@@ -167,11 +185,9 @@ class FeedingService:
             "total_calories": total_calories,
         }
 
-    def update_feeding(
-        self, customer_id: int, pet_food_id: int, new_data: dict
-    ):
+    def update_feeding(self, customer_id: int, pet_food_id: int, new_data: dict):
         """[수정] 특정 급여 기록을 수정하고 재고 및 파티션을 관리합니다.
-        
+
         더 이상 외부에서 old_date를 받지 않고 DB에서 조회한 원본 log의 날짜를 사용합니다.
         """
         log = self.repo.get_log_by_id(pet_food_id)
@@ -245,10 +261,12 @@ class FeedingService:
                 "feeding_time": log.feeding_time,
                 "food_type": log.food_type,
             }
-            self.repo.delete_log(log)
-            new_log = CompanionPetFood(**new_log_data)
             self.repo.add_log(new_log)
             log = new_log
+
+        # [AutoDelivery] 자동 주문 트리거 호출 (수정 시 소진일 변동 대응)
+        if inven and inven.expected_exdate:
+            self.trigger_auto_delivery_process(log.pet_id, inven.expected_exdate)
 
         self.repo.commit()
         if inven:
@@ -257,9 +275,7 @@ class FeedingService:
         return log, inven
 
     # 급여기록 삭제 및 소모 잔여량 복구
-    def delete_feeding(
-        self, customer_id: int, pet_food_id: int
-    ):
+    def delete_feeding(self, customer_id: int, pet_food_id: int):
         """[삭제] 급여 기록을 삭제하고 소모된 재고를 복구합니다.
 
         날짜 기반 재고 보정 로직:
@@ -290,3 +306,87 @@ class FeedingService:
 
         return True, inven
 
+    def trigger_auto_delivery_process(self, pet_id: int, expected_exdate: date):
+        """
+        소진일(expected_exdate) 업데이트 직후 자동 주문 생성 로직을 실행합니다.
+        전체 로직은 상위 호출부의 트랜잭션 범위 내에서 실행됩니다.
+        """
+        if not expected_exdate:
+            return
+
+        try:
+            # 1. 구독자 검증 및 구독 정보 조회
+            # pet_id -> customer_id -> subs (활성 구독 또는 자동 배송 설정 확인)
+            subs_info = (
+                self.repo.db.query(OpdSubs)
+                .join(
+                    CompanionButler, CompanionButler.customer_id == OpdSubs.customer_id
+                )
+                .filter(
+                    and_(
+                        CompanionButler.pet_id == pet_id,
+                        CompanionButler.active == True,  # 활성화된 집사인지 확인
+                        OpdSubs.is_subs_status == True,  # 활성 구독자
+                        OpdSubs.is_auto_delivery == True,  # 자동 배송 동의
+                    )
+                )
+                .first()
+            )
+
+            if not subs_info:
+                # print(f"[AutoDelivery] Skip: Pet {pet_id} is not an active subscriber.")
+                return
+
+            # 2. 타임 체크: 소진일이 오늘 기준 9일 이하로 남았는지 확인
+            today = date.today()
+            days_left = (expected_exdate - today).days
+
+            if days_left > 9:
+                # print(f"[AutoDelivery] Skip: {days_left} days left until exdate (Threshold: 9 days)")
+                return
+
+            # 3. 멱등성(Idempotency) 보장: 중복 주문 생성 방지 로직
+            # [수정] order_start_date 타입 정합성 (date -> datetime 캐스팅)
+            target_date = expected_exdate - timedelta(days=2)
+            order_start_date = datetime.combine(target_date, datetime.min.time())
+
+            existing_order = (
+                self.repo.db.query(OpdDelivery)
+                .filter(
+                    and_(
+                        OpdDelivery.subs_id == subs_info.subs_id,
+                        # 동일 주기에 대한 중복 생성을 막기 위해 전후 3일 범위를 체크
+                        OpdDelivery.order_start_date
+                        >= (order_start_date - timedelta(days=3)),
+                        OpdDelivery.order_start_date
+                        <= (order_start_date + timedelta(days=3)),
+                    )
+                )
+                .first()
+            )
+
+            if existing_order:
+                # print(f"[AutoDelivery] Skip: Delivery already exists for this cycle")
+                return
+
+            # 4. 배송 테이블 Insert (주문 생성)
+            new_delivery = OpdDelivery(
+                subs_id=subs_info.subs_id,
+                delivery_status_id=101,  # 101: 상품준비중
+                order_start_date=order_start_date,
+                insert_delivery_date=datetime.now(),
+                last_update=datetime.now(),
+            )
+
+            self.repo.db.add(new_delivery)
+            # flush를 통해 ID를 생성하되, 최종 commit은 상위 트랜잭션에 위임
+            self.repo.db.flush()
+
+            print(
+                f"[AutoDelivery] Success: Created new delivery order for Pet {pet_id}"
+            )
+
+        except Exception as e:
+            print(f"[AutoDelivery] Critical Error: {str(e)}")
+            # 에러 발생 시 상위 트랜잭션 전체 롤백을 위해 raise
+            raise e

@@ -154,7 +154,7 @@ def subs_options(page: ft.Page, popup):
         on_click=lambda e: subs_options_check(e))
     next_page.visible = False
 
-    # ----------------------
+    # ----------------------------------------------------------------------
     new_subs.on_click = None
     add_subs.on_click = None
     new_subs.opacity = 0.4

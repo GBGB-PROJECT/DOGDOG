@@ -67,6 +67,7 @@ class ShopController:
         more_button,
         sort=None,
         reset=True,
+        keyword=None,
     ):
         if product_state["is_loading"]:
             return
@@ -78,6 +79,7 @@ class ShopController:
             product_state["items"] = {}
             product_state["offset"] = 0
             product_state["sort"] = sort
+            product_state["keyword"] = keyword
             product_state["has_more"] = True
 
             product_list.content = ft.Column(
@@ -93,6 +95,7 @@ class ShopController:
         products = await get_shop_product_list(
             page,
             sort=product_state["sort"],
+            keyword=product_state.get("keyword"),
             limit=product_state["limit"],
             offset=product_state["offset"],
         )

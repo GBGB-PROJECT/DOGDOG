@@ -121,6 +121,7 @@ def mypage_view(page: ft.Page, controller=None):
                 on_click=show_not_implemented_snackbar,
             ),
             dogdog.banner(
+                image_src="dogbowl.png",
                 text="급여 중인 상품 보러가기",
                 selected=(selected_banner["index"] == 1),
                 on_click=select_and_open_food_remain,

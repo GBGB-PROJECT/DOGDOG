@@ -398,7 +398,7 @@ class Front_dogdog:
             )
             not_bottom_appbar = [
                 # page_name
-                "/shop/product",
+                # "/shop/product",
                 "/shop/order",
                 "/shop/subs_start",
                 "/shop/subs_order",
@@ -409,18 +409,34 @@ class Front_dogdog:
                     appbar_status, page_name
                 )
         self.page.views.append(new_view)
+        notification_check_deferred = False
+
+        async def run_notification_check_once():
+            from domains.mypage.controller.subs_notification_api import NotificationController
+            from domains.mypage.views.notification import show_notification_popup
+
+            notifications = await NotificationController(self.page).check_on_app_load() or []
+
+            for notification in notifications:
+                await show_notification_popup(self.page, self.popup, notification)
+
         # [ISSUE] 온보딩 후 첫 사료 등록 시 데이터 동기화 지연 및 팝업 차단 이슈 해결 (2026-05-05)
         # [TODO] 팝업 연동 및 부분 업데이트 로직 고도화 필요
-        
+
         # [해결 2] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (세션 플래그 기반 트리거)
         trigger_popup = self.storage.get("trigger_feeding_guide_popup")
-        
+
         # [DEBUG] 팝업 플래그 상태 추적
         if page_name == "/home":
-            print(f"[DEBUG] 팝업 플래그 상태 - Instance: {self.home_feeding_guide_popup}, Session: {trigger_popup}")
+            print(
+                f"[DEBUG] 팝업 플래그 상태 - "
+                f"Instance: {self.home_feeding_guide_popup}, Session: {trigger_popup}"
+            )
 
         if page_name == "/home" and (self.home_feeding_guide_popup or trigger_popup):
             # [해결 3] 변수 참조 에러(P0 이슈) 원천 차단 - 상단 초기화
+            from api_client import ApiClient
+
             api_client = ApiClient(self.page)
             pet_name = "우리 아이"
             pet_id = self.storage.get("current_pet_id")
@@ -472,35 +488,48 @@ class Front_dogdog:
                     )
                     pet_name = pet_info.get("nickname", "반려견")
 
-                    # 2. 권장 급여량 API 호출 및 안전한 파싱
-                    guide_intake = 0
-                    try:
-                        res_guide = await api_client.get(f"/calc_feeding/{pet_id}/guide")
-                        if res_guide.status_code == 200:
-                            raw_data = res_guide.json()
-                            resp_data = raw_data.get("data", {})
-                            val = resp_data.get("adjusted_daily_food_g", 0)
-                            guide_intake = int(float(val))
-                    except Exception as api_err:
-                        print(f"[DEBUG] 권장량 API 파싱 에러 (기본값 0 사용): {api_err}")
+                # 2. 권장 급여량 API 호출 및 안전한 파싱
+                guide_intake = 0
+                try:
+                    res_guide = await api_client.get(f"/calc_feeding/{pet_id}/guide")
+                    if res_guide.status_code == 200:
+                        raw_data = res_guide.json()
+                        resp_data = raw_data.get("data", {})
+                        val = resp_data.get("adjusted_daily_food_g", 0)
+                        guide_intake = int(float(val))
+                except Exception as api_err:
+                    print(f"[DEBUG] 권장량 API 파싱 에러 (기본값 0 사용): {api_err}")
 
-                    # 3. 팝업 호출 (문자열로 변환하여 전달)
-                    # [해결 4] 디버깅 로그 추가 (최종 데이터 검증)
-                    print(f"🚀 [DEBUG] 팝업 최종 호출 데이터 - Name: {pet_name}, Intake: {guide_intake}g (Pet ID: {pet_id})")
-                    self.popup.show_feeding_guide_open(pet_name, str(guide_intake))
-                    
-                    # 팝업이 성공적으로 호출된 경우에만 플래그 해제
-                    self.home_feeding_guide_popup = False
-                    self.storage.set("trigger_feeding_guide_popup", False)
+                # AI 팝업이 닫힌 뒤 알림 체크 실행
+                async def after_feeding_popup_closed():
+                    await run_notification_check_once()
+
+                self.page.on_feeding_guide_closed = after_feeding_popup_closed
+
+                # 3. 팝업 호출 (문자열로 변환하여 전달)
+                print(
+                    f"🚀 [DEBUG] 팝업 최종 호출 데이터 - Name: {pet_name}, "
+                    f"Intake: {guide_intake}g (Pet ID: {pet_id})"
+                )
+                self.popup.show_feeding_guide_open(pet_name, str(guide_intake))
+                notification_check_deferred = True
+
+                # 팝업이 성공적으로 호출된 경우에만 플래그 해제
+                self.home_feeding_guide_popup = False
+                self.storage.set("trigger_feeding_guide_popup", False)
+
 
             except Exception as e:
                 print(f"[ERROR] 팝업 연동 중 치명적 오류: {e}")
             finally:
                 # 4. 재노출 방지 (성공 시에만 위에서 처리하므로 여기서는 중복 방지용 로그만 남김)
                 print(f"[DEBUG] 팝업 연동 시퀀스 종료 (Flag: {self.home_feeding_guide_popup})")
+        
         dogdog.views_controls(self.page)
         self.page.update()  # 최종 뷰 추가 후 갱신
 
+        if page_name == "/home" and not notification_check_deferred:
+            await run_notification_check_once()
 
 # -------------------------------------------------------------------------------------------------------
 async def main(page: ft.Page):

@@ -293,7 +293,25 @@ async def home_tile(
         home_background , top_banner = dogdog.home_layout(page=page, text="알림 설정")
         main_container_content.append(top_banner)
         main_container_content.append(body_scroll_column)
-        body_scroll_column.controls.append(domains.notification.notification_setting(page))
+
+        from domains.mypage.controller.subs_notification_api import NotificationController
+        from domains.shop.controller.shop_subscription_api import get_subscription_status
+
+        settings = await NotificationController(page).get_settings()
+
+        subscription_status = await get_subscription_status(page)
+        is_subscribed = bool(
+            subscription_status and subscription_status.get("is_subscribed")
+        )
+
+        body_scroll_column.controls.append(
+            domains.notification.notification_setting(
+                page=page,
+                popup=popup,
+                settings=settings,
+                is_subscribed=is_subscribed,
+            )
+        )
     # ---------------------------------------------------------------------------------------------------
     elif "/shop/" in content_page:
         shop_content_page = content_page.replace("/shop","")
@@ -306,8 +324,16 @@ async def home_tile(
             body_scroll_column.controls.append(domains.shop_product_detail.shop_product_detail(
                 page=page, popup=popup, content_page=content_page))
         # -----------------------------------------------------------------------------------------------
+        # elif shop_content_page == "/search":
+        #     body_scroll_column.controls.append(ft.Container(
+        #         padding=ft.Padding.only(left=20, right=20, top=20),
+        #         bgcolor="#ffffff",
+        #         content=ft.Column(
+        #             controls=[dogdog.basic_text("상품 검색 더미 페이지")]
+        #         )
+        #     ))
         elif shop_content_page == "/search":
-            body_scroll_column.controls.append(domains.dummy_view(page=page))
+            body_scroll_column.controls.append(domains.search.search_products(page=page))
         # -----------------------------------------------------------------------------------------------
         elif shop_content_page == "/cart":
             main_container_content.append(

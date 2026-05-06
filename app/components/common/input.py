@@ -1,7 +1,7 @@
 import flet as ft
 import components as dogdog
 
-def input_textfield(
+def input_textfield(value=None,
     max_length=10, label=None, hint_text=None, suffix=None, input_type=None, on_change=None, password=None,
     text_filter=ft.InputFilter(regex_string=r"^[ㄱ-ㅎ|ㅏ-ㅣ|가-힣-a-zA-Zㆍ]*$", replacement_string=""),
     cancel_event=False
@@ -39,7 +39,8 @@ def input_textfield(
         content_padding=ft.Padding.only(left=14, right=14),
         max_length=max_length,
         input_filter=text_filter,
-        counter=ft.Container()
+        counter=ft.Container(),
+        value=value
     )
     if cancel_event:
         # field.controls[0].controls[0].value = ""

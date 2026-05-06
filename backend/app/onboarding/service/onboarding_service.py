@@ -53,7 +53,7 @@ class OnboardingService:
 
             # 1.5. 알림 설정 초기화
             from db.models import CompanionCustomerNotiSettings
-            noti_categories = ["subs_delivery", "left_feeding_day"]
+            noti_categories = ["subs_delivery", "subs_payment", "left_feeding_day"]
             noti_settings = [
                 CompanionCustomerNotiSettings(
                     customer_id=customer_id,

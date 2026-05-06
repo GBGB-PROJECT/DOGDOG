@@ -66,7 +66,7 @@ def check_notifications(db: Session, customer_id: int):
                         "category": "FOOD_DEPLETION",
                         "notification_type": "FOOD_DEPLETION",
                         "title": "사료 소진 알림",
-                        "message": f'🍚 "{pet_food_info.nickname}"의 급여 중인 사료가 {left_exdate}일치 남았습니다. 지금 바로 사료를 구매하세요.',
+                        "message": f'🍚 "{pet_food_info.nickname}"의 급여 중인 사료가 {left_exdate}일치 남았습니다.\n 지금 바로 사료를 구매하세요.',
                         "days_before": left_exdate,
                     })
                     

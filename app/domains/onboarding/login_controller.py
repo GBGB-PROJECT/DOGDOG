@@ -52,79 +52,92 @@ class LoginController:
             # 5단계: 본 로그인 API 호출
             print(f"🚀 [LoginController] 본 로그인 API 호출 시작")
             payload = {"email": email, "password": password}
-            response = await api.post("/auth/login", data=payload)
+            
+            try:
+                response = await api.post("/auth/login", data=payload)
+                
+                # [수정] 400, 401, 404 등 실패 응답 처리
+                if response.status_code in [400, 401, 404]:
+                    self._show_snack_bar("잘못된 비밀번호이거나 가입되지 않은 이메일입니다.")
+                    return
 
-            if response.status_code == 200:
-                res_data = response.json()
-                auth = res_data.get("authorization", res_data) 
-                access_token = auth.get("access_token")
-                refresh_token = auth.get("refresh_token")
+                if response.status_code == 200:
+                    res_data = response.json()
+                    auth = res_data.get("authorization", res_data) 
+                    access_token = auth.get("access_token")
+                    refresh_token = auth.get("refresh_token")
 
-                if access_token and refresh_token:
-                    self.storage.set("access_token", access_token)
-                    self.storage.set("refresh_token", refresh_token)
-                    
-                    # ---------------------------------------------------------------------------------------
-                    # [데이터 동기화] ApiClient를 활용하여 안전하게 데이터 Prefetch
-                    # ---------------------------------------------------------------------------------------
-                    try:
-                        # 1. 반려동물 목록 조회
-                        pets_res = await api.get("/pets")
-                        if pets_res.status_code == 200:
-                            pets_data = pets_res.json().get("data", [])
-                            if pets_data:
-                                first_pet = pets_data[0]
-                                pet_id = first_pet.get("pet_id")
-                                
-                                real_pet_list = {}
-                                for pet in pets_data:
-                                    p_id = pet.get("pet_id")
-                                    real_pet_list[p_id] = {
-                                        "nickname": pet.get("nickname", "이름없음"),
-                                        "birth_day": pet.get("birth_day", "2023-01-01"),
-                                        "sex": pet.get("sex", 1),
-                                        "profile_image": pet.get("profile_image"),
-                                    }
+                    if access_token and refresh_token:
+                        self.storage.set("access_token", access_token)
+                        self.storage.set("refresh_token", refresh_token)
+                        
+                        # ---------------------------------------------------------------------------------------
+                        # [데이터 동기화] ApiClient를 활용하여 안전하게 데이터 Prefetch
+                        # ---------------------------------------------------------------------------------------
+                        try:
+                            # 1. 반려동물 목록 조회
+                            pets_res = await api.get("/pets")
+                            if pets_res.status_code == 200:
+                                pets_data = pets_res.json().get("data", [])
+                                if pets_data:
+                                    first_pet = pets_data[0]
+                                    pet_id = first_pet.get("pet_id")
+                                    
+                                    real_pet_list = {}
+                                    for pet in pets_data:
+                                        p_id = pet.get("pet_id")
+                                        real_pet_list[p_id] = {
+                                            "nickname": pet.get("nickname", "이름없음"),
+                                            "birth_day": pet.get("birth_day", "2023-01-01"),
+                                            "sex": pet.get("sex", 1),
+                                            "profile_image": pet.get("profile_image"),
+                                        }
 
-                                self.storage.set("pet_list", real_pet_list)
-                                self.storage.set("current_pet_id", pet_id)
-                                
-                                # 2. 대시보드 데이터 동기화
-                                res_dash = await api.get(f"/home/dashboard/{pet_id}")
-                                dash_data = res_dash.json().get("data") or {} if res_dash.status_code == 200 else {}
+                                    self.storage.set("pet_list", real_pet_list)
+                                    self.storage.set("current_pet_id", pet_id)
+                                    
+                                    # [핵심 수정] 반려동물이 존재하면 데이터 동기화 결과와 관계없이 기본 플래그 우선 설정
+                                    self.storage.set("is_onboarding_complete", True)
+                                    self.storage.set("trigger_feeding_guide_popup", True)
+                                    
+                                    # 2. 대시보드 데이터 동기화
+                                    res_dash = await api.get(f"/home/dashboard/{pet_id}")
+                                    dash_data = res_dash.json().get("data") or {} if res_dash.status_code == 200 else {}
 
-                                self.storage.set("history", dash_data.get("history", {}) if isinstance(dash_data.get("history"), dict) else {})
-                                self.storage.set("customer_detail", {"dashboard_sync": dash_data})
+                                    self.storage.set("history", dash_data.get("history", {}) if isinstance(dash_data.get("history"), dict) else {})
+                                    self.storage.set("customer_detail", {"dashboard_sync": dash_data})
 
-                                # 3. 사료 상세 정보 조회 (고스트 데이터 방지)
-                                self.storage.set("pet_food_detail", {})
-                                res_food = await api.get(f"/pets/{pet_id}/pet_food")
-                                pet_food_data = res_food.json().get("data") or {} if res_food.status_code == 200 else {}
-                                self.storage.set("pet_food_detail", pet_food_data)
+                                    # 3. 사료 상세 정보 조회 (고스트 데이터 방지)
+                                    self.storage.set("pet_food_detail", {})
+                                    res_food = await api.get(f"/pets/{pet_id}/pet_food")
+                                    pet_food_data = res_food.json().get("data") or {} if res_food.status_code == 200 else {}
+                                    self.storage.set("pet_food_detail", pet_food_data)
 
-                                self.storage.set("is_onboarding_complete", True)
-                                self.storage.set("trigger_feeding_guide_popup", True)
-
+                                else:
+                                    self._show_snack_bar("등록된 반려동물이 없습니다. 온보딩을 진행해 주세요.")
                             else:
-                                self._show_snack_bar("등록된 반려동물이 없습니다. 온보딩을 진행해 주세요.")
-                        else:
-                            print(f"❌ [LoginController] 반려동물 목록 조회 실패 (Status: {pets_res.status_code})")
-                    except Exception as sync_ex:
-                        print(f"❌ [LoginController] 데이터 동기화 중 예외 발생: {sync_ex}")
+                                print(f"❌ [LoginController] 반려동물 목록 조회 실패 (Status: {pets_res.status_code})")
+                        except Exception as sync_ex:
+                            print(f"❌ [LoginController] 데이터 동기화 중 예외 발생 (일부 생략될 수 있음): {sync_ex}")
 
-                    self.change_page_callback("/home")
+                        self.change_page_callback("/home")
+                        return
+                    else:
+                        self._show_snack_bar("서버 응답 형식이 올바르지 않습니다.")
+                        return
                 else:
-                    self._show_snack_bar("서버 응답 형식이 올바르지 않습니다.")
-            else:
-                self._show_snack_bar("이메일 또는 비밀번호가 일치하지 않습니다.")
+                    self._show_snack_bar("로그인 정보가 일치하지 않습니다.")
+                    return
+
+            except httpx.HTTPStatusError as status_ex:
+                print(f"❌ [LoginController] HTTP 상태 에러: {status_ex}")
+                self._show_snack_bar("잘못된 비밀번호입니다.")
+                return
 
         except Exception as ex:
             print(f"❌ [LoginController] 처리 중 예외 발생: {str(ex)}")
             self._show_snack_bar("서버와 통신할 수 없습니다. 네트워크 상태를 확인해 주세요.")
-        
-        except Exception as ex:
-            print(f"❌ [LoginController] 기타 예외 발생: {str(ex)}")
-            self._show_snack_bar(f"처리 중 오류가 발생했습니다: {str(ex)}")
+            return
 
     def _show_snack_bar(self, message: str):
         """안내용 스낵바 출력"""

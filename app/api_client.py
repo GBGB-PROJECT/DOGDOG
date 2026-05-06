@@ -26,6 +26,10 @@ class ApiClient:
     # httpx Response 타입으로 변경 및 비동기(async) 처리
     async def _handle_response(self, response: httpx.Response) -> httpx.Response:
         if response.status_code == 401:
+            # [수정] 로그인 요청(/auth/login)인 경우 강제 이동을 방지하고 에러를 컨트롤러에서 처리하도록 함
+            if "/auth/login" in str(response.url):
+                return response
+
             # 온보딩 관련 페이지에서는 401 에러가 나더라도 리다이렉트하지 않음 (비로그인 접근 허용 구간)
             onboarding_pages = [
                 "/sign_up",

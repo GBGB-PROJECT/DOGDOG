@@ -156,15 +156,6 @@ class FeedingService:
             food_type=f_type,
         )
         self.repo.add_log(log)
-
-        # [AutoDelivery] 자동 주문 트리거 호출 (commit 전)
-        if inven and inven.expected_exdate:
-            import asyncio
-
-            # 비동기 환경이므로 동기 메서드 내에서 호출 시 주의 필요하나,
-            # 현재 FastAPI/uvicorn 환경이므로 await로 호출 (Service가 비동기인 경우 기준)
-            self.trigger_auto_delivery_process(pet_id, inven.expected_exdate)
-
         self.repo.commit()
 
         return log, inven
@@ -251,22 +242,18 @@ class FeedingService:
                 self._validate_feeding_input(log.pet_id, 0, new_date)
 
             # PK 변경을 위한 D&I 처리
-            new_log_data = {
-                "pet_id": log.pet_id,
-                "customer_id": log.customer_id,
-                "amount": log.amount,
-                "calories": log.calories,
-                "memo": log.memo,
-                "feeding_date": new_date,
-                "feeding_time": log.feeding_time,
-                "food_type": log.food_type,
-            }
+            new_log = CompanionPetFood(
+                pet_id=log.pet_id,
+                customer_id=log.customer_id,
+                amount=log.amount,
+                calories=log.calories,
+                memo=log.memo,
+                feeding_date=new_date,
+                feeding_time=log.feeding_time,
+                food_type=log.food_type,
+            )
             self.repo.add_log(new_log)
             log = new_log
-
-        # [AutoDelivery] 자동 주문 트리거 호출 (수정 시 소진일 변동 대응)
-        if inven and inven.expected_exdate:
-            self.trigger_auto_delivery_process(log.pet_id, inven.expected_exdate)
 
         self.repo.commit()
         if inven:
@@ -309,84 +296,82 @@ class FeedingService:
     def trigger_auto_delivery_process(self, pet_id: int, expected_exdate: date):
         """
         소진일(expected_exdate) 업데이트 직후 자동 주문 생성 로직을 실행합니다.
-        전체 로직은 상위 호출부의 트랜잭션 범위 내에서 실행됩니다.
+        독립적인 DB 세션을 생성하여 백그라운드 환경에서도 안전하게 실행됩니다.
         """
         if not expected_exdate:
             return
 
-        try:
-            # 1. 구독자 검증 및 구독 정보 조회
-            # pet_id -> customer_id -> subs (활성 구독 또는 자동 배송 설정 확인)
-            subs_info = (
-                self.repo.db.query(OpdSubs)
-                .join(
-                    CompanionButler, CompanionButler.customer_id == OpdSubs.customer_id
-                )
-                .filter(
-                    and_(
-                        CompanionButler.pet_id == pet_id,
-                        CompanionButler.active == True,  # 활성화된 집사인지 확인
-                        OpdSubs.is_subs_status == True,  # 활성 구독자
-                        OpdSubs.is_auto_delivery == True,  # 자동 배송 동의
+        from db.db import SessionLocal
+
+        with SessionLocal() as db:
+            try:
+                # 1. 구독자 검증 및 구독 정보 조회
+                subs_info = (
+                    db.query(OpdSubs)
+                    .join(
+                        CompanionButler,
+                        CompanionButler.customer_id == OpdSubs.customer_id,
                     )
-                )
-                .first()
-            )
-
-            if not subs_info:
-                # print(f"[AutoDelivery] Skip: Pet {pet_id} is not an active subscriber.")
-                return
-
-            # 2. 타임 체크: 소진일이 오늘 기준 9일 이하로 남았는지 확인
-            today = date.today()
-            days_left = (expected_exdate - today).days
-
-            if days_left > 9:
-                # print(f"[AutoDelivery] Skip: {days_left} days left until exdate (Threshold: 9 days)")
-                return
-
-            # 3. 멱등성(Idempotency) 보장: 중복 주문 생성 방지 로직
-            # [수정] order_start_date 타입 정합성 (date -> datetime 캐스팅)
-            target_date = expected_exdate - timedelta(days=2)
-            order_start_date = datetime.combine(target_date, datetime.min.time())
-
-            existing_order = (
-                self.repo.db.query(OpdDelivery)
-                .filter(
-                    and_(
-                        OpdDelivery.subs_id == subs_info.subs_id,
-                        # 동일 주기에 대한 중복 생성을 막기 위해 전후 3일 범위를 체크
-                        OpdDelivery.order_start_date
-                        >= (order_start_date - timedelta(days=3)),
-                        OpdDelivery.order_start_date
-                        <= (order_start_date + timedelta(days=3)),
+                    .filter(
+                        and_(
+                            CompanionButler.pet_id == pet_id,
+                            CompanionButler.active == True,
+                            OpdSubs.is_subs_status == True,
+                            OpdSubs.is_auto_delivery == True,
+                        )
                     )
+                    .first()
                 )
-                .first()
-            )
 
-            if existing_order:
-                # print(f"[AutoDelivery] Skip: Delivery already exists for this cycle")
-                return
+                if not subs_info:
+                    return
 
-            # 4. 배송 테이블 Insert (주문 생성)
-            new_delivery = OpdDelivery(
-                subs_id=subs_info.subs_id,
-                delivery_status_id=101,  # 101: 상품준비중
-                order_start_date=order_start_date,
-                insert_delivery_date=datetime.now(),
-                last_update=datetime.now(),
-            )
+                # 2. 타임 체크
+                today = date.today()
+                days_left = (expected_exdate - today).days
 
-            self.repo.db.add(new_delivery)
-            # flush를 통해 ID를 생성하되, 최종 commit은 상위 트랜잭션에 위임
-            self.repo.db.flush()
+                if days_left > 9:
+                    return
 
-            print(
-                f"[AutoDelivery] Success: Created new delivery order for Pet {pet_id}"
-            )
+                # 3. 멱등성 보장
+                target_date = expected_exdate - timedelta(days=2)
+                order_start_date = datetime.combine(target_date, datetime.min.time())
 
-        except Exception as e:
-            print(f"[AutoDelivery] Critical Error: {str(e)}")
-            # 에러 발생 시 상위 트랜잭션 전체 롤백을 위해 raise
-            raise e
+                existing_order = (
+                    db.query(OpdDelivery)
+                    .filter(
+                        and_(
+                            OpdDelivery.subs_id == subs_info.subs_id,
+                            OpdDelivery.order_start_date
+                            >= (order_start_date - timedelta(days=3)),
+                            OpdDelivery.order_start_date
+                            <= (order_start_date + timedelta(days=3)),
+                        )
+                    )
+                    .first()
+                )
+
+                if existing_order:
+                    return
+
+                # 4. 배송 테이블 Insert
+                new_delivery = OpdDelivery(
+                    subs_id=subs_info.subs_id,
+                    delivery_status_id=101,
+                    order_start_date=order_start_date,
+                    insert_delivery_date=datetime.now(),
+                    last_update=datetime.now(),
+                )
+
+                db.add(new_delivery)
+                db.commit()  # 독립 세션이므로 직접 커밋
+
+                print(
+                    f"[AutoDelivery] Success: Created new delivery order for Pet {pet_id}"
+                )
+
+            except Exception as e:
+                db.rollback()
+                print(f"[AutoDelivery] Critical Error: {str(e)}")
+                # 백그라운드 작업이므로 raise 대신 로그 기록 후 종료
+

@@ -1,21 +1,21 @@
+import os
+import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# 프로젝트 루트 디렉토리를 sys.path에 추가하여 db 패키지를 찾을 수 있게 합니다.
+# 현재 파일 위치: backend/main.py -> 부모가 프로젝트 루트
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, "../"))
 
-# Domain Routers
-from app.pets.api.pets_api import router as pets_router
-from app.users.users_api import router as users_router
-from app.auth.api.auth_api import router as auth_router
-from app.logs.api.numeric_api import router as numeric_router
-from app.home.api.dashboard_api import router as dashboard_router
-from app.logs.api.logs_api import router as logs_router
-from app.logs.api.feeding_api import router as feeding_router
-from app.calc_feeding.calc_feeding_api import router as calc_feeding_router
-from app.products.products_api import router as products_router
-from app.onboarding.api.onboarding_api import router as onboarding_router
-from app.notifications.api.notifications_api import router as notifications_router
-from app.subscriptions.api.subscriptions_api import router as subscriptions_router
-from app.images_api import router as images_router
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# backend 폴더 자체도 path에 추가하여 app.logs... 임포트가 가능하게 합니다.
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+import backend.app as backend
 
 app = FastAPI(
     title="DOGDOG API",
@@ -55,35 +55,35 @@ def read_root():
 # (참고: 각 라우터 파일에 /api/v1 접두사가 포함되어 있으므로 이곳에서 이중으로 주입할 필요 없이 논리적 계층별로 결합합니다)
 
 # 1. Auth & Users 도메인
-app.include_router(auth_router)
-app.include_router(users_router)
+app.include_router(backend.auth_router)
+app.include_router(backend.users_router)
 
 # 2. Pets 도메인
-app.include_router(pets_router)
+app.include_router(backend.pets_router)
 
 # 3. Onboarding 도메인
-app.include_router(onboarding_router)
+app.include_router(backend.onboarding_router)
 
 # 4. Logs & Dashboard 도메인
-app.include_router(dashboard_router)
-app.include_router(logs_router)
-app.include_router(feeding_router)
-app.include_router(numeric_router)
+app.include_router(backend.dashboard_router)
+app.include_router(backend.logs_router)
+app.include_router(backend.feeding_router)
+app.include_router(backend.numeric_router)
 
 # 5. calc_feeding 도메인
-app.include_router(calc_feeding_router)
+app.include_router(backend.calc_feeding_router)
 
 # 6. Products 도메인
-app.include_router(products_router)
+app.include_router(backend.products_router)
 
 # 7. Notifications 도메인
-app.include_router(notifications_router)
+app.include_router(backend.notifications_router)
 
 # 8. Subscriptions 도메인
-app.include_router(subscriptions_router)
+app.include_router(backend.subscriptions_router)
 
 # 0. 이미지 프록시
-app.include_router(images_router)
+app.include_router(backend.images_router)
 
 
 if __name__ == "__main__":

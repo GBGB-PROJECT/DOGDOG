@@ -18,13 +18,21 @@ class NotificationController:
             return []
 
         today = datetime.date.today().isoformat()
-        customer_id = self.storage.get("customer_id") or "me"
+        customer_id = self.storage.get("customer_id")
         storage_key = f"notification_sent_date:{customer_id}"
 
         try:
             last_sent_date = None
+
+            print("[NOTIFICATION DEBUG] page has client_storage:", hasattr(self.page, "client_storage"))
+            print("[NOTIFICATION DEBUG] customer_id:", customer_id)
+            print("[NOTIFICATION DEBUG] storage_key:", storage_key)
+            print("[NOTIFICATION DEBUG] today:", today)
+
             if hasattr(self.page, "client_storage"):
                 last_sent_date = await self.page.client_storage.get_async(storage_key)
+
+            print("[NOTIFICATION DEBUG] last_sent_date:", last_sent_date)
 
             if last_sent_date == today:
                 return []
@@ -46,6 +54,10 @@ class NotificationController:
 
             if hasattr(self.page, "client_storage"):
                 await self.page.client_storage.set_async(storage_key, today)
+
+                saved_date = await self.page.client_storage.get_async(storage_key)
+                print("[NOTIFICATION DEBUG] saved_date:", saved_date)
+
 
             return notifications
 

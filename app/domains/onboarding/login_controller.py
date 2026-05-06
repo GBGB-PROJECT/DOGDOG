@@ -64,6 +64,28 @@ class LoginController:
                     self.storage.set("access_token", access_token)
                     self.storage.set("refresh_token", refresh_token)
                     
+                    # customer_id 저장 - 알림 하루 1회 key에 필요
+                    try:
+                        user_res = await api.get("/users/id", params={"email": email})
+                        print("[LOGIN DEBUG] /users/id status:", user_res.status_code)
+                        print("[LOGIN DEBUG] /users/id body:", user_res.text)
+
+                        if user_res.status_code == 200:
+                            user_body = user_res.json()
+                            user_data = user_body.get("data") or {}
+                            customer_id = user_data.get("customer_id")
+
+                            if customer_id:
+                                self.storage.set("customer_id", customer_id)
+                                print(f"✅ [LoginController] customer_id 저장 완료: {customer_id}")
+                            else:
+                                print(f"⚠️ [LoginController] customer_id 응답 파싱 실패: {user_body}")
+                        else:
+                            print(f"⚠️ [LoginController] customer_id 조회 실패: {user_res.status_code}")
+
+                    except Exception as e:
+                        print(f"⚠️ [LoginController] customer_id 조회 중 예외: {e}")
+
                     # ---------------------------------------------------------------------------------------
                     # [데이터 동기화] ApiClient를 활용하여 안전하게 데이터 Prefetch
                     # ---------------------------------------------------------------------------------------

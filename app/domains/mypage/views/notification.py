@@ -246,9 +246,9 @@ class Noti:
             "left_food_count": ("left_feeding_day", "both"),
         }
 
-        if switch_type not in category_map:
-            self.Notification(switch_type)
-            return
+        # if switch_type not in category_map:
+        #     self.Notification(switch_type)
+        #     return
 
         category, option = category_map[switch_type]
 
@@ -279,7 +279,7 @@ class Noti:
             current_settings[category] = result
             self.storage.set("notification_settings", current_settings)
 
-        self.Notification(switch_type)
+        # self.Notification(switch_type)
     # ---------------------------------------------------------------------------------------------------
     # Interval Dropdown Event
     # ---------------------------------------------------------------------------------------------------

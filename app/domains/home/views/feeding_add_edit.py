@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------------------------------
 import flet as ft
 import components as dogdog
-from domains.onboarding.pet_food_controller import PetFoodController
+from domains.onboarding.controller.pet_food_controller import PetFoodController
 from domains.home.controller.feeding_add_edit_controller import FeedingAddEditController
 
 

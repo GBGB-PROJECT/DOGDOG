@@ -41,10 +41,10 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
     # ---------------------------------------------------------------------------------------------------
     # Controller Initialization
     # ---------------------------------------------------------------------------------------------------
-    from .onboarding.onboarding_controller import OnboardingController
-    from .onboarding.pet_info_controller import PetInfoController
-    from .onboarding.pet_food_controller import PetFoodController
-    from .onboarding.login_controller import LoginController
+    from .onboarding.controller.onboarding_controller import OnboardingController
+    from .onboarding.controller.pet_info_controller import PetInfoController
+    from .onboarding.controller.pet_food_controller import PetFoodController
+    from .onboarding.controller.login_controller import LoginController
 
     # 뷰와 로직을 연결하는 컨트롤러 인스턴스 생성
     controller = OnboardingController(

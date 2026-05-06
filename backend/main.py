@@ -46,7 +46,6 @@ def health_check():
 def read_root():
     return {
         "message": "DOGDOG 백엔드 서버가 정상 작동 중입니다.",
-        "schema": "Companion",
     }
 
 
@@ -77,10 +76,10 @@ app.include_router(calc_feeding_router)
 # 6. Products 도메인
 app.include_router(products_router)
 
-# 6. Notifications 도메인
+# 7. Notifications 도메인
 app.include_router(notifications_router)
 
-# 7. Subscriptions 도메인
+# 8. Subscriptions 도메인
 app.include_router(subscriptions_router)
 
 # 0. 이미지 프록시

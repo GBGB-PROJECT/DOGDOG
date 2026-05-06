@@ -3,7 +3,7 @@ import flet as ft
 import domains as domains
 import components as dogdog
 import domains
-from .home.home_controller import HomeController
+from .home.controller.home_controller import HomeController
 from domains.logs.controller.log_controller import LogController
 
 

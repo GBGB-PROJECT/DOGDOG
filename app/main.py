@@ -6,7 +6,7 @@ import time
 import asyncio
 import components as dogdog
 from api_client import ApiClient
-from domains.home.home_controller import HomeController
+from domains.home.controller.home_controller import HomeController
 
 # 테스트 아이디로 테스트 설정
 IS_TEST_MODE = False

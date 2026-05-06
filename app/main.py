@@ -420,7 +420,6 @@ class Front_dogdog:
             for notification in notifications:
                 await show_notification_popup(self.page, self.popup, notification)
 
-
         # [ISSUE] 온보딩 후 첫 사료 등록 시 데이터 동기화 지연 및 팝업 차단 이슈 해결 (2026-05-05)
         # [TODO] 팝업 연동 및 부분 업데이트 로직 고도화 필요
 

@@ -140,4 +140,48 @@ def get_stock_inout_list(
     }
 
 
-__all__ = ["get_stock_inout_list"]
+def stream_stock_inout_data(
+    search_type="all",
+    keyword="",
+    inout_type="all",
+    start_date=None,
+    end_date=None,
+    chunk_size=1000,
+):
+    """대량의 데이터를 메모리 효율적으로 스트리밍하는 서비스 함수입니다.
+    
+    엑셀 다운로드나 대규모 마이그레이션 시 사용하며, 
+    SQLAlchemy Identity Map 오버헤드를 방지하기 위해 주기적으로 세션을 정리합니다.
+    """
+    import gc
+    from db.db import SessionLocal
+
+    db = SessionLocal()
+    try:
+        # Repository의 fetch 함수를 호출하여 rows를 가져옵니다.
+        # 내부적으로 yield_per와 stream_results가 적용되어 있습니다.
+        rows = fetch_stock_inout_rows(
+            search_type=search_type,
+            keyword=keyword,
+            inout_type=inout_type,
+            start_date=start_date,
+            end_date=end_date,
+            limit=None, # 전체 조회를 위해 limit 해제 (스트리밍)
+            offset=0,
+        )
+
+        counter = 0
+        for row in rows:
+            yield _format_item(row)
+            counter += 1
+            
+            # 특정 주기마다 메모리 해제 및 가비지 컬렉션 유도
+            if counter % chunk_size == 0:
+                db.expunge_all() # 세션에 로드된 모든 객체 참조 해제
+                gc.collect()     # 수동 가비지 컬렉션 트리거 (선택 사항)
+
+    finally:
+        db.close()
+
+
+__all__ = ["get_stock_inout_list", "stream_stock_inout_data"]

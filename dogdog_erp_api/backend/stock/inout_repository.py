@@ -114,7 +114,7 @@ def _keyword_pattern(keyword):
 # =========================================================
 # 🔥 입고 조회 기본 쿼리
 # =========================================================
-def _base_inbound_query(db):
+def _base_inbound_query():
     event_date = _inbound_date_expr()
     amount_expr = func.coalesce(
         ErpStock.save_stock * ErpPurchaseOrderItem.purchase_price,
@@ -122,12 +122,12 @@ def _base_inbound_query(db):
     )
 
     return (
-        db.query(
+        select(
             literal("입고").label("inout_type"),
             ErpInbound.inbound_id.label("inbound_id"),
             literal(None).label("sales_order_id"),
             ErpStock.product_id.label("product_id"),
-            OpdProduct.product_detail_id.label("product_detail_id"),  # 🔥 추가: 상품번(상품상세ID-상품ID) 구성을 위한 상품상세ID
+            OpdProduct.product_detail_id.label("product_detail_id"),
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
             OpdProduct.weight.label("weight"),
@@ -171,14 +171,14 @@ def _base_inbound_query(db):
 # =========================================================
 # 🔥 출고 조회 기본 쿼리
 # =========================================================
-def _base_outbound_query(db):
+def _base_outbound_query():
     return (
-        db.query(
+        select(
             literal("출고").label("inout_type"),
             OpdSalesOrderItem.inbound_id.label("inbound_id"),
             OpdSalesOrder.sales_order_id.label("sales_order_id"),
             OpdSalesOrderItem.product_id.label("product_id"),
-            OpdProduct.product_detail_id.label("product_detail_id"),  # 🔥 추가: 상품번(상품상세ID-상품ID) 구성을 위한 상품상세ID
+            OpdProduct.product_detail_id.label("product_detail_id"),
             OpdProductDetail.brand.label("brand"),
             OpdProductDetail.product_name.label("product_name"),
             OpdProduct.weight.label("weight"),
@@ -334,28 +334,31 @@ def _parse_sort_date(value):
 
 
 
-def _ordered_limited_rows(db, query, limit=50, offset=0):
-    rows = (
-        query.order_by(
+def _ordered_limited_rows(db, stmt, limit=50, offset=0):
+    # 🔥 SQLAlchemy 2.0 스타일로 실행
+    stmt = (
+        stmt.order_by(
             desc("event_date"),
             desc("inbound_id"),
             desc("sales_order_id"),
         )
         .limit(limit)
         .offset(offset)
-        .all()
+        .execution_options(stream_results=True)
     )
 
-    return [_row_to_dict(row) for row in rows]
+    result = db.execute(stmt).yield_per(1000).mappings()
+    return [{key: to_plain_value(value) for key, value in row.items()} for row in result]
 
 
-def _fetch_union_rows(db, inbound_query, outbound_query, limit=50, offset=0):
-    # 🔥 수정: 입고/출고 전체 조회 시 Python에서 전체 rows를 all()로 가져와 정렬하지 않는다.
-    # - 기존 방식은 전체 2만 건 이상을 모두 가져온 뒤 Python sort + slicing을 해서 timeout 발생
-    # - UNION ALL + ORDER BY + LIMIT/OFFSET을 DB에서 처리하도록 변경
+def _fetch_union_rows(db, inbound_stmt, outbound_stmt, limit=50, offset=0):
+    # 🔥 메모리 최적화: SQLAlchemy 2.0 스타일 + Server-side cursor 설정
+    # - stream_results=True: PostgreSQL에서 rows를 한 번에 가져오지 않고 스트리밍합니다.
+    # - mappings(): ORM 객체화 오버헤드를 줄이기 위해 dict 형태의 RowMapping을 사용합니다.
+    
     union_subq = union_all(
-        inbound_query.statement,
-        outbound_query.statement,
+        inbound_stmt,
+        outbound_stmt,
     ).subquery("stock_inout_union")
 
     stmt = (
@@ -367,9 +370,12 @@ def _fetch_union_rows(db, inbound_query, outbound_query, limit=50, offset=0):
         )
         .limit(limit)
         .offset(offset)
+        .execution_options(stream_results=True) # 서버사이드 커서 활성화
     )
 
-    result = db.execute(stmt).mappings().all()
+    # yield_per를 사용하여 일정 단위로 fetch합니다.
+    result = db.execute(stmt).yield_per(1000).mappings()
+    
     return [{key: to_plain_value(value) for key, value in row.items()} for row in result]
 
 
@@ -395,54 +401,54 @@ def fetch_stock_inout_rows(
         outbound_query = None
 
         if inout_type in ("all", "inbound", "입고"):
-            inbound_query = _base_inbound_query(db)
-            inbound_query = _apply_date_filter(
-                inbound_query,
+            inbound_stmt = _base_inbound_query()
+            inbound_stmt = _apply_date_filter(
+                inbound_stmt,
                 _inbound_date_expr(),
                 start_date,
                 end_date,
             )
-            inbound_query = _apply_inbound_search_filter(
-                inbound_query,
+            inbound_stmt = _apply_inbound_search_filter(
+                inbound_stmt,
                 search_type=search_type,
                 keyword=keyword,
             )
 
         if inout_type in ("all", "outbound", "출고"):
-            outbound_query = _base_outbound_query(db)
-            outbound_query = _apply_date_filter(
-                outbound_query,
+            outbound_stmt = _base_outbound_query()
+            outbound_stmt = _apply_date_filter(
+                outbound_stmt,
                 OpdSalesOrder.order_date,
                 start_date,
                 end_date,
             )
-            outbound_query = _apply_outbound_search_filter(
-                outbound_query,
+            outbound_stmt = _apply_outbound_search_filter(
+                outbound_stmt,
                 search_type=search_type,
                 keyword=keyword,
             )
 
-        if inbound_query is not None and outbound_query is not None:
+        if inbound_stmt is not None and outbound_stmt is not None:
             return _fetch_union_rows(
                 db,
-                inbound_query,
-                outbound_query,
+                inbound_stmt,
+                outbound_stmt,
                 limit=limit,
                 offset=offset,
             )
 
-        if inbound_query is not None:
+        if inbound_stmt is not None:
             return _ordered_limited_rows(
                 db,
-                inbound_query,
+                inbound_stmt,
                 limit=limit,
                 offset=offset,
             )
 
-        if outbound_query is not None:
+        if outbound_stmt is not None:
             return _ordered_limited_rows(
                 db,
-                outbound_query,
+                outbound_stmt,
                 limit=limit,
                 offset=offset,
             )
@@ -467,34 +473,37 @@ def count_stock_inout_rows(
         total_count = 0
 
         if inout_type in ("all", "inbound", "입고"):
-            inbound_query = _base_inbound_query(db)
-            inbound_query = _apply_date_filter(
-                inbound_query,
+            inbound_stmt = _base_inbound_query()
+            inbound_stmt = _apply_date_filter(
+                inbound_stmt,
                 _inbound_date_expr(),
                 start_date,
                 end_date,
             )
-            inbound_query = _apply_inbound_search_filter(
-                inbound_query,
+            inbound_stmt = _apply_inbound_search_filter(
+                inbound_stmt,
                 search_type=search_type,
                 keyword=keyword,
             )
-            total_count += inbound_query.count()
+            # count() 대신 select(func.count()) 사용
+            count_stmt = select(func.count()).select_from(inbound_stmt.subquery())
+            total_count += db.execute(count_stmt).scalar() or 0
 
         if inout_type in ("all", "outbound", "출고"):
-            outbound_query = _base_outbound_query(db)
-            outbound_query = _apply_date_filter(
-                outbound_query,
+            outbound_stmt = _base_outbound_query()
+            outbound_stmt = _apply_date_filter(
+                outbound_stmt,
                 OpdSalesOrder.order_date,
                 start_date,
                 end_date,
             )
-            outbound_query = _apply_outbound_search_filter(
-                outbound_query,
+            outbound_stmt = _apply_outbound_search_filter(
+                outbound_stmt,
                 search_type=search_type,
                 keyword=keyword,
             )
-            total_count += outbound_query.count()
+            count_stmt = select(func.count()).select_from(outbound_stmt.subquery())
+            total_count += db.execute(count_stmt).scalar() or 0
 
         return total_count
 

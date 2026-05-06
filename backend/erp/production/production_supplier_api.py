@@ -8,10 +8,14 @@ from math import ceil
 from typing import Literal
 from datetime import date
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from .production_supplier_service import count_suppliers, fetch_suppliers, create_supplier, update_supplier
-from .production_supplier_schema import ErpProductionSupplierListResponse
+from .production_supplier_schema import (
+    ErpProductionSupplierListResponse,
+    ErpProductionSupplierMutationResponse,
+    ErpProductionSupplierUpsertRequest,
+)
 
 router = APIRouter(
     prefix="/erp/production/supplier",
@@ -164,10 +168,10 @@ def get_suppliers(
         )
 
 
-@router.post("")
-def post_supplier(payload: dict = Body(...)):
+@router.post("", response_model=ErpProductionSupplierMutationResponse)
+def post_supplier(payload: ErpProductionSupplierUpsertRequest):
     try:
-        item = create_supplier(payload)
+        item = create_supplier(payload.model_dump())
         return {"success": True, "message": "Supplier created.", "data": {"item": item}}
     except ValueError as exc:
         raise HTTPException(
@@ -181,10 +185,10 @@ def post_supplier(payload: dict = Body(...)):
         )
 
 
-@router.patch("/{supplier_id}")
-def patch_supplier(supplier_id: int, payload: dict = Body(...)):
+@router.put("/{supplier_id}", response_model=ErpProductionSupplierMutationResponse)
+def put_supplier(supplier_id: int, payload: ErpProductionSupplierUpsertRequest):
     try:
-        item = update_supplier(supplier_id, payload)
+        item = update_supplier(supplier_id, payload.model_dump())
         return {"success": True, "message": "Supplier updated.", "data": {"item": item}}
     except ValueError as exc:
         raise HTTPException(

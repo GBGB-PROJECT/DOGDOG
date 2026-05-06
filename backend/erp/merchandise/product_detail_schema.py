@@ -44,3 +44,31 @@ class ErpMerchandiseDetailListResponse(BaseModel):
     success: bool
     message: str
     data: ErpMerchandiseDetailData
+
+
+
+class ErpMerchandiseProductDetailCreateRequest(BaseModel):
+    type: str
+    brand: str
+    product_name: str
+    function: str | None = None
+    main_protein: str | None = None
+    life: str
+    weight: int
+    retail_price: int
+    quantity: int
+    active: bool
+
+
+class ErpMerchandiseProductDetailUpdateRequest(ErpMerchandiseProductDetailCreateRequest):
+    pass
+
+
+class ErpMerchandiseDetailMutationData(BaseModel):
+    item: dict[str, Any]
+
+
+class ErpMerchandiseDetailMutationResponse(BaseModel):
+    success: bool
+    message: str
+    data: ErpMerchandiseDetailMutationData

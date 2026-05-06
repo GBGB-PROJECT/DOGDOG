@@ -5,7 +5,7 @@ class DevPopup:
     def __init__(self, page: ft.Page):
         self.page = page
         self.dlg = ft.AlertDialog(
-            modal=True,
+            modal=False,
             title=ft.Container(
                 content=ft.Text("현재 개발 중 입니다!", size=24, weight=ft.FontWeight.BOLD),
                 alignment=ft.Alignment.CENTER,

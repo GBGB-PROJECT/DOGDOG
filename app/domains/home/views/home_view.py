@@ -136,22 +136,26 @@ def feeding_food_count(page: ft.Page, content_page: str, inventory_stats: dict):
     """
     progress_value = inventory_stats.get('progress_value', 0.0)
     
+    # [Step 2] 부분 업데이트를 위해 위젯 객체를 세션에 보관
+    feeding_amount_text = dogdog.basic_text(
+        spans=[
+            ft.TextSpan(
+                f"{int(inventory_stats.get('left_intake', 0)):,}g",
+                style=dogdog.TextStyle(size=16, height=-1),
+            ),
+            ft.TextSpan(f" / {inventory_stats.get('total_weight_kg', 0.0)}Kg"),
+        ],
+        color=ft.Colors.GREY_400,
+        weight="bold",
+        size=16,
+    )
+    page.session.store.set("feeding_amount_widget", feeding_amount_text)
+
     content_column = [
         dogdog.basic_text(value="급여 중인 사료 잔여량", size=17, weight="bold"),
         ft.Row(
             controls=[
-                dogdog.basic_text(
-                    spans=[
-                        ft.TextSpan(
-                            f"{int(inventory_stats.get('left_intake', 0)):,}g",
-                            style=dogdog.TextStyle(size=16, height=-1),
-                        ),
-                        ft.TextSpan(f" / {inventory_stats.get('total_weight_kg', 0.0)}Kg"),
-                    ],
-                    color=ft.Colors.GREY_400,
-                    weight="bold",
-                    size=16,
-                ),
+                feeding_amount_text,
                 dogdog.flat_button(
                     (
                         f"{int(float(inventory_stats.get('left_days', 0))):,} 일치 남음"

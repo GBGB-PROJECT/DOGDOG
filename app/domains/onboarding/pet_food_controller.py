@@ -233,7 +233,8 @@ class PetFoodController:
             selected_option = next((opt for opt in e.control.options if opt.key == selected_weight_key), None)
             if selected_option:
                 weight_val = int(selected_option.text.replace("g", ""))
-                self.storage.set("food_weight", weight_val)
+                # [QA 수정] food_weight(잔여량)는 사용자가 직접 입력해야 하므로 여기서 자동 설정하지 않음
+                # 오직 product_weight(전체 용량)만 참고용으로 저장
                 self.storage.set("product_weight", weight_val)
         except (ValueError, TypeError):
             pass

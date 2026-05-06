@@ -83,10 +83,19 @@ class LogController:
             "walk": {d: 0.0 for d in date_list}
         }
 
-        # 3. API 호출 (기간 파라미터 추가로 과거 데이터 누락 방지)
+        # [Step 3] 캐싱 적용: 이미 데이터를 가져왔다면 다시 요청하지 않음
+        if self.storage.get(f"chart_cache_{self.pet_id}_{date_list[0]}_{self.selected_metric}"):
+            print(f"[LogController] 🚀 캐시된 차트 데이터 사용")
+            self.chart_data_map = self.storage.get(f"chart_cache_{self.pet_id}_{date_list[0]}_{self.selected_metric}")
+            self.refresh_chart()
+            self.page.update()
+            return
+
+        # 3. API 호출 (기간 파라미터 추가 및 최근 데이터 중심 조회)
         params = {
-            "start_date": date_list[0],  # 6일 전 날짜
-            "end_date": date_list[-1],   # 오늘 날짜
+            "start_date": date_list[0],
+            "end_date": date_list[-1],
+            "limit": 50, # 차트용이므로 너무 많이 가져오지 않도록 제한
         }
         print(f"[LogController] 📡 API 요청 파라미터: {params}")
         
@@ -109,13 +118,11 @@ class LogController:
                     domain = log.get("domain")
                     amount = float(log.get("amount", 0))
                     
-                    # [매핑 로직] 급여량/음수량/산책 분류 합산
                     if cat == "feeding":
                         metrics_sum["feeding"][log_date] += amount
                     elif cat == "water":
                         metrics_sum["water"][log_date] += amount
                     elif cat == "walk" or (domain == "numeric" and cat == "walk"):
-                        # 산책은 합산(+=) 방식으로 처리
                         metrics_sum["walk"][log_date] += amount
 
         # 4. 요일 이름 매핑 및 chart_data_map 업데이트
@@ -134,7 +141,9 @@ class LogController:
         self.chart_data_map["음수량"] = build_result("water")
         self.chart_data_map["산책"] = build_result("walk")
 
-        print(f"[LogController] ✅ 데이터 가공 완료")
+        # 캐시 저장
+        self.storage.set(f"chart_cache_{self.pet_id}_{date_list[0]}_{self.selected_metric}", self.chart_data_map)
+        print(f"[LogController] ✅ 데이터 가공 및 캐싱 완료")
         
         # 5. UI 갱신
         self.refresh_chart()

@@ -79,7 +79,23 @@ class GridController:
                 self.page.snack_bar.open = True
                 
                 # [수정 3] 성공 콜백 실행 및 홈 화면 갱신 예약
-                self.storage.set('needs_refresh', True)
+                # [Step 2] 부분 업데이트: 전체 리셋 대신 특정 위젯만 콕 집어 업데이트
+                try:
+                    res_json = res.json()
+                    new_inven = res_json.get("data", {}).get("inven", {})
+                    left_intake = new_inven.get("left_intake")
+                    
+                    if left_intake is not None:
+                        widget = self.storage.get("feeding_amount_widget")
+                        if widget and hasattr(widget, "spans"):
+                            # 첫 번째 span (현재 잔여량)만 교체
+                            widget.spans[0].text = f"{int(left_intake):,}g"
+                            widget.update()
+                            print(f"✅ [GridController] 사료 잔량 위젯만 부분 업데이트 성공: {left_intake}g")
+                except Exception as ue:
+                    print(f"⚠️ [GridController] 부분 업데이트 실패 (폴백: 전체 갱신 신호 발송): {ue}")
+                    self.storage.set('needs_refresh', True)
+                
                 self.page.pubsub.send_all('update_dashboard')
                 
                 if on_refresh_callback:

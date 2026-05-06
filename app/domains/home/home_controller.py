@@ -346,7 +346,8 @@ class HomeController:
         API: GET /api/v1/logs/{pet_id}
         """
         try:
-            response = await self.api_client.get(f"/logs/{pet_id}")
+            # [Step 3] 홈 화면 진입 시에는 '최근 5건'만 가져오도록 쿼리 제한
+            response = await self.api_client.get(f"/logs/{pet_id}", params={"limit": 5})
             if response.status_code == 200:
                 data = response.json().get("data", [])
                 return data

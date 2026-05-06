@@ -265,31 +265,31 @@ class FeedingAddEditController:
                 if on_success_callback:
                     self.page.run_task(on_success_callback)
             else:
-                needs_refresh = self.page.session.store.get("needs_refresh")
-                if needs_refresh:
-                    pet_id = self.page.session.store.get("current_pet_id")
-                    if pet_id:
-                        print(
-                            f"👉 [Home] 대시보드 갱신 예약 감지. Zero-Base 재건축 시작."
-                        )
-
-                        # [수정 2] 기존 객체 완전 삭제 및 재건축 (문지기 로직)
-                        self.page.body_column.controls.clear()
-                        self.page.body_scroll_column.controls.clear()
-                        self.page.main_container_content.clear()
-
-                        # 데이터 강제 재요청
-                        await self.controller.fetch_dashboard_data(pet_id)
-
-                        # 세션 정합성 재검증
-                        customer_detail = self.page.session.store.get("customer_detail")
-                        if (
-                            not customer_detail
-                            or "dashboard_sync" not in customer_detail
-                        ):
-                            await self.controller.fetch_dashboard_data(pet_id)
-
-                        self.page.session.store.set("needs_refresh", False)
+                # needs_refresh = self.page.session.store.get("needs_refresh")
+                # if needs_refresh:
+                #     pet_id = self.page.session.store.get("current_pet_id")
+                #     if pet_id:
+                #         print(
+                #             f"👉 [Home] 대시보드 갱신 예약 감지. Zero-Base 재건축 시작."
+                #         )
+                #
+                #         # [수정 2] 기존 객체 완전 삭제 및 재건축 (문지기 로직)
+                #         self.page.body_column.controls.clear()
+                #         self.page.body_scroll_column.controls.clear()
+                #         self.page.main_container_content.clear()
+                #
+                #         # 데이터 강제 재요청
+                #         await self.controller.fetch_dashboard_data(pet_id)
+                #
+                #         # 세션 정합성 재검증
+                #         customer_detail = self.page.session.store.get("customer_detail")
+                #         if (
+                #             not customer_detail
+                #             or "dashboard_sync" not in customer_detail
+                #         ):
+                #             await self.controller.fetch_dashboard_data(pet_id)
+                #
+                #         self.page.session.store.set("needs_refresh", False)
                 self.page.snack_bar = ft.SnackBar(
                     ft.Text(msg), bgcolor=ft.Colors.RED_400
                 )

@@ -136,9 +136,7 @@ class OnboardingController:
         # 조건: 2~10자, 한글/영문/숫자만 허용, 공백 불가
         regex_nickname = re.compile(r"^[가-힣a-zA-Z0-9]{2,10}$")
         if not re.fullmatch(regex_nickname, nickname):
-            self.show_error(
-                text="닉네임은 2~10자의 한글, 영문, 숫자만 사용 가능합니다."
-            )
+            self.show_error(text="닉네임은 2~10자의 한글, 영문만 사용 가능합니다.")
             return
 
         # 3. 🔥 비밀번호 유효성 검사 (신규 기능)
@@ -162,7 +160,7 @@ class OnboardingController:
                 }
             )
 
-            #self.show_error(text="기본 정보 저장 완료")
+            # self.show_error(text="기본 정보 저장 완료")
             if self.focus_field:
                 await self.focus_field.focus()
 
@@ -396,12 +394,18 @@ class OnboardingController:
                     # [신규 추가] 온보딩 완료 직후 권장 급여량 계산 API 강제 호출
                     # 기준 데이터(guide)가 있어야 대시보드 및 밥주기 기능이 정상 작동함
                     try:
-                        print(f"🚀 [Onboarding] 초기 권장 급여량 생성 시도 (Pet ID: {new_pet_id})")
-                        res_calc = await api_client.post(f"/calc_feeding/{new_pet_id}/guide")
+                        print(
+                            f"🚀 [Onboarding] 초기 권장 급여량 생성 시도 (Pet ID: {new_pet_id})"
+                        )
+                        res_calc = await api_client.post(
+                            f"/calc_feeding/{new_pet_id}/guide"
+                        )
                         if res_calc.status_code in [200, 201]:
                             print("✅ [Onboarding] 초기 권장 급여량 생성 성공!")
                         else:
-                            print(f"⚠️ [Onboarding] 계산 API 호출 실패 (상태 코드: {res_calc.status_code})")
+                            print(
+                                f"⚠️ [Onboarding] 계산 API 호출 실패 (상태 코드: {res_calc.status_code})"
+                            )
                     except Exception as calc_ex:
                         print(f"❌ [Onboarding] 계산 API 호출 중 예외 발생: {calc_ex}")
 

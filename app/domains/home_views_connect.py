@@ -47,27 +47,27 @@ async def home_tile(
 
         # [ISSUE] 부분 업데이트 시 UI 레이스 컨디션 및 하얀 화면 발생 (2026-05-05)
         # [TODO] 향후 PubSub 기반의 부분 업데이트 로직으로 고도화 필요. 현재는 안정성을 위해 홈 직행 리셋 방식 사용.
-        needs_refresh = page.session.store.get('needs_refresh')
-        if needs_refresh:
-            pet_id = page.session.store.get("current_pet_id")
-            if pet_id:
-                print(f"👉 [Home] 대시보드 갱신 예약 감지. Zero-Base 재건축 시작.")
-                
-                # [수정 2] 기존 객체 완전 삭제 및 재건축 (문지기 로직)
-                body_column.controls.clear()
-                body_scroll_column.controls.clear()
-                main_container_content.clear()
-                
-                # 데이터 강제 재요청
-                await controller.fetch_dashboard_data(pet_id)
-                
-                # 세션 정합성 재검증
-                customer_detail = page.session.store.get("customer_detail")
-                if not customer_detail or "dashboard_sync" not in customer_detail:
-                    await controller.fetch_dashboard_data(pet_id)
-
-                page.session.store.set('needs_refresh', False)
-                # 이제 아래 로직에서 최신 데이터를 주입받은 새 위젯들이 append 됨
+        # needs_refresh = page.session.store.get('needs_refresh')
+        # if needs_refresh:
+        #     pet_id = page.session.store.get("current_pet_id")
+        #     if pet_id:
+        #         print(f"👉 [Home] 대시보드 갱신 예약 감지. Zero-Base 재건축 시작.")
+        #         
+        #         # [수정 2] 기존 객체 완전 삭제 및 재건축 (문지기 로직)
+        #         body_column.controls.clear()
+        #         body_scroll_column.controls.clear()
+        #         main_container_content.clear()
+        #         
+        #         # 데이터 강제 재요청
+        #         await controller.fetch_dashboard_data(pet_id)
+        #         
+        #         # 세션 정합성 재검증
+        #         customer_detail = page.session.store.get("customer_detail")
+        #         if not customer_detail or "dashboard_sync" not in customer_detail:
+        #             await controller.fetch_dashboard_data(pet_id)
+        #
+        #         page.session.store.set('needs_refresh', False)
+        #         # 이제 아래 로직에서 최신 데이터를 주입받은 새 위젯들이 append 됨
 
         home_background , top_banner = dogdog.home_layout(page=page, view="home")
         main_container_content.append(top_banner)

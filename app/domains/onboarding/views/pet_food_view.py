@@ -75,11 +75,19 @@ def pet_food_view(page: ft.Page, popup, controller):
     def on_food_weight_change(e):
         try:
             if e.control.value:
-                controller.update_field("food_weight", int(e.control.value))
+                val = int(e.control.value)
+                if val < 0:
+                    e.control.error_text = "0 이상의 숫자를 입력해주세요."
+                else:
+                    e.control.error_text = None
+                controller.update_field("food_weight", val)
             else:
+                e.control.error_text = "잔여량을 입력해주세요."
                 controller.update_field("food_weight", None)
         except ValueError:
-            pass
+            e.control.error_text = "숫자만 입력 가능합니다."
+        
+        e.control.update()
 
     selected_food_weight = dogdog.input_textfield(
         hint_text="현재 급여 중인 상품의 잔여량을 적어주세요",

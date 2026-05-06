@@ -433,9 +433,16 @@ def update_product_detail(product_id: int, data: dict):
         if duplicate:
             raise ValueError("동일한 타입/브랜드/상품명이 이미 존재합니다.")
 
+        weight = require_int(data.get("weight"), "중량(g)")
         retail_price = require_int(data.get("retail_price"), "판매가")
+        quantity = require_int(data.get("quantity"), "수량(ea)")
+
+        if weight < 1:
+            raise ValueError("중량(g)은 1 이상이어야 합니다.")
         if retail_price < 0:
             raise ValueError("판매가는 0 이상이어야 합니다.")
+        if quantity < 1:
+            raise ValueError("수량(ea)은 1 이상이어야 합니다.")
 
         detail.type = product_type
         detail.brand = brand
@@ -445,7 +452,9 @@ def update_product_detail(product_id: int, data: dict):
         detail.life = life
         detail.last_update = datetime.now()
 
+        product.weight = weight
         product.retail_price = retail_price
+        product.quantity = quantity
         product.active = require_bool(data.get("active"), "판매상태")
         product.last_update = datetime.now()
 

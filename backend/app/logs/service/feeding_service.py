@@ -1,6 +1,12 @@
 from datetime import date, datetime, timedelta
 from sqlalchemy import and_
-from db.models import CompanionPetFood, CompanionPet, OpdSubs, OpdDelivery, CompanionButler
+from db.models import (
+    CompanionPetFood,
+    CompanionPet,
+    OpdSubs,
+    OpdDelivery,
+    CompanionButler,
+)
 
 
 class FeedingService:
@@ -359,6 +365,7 @@ class FeedingService:
                     subs_id=subs_info.subs_id,
                     delivery_status_id=101,
                     order_start_date=order_start_date,
+                    delivery_date=order_start_date,
                     insert_delivery_date=datetime.now(),
                     last_update=datetime.now(),
                 )
@@ -374,4 +381,3 @@ class FeedingService:
                 db.rollback()
                 print(f"[AutoDelivery] Critical Error: {str(e)}")
                 # 백그라운드 작업이므로 raise 대신 로그 기록 후 종료
-

@@ -22,6 +22,8 @@ def login_view(page: ft.Page, controller):
         on_change=on_email_change,
         value="test043003@test.com"
     )
+    email_input.value = "test042806@test.com"
+    email_input.max_length = 50
     
     password_input = dogdog.input_textfield(
         hint_text="비밀번호",
@@ -32,17 +34,21 @@ def login_view(page: ft.Page, controller):
     # [핵심 디테일] 비밀번호 가리기 및 눈 모양 아이콘 추가
     password_input.password = True
     password_input.can_reveal_password = True
+    password_input.value = "A12345678!"
 
     # 중앙 콘텐츠 구성
     content = ft.Container(
+        padding=ft.padding.only(top=page.height/10, bottom=page.height/10),
         alignment=ft.Alignment.CENTER,
         expand=True,
-        padding=ft.padding.only(top=10, bottom=20),
         content=ft.Column(
             scroll=ft.ScrollMode.HIDDEN,
-            alignment=ft.MainAxisAlignment.CENTER,
             expand=True,
             controls=[
+                ft.Row(height=150, margin=ft.margin.only(bottom=40),
+                    alignment=ft.MainAxisAlignment.CENTER, 
+                    vertical_alignment=ft.CrossAxisAlignment.END,
+                    controls=[ft.Image(src="dogdog_logo.png", width=300)]),
                 ft.Container(height=10),
                 dogdog.basic_text(value="이메일", weight="bold", color=ft.Colors.GREY_800),
                 email_input,
@@ -53,28 +59,21 @@ def login_view(page: ft.Page, controller):
         )
     )
 
-    # 상단 로고 구성 (on_boarding_tile에서 top 변수로 사용될 부분)
-    top_logo = ft.Row(
-        height=200,
-        alignment=ft.MainAxisAlignment.CENTER,
-        vertical_alignment=ft.CrossAxisAlignment.END,
-        controls=[ft.Image(src="dogdog_logo.png", width=300)]
-    )
-
     # 하단 버튼 구성 (on_boarding_tile에서 bottom 변수로 사용될 부분)
     def on_login_click(e):
-        email = storage.get("login_email")
-        password = storage.get("login_password")
+        # UI 필드의 현재 값을 실시간으로 직접 읽어옵니다.
+        email = email_input.value
+        password = password_input.value
         page.run_task(controller.process_email_login, email, password)
 
     bottom_bar = ft.Row(
         controls=[
             dogdog.arrow_back(on_click=lambda e: page.go("/login")),
             dogdog.continue_button(
-                value="Continue with Email",
+                value="로그인",
                 on_click=on_login_click
             )
         ]
     )
 
-    return top_logo, content, bottom_bar
+    return content, bottom_bar

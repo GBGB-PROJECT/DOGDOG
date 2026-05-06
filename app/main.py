@@ -5,6 +5,8 @@ from domains.onboarding.views.splash import splash_view
 import time
 import asyncio
 import components as dogdog
+from api_client import ApiClient
+from domains.home.home_controller import HomeController
 
 # 테스트 아이디로 테스트 설정
 IS_TEST_MODE = False
@@ -54,150 +56,147 @@ class Front_dogdog:
         # -----------------------------------------------------------------------------------------------
         page.views.clear()
 
-        if IS_TEST_MODE:
-            self.is_onboarding_complete = False
-            page.go("/splash") # 스플래시로 먼저 진입
-            self.page.run_task(self.dev_auto_login)
-        else:
-            self.is_onboarding_complete = False
-            page.go("/splash") # 일반 모드에서도 스플래시 우선
+#         if IS_TEST_MODE:
+#             self.is_onboarding_complete = False
+#             page.go("/splash")  # 스플래시로 먼저 진입
+#             self.page.run_task(self.dev_auto_login)
+#         else:
+        self.is_onboarding_complete = False
+        page.go("/splash")  # 일반 모드에서도 스플래시 우선
 
     # ---------------------------------------------------------------------------------------------------
-    # Dev Auto Login Relay
+    # Dev Auto Login Relay (DEPRECATED)
     # ---------------------------------------------------------------------------------------------------
-    async def dev_auto_login(self, *args):
-        try:
-            from api_client import ApiClient
+    # async def dev_auto_login(self, *args):
+    #     try:
+    #         api_client = ApiClient(self.page)
+    #
+    #         print("[DEV] Starting auto login relay...")
+    #         print(">> 로그인을 시도합니다...")
+    #         # Step A: Login
+    #         payload = {"email": "test050205@test.com", "password": "A12345678!"}
+    #         res_login = await api_client.post("/auth/login", data=payload)
+    #         if res_login.status_code != 200:
+    #             raise Exception(f"Login failed: {res_login.text}")
+    #
+    #         token_data = res_login.json()
+    #         print(f"로그인 응답 데이터: {token_data}")
+    #
+    #         # 1. FastAPI 기본 구조 확인
+    #         access_token = token_data.get("access_token")
+    #         # 2. 만약 없다면 authorization 내부 확인
+    #         if not access_token:
+    #             access_token = token_data.get("authorization", {}).get("access_token")
+    #
+    #         if not access_token:
+    #             raise Exception("로그인 응답에서 access_token을 찾을 수 없습니다.")
+    #
+    #         self.page.session.store.set("access_token", access_token)
+    #
+    #         # client_storage 안전 저장 로직
+    #         if hasattr(self.page, "client_storage"):
+    #             try:
+    #                 await self.page.client_storage.set_async(
+    #                     "access_token", access_token
+    #                 )
+    #                 print("[DEV] client_storage에 토큰 저장 성공")
+    #             except Exception as e:
+    #                 print(f"[DEV] client_storage 저장 실패 (무시됨): {e}")
+    #
+    #         print("<< 로그인 성공!")
+    #
+    #         print(">> 유저 및 Pet ID 조회를 시도합니다...")
+    #         # Step B-1: Get pet_id
+    #         # Step B-1: Get pet_id and pet info (API Response 1 format)
+    #         print(">> 반려동물 목록 조회를 시도합니다...")
+    #         res_pets = await api_client.get("/pets")
+    #         if res_pets.status_code != 200:
+    #             raise Exception(f"Get Pets failed: {res_pets.status_code}")
+    #
+    #         try:
+    #             # API 응답 1: {"status": "success", "data": [{"pet_id": 3001, "nickname": "...", ...}]}
+    #             pets_data = res_pets.json().get("data") or []
+    #             if not pets_data:
+    #                 raise Exception("등록된 반려동물이 없습니다. (Cold Start)")
+    #
+    #             # 리스트의 첫 번째 항목에서 정보 추출
+    #             first_pet = pets_data[0]
+    #             pet_id = first_pet.get("pet_id")
+    #
+    #             # 전체 반려동물 리스트 구성 (세션 저장용)
+    #             real_pet_list = {}
+    #             for pet in pets_data:
+    #                 p_id = pet.get("pet_id")
+    #                 real_pet_list[p_id] = {
+    #                     "nickname": pet.get("nickname", "이름없음"),
+    #                     "birth_day": pet.get("birth_day", "2023-01-01"),
+    #                     "sex": pet.get("sex", 1),  # 정수형으로 저장 (지시 사항 준수)
+    #                     "profile_image": pet.get("profile_image"),
+    #                 }
+    #
+    #             self.page.session.store.set("pet_list", real_pet_list)
+    #             self.page.session.store.set("current_pet_id", pet_id)
+    #             print(f"<< 반려동물 정보 동기화 완료! (ID: {pet_id})")
+    #
+    #         except Exception as e:
+    #             raise Exception(f"Pet Info 파싱 에러: {e}")
+    #
+    #         # -------------------------------------------------------------------------------------------
+    #         # Step B-2: Get dashboard
+    #         # -------------------------------------------------------------------------------------------
+    #         print(f">> 대시보드 데이터(Pet ID: {pet_id}) 조회를 시도합니다...")
+    #         res_dash = await api_client.get(f"/home/dashboard/{pet_id}")
+    #         if res_dash.status_code != 200:
+    #             # 콜드 스타트 상태일 경우 빈 딕셔너리로 진행 유도 (에러 발생시키지 않음)
+    #             print(
+    #                 f"[DEV] Dashboard sync failed: {res_dash.status_code}. Using empty data."
+    #             )
+    #             dash_data = {}
+    #         else:
+    #             dash_data = res_dash.json().get("data") or {}
+    #
+    #         print("<< 대시보드 데이터 조회 성공!")
+    #
+    #         # 사료 상세 정보 조회 및 세션 저장
+    #         try:
+    #             res_food = await api_client.get(f"/pets/{pet_id}/pet_food")
+    #             pet_food_data = (
+    #                 res_food.json().get("data") or {}
+    #                 if res_food.status_code == 200
+    #                 else {}
+    #             )
+    #             self.storage.set("pet_food_detail", pet_food_data)
+    #             print("<< 사료 상세 정보 조회 및 저장 성공!")
+    #         except Exception as e:
+    #             print(f"[DEV] 사료 정보 조회 실패 (무시): {e}")
+    #             self.storage.set("pet_food_detail", {})
+    #
+    #         # 2. 활동 로그 동기화 (history)
+    #         real_history = dash_data.get("history", {})
+    #         if not isinstance(real_history, dict):
+    #             real_history = {}
+    #         self.page.session.store.set("history", real_history)
+    #
+    #         # 3. 대시보드 전체 데이터 저장
+    #         customer_detail = {"dashboard_sync": dash_data}
+    #         self.storage.set("customer_detail", customer_detail)
+    #
+    #         print("[DEV] Auto login relay Success. Routing to /home")
+    #         self.is_onboarding_complete = True
+    #
+    #         # 스플래시 화면이 로직을 제어하므로 명시적 이동 제거 또는 /splash로 유지
+    #         if self.page.route != "/splash":
+    #             self.page.go("/splash")
+    #
+    #         self.page.update()
+    #
+    #     except Exception as e:
+    #         print(f"[DEV] Auto login failed: {e}")
 
-            api_client = ApiClient(self.page)
-
-            print("[DEV] Starting auto login relay...")
-            print(">> 로그인을 시도합니다...")
-            # Step A: Login
-            payload = {"email": "test043003@test.com", "password": "A12345678!"} #1051
-            res_login = await api_client.post("/auth/login", data=payload)
-            if res_login.status_code != 200:
-                raise Exception(f"Login failed: {res_login.text}")
-
-            token_data = res_login.json()
-            print(f"로그인 응답 데이터: {token_data}")
-
-            # 1. FastAPI 기본 구조 확인
-            access_token = token_data.get("access_token")
-            # 2. 만약 없다면 authorization 내부 확인
-            if not access_token:
-                access_token = token_data.get("authorization", {}).get("access_token")
-
-            if not access_token:
-                raise Exception("로그인 응답에서 access_token을 찾을 수 없습니다.")
-
-            self.page.session.store.set("access_token", access_token)
-
-            # client_storage 안전 저장 로직
-            if hasattr(self.page, "client_storage"):
-                try:
-                    await self.page.client_storage.set_async(
-                        "access_token", access_token
-                    )
-                    print("[DEV] client_storage에 토큰 저장 성공")
-                except Exception as e:
-                    print(f"[DEV] client_storage 저장 실패 (무시됨): {e}")
-
-            print("<< 로그인 성공!")
-
-            print(">> 유저 및 Pet ID 조회를 시도합니다...")
-            # Step B-1: Get pet_id
-            # Step B-1: Get pet_id and pet info (API Response 1 format)
-            print(">> 반려동물 목록 조회를 시도합니다...")
-            res_pets = await api_client.get("/pets")
-            if res_pets.status_code != 200:
-                raise Exception(f"Get Pets failed: {res_pets.status_code}")
-
-            try:
-                # API 응답 1: {"status": "success", "data": [{"pet_id": 3001, "nickname": "...", ...}]}
-                pets_data = res_pets.json().get("data") or []
-                if not pets_data:
-                    raise Exception("등록된 반려동물이 없습니다. (Cold Start)")
-
-                # 리스트의 첫 번째 항목에서 정보 추출
-                first_pet = pets_data[0]
-                pet_id = first_pet.get("pet_id")
-
-                # 전체 반려동물 리스트 구성 (세션 저장용)
-                real_pet_list = {}
-                for pet in pets_data:
-                    p_id = pet.get("pet_id")
-                    real_pet_list[p_id] = {
-                        "nickname": pet.get("nickname", "이름없음"),
-                        "birth_day": pet.get("birth_day", "2023-01-01"),
-                        "sex": pet.get("sex", 1),  # 정수형으로 저장 (지시 사항 준수)
-                        "profile_image": pet.get("profile_image"),
-                    }
-
-                self.page.session.store.set("pet_list", real_pet_list)
-                self.page.session.store.set("current_pet_id", pet_id)
-                print(f"<< 반려동물 정보 동기화 완료! (ID: {pet_id})")
-
-            except Exception as e:
-                raise Exception(f"Pet Info 파싱 에러: {e}")
-
-            # -------------------------------------------------------------------------------------------
-            # Step B-2: Get dashboard
-            # -------------------------------------------------------------------------------------------
-            print(f">> 대시보드 데이터(Pet ID: {pet_id}) 조회를 시도합니다...")
-            res_dash = await api_client.get(f"/home/dashboard/{pet_id}")
-            if res_dash.status_code != 200:
-                # 콜드 스타트 상태일 경우 빈 딕셔너리로 진행 유도 (에러 발생시키지 않음)
-                print(
-                    f"[DEV] Dashboard sync failed: {res_dash.status_code}. Using empty data."
-                )
-                dash_data = {}
-            else:
-                dash_data = res_dash.json().get("data") or {}
-
-            print("<< 대시보드 데이터 조회 성공!")
-
-            # 사료 상세 정보 조회 및 세션 저장
-            try:
-                res_food = await api_client.get(f"/pets/{pet_id}/pet_food")
-                pet_food_data = (
-                    res_food.json().get("data") or {}
-                    if res_food.status_code == 200
-                    else {}
-                )
-                self.storage.set("pet_food_detail", pet_food_data)
-                print("<< 사료 상세 정보 조회 및 저장 성공!")
-            except Exception as e:
-                print(f"[DEV] 사료 정보 조회 실패 (무시): {e}")
-                self.storage.set("pet_food_detail", {})
-
-            # 2. 활동 로그 동기화 (history)
-            real_history = dash_data.get("history", {})
-            if not isinstance(real_history, dict):
-                real_history = {}
-            self.page.session.store.set("history", real_history)
-
-            # 3. 대시보드 전체 데이터 저장
-            customer_detail = {"dashboard_sync": dash_data}
-            self.storage.set("customer_detail", customer_detail)
-
-            print("[DEV] Auto login relay Success. Routing to /home")
-            self.is_onboarding_complete = True
-
-            # 스플래시 화면이 로직을 제어하므로 명시적 이동 제거 또는 /splash로 유지
-            if self.page.route != "/splash":
-                self.page.go("/splash")
-
-            self.page.update()
-
-        except Exception as e:
-            print(f"[DEV] Auto login failed: {e}")
 
     async def refresh_home_data(self):
         """대시보드 데이터를 다시 fetch하고 화면을 갱신합니다."""
         try:
-            from api_client import ApiClient
-
             api_client = ApiClient(self.page)
 
             pet_id = (
@@ -250,7 +249,11 @@ class Front_dogdog:
     # ---------------------------------------------------------------------------------------------------
     async def on_route_change(self, e):
         route = e.route
-        # self.page.overlay.clear()
+        
+        # [수정 1] 라우팅 게이트키퍼: 모든 페이지 이동 시 팝업 잔상 강제 소거
+        self.page.overlay.clear()
+        self.page.dialog = None
+        self.page.update()
         if (
             len(self.page.views) > 1
             and self.page.views[-2].route == route
@@ -271,6 +274,18 @@ class Front_dogdog:
     # View Routing Event
     # ---------------------------------------------------------------------------------------------------
     async def routing_view(self, page_name):
+        # [치명적 버그 수정] 페이지 이동 시 모든 팝업, 다이얼로그, 오버레이 강제 초기화 (잔상 제거)
+        self.page.dialog = None
+        self.page.banner = None
+
+        # 팝업 바텀시트 등 오버레이 요소들 안전하게 닫고 비우기
+        for control in self.page.overlay[:]:
+            if hasattr(control, "open"):
+                control.open = False
+        self.page.overlay.clear()
+
+        self.page.update()  # UI 상태 즉시 반영
+
         if not "address" in page_name:
             dogdog.task_controls(30)
         # 1. 하단 앱바 설정
@@ -394,69 +409,123 @@ class Front_dogdog:
                     appbar_status, page_name
                 )
         self.page.views.append(new_view)
-        
         notification_check_deferred = False
 
         async def run_notification_check_once():
             from domains.mypage.controller.subs_notification_api import NotificationController
             from domains.mypage.views.notification import show_notification_popup
 
-            notifications = await NotificationController(self.page).check_on_app_load()
+            notifications = await NotificationController(self.page).check_on_app_load() or []
 
             for notification in notifications:
                 await show_notification_popup(self.page, self.popup, notification)
 
 
-        # [해결] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (TypeError 해결 및 API 연동)
-        if page_name == "/home" and self.home_feeding_guide_popup:
+        # [ISSUE] 온보딩 후 첫 사료 등록 시 데이터 동기화 지연 및 팝업 차단 이슈 해결 (2026-05-05)
+        # [TODO] 팝업 연동 및 부분 업데이트 로직 고도화 필요
+
+        # [해결 2] 홈 화면 진입 시 AI 권장 급여량 팝업 연동 (세션 플래그 기반 트리거)
+        trigger_popup = self.storage.get("trigger_feeding_guide_popup")
+
+        # [DEBUG] 팝업 플래그 상태 추적
+        if page_name == "/home":
+            print(
+                f"[DEBUG] 팝업 플래그 상태 - "
+                f"Instance: {self.home_feeding_guide_popup}, Session: {trigger_popup}"
+            )
+
+        if page_name == "/home" and (self.home_feeding_guide_popup or trigger_popup):
+            # [해결 3] 변수 참조 에러(P0 이슈) 원천 차단 - 상단 초기화
+            from api_client import ApiClient
+
+            api_client = ApiClient(self.page)
+            pet_name = "우리 아이"
+            pet_id = self.storage.get("current_pet_id")
+
             try:
-                from api_client import ApiClient
+                home_ctrl = HomeController(self.page)
 
-                api_client = ApiClient(self.page)
+                # [해결 1] 팝업 차단 로직 조건 완화 - 최신 데이터 강제 패치 선행
+                if pet_id:
+                    print("[DEBUG] 팝업 트리거 감지. 최신 사료 정보를 강제 패치합니다.")
+                    await home_ctrl.fetch_dashboard_data(pet_id)
 
-                # 1. 세션에서 정보 획득
-                pet_id = self.storage.get("current_pet_id")
-                pet_list = self.storage.get("pet_list") or {}
-                pet_info = pet_list.get(pet_id) or pet_list.get(str(pet_id)) or {}
-                pet_name = pet_info.get("nickname", "반려견")
+                # 패치 직후 세션에서 사료 정보 재확인
+                pet_food_detail = self.storage.get("pet_food_detail")
+
+                # [해결 1 & 2] 팝업 체크 조건 대폭 완화 (Key 불일치 방어 및 강제 트리거)
+                # 데이터가 딕셔너리 형태고 비어있지 않거나, 방금 사료를 등록한 상태(trigger_popup)라면 진행
+                is_valid_data = isinstance(pet_food_detail, dict) and len(pet_food_detail) > 0
+                
+                # [해결 2] 기존 유저 로그인 시 데이터 동기화 보장 로직
+                # 팝업이 뜨지 않는 문제를 막기 위해 패치 결과를 한 번 더 확인
+                if not is_valid_data and pet_id:
+                    print("[DEBUG] 사료 정보 미흡. 강제 재패치를 시도합니다.")
+                    await home_ctrl.fetch_dashboard_data(pet_id)
+                    pet_food_detail = self.storage.get("pet_food_detail")
+                    is_valid_data = isinstance(pet_food_detail, dict) and len(pet_food_detail) > 0
+
+                # [해결 2 & 4] 팝업 노출 전 데이터 엄격 검증 (Data Integrity)
+                # 사료 정보의 pet_id와 현재 로그인된 pet_id가 일치하는지 확인
+                food_pet_id = pet_food_detail.get("pet_id")
+                print(f"[DEBUG] 데이터 무결성 체크 - 현재 펫 ID: {pet_id}, 사료 데이터 펫 ID: {food_pet_id}")
+
+                # [해결 1: Strict Check] 팝업 차단 조건 먼저 확인 (return 제거 및 if-else 구조화)
+                if not is_valid_data or str(food_pet_id) != str(pet_id):
+                    print(f"[DEBUG] 팝업 조건 미충족 (데이터 없음 또는 ID 불일치). 팝업을 보류합니다. (Valid: {is_valid_data}, ID Match: {str(food_pet_id) == str(pet_id)})")
+                    # 사료 정보가 없어 팝업을 못 띄운 경우, 다음 홈 진입 시 재시도하도록 플래그 유지
+                    self.home_feeding_guide_popup = True 
+                else:
+                    # [해결 2: Data Integrity] 모든 조건 충족 시에만 팝업 실행
+                    print("[DEBUG] 데이터 정상 확인. 팝업을 띄웁니다.")
+                    
+                    # 1. 반려견 이름 안전하게 획득 (타입 불일치 방어)
+                    pet_list = self.storage.get("pet_list") or {}
+                    pet_info = (
+                        pet_list.get(pet_id)
+                        or pet_list.get(str(pet_id))
+                        or pet_list.get(int(pet_id) if str(pet_id).isdigit() else None)
+                        or {}
+                    )
+                    pet_name = pet_info.get("nickname", "반려견")
 
                 # 2. 권장 급여량 API 호출 및 안전한 파싱
                 guide_intake = 0
                 try:
                     res_guide = await api_client.get(f"/calc_feeding/{pet_id}/guide")
                     if res_guide.status_code == 200:
-                        # [DEBUG] 원본 데이터 확인용 로그 추가
                         raw_data = res_guide.json()
-                        print(f"[DEBUG] Guide API 응답: {raw_data}")
-
-                        # 백엔드 실제 Key(adjusted_daily_food_g)를 사용하여 데이터 추출
                         resp_data = raw_data.get("data", {})
                         val = resp_data.get("adjusted_daily_food_g", 0)
-
-                        # 소수점 대비 정수 변환 (예: 168.0 -> 168)
                         guide_intake = int(float(val))
                 except Exception as api_err:
                     print(f"[DEBUG] 권장량 API 파싱 에러 (기본값 0 사용): {api_err}")
 
+                # AI 팝업이 닫힌 뒤 알림 체크 실행
                 async def after_feeding_popup_closed():
                     await run_notification_check_once()
 
                 self.page.on_feeding_guide_closed = after_feeding_popup_closed
-                
+
                 # 3. 팝업 호출 (문자열로 변환하여 전달)
-                async def after_feeding_popup_closed():
-                    await run_notification_check_once()
-
-                self.page.on_feeding_guide_closed = after_feeding_popup_closed
-
+                print(
+                    f"🚀 [DEBUG] 팝업 최종 호출 데이터 - Name: {pet_name}, "
+                    f"Intake: {guide_intake}g (Pet ID: {pet_id})"
+                )
                 self.popup.show_feeding_guide_open(pet_name, str(guide_intake))
                 notification_check_deferred = True
+
+                # 팝업이 성공적으로 호출된 경우에만 플래그 해제
+                self.home_feeding_guide_popup = False
+                self.storage.set("trigger_feeding_guide_popup", False)
+
 
             except Exception as e:
                 print(f"[ERROR] 팝업 연동 중 치명적 오류: {e}")
             finally:
-                # 4. 재노출 방지 (세션 유지 동안 1회)
-                self.home_feeding_guide_popup = False
+                # 4. 재노출 방지 (성공 시에만 위에서 처리하므로 여기서는 중복 방지용 로그만 남김)
+                print(f"[DEBUG] 팝업 연동 시퀀스 종료 (Flag: {self.home_feeding_guide_popup})")
+        
         dogdog.views_controls(self.page)
         self.page.update()  # 최종 뷰 추가 후 갱신
 

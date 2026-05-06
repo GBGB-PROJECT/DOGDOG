@@ -103,7 +103,7 @@ def register_poop_log(
 
         response = {
             "status": "success",
-            "message": "배변 기록이 등록되었습니다.",
+            "message": "✅ 배변 기록이 등록되었습니다.",
             "data": PoopLogResponse.from_orm_model(log).model_dump(),
         }
 

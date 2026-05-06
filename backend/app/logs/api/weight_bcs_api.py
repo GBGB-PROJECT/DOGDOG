@@ -67,7 +67,7 @@ def create_weight_bcs(
         )
         return {
             "status": "success",
-            "message": "체중 및 bcs 기록이 등록되었습니다.",
+            "message": "✅ 체중 및 bcs 기록이 등록되었습니다.",
             "data": inserted_logs,
         }
     except ValueError as e:

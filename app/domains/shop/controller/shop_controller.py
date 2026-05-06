@@ -158,11 +158,34 @@ class ShopController:
         except: pass
 
     @staticmethod
+    def check_food_status(page):
+        """사료 등록 상태를 판별하는 비즈니스 규칙입니다."""
+        storage = page.session.store
+        pet_food_detail = storage.get("pet_food_detail")
+        return (
+            isinstance(pet_food_detail, dict) 
+            and len(pet_food_detail) > 0 
+            and (pet_food_detail.get("product_id") or pet_food_detail.get("pet_food_id"))
+        )
+
+    @staticmethod
     async def get_feeding_data(page, pet_id):
         from domains.shop.controller.shop_api import get_feeding_guide
         data = await get_feeding_guide(page, int(pet_id))
+        
+        # [Passive View] 사료 등록 상태 판별 (컨트롤러 담당)
+        is_food_exist = ShopController.check_food_status(page)
+        
         if not data:
-            return None
+            return {
+                "is_food_exist": False,
+                "pet_name": page.session.store.get("customer_pet_name") or "반려견",
+                "daily_food_g": "??g",
+                "schedule": "급여 중인 상품을 등록해주세요",
+                "total_kcal": "0",
+                "kcal_per_kg": "0",
+                "is_kcal_visible": False
+            }
         
         feeding_count = data.get("feeding_count", 0)
         per_meal = data.get("adjusted_per_meal_g", "0")
@@ -177,18 +200,21 @@ class ShopController:
         else:
             schedule = f"일 {feeding_count}회 분할 급여 (회당 {per_meal}g)"
 
-        # 천 단위 콤마 적용 및 딕셔너리 반환
+        # 천 단위 콤마 적용
         g_val = float(data.get('adjusted_daily_food_g', 0))
         daily_food_g = f"{int(g_val):,}" if g_val == int(g_val) else f"{g_val:,.1f}"
         
         k_val = float(data.get('daily_total_kcal', 0))
-        total_kcal = f"{k_val:,.1f}"  # 소수점 첫째 자리까지 표시
+        total_kcal = f"{k_val:,.1f}"
 
+        # [Passive View] 뷰를 위한 최종 데이터 패키징
         res = {
-            "daily_food_g": daily_food_g,
-            "schedule": schedule,
-            "total_kcal": total_kcal,
-            "kcal_per_kg": f"{int(data.get('kcal_per_kg', 0)):,}", # 수치만 반환 (UI에서 kcal/kg 붙임)
-            "pet_name": page.session.store.get("customer_pet_name") or "반려견"
+            "is_food_exist": is_food_exist,
+            "pet_name": page.session.store.get("customer_pet_name") or "반려견",
+            "daily_food_g": f"{daily_food_g}g" if is_food_exist else "??g",
+            "schedule": schedule if is_food_exist else "급여 중인 상품을 등록해주세요",
+            "total_kcal": f"총 {total_kcal}kcal",
+            "kcal_per_kg": f"제품의 열량 {int(data.get('kcal_per_kg', 0)):,}kcal/kg",
+            "is_kcal_visible": is_food_exist
         }
         return res

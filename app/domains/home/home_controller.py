@@ -85,12 +85,21 @@ class HomeController:
                 except Exception as fe:
                     print(f"[HomeController] 사료 상세 정보 동기화 중 에러: {fe}")
 
-                # 3. 기존 세션 업데이트
+                # 3. 기존 세션 데이터 업데이트 (기존 customer_detail 데이터 보존)
                 customer_detail = storage.get("customer_detail") or {}
+                if not isinstance(customer_detail, dict):
+                    customer_detail = {}
                 customer_detail["dashboard_sync"] = dash_data
                 storage.set("customer_detail", customer_detail)
 
-                print(f"[HomeController] 대시보드 및 제품 정보 동기화 완료: {pet_id}")
+                # 4. 실시간 UI 반영을 위한 페이지 갱신
+                self.page.update()
+                # for i, view in enumerate(self.page.views):
+                #     if view.route == "/home":
+                #         self.page.views.remove(view)
+                #         print("home_view 제거 완료 (임시 해결 방안)") #사이드이펙트
+
+                print(f"[HomeController] 대시보드 및 제품 정보 동기화 완료 (Overwritten): {pet_id}")
                 return dash_data
             elif response.status_code == 404:
                 print(f"[HomeController] 대시보드 데이터 없음 (404): {pet_id}")
@@ -179,7 +188,9 @@ class HomeController:
 
     def get_food_inventory_stats(self):
         """
-        홈 대시보드의 사료 잔여량 데이터를 가공하여 반환합니다.
+        [보정] 홈 대시보드의 사료 잔여량 데이터를 가공하여 반환합니다.
+        - 분모(UI 오른쪽): 백엔드의 product_total_weight (상품 원본 규격)
+        - 분자(UI 왼쪽 큰 글씨): 백엔드의 left_intake (보정된 잔여량)
         """
         storage = self.page.session.store
         customer_detail = storage.get("customer_detail") or {}
@@ -187,13 +198,22 @@ class HomeController:
         inventory = dash_data.get("food_inventory") or {}
         current_food_info = dash_data.get("current_food_info")
 
+        # 1. 원본 데이터 추출 (기획 의도에 따른 매핑 수정)
+        # product_total_weight: 상품 원본 규격 (UI 분모/규격용)
+        # customer_food_total_weight: 유저가 수정한 현재 무게
+        total_weight_g = self.safe_float(inventory.get("product_total_weight"))
+        # left_intake: 백엔드에서 보정된 잔여량 (UI 분자용)
         left_intake = self.safe_float(inventory.get("left_intake"))
-        total_weight_g = self.safe_float(inventory.get("total_weight"))
+        # left_percent: 백엔드에서 계산된 진행률
+        progress_rate = self.safe_float(inventory.get("left_percent"))
+
+        # 2. 무게 단위 변환 (UI 분모용: 원본 규격 표시)
         total_weight_kg = round(total_weight_g / 1000, 1) if total_weight_g > 0 else 0.0
+        
+        # Flet ProgressBar용 진행률 (원본 규격 대비 잔여량)
+        progress_value = progress_rate / 100.0 if progress_rate > 0 else 0.0
 
-        left_percent = self.safe_float(inventory.get("left_percent"))
-        progress_value = left_percent / 100.0 if left_percent > 1.0 else left_percent
-
+        # 3. 기타 정보 가공
         left_days = inventory.get("left_food_count")
         expected_exdate = inventory.get("expected_exdate")
         expected_exdate_formatted = (
@@ -201,8 +221,10 @@ class HomeController:
         )
 
         # 사료 정보가 없는 경우 방어적 매핑
+        # current_food_info가 존재해야 실제로 사료가 등록된 상태임
+        is_food_registered = current_food_info is not None and isinstance(current_food_info, dict)
         product_name = "등록된 사료 없음"
-        if current_food_info:
+        if is_food_registered:
             product_name = current_food_info.get("product_name", "사료 정보 없음")
 
         return {
@@ -212,7 +234,7 @@ class HomeController:
             "left_days": round(self.safe_float(left_days), 1) if left_days not in [None, "?", "None"] else "?",
             "progress_value": progress_value,
             "expected_exdate_formatted": expected_exdate_formatted,
-            "is_food_registered": current_food_info is not None
+            "is_food_registered": is_food_registered
         }
 
     async def get_feeding_detail_data(self):
@@ -236,32 +258,37 @@ class HomeController:
         pet_food_detail = storage.get("pet_food_detail") or {}
         current_food_info = dash_data.get("current_food_info")
 
-        # 데이터 병합
+        # 데이터 병합 (최신 API 필드 누락 방지)
         feeding_data = {**pet_food_detail, **inventory}
-        if current_food_info:
-            feeding_data["feeding_start"] = current_food_info.get("feeding_start")
+        if current_food_info and isinstance(current_food_info, dict):
+            feeding_data.update(current_food_info)
         
-        # [해결] 사료 정보가 없으면 세션 안전하게 비우고 None 반환
-        if not current_food_info:
+        # [해결] 사료 정보(current_food_info)가 없으면 세션 안전하게 비우고 None 반환
+        is_food_registered = current_food_info is not None and isinstance(current_food_info, dict)
+        if not is_food_registered:
             self._safe_remove_session(["select_feeding_data", "select_customer_food_id"])
             return None
 
         try:
+            # 백엔드에서 보정된 left_intake 우선 사용
             left_intake = self.safe_float(
                 feeding_data.get("left_intake")
                 or feeding_data.get("left_weight")
                 or feeding_data.get("amount")
             )
+            # 분모(규격)는 무조건 상품 원본 규격인 product_total_weight 참조
             total_weight_g = self.safe_float(
-                feeding_data.get("total_weight")
+                feeding_data.get("product_total_weight")
+                or feeding_data.get("total_weight")
                 or feeding_data.get("product_weight")
             )
             total_weight_kg = round(total_weight_g / 1000, 1) if total_weight_g > 0 else 0.0
 
+            # 백엔드에서 계산된 진행률 사용
             left_percent = self.safe_float(
                 feeding_data.get("left_percent") or feeding_data.get("percent")
             )
-            progress_value = left_percent / 100.0 if left_percent > 1.0 else left_percent
+            progress_value = left_percent / 100.0 if left_percent > 0 else 0.0
 
             left_days = (
                 feeding_data.get("left_food_count")
@@ -283,13 +310,13 @@ class HomeController:
                 or feeding_data.get("brand")
                 or "정보 없음"
             )
-            product_name = current_food_info.get("product_name") or "알 수 없는 상품"
+            product_name = feeding_data.get("product_name") or "알 수 없는 상품"
             
             thumbnail = (
                 feeding_data.get("product_thumbnail")
                 or feeding_data.get("thumbnail")
                 or feeding_data.get("image_url")
-                or "dogbowl.png"
+                or "food_default.png"
             )
 
             feeding_start = current_food_info.get("feeding_start") if current_food_info else None

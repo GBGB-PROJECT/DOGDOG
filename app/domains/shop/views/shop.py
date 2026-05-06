@@ -32,11 +32,11 @@ def shop_feeding_guide(page: ft.Page):
             main_container.update()
             return
 
-        # ShopController를 통해 가공된 데이터 로드
+        # [Passive View] Controller로부터 가공된 데이터를 직접 수신 (상태 판별은 컨트롤러가 수행)
         data = await ShopController.get_feeding_data(page, pet_id)
         
         if data:
-            # UI 바인딩 및 교체
+            # UI 바인딩 및 교체 (데이터 딕셔너리의 값을 그대로 사용)
             main_container.content = ft.Column(
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -54,6 +54,7 @@ def shop_feeding_guide(page: ft.Page):
                     ),
                     # 제품 정보 (열량)
                     ft.Row(
+                        visible=data["is_kcal_visible"],
                         margin=ft.margin.only(bottom=10, top=10), 
                         alignment=ft.MainAxisAlignment.END, 
                         controls=[
@@ -62,13 +63,7 @@ def shop_feeding_guide(page: ft.Page):
                                 spacing=0, 
                                 controls=[
                                     ft.Row([
-                                        # ft.Container(
-                                        #     scale=0.8,
-                                        #     width=20, height=20, border_radius=20, 
-                                        #     bgcolor=ft.Colors.GREY_300,
-                                        #     content=ft.Icon(icon=ft.Icons.QUESTION_MARK, color=ft.Colors.WHITE, size=14)
-                                        # ),
-                                        dogdog.basic_text(f"제품의 열량 {data['kcal_per_kg']}kcal/kg", weight="bold", size=11, color=ft.Colors.GREY_600)
+                                        dogdog.basic_text(data["kcal_per_kg"], weight="bold", size=11, color=ft.Colors.GREY_600)
                                     ], spacing=5)
                                 ]
                             )
@@ -79,7 +74,10 @@ def shop_feeding_guide(page: ft.Page):
                         controls=[
                             ft.Image(src="speech_bubble.png", height=120, color="#FEF3B9"),
                             ft.Container(
-                                content=dogdog.basic_text(f"{data['daily_food_g']}g", weight="bold", size=42),
+                                content=dogdog.basic_text(
+                                    value=data["daily_food_g"], 
+                                    weight="bold", size=42
+                                ),
                                 padding=ft.padding.only(bottom=15),
                                 alignment=ft.Alignment(0, 0)
                             )
@@ -92,13 +90,16 @@ def shop_feeding_guide(page: ft.Page):
                         spacing=5,
                         controls=[
                             ft.Image(src="dogbowl.png", height=100, margin=ft.margin.only(top=10)),
-                            dogdog.basic_text(data["schedule"], weight="bold", size=15, color=ft.Colors.GREY_700),
+                            dogdog.basic_text(
+                                value=data["schedule"], 
+                                weight="bold", size=15, color=ft.Colors.GREY_700
+                            ),
                             # 통계: 하루 총 칼로리
                             ft.Row(
+                                visible=data["is_kcal_visible"],
                                 alignment=ft.MainAxisAlignment.CENTER,
                                 controls=[
-                                    #ft.Icon(ft.Icons.BOLT, color=ft.Colors.AMBER, size=18),
-                                    dogdog.basic_text(f"총 {data['total_kcal']}kcal", weight="bold", size=15, color=ft.Colors.GREY_600),
+                                    dogdog.basic_text(data["total_kcal"], weight="bold", size=15, color=ft.Colors.GREY_600),
                                 ]
                             )
                         ]

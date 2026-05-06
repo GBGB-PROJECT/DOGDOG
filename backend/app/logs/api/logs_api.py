@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import logging
 
 from db.db import get_db
-from dependencies import check_pet_owner, get_current_user
+from dependencies import check_pet_owner, get_current_user, verify_pet_owner
 from app.logs.service.logs_service import LogsService
 from app.logs.repository.logs_repository import LogsRepository
 
@@ -15,22 +15,15 @@ router = APIRouter(prefix="/api/v1/logs", tags=["Logs"])
 
 @router.get("/{pet_id}")
 def get_unified_timeline_logs(
-    pet_id: int,
+    pet_id: int = Depends(verify_pet_owner),
     query_date: Optional[date] = Query(None, alias="date", description="조회할 날짜 (단일)"),
     start_date: Optional[date] = Query(None, description="조회 시작 날짜"),
     end_date: Optional[date] = Query(None, description="조회 종료 날짜"),
     category: Optional[str] = Query(None, description="분류별 조회용 ('all', 'feeding', 'poop', 'water' 등)"),
-    customer_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """[조회] 타임라인 방식의 상세 기록 리스트를 통합하여 제공합니다. (단일 날짜 또는 기간 조회 가능)"""
     repo = LogsRepository(db)
-
-    # 1. 소유권 검증
-    if not check_pet_owner(db, pet_id, customer_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다."
-        )
 
     service = LogsService(repo)
 

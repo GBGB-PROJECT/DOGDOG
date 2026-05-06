@@ -71,7 +71,8 @@ class DashboardService:
         food_inventory = {
             "left_percent": 0,
             "left_intake": 0,
-            "total_weight": 0,
+            "product_total_weight": 0,
+            "customer_food_total_weight": 0,
             "left_food_count": 0,
             "expected_exdate": None,
         }
@@ -79,22 +80,32 @@ class DashboardService:
         if gauge_data:
             customer_food, product = gauge_data
             
-            product_weight = product.weight if product and product.weight else 0
+            product_total_weight = product.weight if product and product.weight else 0
+            customer_food_total_weight = customer_food.total_weight if customer_food and customer_food.total_weight else 0
+            total_intake = customer_food.total_intake if customer_food and customer_food.total_intake is not None else 0
             left_intake = customer_food.left_intake if customer_food and customer_food.left_intake is not None else 0
+            
+            # [Step 3] 사료 잔여량(left_intake) 보정 로직
+            # 급여 기록(total_intake)이 0이거나 None이면, 전체 무게를 잔여량으로 간주
+            if total_intake == 0:
+                left_intake = customer_food_total_weight
+
             left_food_count = (
                 customer_food.left_food_count
                 if customer_food and hasattr(customer_food, "left_food_count") and customer_food.left_food_count is not None
                 else 0
             )
 
+            # [Step 4] 재계산된 left_percent 적용 (유저 수정 무게 기준)
             left_percent = 0
-            if product_weight and product_weight > 0:
-                left_percent = round((left_intake / product_weight) * 100)
+            if product_total_weight and product_total_weight > 0:
+                left_percent = round((left_intake / product_total_weight) * 100)
 
             food_inventory.update({
                 "left_percent": left_percent,
                 "left_intake": float(left_intake),
-                "total_weight": float(product_weight),
+                "product_total_weight": float(product_total_weight),
+                "customer_food_total_weight": float(customer_food_total_weight),
                 "left_food_count": float(left_food_count),
                 "expected_exdate": (
                     customer_food.expected_exdate.strftime("%Y-%m-%d")

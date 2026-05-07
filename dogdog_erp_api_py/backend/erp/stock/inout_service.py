@@ -109,6 +109,8 @@ def get_stock_inout_list(
     size = max(int(size or 50), 1)
     offset = (page - 1) * size
 
+    print(f'{'==='*30}\ninout_type {search_type},{keyword},{inout_type},{start_date},{end_date}')
+    print("--- 1. count 시작 ---")
     total_count = count_stock_inout_rows(
         search_type=search_type,
         keyword=keyword,
@@ -116,7 +118,9 @@ def get_stock_inout_list(
         start_date=start_date,
         end_date=end_date,
     )
+    print(f"--- 2. count 완료: {total_count} ---")
 
+    print("--- 3. fetch 시작 ---")
     rows = fetch_stock_inout_rows(
         search_type=search_type,
         keyword=keyword,
@@ -126,9 +130,10 @@ def get_stock_inout_list(
         limit=size,
         offset=offset,
     )
+    print(f"--- 4. fetch 완료: {len(rows)}개 ---")
 
     total_pages = max(math.ceil(total_count / size), 1)
-
+    print(f"--- 5. 페이지 계산 완료: {total_pages} ---")
     return {
         "items": [_format_item(row) for row in rows],
         "pagination": {

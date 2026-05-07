@@ -3,7 +3,11 @@ import time
 import httpx
 
 
-BASE_URL = "https://dogerp.nas6418.ddns.net"
+# 🔥 FastAPI 서버 주소
+import os
+from dotenv import load_dotenv
+load_dotenv()
+BASE_URL = os.getenv("ERP_API_URL") if os.getenv("ERP_API_URL") else "http://localhost:8001"
 _CLIENT = httpx.Client(base_url=BASE_URL, timeout=5.0)
 _GET_CACHE = {}
 _GET_CACHE_TTL_SECONDS = 10.0

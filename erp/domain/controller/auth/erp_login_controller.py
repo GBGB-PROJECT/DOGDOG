@@ -1,7 +1,11 @@
 import re # 정규표현식(패턴 찾기용 도구)
 import httpx
 
-BASE_URL = "https://dogerp.nas6418.ddns.net"
+# 🔥 FastAPI 서버 주소
+import os
+from dotenv import load_dotenv
+load_dotenv()
+BASE_URL = os.getenv("ERP_API_URL") if os.getenv("ERP_API_URL") else "http://localhost:8001"
 
 class AuthController:
     

@@ -27,8 +27,8 @@ from components.common.erp_busy_cursor import set_busy_cursor
 
 def main(page: ft.Page):
     page.title = "개밥개밥푸드 ERP"
-    # page.width = 1600
-    # page.height = 800
+    page.window.width = 1600
+    page.window.height = 800
     page.padding = 0
     page.bgcolor = ft.Colors.WHITE
     page.theme = ft.Theme(

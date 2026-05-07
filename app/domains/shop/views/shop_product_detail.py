@@ -6,11 +6,11 @@ import asyncio
 class Default_data:
     def __init__(self, page: ft.Page, popup, content_page):
         # -----------------------------------------------------------------------------------------------
-        from api.product_guide import Product
+        # from api.product_guide import Product
         # -----------------------------------------------------------------------------------------------
         # Default Value
         # -----------------------------------------------------------------------------------------------
-        self.Product = Product
+        # self.Product = Product
         self.popup = popup
         self.page = page
         self.storage = page.session.store

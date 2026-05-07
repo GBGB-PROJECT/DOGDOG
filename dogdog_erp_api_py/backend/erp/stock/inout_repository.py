@@ -397,8 +397,8 @@ def fetch_stock_inout_rows(
     try:
         inout_type = inout_type or "all"
 
-        inbound_query = None
-        outbound_query = None
+        inbound_stmt = None
+        outbound_stmt = None
 
         if inout_type in ("all", "inbound", "입고"):
             inbound_stmt = _base_inbound_query()
@@ -436,16 +436,14 @@ def fetch_stock_inout_rows(
                 limit=limit,
                 offset=offset,
             )
-
-        if inbound_stmt is not None:
+        elif inbound_stmt is not None:
             return _ordered_limited_rows(
                 db,
                 inbound_stmt,
                 limit=limit,
                 offset=offset,
             )
-
-        if outbound_stmt is not None:
+        elif outbound_stmt is not None:
             return _ordered_limited_rows(
                 db,
                 outbound_stmt,

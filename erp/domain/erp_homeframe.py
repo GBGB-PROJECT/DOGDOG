@@ -13,6 +13,7 @@ class ErpFrame(ft.Container):
         "/production/defective",
         "/production/order",
         "/stock/product/detail",
+        "/stock/product/inout",
     }
 
     def __init__(self, page: ft.Page, current_route: str):

@@ -284,11 +284,8 @@ class Noti:
 
         # 밥/물/약 알림은 현재 로컬 알림 설정으로만 처리
         if switch_type not in category_map:
-            if checked:
-                self.Notification(switch_type)
-            else:
+            if not checked:
                 self.noti_remove(switch_type)
-            return
 
         category, option = category_map[switch_type]
 

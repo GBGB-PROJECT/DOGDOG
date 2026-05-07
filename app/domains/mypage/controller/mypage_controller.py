@@ -24,6 +24,13 @@ class MypageController:
         print("🔍 [MypageController] 로그아웃 프로세스 시작")
         access_token = self.page.session.store.get("access_token")
 
+        # 🔥 FastAPI 서버 주소
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+        BASE_URL = os.getenv("APP_API_URL") if os.getenv("APP_API_URL") else "http://localhost:8000/api/v1"
+        logout_api_url = "/auth/logout"
+
         if access_token:
             try:
                 # 1. 백엔드 로그아웃 API 호출 (200 여부 상관없이 프론트 세션은 지움)

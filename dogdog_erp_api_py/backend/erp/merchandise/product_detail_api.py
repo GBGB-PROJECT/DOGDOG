@@ -235,8 +235,9 @@ def post_product_detail(payload: ErpMerchandiseProductDetailCreateRequest):
         )
 
 
-@router.put("/details/{product_id}", response_model=ErpMerchandiseDetailMutationResponse)
-def put_product_detail(product_id: int, payload: ErpMerchandiseProductDetailUpdateRequest):
+@router.put("/details/{product_id}", response_model=ErpMerchandiseDetailMutationResponse, include_in_schema=False)
+@router.patch("/details/{product_id}", response_model=ErpMerchandiseDetailMutationResponse)
+def patch_product_detail(product_id: int, payload: ErpMerchandiseProductDetailUpdateRequest):
     try:
         item = update_product_detail(product_id, payload.model_dump())
         return {"success": True, "message": "Product detail updated.", "data": {"item": item}}

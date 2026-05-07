@@ -185,8 +185,9 @@ def post_supplier(payload: ErpProductionSupplierUpsertRequest):
         )
 
 
-@router.put("/{supplier_id}", response_model=ErpProductionSupplierMutationResponse)
-def put_supplier(supplier_id: int, payload: ErpProductionSupplierUpsertRequest):
+@router.put("/{supplier_id}", response_model=ErpProductionSupplierMutationResponse, include_in_schema=False)
+@router.patch("/{supplier_id}", response_model=ErpProductionSupplierMutationResponse)
+def patch_supplier(supplier_id: int, payload: ErpProductionSupplierUpsertRequest):
     try:
         item = update_supplier(supplier_id, payload.model_dump())
         return {"success": True, "message": "Supplier updated.", "data": {"item": item}}

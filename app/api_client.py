@@ -2,15 +2,11 @@ import httpx
 import flet as ft
 from typing import Dict, Any, Optional
 
-# 브라우저 테스트
-# BASE_URL = "http://localhost:8000/api/v1"
-
-# 빌드용(맥 주소-310호)
-BASE_URL = "https://dog.nas6418.ddns.net/api/v1"
-
-# 빌드용(맥 주소/빌드전 확인 후 수정하기)
-# BASE_URL = "http://192.168.0.31:8000/api/v1" #에이바우트2
-
+# 🔥 FastAPI 서버 주소
+import os
+from dotenv import load_dotenv
+load_dotenv()
+BASE_URL = os.getenv("APP_API_URL") if os.getenv("APP_API_URL") else "http://localhost:8000/api/v1"
 
 class ApiClient:
     def __init__(self, page: ft.Page):

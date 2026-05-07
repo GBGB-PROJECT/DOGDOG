@@ -1,0 +1,22 @@
+# ==========================================
+# 🖥️ BACKEND (FastAPI & Database)
+# ==========================================
+fastapi==0.135.2
+uvicorn==0.42.0
+SQLAlchemy==2.0.49
+pydantic==2.12.5
+pydantic_core==2.41.5
+starlette==0.52.1
+email-validator==2.3.0
+python-dotenv==1.2.2
+psycopg2-binary==2.9.11
+pgvector==0.4.2
+anyio==4.12.1
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.28.1
+watchfiles==1.1.1
+websockets==16.0
+uvloop==0.22.1
+python-dateutil==2.9.0

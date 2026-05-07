@@ -87,3 +87,4 @@ output/
 
 # 에이전트가 업데이트하는 문서 제외
 docs/*.md
+app/scratch/check_fch.py

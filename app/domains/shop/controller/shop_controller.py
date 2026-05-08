@@ -157,13 +157,15 @@ class ShopController:
         """사료 등록 상태를 판별하는 비즈니스 규칙입니다."""
         storage = page.session.store
         pet_food_detail = storage.get("pet_food_detail")
-        return (
+        task = (
             isinstance(pet_food_detail, dict)
             and len(pet_food_detail) > 0
             and (
                 pet_food_detail.get("product_id") or pet_food_detail.get("pet_food_id")
             )
         )
+        print('================',task)
+        return task
 
     @staticmethod
     async def get_feeding_data(page, pet_id):
@@ -213,6 +215,6 @@ class ShopController:
             "schedule": schedule if is_food_exist else "급여 중인 상품을 등록해주세요",
             "total_kcal": f"총 {total_kcal}kcal",
             "kcal_per_kg": f"제품의 열량 {int(data.get('kcal_per_kg', 0)):,}kcal/kg",
-            "is_kcal_visible": is_food_exist,
+            "is_kcal_visible": True if is_food_exist else False,
         }
         return res

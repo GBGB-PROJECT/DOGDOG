@@ -6,6 +6,6 @@ echo ---------------------------------------------------
 echo 🚀 Fast API
 echo [Swagger UI] http://localhost:8000/docs
 echo ---------------------------------------------------
-start http://localhost:8000/docs
-".venv\Scripts\python.exe" -m watchfiles ".venv\Scripts\python.exe dogdog_app_api_py/backend/main.py" dogdog_app_api_py
+echo start http://localhost:8000/docs
+".venv\Scripts\python.exe" dogdog_app_api_py/backend/main.py
 pause

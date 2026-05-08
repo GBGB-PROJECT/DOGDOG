@@ -241,6 +241,9 @@ def shop_product_detail(page: ft.Page, popup, content_page):
             dd.p_explain, 
             size=12, 
             color=ft.Colors.GREY_600)
+        product_explain.overflow = ft.TextOverflow.ELLIPSIS
+        product_explain.text_align = ft.TextAlign.CENTER
+        product_explain.width = dd.header_width * 1.4
         product_price = dogdog.basic_text(spans=[
             ft.TextSpan(f"{dd.p_price:,}원\n"),
             ft.TextSpan(f"똑똑 배송 적용가: {int(dd.p_price*0.9):,}원",
@@ -263,6 +266,7 @@ def shop_product_detail(page: ft.Page, popup, content_page):
                 ),
                 ft.Column(
                     height=dd.header_width,
+                    expand=True,
                     alignment=ft.MainAxisAlignment.SPACE_AROUND,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[

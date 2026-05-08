@@ -29,6 +29,8 @@ class Front_dogdog:
         self.popup = dogdog.Popup(page)
         self.storage = page.session.store
         self.home_feeding_guide_popup = True
+        page.window.width = 375
+        page.window.height = 812
         page.title = "Dog Dog"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.fonts = {"Pretendard": "fonts/Pretendard-Regular.otf"}

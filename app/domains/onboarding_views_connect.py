@@ -16,6 +16,16 @@ def on_boarding_tile(page: ft.Page, popup, content_page: str, change_page_callba
     # Default Value
     # ---------------------------------------------------------------------------------------------------
     storage = page.session.store
+
+    storage.set("user_email", "kosmo0508@test.com")
+    storage.set("user_name", "코스모")
+    storage.set("user_password" ,"A12345678!")
+    storage.set("pet_name", "코스모")
+    storage.set("pet_weight", 8)
+    storage.set("allergy", "땅콩알러지")
+    storage.set("disease", "감기")
+    storage.set("food_weight", 500)
+
     content = []
     bottom = ft.Container()  # [방어 코드] UnboundLocalError 방지를 위한 초기화
 

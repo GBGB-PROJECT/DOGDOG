@@ -205,9 +205,9 @@ def order_view(page: ft.Page, popup, page_name):
     view_sale_order_price = int(final_price) - int(order_price)
     # ---------------------------------------------------------------------------------------------------
     order_customer_name = dogdog.input_textfield(
-        hint_text="최대 10자로 작성해주세요", cancel_event=True)
+        hint_text="최대 10자로 작성해주세요", cancel_event=True, value="코스모")
     order_customer_phone = dogdog.input_textfield(
-        hint_text="010-0000-0000", input_type="phone", cancel_event=True)
+        hint_text="010-0000-0000", input_type="phone", cancel_event=True, value="010-1234-1234")
     # ---------------------------------------------------------------------------------------------------
     # Delivery Address Select Run Task (Limit: 1 Hour)
     # ---------------------------------------------------------------------------------------------------
@@ -259,9 +259,9 @@ def order_view(page: ft.Page, popup, page_name):
 
     # ---------------------------------------------------------------------------------------------------
     delivery_customer_name = dogdog.input_textfield(
-        hint_text="최대 10자로 작성해주세요", cancel_event=True)
+        hint_text="최대 10자로 작성해주세요", cancel_event=True, value="코스모")
     delivery_customer_phone = dogdog.input_textfield(
-        hint_text="010-0000-0000", input_type="phone", cancel_event=True)
+        hint_text="010-0000-0000", input_type="phone", cancel_event=True, value="010-1234-1234")
     delivery_picker = dogdog.picker_field(
         text="배송지를 입력해주세요.", on_click=lambda e:delivery_picker_route(e), icon=ft.Icons.HOME)
     delivery_picker.content.controls[0].max_lines = 3 # type: ignore

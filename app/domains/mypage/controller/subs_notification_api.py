@@ -10,8 +10,11 @@ class NotificationController:
         self.api = ApiClient(page)
 
     # 알림 체크 --------------------------------------------------------------------------
-    async def check_on_app_load(self):
-        if self.storage.get("notification_load_checked"):
+    async def check_on_app_load(self, force=False):
+        if self.storage.get("notification_sent_this_session"):
+            return []
+
+        if not force and self.storage.get("notification_load_checked"):
             return []
 
         if not self.storage.get("access_token"):
@@ -34,7 +37,7 @@ class NotificationController:
 
             print("[NOTIFICATION DEBUG] last_sent_date:", last_sent_date)
 
-            if last_sent_date == today:
+            if not force and last_sent_date == today:
                 return []
 
             res = await self.api.get("/notifications/check")
@@ -51,8 +54,9 @@ class NotificationController:
                 return []
 
             self.storage.set("notifications", notifications)
+            self.storage.set("notification_sent_this_session", True)
 
-            if hasattr(self.page, "client_storage"):
+            if not force and hasattr(self.page, "client_storage"):
                 await self.page.client_storage.set_async(storage_key, today)
 
                 saved_date = await self.page.client_storage.get_async(storage_key)

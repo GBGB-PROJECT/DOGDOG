@@ -3,6 +3,7 @@ from api_client import ApiClient
 from domains.logs.controller.grid_controller import GridController
 from components.common.jun_snackbar_utils import JunSnackBarUtils
 from components.common.messages import SUCCESS_MESSAGES, ERROR_MESSAGES
+import asyncio
 
 
 class StatusController:
@@ -357,14 +358,28 @@ class StatusController:
             JunSnackBarUtils.show_error(self.page, ERROR_MESSAGES["NETWORK_ERROR"])
 
     async def _post_save_process(self):
-        """저장 성공 후 공통 처리 로직"""
         self.popup.bottom_sheet_popup.open = False
         self.page.pubsub.send_all("update_dashboard")
         self.page.update()
 
+        await asyncio.sleep(0.3)
+
+        try:
+            from domains.mypage.controller.subs_notification_api import NotificationController
+            from domains.mypage.views.notification import show_notification_popup
+
+            notifications = await NotificationController(self.page).check_on_app_load(force=True) or []
+
+            for notification in notifications:
+                await show_notification_popup(self.page, self.popup, notification)
+
+        except Exception as e:
+            print(f"[NOTIFICATION] after feeding check failed: {e}")
+
         if self.on_refresh_callback:
             if hasattr(self.on_refresh_callback, "__call__"):
                 await self.on_refresh_callback()
+
 
     def button_event(self, e, call, content):
         """버튼 클릭 이벤트 라우터 (View에서 호출)"""

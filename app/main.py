@@ -26,6 +26,7 @@ class Front_dogdog:
         # Default Page Value
         # -----------------------------------------------------------------------------------------------
         self.page = page
+        self.page.app_instance = self
         self.popup = dogdog.Popup(page)
         self.storage = page.session.store
         self.home_feeding_guide_popup = True

@@ -343,7 +343,7 @@ def log_view(page: ft.Page, controller):
         date_range_str = f"{(now - datetime.timedelta(days=6)).strftime('%Y-%m-%d')} ~ {now.strftime('%Y-%m-%d')}"
         
         return dogdog.banner(
-            image_src="대추.jpg",
+            # image_src="대추.jpg",
             text=date_range_str,
             selected=False,
             on_click=controller.open_weekly_banner,

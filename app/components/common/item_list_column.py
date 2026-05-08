@@ -1,20 +1,6 @@
 import flet as ft
 import components as dogdog
 import pg8000.dbapi as psycopg2
-# import api.default_data as data
-# def db_connect():
-#     try:
-#         conn = psycopg2.connect(
-#             host="pg.nas6418.ddns.net",
-#             port=9934,
-#             database="Dogdog",
-#             user="dog_5",
-#             password="kosmo"
-#         )
-#     except psycopg2.OperationalError as Err:
-#         print(f"Database Connection Error.\n{Err}")
-#         conn = None
-#     return conn
 
 def item(list_key, list_value, select_key, select_value):
     is_checked = select_key == list_key

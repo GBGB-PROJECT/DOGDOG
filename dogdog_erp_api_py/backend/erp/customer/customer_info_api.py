@@ -1,0 +1,191 @@
+from math import ceil
+from typing import Literal
+from datetime import date  # 🔥 추가: Swagger UI에서 날짜 선택 형식으로 표시하기 위한 date 타입
+
+from fastapi import APIRouter, HTTPException, Query
+
+from .customer_info_service import count_customers, fetch_customers
+from .customer_info_schema import ErpCustomerInfoListResponse
+
+router = APIRouter(
+    prefix="/erp/customer/info",
+    tags=["customer"],
+)
+
+SEARCH_TYPE_LABELS = {
+    "email": "이메일",
+    "oauth_type": "OAuth유형",
+    "nickname": "닉네임",
+    "phone": "전화번호",
+    "is_subscribed": "구독여부",
+    "subs_count": "구독횟수",
+    "active": "상태",
+}
+
+
+def _format_bool_yn(value):
+    return "Y" if value else "N"
+
+
+def _format_active(value):
+    return "활성" if value else "비활성"
+
+
+def build_response_rows(items: list, page: int, size: int):
+    start_no = ((page - 1) * size) + 1
+    rows = []
+
+    for index, row in enumerate(items, start=start_no):
+        rows.append(
+            {
+                "no": index,
+                "customer_id": row.get("customer_id", ""),
+                "email": row.get("email", ""),
+                "oauth_type": row.get("oauth_type", ""),
+                "nickname": row.get("nickname", ""),
+                "phone": row.get("phone", ""),
+                "is_subscribed": _format_bool_yn(row.get("is_subscribed", False)),
+                "subs_count": row.get("subs_count", ""),
+                "active": _format_active(row.get("active", False)),
+                "create_date": row.get("create_date", ""),
+            }
+        )
+
+    return rows
+
+
+@router.get(
+    "",
+    summary="고객 정보 관리 목록 조회",
+    description=(
+        "고객 정보 관리 화면에서 사용하는 목록 조회 API입니다. "
+        "검색 조건, 검색어, 날짜 범위, 페이지 정보를 받아 고객 목록을 반환합니다."
+    ),
+    response_model=ErpCustomerInfoListResponse,  # 🔥 ERP 조회 응답 Schema 연결
+)
+def get_customer_list(
+    search_type: Literal[
+        "email",
+        "oauth_type",
+        "nickname",
+        "phone",
+        "is_subscribed",
+        "subs_count",
+        "active",
+    ] = Query(
+        default="email",
+        description="검색 조건",
+        examples=["email"],
+    ),
+    keyword: str = Query(
+        default="",
+        description="검색어",
+        examples=["1"],
+    ),
+    page: int = Query(
+        default=1,
+        ge=1,
+        description="페이지 번호",
+        examples=[1],
+    ),
+    size: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+        description="페이지당 조회 건수",
+        examples=[50],
+    ),
+    start_date: date | None = Query(
+        default=None,
+        description="가입일 시작일",
+        examples=["2026-04-01"],
+    ),  # 🔥 수정: str → date, Swagger UI 날짜 선택 형식
+    end_date: date | None = Query(
+        default=None,
+        description="가입일 종료일",
+        examples=["2026-04-30"],
+    ),  # 🔥 수정: str → date, Swagger UI 날짜 선택 형식
+):
+    try:
+        clean_search_type = (search_type or "email").strip()
+        clean_keyword = (keyword or "").strip()
+
+        total_count = count_customers(
+            search_type=clean_search_type,
+            keyword=clean_keyword,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        total_pages = max(1, ceil(total_count / size))
+        offset = (page - 1) * size
+
+        items = fetch_customers(
+            search_type=clean_search_type,
+            keyword=clean_keyword,
+            limit=size,
+            offset=offset,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        result_items = build_response_rows(items, page, size)
+
+        if total_count == 0:
+            return {
+                "success": True,
+                "message": "일치하는 정보가 없습니다.",
+                "data": {
+                    "items": [],
+                    "pagination": {
+                        "page": 1,
+                        "size": size,
+                        "total_count": 0,
+                        "total_pages": 1,
+                    },
+                    "search": {
+                        "search_type": clean_search_type,
+                        "search_type_label": SEARCH_TYPE_LABELS.get(
+                            clean_search_type, clean_search_type
+                        ),
+                        "keyword": clean_keyword,
+                        "start_date": start_date,
+                        "end_date": end_date,
+                    },
+                },
+            }
+
+        return {
+            "success": True,
+            "message": "고객 목록 조회에 성공했습니다.",
+            "data": {
+                "items": result_items,
+                "pagination": {
+                    "page": page,
+                    "size": size,
+                    "total_count": total_count,
+                    "total_pages": total_pages,
+                },
+                "search": {
+                    "search_type": clean_search_type,
+                    "search_type_label": SEARCH_TYPE_LABELS.get(
+                        clean_search_type, clean_search_type
+                    ),
+                    "keyword": clean_keyword,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                },
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "success": False,
+                "error_code": "INTERNAL_ERROR",
+                "message": f"고객 목록 조회 중 서버 오류가 발생했습니다. {exc}",
+            },
+        )

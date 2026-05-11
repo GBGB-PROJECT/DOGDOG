@@ -1,0 +1,18 @@
+# 0. 파이썬 버전 지정
+FROM python:3.10.20
+
+# 1. 작업 디렉토리를 설정
+WORKDIR /
+
+# 2. 필요한 설정 파일 복사
+COPY docker_app_requirements.txt .
+RUN pip install --no-cache-dir -r docker_app_requirements.txt
+
+# 3. 현재 경로의 모든 파일 복사
+COPY dogdog_api_py/ .
+
+# 4. 포트 설정
+EXPOSE 8000
+
+# 5. 실행 명령어
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

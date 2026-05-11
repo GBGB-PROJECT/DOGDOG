@@ -1,0 +1,3 @@
+from .product_view import erp_product_view
+# from .product_master_view import erp_product_master_view
+from .product_detail_view import erp_product_detail_view

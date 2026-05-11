@@ -1,0 +1,840 @@
+# =========================================================
+# 🔥 생산입고 > 입고 현황 조회 화면
+# - backend/erp/production/inbound_service.py 직접 호출
+# - ERP.inbound + ERP.inbound_status + ERP.stock JOIN 결과 표시
+# - 입고 상태는 숫자 ID가 아니라 상태명 문자로 표시
+# - 생산관리 대시보드 카드와 이어지도록 상품명/입고수량/입고금액 표시
+# - 50개씩 페이지네이션
+# - DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
+# =========================================================
+
+import math
+import datetime
+import flet as ft
+
+# 🔥 httpx 방식 API 호출로 변경
+from api.erp_httpx_api import count_inbounds, fetch_inbounds, fetch_inbounds_page
+from components.common.erp_view_widgets import build_text, date_value_box, calendar_icon_box, action_button, build_expand_table_cell as build_table_cell
+from components.common.erp_view_style import *
+from components.common.erp_pagination import calc_total_pages, build_pagination_bar
+from components.common.erp_datepicker import normalize_datepicker_value, normalize_datepicker_date
+from components.common.erp_view_layout import build_lookup_page_layout, build_lookup_table_area
+
+
+
+
+
+ACTION_BLUE = "#2563EB"
+
+
+
+# =========================================================
+# 🔥 생산관리 대시보드 → 생산입고 화면 월 필터 전달용
+# - production_view.py에서 count 영역을 클릭하면 여기로 필터를 임시 저장
+# - inbound_view 진입 시 한 번 읽고 바로 비움
+# =========================================================
+_PRODUCTION_INBOUND_PREFILTER = {"value": None}
+
+
+def set_production_inbound_prefilter(
+    start_date=None,
+    end_date=None,
+    search_type="inbound_complete",
+    date_filter_type="inbound_complete",
+    total_count=None,
+):
+    _PRODUCTION_INBOUND_PREFILTER["value"] = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "search_type": search_type or "inbound_complete",
+        "total_count": total_count,
+        # 🔥 검색조건과 날짜 기준을 분리
+        # - 생산관리 68건 > 으로 들어온 경우 검색조건을 거래처명/상품명으로 바꿔도
+        #   날짜 범위는 계속 입고완료일 기준으로 유지해야 함
+        "date_filter_type": date_filter_type or "inbound_complete",
+    }
+
+
+def _consume_production_inbound_prefilter():
+    value = _PRODUCTION_INBOUND_PREFILTER.get("value")
+    _PRODUCTION_INBOUND_PREFILTER["value"] = None
+    return value or {}
+
+
+def _parse_prefilter_date(value):
+    if not value:
+        return None
+
+    if isinstance(value, datetime.datetime):
+        return value.replace(tzinfo=None)
+
+    if isinstance(value, datetime.date):
+        return datetime.datetime(value.year, value.month, value.day)
+
+    clean = str(value).strip()[:10]
+    try:
+        return datetime.datetime.strptime(clean, "%Y-%m-%d")
+    except ValueError:
+        try:
+            return datetime.datetime.strptime(clean.replace(".", "-"), "%Y-%m-%d")
+        except ValueError:
+            return None
+
+
+# =========================================================
+# 🔥 공통 텍스트
+# =========================================================
+# =========================================================
+# 🔥 날짜 박스
+# =========================================================
+# =========================================================
+# 🔥 버튼
+# =========================================================
+# =========================================================
+# 🔥 테이블 셀
+# =========================================================
+# =========================================================
+# 🔥 날짜/시간 포맷
+# =========================================================
+def format_datetime_text(value):
+    if not value:
+        return ""
+    return str(value)[:19]
+
+
+def format_date_text_from_value(value):
+    if not value:
+        return ""
+    return str(value)[:10]
+
+
+def format_number_text(value):
+    if value is None or value == "":
+        return ""
+
+    try:
+        return f"{int(value):,}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _build_product_no(product_detail_id, product_id):
+    product_detail_id = str(product_detail_id or "").strip()
+    product_id = str(product_id or "").strip()
+
+    if product_detail_id and product_id:
+        return f"{product_detail_id}-{product_id}"
+
+    return product_detail_id or product_id
+
+
+# =========================================================
+# 🔥 DB row -> 화면 row 변환
+# =========================================================
+def inbound_db_row_adapter(db_rows: list, page_no: int):
+    rows = []
+    start_no = ((page_no - 1) * PAGE_SIZE) + 1
+
+    for index, row in enumerate(db_rows, start=start_no):
+        rows.append(
+            {
+                "no": str(index),
+                "inbound_id": row.get("inbound_id", ""),
+                "supplier_id": row.get("supplier_id", ""),
+                "supplier_name": row.get("supplier_name", ""),
+                "inbound_status": row.get("inbound_status", ""),  # 🔥 상태명 문자
+                "product_id": row.get("product_id", ""),
+                "product_detail_id": row.get("product_detail_id", ""),
+                "product_no": row.get("product_no") or _build_product_no(row.get("product_detail_id", ""), row.get("product_id", "")),  # 🔥 추가: 상품 상세 정보 관리와 동일한 상품번
+                "brand": row.get("brand", ""),
+                "product_name": row.get("product_name", ""),
+                "save_stock": format_number_text(row.get("save_stock", "")),
+                "purchase_price": format_number_text(row.get("purchase_price", "")),
+                "inbound_amount": format_number_text(row.get("inbound_amount", "")),
+                "expiration_date": format_date_text_from_value(row.get("expiration_date", "")),
+                "inbound_scheduled_date": format_date_text_from_value(row.get("inbound_scheduled_date", "")),
+                "inbound_start": format_datetime_text(row.get("inbound_start", "")),
+                # 🔥 입고완료일은 시간 없이 날짜만 표시
+                "inbound_complete": format_date_text_from_value(row.get("inbound_complete", "")),
+                "employee_id": row.get("employee_id", ""),
+                "last_update": format_datetime_text(row.get("last_update", "")),
+            }
+        )
+
+    return rows
+
+
+# =========================================================
+# 🔥 생산입고현황조회 화면 본체
+# =========================================================
+
+def _format_product_display(row):
+    brand = str(row.get("brand") or "").strip()
+    product_name = str(row.get("product_name") or "").strip()
+    weight_text = str(row.get("weight_text") or "").strip()
+    product_id = row.get("product_id", "")
+
+    product_main = f"{brand} {product_name}".strip() or "-"
+
+    product_meta = []
+    if weight_text:
+        product_meta.append(weight_text)
+    if product_id not in [None, ""]:
+        product_meta.append(f"#{product_id}")
+
+    if product_meta:
+        return f"{product_main} ({' / '.join(product_meta)})"
+
+    return product_main
+
+
+def erp_inbound_view():
+    page_title = "생산관리 > 생산입고현황조회"
+
+    # 🔥 생산관리 메인에서 넘어온 월 필터가 있으면 입고완료일 기준으로 바로 조회
+    initial_prefilter = _consume_production_inbound_prefilter()
+    initial_search_type = initial_prefilter.get("search_type") or "inbound_id"
+    if initial_search_type not in {
+        "inbound_id",
+        "product_no",
+        "product_name",
+        "supplier_name",
+        "inbound_status",
+        "employee_id",
+    }:
+        initial_search_type = "inbound_id"
+
+    rows_state = []
+
+    # 🔥 날짜 검색 기준과 검색조건을 분리
+    # 🔥 수정: DatePicker 기본 기준은 테이블에 보이는 입고완료일로 고정
+    # 🔥 수정: 검색조건 드롭다운에서는 입고예정일/입고시작일/입고완료일 제거
+    # - 기존 문제: 생산관리 68건 > 클릭 시 입고완료일 기준 월 필터가 걸렸는데,
+    #   화면에서 검색조건을 거래처명/상품명으로 바꾸는 순간 백엔드가 날짜 기준을 입고시작일로 바꿔버림
+    # - 수정: 대시보드에서 넘어온 날짜 기준은 inbound_complete로 고정 유지
+    date_search_types = {"inbound_complete", "expiration_date"}
+    initial_date_filter_type = initial_prefilter.get("date_filter_type")
+    if initial_date_filter_type not in date_search_types:
+        initial_date_filter_type = initial_search_type if initial_search_type in date_search_types else "inbound_complete"
+
+    selected_start = {"value": _parse_prefilter_date(initial_prefilter.get("start_date"))}
+    selected_end = {"value": _parse_prefilter_date(initial_prefilter.get("end_date"))}
+    search_type_value = {"value": initial_search_type}
+    date_filter_type_value = {"value": initial_date_filter_type}
+
+    pagination_state = {
+        "current_page": 1,
+        "total_count": 0,
+        "total_pages": 1,
+        "keyword": "",
+        "prefilter_total_count": initial_prefilter.get("total_count"),
+    }
+
+    start_field_holder = ft.Container()
+    start_icon_holder = ft.Container(width=38, height=38)
+    end_field_holder = ft.Container()
+    end_icon_holder = ft.Container(width=38, height=38)
+
+    result_text = ft.Text("불러오는 중입니다.", size=13, color=TEXT_SECONDARY)
+    table_rows_holder = ft.Column(spacing=0)
+    pagination_holder = ft.Container()
+
+    # 🔥 추가: 고객 3총사와 동일하게 조건 사용 후에만 보이는 초기화 버튼 자리
+    reset_button_holder = ft.Container(visible=False)
+
+    # =========================================================
+    # 🔥 입고 현황 컬럼 비율
+    # =========================================================
+    col_expand = {
+        "no": 3,
+        "inbound_id": 5,
+        "product_no": 6,  # 🔥 추가: 상품 상세 정보 관리의 상품번과 동일한 형식
+        "product_name": 14,
+        "supplier_name": 8,
+        "save_stock": 5,
+        "purchase_price": 6,
+        "inbound_amount": 7,
+        "expiration_date": 7,
+        "inbound_complete": 7,
+        "inbound_status": 6,
+        "employee_id": 5,
+        "last_update": 8,
+    }
+
+    # 🔥 수정: 발주관리처럼 날짜조건과 입력 검색조건을 분리
+    # - 유통기한은 DatePicker로 검색하는 날짜 조건이므로 입력 검색조건에서 제외
+    date_type_labels = {
+        "inbound_complete": "입고완료일",
+        "expiration_date": "유통기한",
+    }
+
+    search_type_labels = {
+        "inbound_id": "입고ID",
+        "product_no": "상품번",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
+        "product_name": "상품명",  # 🔥 수정: 상품번과 상품명을 검색조건에서 분리
+        "supplier_name": "거래처명",
+        "inbound_status": "입고상태",
+        "employee_id": "담당자ID",
+    }
+
+    def format_picker_date(value):
+        if not value:
+            return ""
+        return value.strftime("%Y.%m.%d")
+
+    def get_selected_date_range():
+        start_date = selected_start["value"].date() if selected_start["value"] else None
+        end_date = selected_end["value"].date() if selected_end["value"] else None
+        return start_date, end_date
+
+    def refresh_picker_fields():
+        start_field_holder.content = date_value_box(
+            format_picker_date(selected_start["value"]),
+            on_click=open_start_picker,
+        )
+        start_icon_holder.content = calendar_icon_box(on_click=open_start_picker)
+
+        end_field_holder.content = date_value_box(
+            format_picker_date(selected_end["value"]),
+            on_click=open_end_picker,
+        )
+        end_icon_holder.content = calendar_icon_box(on_click=open_end_picker)
+
+    # =========================================================
+    # 🔥 DatePicker 선택값은 거래처 관리와 동일하게 +9시간 보정 후 사용
+    # =========================================================
+    def on_start_date_change(e):
+        if e.control.value:
+            selected_start["value"] = normalize_datepicker_value(e.control.value)
+
+            if selected_end["value"] and selected_end["value"] < selected_start["value"]:
+                selected_end["value"] = selected_start["value"]
+
+        refresh_picker_fields()
+        update_reset_button_visibility()
+        e.page.update()
+
+    def on_end_date_change(e):
+        if e.control.value:
+            picked_date = normalize_datepicker_value(e.control.value)
+
+            if selected_start["value"] and picked_date < selected_start["value"]:
+                selected_end["value"] = selected_start["value"]
+            else:
+                selected_end["value"] = picked_date
+
+        refresh_picker_fields()
+        update_reset_button_visibility()
+        e.page.update()
+
+    start_date_picker = ft.DatePicker(
+        first_date=datetime.datetime(2000, 1, 1),
+        last_date=datetime.datetime(2035, 12, 31),
+        on_change=on_start_date_change,
+    )
+
+    end_date_picker = ft.DatePicker(
+        first_date=datetime.datetime(2000, 1, 1),
+        last_date=datetime.datetime(2035, 12, 31),
+        on_change=on_end_date_change,
+    )
+
+    def open_start_picker(e):
+        page = e.page
+        if start_date_picker not in page.overlay:
+            page.overlay.append(start_date_picker)
+        if selected_start["value"]:
+            start_date_picker.value = selected_start["value"]
+        start_date_picker.open = True
+        page.update()
+
+    def open_end_picker(e):
+        page = e.page
+        if end_date_picker not in page.overlay:
+            page.overlay.append(end_date_picker)
+
+        end_date_picker.first_date = selected_start["value"] or datetime.datetime(2000, 1, 1)
+
+        if selected_end["value"]:
+            end_date_picker.value = selected_end["value"]
+        elif selected_start["value"]:
+            end_date_picker.value = selected_start["value"]
+
+        end_date_picker.open = True
+        page.update()
+
+    search_type_text = ft.Text(
+        search_type_labels[search_type_value["value"]],
+        size=13,
+        color=FIELD_TEXT,
+        weight=ft.FontWeight.W_500,
+    )
+
+    # 🔥 추가: 발주관리 검색 양식처럼 DatePicker 기준을 따로 선택
+    date_type_text = ft.Text(
+        date_type_labels[date_filter_type_value["value"]],
+        size=13,
+        color=FIELD_TEXT,
+        weight=ft.FontWeight.W_500,
+    )
+
+    def update_reset_button_visibility():
+        # 🔥 추가: 기본 상태가 아니면 초기화 버튼 표시
+        has_filter = (
+            selected_start["value"] is not None
+            or selected_end["value"] is not None
+            or (search_field.value or "").strip() != ""
+            or search_type_value["value"] != "inbound_id"
+            or date_filter_type_value["value"] != "inbound_complete"
+            or (pagination_state["keyword"] or "").strip() != ""
+        )
+        reset_button_holder.visible = has_filter
+
+    def set_search_type(value: str, page: ft.Page | None = None):
+        search_type_value["value"] = value
+        search_type_text.value = search_type_labels[value]
+        update_reset_button_visibility()
+
+        try:
+            search_type_text.update()
+            reset_button_holder.update()
+        except Exception:
+            if page:
+                page.update()
+
+    # 🔥 추가: 날짜조건 드롭다운 전용 변경 함수
+    def set_date_filter_type(value: str, page: ft.Page | None = None):
+        date_filter_type_value["value"] = value
+        date_type_text.value = date_type_labels[value]
+        update_reset_button_visibility()
+
+        try:
+            date_type_text.update()
+            reset_button_holder.update()
+        except Exception:
+            if page:
+                page.update()
+
+    def build_search_menu_item(label: str, value: str):
+        return ft.PopupMenuItem(
+            height=34,
+            content=ft.Container(
+                alignment=ft.Alignment(-1, 0),
+                content=ft.Text(label, size=13, color=FIELD_TEXT, weight=ft.FontWeight.W_500),
+            ),
+            on_click=lambda e: set_search_type(value, e.page),
+        )
+
+    # 🔥 추가: 날짜조건 드롭다운 메뉴 아이템
+    def build_date_type_menu_item(label: str, value: str):
+        return ft.PopupMenuItem(
+            height=34,
+            content=ft.Container(
+                alignment=ft.Alignment(-1, 0),
+                content=ft.Text(label, size=13, color=FIELD_TEXT, weight=ft.FontWeight.W_500),
+            ),
+            on_click=lambda e: set_date_filter_type(value, e.page),
+        )
+
+    date_type = ft.Container(
+        width=150,
+        height=38,
+        bgcolor=FIELD_BG,
+        border=ft.Border.all(1, FIELD_BORDER),
+        border_radius=6,
+        padding=ft.Padding.only(left=12, right=4),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                date_type_text,
+                ft.PopupMenuButton(
+                    tooltip="날짜 조건 선택",
+                    content=ft.Container(
+                        width=24,
+                        height=24,
+                        alignment=ft.Alignment(0, 0),
+                        content=ft.Icon(ft.Icons.ARROW_DROP_DOWN, size=18, color="#4B5563"),
+                    ),
+                    items=[
+                        build_date_type_menu_item(label, value)
+                        for value, label in date_type_labels.items()
+                    ],
+                ),
+            ],
+        ),
+    )
+
+    search_type = ft.Container(
+        width=170,
+        height=38,
+        bgcolor=FIELD_BG,
+        border=ft.Border.all(1, FIELD_BORDER),
+        border_radius=6,
+        padding=ft.Padding.only(left=12, right=4),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                search_type_text,
+                ft.PopupMenuButton(
+                    tooltip="검색 조건 선택",
+                    content=ft.Container(
+                        width=24,
+                        height=24,
+                        alignment=ft.Alignment(0, 0),
+                        content=ft.Icon(ft.Icons.ARROW_DROP_DOWN, size=18, color="#4B5563"),
+                    ),
+                    items=[
+                        build_search_menu_item(label, value)
+                        for value, label in search_type_labels.items()
+                    ],
+                ),
+            ],
+        ),
+    )
+
+    search_field = ft.TextField(
+        width=185,
+        height=38,
+        hint_text="검색어",
+        hint_style=ft.TextStyle(size=13, color=HINT_TEXT),
+        text_size=13,
+        border_color=FIELD_BORDER,
+        border_radius=6,
+        bgcolor=FIELD_BG,
+        content_padding=ft.Padding.only(left=12, right=12, top=0, bottom=0),
+    )
+
+    def build_table_header():
+        return ft.Container(
+            bgcolor=TABLE_HEADER_BG,
+            padding=ft.Padding.only(left=14, right=14, top=14, bottom=14),
+            content=ft.Row(
+                expand=True,
+                spacing=10,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    build_table_cell("No", col_expand["no"], 0, ft.FontWeight.W_700),
+                    build_table_cell("입고ID", col_expand["inbound_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("상품번", col_expand["product_no"], 0, ft.FontWeight.W_700),  # 🔥 추가
+                    build_table_cell("상품명", col_expand["product_name"], 0, ft.FontWeight.W_700),
+                    build_table_cell("거래처명", col_expand["supplier_name"], 0, ft.FontWeight.W_700),
+                    build_table_cell("입고수량", col_expand["save_stock"], 0, ft.FontWeight.W_700),
+                    build_table_cell("구매단가", col_expand["purchase_price"], 0, ft.FontWeight.W_700),
+                    build_table_cell("입고총액", col_expand["inbound_amount"], 0, ft.FontWeight.W_700),
+                    build_table_cell("유통기한", col_expand["expiration_date"], 0, ft.FontWeight.W_700),
+                    build_table_cell("입고완료일", col_expand["inbound_complete"], 0, ft.FontWeight.W_700),
+                    build_table_cell("입고상태", col_expand["inbound_status"], 0, ft.FontWeight.W_700),
+                    build_table_cell("담당자ID", col_expand["employee_id"], 0, ft.FontWeight.W_700),
+                    build_table_cell("최종수정일", col_expand["last_update"], 0, ft.FontWeight.W_700),
+                ],
+            ),
+        )
+
+    def build_table_row(row):
+        product_display = _format_product_display(row)
+
+        return ft.Container(
+            padding=ft.Padding.only(left=14, right=14, top=14, bottom=14),
+            border=ft.border.only(bottom=ft.BorderSide(1, TABLE_BORDER)),
+            bgcolor=CARD_BG,
+            content=ft.Row(
+                expand=True,
+                spacing=10,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    build_table_cell(row.get("no", ""), col_expand["no"], 0),
+                    build_table_cell(row.get("inbound_id", ""), col_expand["inbound_id"], 0),
+                    build_table_cell(row.get("product_no", ""), col_expand["product_no"], 0),  # 🔥 추가
+                    build_table_cell(row.get("product_name", ""), col_expand["product_name"], 0),
+                    build_table_cell(row.get("supplier_name", ""), col_expand["supplier_name"], 0),
+                    build_table_cell(row.get("save_stock", ""), col_expand["save_stock"], 0),
+                    build_table_cell(row.get("purchase_price", ""), col_expand["purchase_price"], 0),
+                    build_table_cell(row.get("inbound_amount", ""), col_expand["inbound_amount"], 0),
+                    build_table_cell(row.get("expiration_date", ""), col_expand["expiration_date"], 0),
+                    build_table_cell(row.get("inbound_complete", ""), col_expand["inbound_complete"], 0),
+                    build_table_cell(
+                        row.get("inbound_status", ""),
+                        col_expand["inbound_status"],
+                        0,
+                        ft.FontWeight.W_700,
+                        ACTION_BLUE,
+                    ),
+                    build_table_cell(row.get("employee_id", ""), col_expand["employee_id"], 0),
+                    build_table_cell(row.get("last_update", ""), col_expand["last_update"], 0),
+                ],
+            ),
+        )
+
+    def refresh_table(filtered_rows):
+        table_rows_holder.controls.clear()
+
+        if not filtered_rows:
+            table_rows_holder.controls.append(
+                ft.Container(
+                    height=120,
+                    alignment=ft.Alignment(0, 0),
+                    content=ft.Text("일치하는 정보가 없습니다.", size=14, color=TEXT_SECONDARY),
+                )
+            )
+            return
+
+        for row in filtered_rows:
+            table_rows_holder.controls.append(build_table_row(row))
+
+    def fetch_total_count(keyword=""):
+        start_date, end_date = get_selected_date_range()
+        return count_inbounds(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            start_date=start_date,
+            end_date=end_date,
+            # 🔥 검색조건과 날짜 기준 분리
+            date_filter_type=date_filter_type_value["value"],
+        )
+
+    def fetch_inbound_rows(keyword="", page_no=1):
+        offset = (page_no - 1) * PAGE_SIZE
+        start_date, end_date = get_selected_date_range()
+
+        db_rows = fetch_inbounds(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+            start_date=start_date,
+            end_date=end_date,
+            # 🔥 검색조건과 날짜 기준 분리
+            date_filter_type=date_filter_type_value["value"],
+        )
+
+        return inbound_db_row_adapter(db_rows, page_no)
+
+    def fetch_inbound_page(keyword="", page_no=1, include_total=True):
+        offset = (page_no - 1) * PAGE_SIZE
+        start_date, end_date = get_selected_date_range()
+
+        result = fetch_inbounds_page(
+            search_type=search_type_value["value"],
+            keyword=keyword,
+            limit=PAGE_SIZE,
+            offset=offset,
+            start_date=start_date,
+            end_date=end_date,
+            date_filter_type=date_filter_type_value["value"],
+            include_total=include_total,
+        )
+
+        return {
+            "rows": inbound_db_row_adapter(result["items"], page_no),
+            "pagination": result["pagination"],
+        }
+
+    def move_page(page_no: int, page: ft.Page):
+        if page_no < 1 or page_no > pagination_state["total_pages"]:
+            return
+
+        pagination_state["current_page"] = page_no
+        reload_current_page()
+        update_lookup_area(page)
+
+    def build_page_button(label, page_no=None, selected=False, disabled=False):
+        return ft.Container(
+            width=40,
+            height=40,
+            border_radius=10,
+            bgcolor="#2563EB" if selected else ft.Colors.TRANSPARENT,
+            alignment=ft.Alignment(0, 0),
+            on_click=None if disabled or page_no is None else lambda e: e.page.run_thread(lambda: move_page(page_no, e.page)),
+            content=ft.Text(
+                label,
+                size=16,
+                color=ft.Colors.WHITE if selected else "#0F172A",
+                weight=ft.FontWeight.W_700 if selected else ft.FontWeight.W_500,
+            ),
+        )
+
+    def refresh_pagination():
+        total_pages = pagination_state["total_pages"]
+        current_page = pagination_state["current_page"]
+
+        pagination_holder.content = build_pagination_bar(
+            current_page,
+            total_pages,
+            lambda page_no, e: e.page.run_thread(lambda: move_page(page_no, e.page)),
+        )
+
+    def update_result_text():
+        start_text = format_picker_date(selected_start["value"]) or "미선택"
+        end_text = format_picker_date(selected_end["value"]) or "미선택"
+        search_label = search_type_labels.get(search_type_value["value"], "입고ID")
+        date_filter_label = date_type_labels.get(date_filter_type_value["value"], "입고완료일")
+        keyword_text = pagination_state["keyword"] if pagination_state["keyword"] else "없음"
+
+        result_text.value = (
+            f"기간: {start_text} ~ {end_text} / "
+            f"날짜기준: {date_filter_label} / "
+            f"검색조건: {search_label} / "
+            f"검색어: {keyword_text} / "
+            f"전체 {pagination_state['total_count']}건 / "
+            f"현재 페이지 {len(rows_state)}건 / "
+            f"{pagination_state['current_page']} / {pagination_state['total_pages']} 페이지"
+        )
+
+    def reload_current_page():
+        keyword = pagination_state["keyword"]
+        current_page = pagination_state["current_page"]
+        prefilter_total_count = pagination_state.get("prefilter_total_count")
+        include_total = prefilter_total_count is None
+
+        page_result = fetch_inbound_page(
+            keyword=keyword,
+            page_no=current_page,
+            include_total=include_total,
+        )
+        pagination = page_result["pagination"]
+        total_count = (
+            int(prefilter_total_count)
+            if prefilter_total_count is not None
+            else pagination.get("total_count", 0)
+        )
+        total_pages = (
+            calc_total_pages(total_count, PAGE_SIZE)
+            if prefilter_total_count is not None
+            else pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
+        )
+
+        if current_page > total_pages:
+            current_page = total_pages
+            pagination_state["current_page"] = current_page
+            page_result = fetch_inbound_page(
+                keyword=keyword,
+                page_no=current_page,
+                include_total=include_total,
+            )
+            pagination = page_result["pagination"]
+            total_count = (
+                int(prefilter_total_count)
+                if prefilter_total_count is not None
+                else pagination.get("total_count", 0)
+            )
+            total_pages = (
+                calc_total_pages(total_count, PAGE_SIZE)
+                if prefilter_total_count is not None
+                else pagination.get("total_pages") or calc_total_pages(total_count, PAGE_SIZE)
+            )
+
+        rows = page_result["rows"]
+
+        rows_state.clear()
+        rows_state.extend(rows)
+
+        pagination_state["total_count"] = total_count
+        pagination_state["total_pages"] = total_pages
+
+        refresh_table(rows_state)
+        refresh_pagination()
+        update_result_text()
+
+    def update_lookup_area(page: ft.Page | None = None):
+        for control in (
+            table_rows_holder,
+            pagination_holder,
+            result_text,
+            reset_button_holder,
+        ):
+            try:
+                control.update()
+            except Exception:
+                if page:
+                    page.update()
+                break
+
+    def on_search_click(e):
+        pagination_state["keyword"] = (search_field.value or "").strip()
+        pagination_state["current_page"] = 1
+        pagination_state["prefilter_total_count"] = None
+        result_text.value = "조회 중입니다."
+        try:
+            result_text.update()
+        except Exception:
+            pass
+        reload_current_page()
+        update_reset_button_visibility()
+        update_lookup_area(e.page)
+
+    def on_reset_click(e):
+        # 🔥 추가: 검색/날짜 조건을 전부 기본값으로 되돌리고 첫 화면 재조회
+        selected_start["value"] = None
+        selected_end["value"] = None
+
+        search_type_value["value"] = "inbound_id"
+        search_type_text.value = search_type_labels["inbound_id"]
+        date_filter_type_value["value"] = "inbound_complete"
+        date_type_text.value = date_type_labels["inbound_complete"]
+        search_field.value = ""
+
+        pagination_state["keyword"] = ""
+        pagination_state["current_page"] = 1
+        pagination_state["prefilter_total_count"] = None
+
+        refresh_picker_fields()
+        result_text.value = "초기화 후 조회 중입니다."
+        try:
+            result_text.update()
+        except Exception:
+            pass
+        reload_current_page()
+        update_reset_button_visibility()
+        for control in (
+            start_field_holder,
+            start_icon_holder,
+            end_field_holder,
+            end_icon_holder,
+            search_type_text,
+            date_type_text,
+            search_field,
+        ):
+            try:
+                control.update()
+            except Exception:
+                pass
+        update_lookup_area(e.page)
+
+    refresh_picker_fields()
+
+    # 🔥 추가: 처음에는 숨겨두고, 검색/날짜 조건이 생기면 표시
+    reset_button_holder.content = action_button("초기화", on_click=on_reset_click, width=78, run_async=True)
+    update_reset_button_visibility()
+
+    pagination_state["keyword"] = ""
+    pagination_state["current_page"] = 1
+
+    table_area = build_lookup_table_area(build_table_header(), table_rows_holder)
+
+    page_layout = build_lookup_page_layout(
+        page_title=page_title,
+        result_text=result_text,
+        table_area=table_area,
+        pagination_holder=pagination_holder,
+        filter_controls=[
+            start_field_holder,
+            start_icon_holder,
+            ft.Text("~", size=18, color="#374151", weight=ft.FontWeight.W_600),
+            end_field_holder,
+            end_icon_holder,
+            date_type,
+            search_type,
+            search_field,
+            action_button("조회", on_click=on_search_click, run_async=True),
+            reset_button_holder,
+            # 🔥 미구현 기능 버튼은 사용자 혼란 방지를 위해 숨김
+        ],
+    )
+
+    class InboundPage(ft.Container):
+        def did_mount(self):
+            self.page.run_thread(lambda: (reload_current_page(), update_lookup_area(self.page)))
+
+    return InboundPage(expand=True, content=page_layout)

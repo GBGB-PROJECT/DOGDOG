@@ -1,0 +1,99 @@
+# -------------------------------------------------------------------------------------------------------
+import flet as ft
+import components as dogdog
+
+
+# -------------------------------------------------------------------------------------------------------
+def sign_up_view(page: ft.Page, controller, check_email_callback=None):
+    """
+    [View] sign_up_view
+    - 순수 Dumb Component: UI만 렌더링하고 상태 변경은 모두 controller에 위임합니다.
+    """
+    storage = page.session.store
+
+    # -----------------------------------------------------------------------------------------------
+    # Default Value
+    # -----------------------------------------------------------------------------------------------
+    def email_on_change(e):
+        value = e.control.value
+        controller.update_field("user_email", value)
+
+        if value:
+            is_valid, error_msg = controller.validate_email(value)
+            if not is_valid:
+                email_input.error_text = error_msg
+            else:
+                email_input.error_text = None
+        else:
+            email_input.error_text = None
+        email_input.update()
+
+    def name_on_change(e):
+        controller.update_field("user_name", e.control.value)
+
+    def password_on_change(e):
+        value = e.control.value
+        controller.update_field("user_password", value)
+
+        if value:
+            is_valid, error_msg = controller.validate_password(value)
+            if not is_valid:
+                password_input.error_text = error_msg
+            else:
+                password_input.error_text = None
+        else:
+            password_input.error_text = None
+        password_input.update()
+
+    # 이메일 확인 버튼 (suffix) - 크기 붕괴 방지용 명시적 사이즈 할당
+    email_suffix = None
+    if check_email_callback:
+        email_suffix = ft.Container(
+            width=75,
+            height=30,
+            alignment=ft.Alignment.CENTER,
+            # ft.Colors.BLACK 대신 헥스 코드나 기본 색상을 사용하여 버전 충돌 원천 차단
+            content=dogdog.basic_text("중복확인", weight="bold", size=12),
+            bgcolor="#EEEEEE",  # 예쁜 연그레이 색상 헥스코드
+            border_radius=10,
+            on_click=check_email_callback,
+        )
+
+    email_input = dogdog.input_textfield(
+        hint_text="example@dogdog.com",
+        max_length=None,  # type: ignore
+        on_change=email_on_change,
+        input_type="email",
+        suffix=email_suffix,
+    )
+    name_input = dogdog.input_textfield(
+        hint_text="닉네임(2-10자, 한글/영문)", on_change=name_on_change
+    )
+    password_input = dogdog.input_textfield(
+        hint_text="비밀번호(8자 이상,영문/숫자/특수문자 포함)",
+        max_length=None,  # type: ignore
+        on_change=password_on_change,
+        input_type="password",
+    )
+
+    if storage.get("user_email"):
+        email_input.value = storage.get("user_email")  # type: ignore
+    if storage.get("user_name"):
+        name_input.value = storage.get("user_name")  # type: ignore
+    if storage.get("user_password"):
+        password_input.value = storage.get("user_password")  # type: ignore
+
+    # ---------------------------------------------------------------------------------------------------
+    # Sign Up Page
+    # ---------------------------------------------------------------------------------------------------
+    content_column = [
+        dogdog.basic_text(value="프로필을 완성하세요.", weight="bold", size=24),
+        dogdog.basic_text(value="이메일", weight="bold"),
+        email_input,
+        dogdog.basic_text(value="닉네임", weight="bold"),
+        name_input,
+        dogdog.basic_text(value="비밀번호", weight="bold"),
+        password_input,
+    ]
+
+    return content_column
